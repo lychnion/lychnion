@@ -1,6 +1,6 @@
 # Offline AI helper (name open): proof of concept plan
 
-Draft 2026-11-02, updated 2026-11-04. PoC built: private repo
+Draft 2026-11-02, updated 2026-11-05. PoC built: private repo
 `dkastl/fieldkit` (code name, Apache 2.0). Results in section 7.
 
 "Bousai LLM" is now only the name of the disaster package. The app gets a
@@ -293,32 +293,42 @@ manifest. The app shows it under each citation.
   東京都 and 日本雪崩ネットワーク not contacted.
 - Language: Japanese and English from the start.
 
-## 7. Results (2026-11-04)
+## 7. Results (updated 2026-11-05)
 
-Details in the repo: `docs/spike-1-results.md` to `docs/spike-4-results.md`
-and `docs/map-results.md`.
+Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
+`docs/map-results.md` and `docs/device-results.md`.
 
 | Step | Result |
 |---|---|
-| 1. Model on device | Gemma 4 E2B (Q4_0, 2.8 GB) via flutter_edge_ai + llama.cpp. Mac M4 Max: ~115 tokens/s, first token ~40 ms, 1.6 to 3 GB RAM. Android emulator (CPU): 1 to 5 tokens/s, 4.5 GB RAM. |
+| 1. Model on device | Gemma 4 E2B (Q4_0, 2.65 GB) via flutter_edge_ai + llama.cpp. Mac M4 Max: ~115 tokens/s. |
 | 1. Bare model, 8 safety questions | 2 dangerous (tsunami: "wait for TV/radio"; avalanche: no beacon), 1 wrong number (water). |
-| 2. Answers from sources | Package of official pages (首相官邸, 消防庁, 環境省; PDL1.0), citation check, fixed safety lines quoted word for word. Tsunami and water fixed. OCR of a two-column table produced a dangerous bear answer until that page was dropped. |
-| 3. Vector search, English | EmbeddingGemma 2 (310 MB, multilingual). English questions translated to Japanese before search. 28 questions: 23 handled right. |
-| 4. Near-topic answers | Volcano page added. 35 questions: 23 / 23 covered answered from the right source, 10 / 12 uncovered refused. A yes/no self-check with the 2B model did not work; a "partly covered" label instead. |
-| Map | Nishinomiya area: 24 MB offline base map (OSM/Protomaps), 1,613 GSI emergency sites + 1,001 shelters (392 KB). Nearest site per hazard; answers about a hazard show the nearest site and link to the map. |
+| 2. Answers from sources | Package of official pages (PDL1.0), citation check, fixed safety lines quoted word for word. Tsunami and water fixed. |
+| 3. Vector search, English | EmbeddingGemma 2 (310 MB, multilingual). English questions translated to Japanese before search. |
+| 4. Near-topic answers | Volcano page added; a yes/no self-check with the 2B model did not work; "partly covered" label instead. |
+| 5. Desktop model | Gemma 4 E4B (4.6 GB): better answers, 68 tokens/s, 5.2 GB. For the desktop / shelter version. Still not a reliable judge. |
+| 6. Bears, getting lost | 政府広報オンライン articles (plain text, PDL1.0), two more safety lines. 37 questions: **28 / 28 covered answered from the right source, 9 / 9 uncovered refused.** |
+| Map | Nishinomiya: 24 MB offline map (OSM/Protomaps), 2,614 GSI sites. Nearest site per hazard; answers link to the map. |
+| iPad Air 5 (M1, 8 GB) | Full app offline: ~22 tokens/s, answers in 2 to 9 s, ~2 GB memory, same results as the Mac. |
+| Pixel 5a (2021, 6 GB) | Same quality, but CPU only: median 48 s per answer; memory borderline. Reading less (2 short passages) gets ~29 s at a small quality cost. |
+| Small phone models | Qwen3-1.7B 20 / 23, LFM2.5-1.2B-JP 14 / 23; both computed the family water amount wrong (12 L instead of 36 L). |
 
 Lessons:
 
-- The bare model is fast enough but must not answer safety questions alone.
-- A citation is only as good as the source text: tables need a checked text
-  version, not OCR.
-- Content beats cleverness: a missing official page is the main cause of
-  bad answers; self-checks with a 2B model are unreliable.
-- Japanese and English both work with one Japanese package.
+- The bare model is fast enough on recent devices but must not answer
+  safety questions alone.
+- A citation is only as good as the source text. OCR of two-column PDFs
+  inverted advice twice (bears: "drop your bag and run", "don't make
+  noise"); that source is disabled. Use plain-text sources only.
+- Content beats cleverness: missing official pages caused the bad answers;
+  adding them fixed volcano, bears and getting lost.
+- Fixed safety lines carry the critical action even when the small model's
+  own answer is weak.
+- Recent phones and tablets run the app well; older Android phones need GPU
+  support or a shelter computer that answers over local Wi-Fi.
 
-Still open: real phone test (memory), bear encounter and hiking sources,
-routing (distance is straight-line), current-facts store and device sync
-(Idea 5), public name.
+Still open: shelter desktop serving phones over Wi-Fi, Android GPU,
+in-app download of models and packages, routing (distance is straight-line),
+current-facts store and device sync (Idea 5), public name.
 
 ## Sources
 
