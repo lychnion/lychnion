@@ -201,9 +201,10 @@ class ShelterSettingsTile extends StatelessWidget {
       ),
       trailing: url == null
           ? const Icon(Icons.chevron_right)
-          : TextButton(
+          : IconButton(
+              tooltip: en ? 'Disconnect' : '切断',
               onPressed: () => settings.setShelter(null),
-              child: Text(en ? 'Disconnect' : '切断'),
+              icon: const Icon(Icons.link_off_rounded),
             ),
       onTap: url == null ? () => _enter(context) : null,
     );

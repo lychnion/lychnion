@@ -39,6 +39,10 @@ import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
 import 'ui/answer_card.dart';
+import 'ui/conversation_page.dart';
+import 'ui/thread_list.dart';
+import 'ui/threads.dart';
+import 'ui/nearest_card.dart';
 import 'util/paths.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
@@ -54,7 +58,7 @@ import 'util/paths.dart';
 ///   --dart-define=DOWNLOAD_BASE_URL=http://host:port/        base for relative catalog URLs
 ///   --dart-define=MAP_PMTILES_PATH=/path/area.pmtiles        offline base map
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
-///   --dart-define=START_TAB=1                                open on the map
+///   --dart-define=START_TAB=2                                open on the map (1: conversations)
 ///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
 ///   --dart-define=SHELTER_SERVER=true                        answer phones on the local network (desktop)
 ///   --dart-define=SHELTER_NAME=…                             shown on phones
@@ -102,6 +106,8 @@ Future<void> main() async {
   runApp(FieldkitApp(settings: settings));
 }
 
+final _appShotKey = GlobalKey();
+
 class FieldkitApp extends StatelessWidget {
   const FieldkitApp({super.key, required this.settings});
 
@@ -119,6 +125,9 @@ class FieldkitApp extends StatelessWidget {
       supportedLocales: const [Locale('ja'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: HomePage(settings: settings),
+      // Dev screenshots include pages pushed on top (conversations).
+      builder: (context, child) =>
+          RepaintBoundary(key: _appShotKey, child: child),
     ),
   );
 }
@@ -135,7 +144,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _tab = _startTab;
-  final _shotKey = GlobalKey();
 
   /// Current facts (shelter status, blocked roads, warnings), kept apart
   /// from the model and the knowledge packages.
@@ -258,7 +266,7 @@ class _HomePageState extends State<HomePage> {
       final near = map.nearest(h, limit: 1, skipAvoided: true);
       if (h == null || near.isEmpty) continue;
       map.showOnMap(h, near.first.site.point);
-      setState(() => _tab = 1);
+      setState(() => _tab = 2);
       await Future<void>.delayed(const Duration(seconds: 10));
       await _saveScreenshot();
       return;
@@ -268,7 +276,7 @@ class _HomePageState extends State<HomePage> {
   // Dev aid: lets scripts see the app without screen-recording rights.
   Future<void> _saveScreenshot() async {
     final boundary =
-        _shotKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+        _appShotKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1.5);
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
     final dir = await exchangeDirectory();
@@ -280,6 +288,26 @@ class _HomePageState extends State<HomePage> {
       'FIELDKIT ${jsonEncode({'event': 'screenshot', 'file': file.path})}',
     );
   }
+
+  void _openSettings(bool _) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      // Language can change while settings are open: read it here.
+      builder: (context) {
+        final en = Localizations.localeOf(context).languageCode != 'ja';
+        return SettingsScreen(
+          settings: widget.settings,
+          downloads: _downloads,
+          en: en,
+          shelter: ValueListenableBuilder(
+            valueListenable: _shelterUrls,
+            builder: (_, urls, _) => _shelterServer
+                ? ShelterQrCard(urls: urls, name: _shelterName, en: en)
+                : ShelterSettingsTile(settings: widget.settings, en: en),
+          ),
+        );
+      },
+    ),
+  );
 
   void _openDownloads(bool en) {
     final dm = _downloads;
@@ -295,18 +323,23 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final en = Localizations.localeOf(context).languageCode != 'ja';
     return RepaintBoundary(
-      key: _shotKey,
       child: Scaffold(
         body: IndexedStack(
-          index: _tab,
+          index: _tab == 2 ? 1 : 0,
           children: [
             SpikePage(
+              view: _tab == 1 ? AskPageView.conversations : AskPageView.home,
+              onOpenSettings: () => _openSettings(en),
+              onShowAsk: () => setState(() => _tab = 1),
               map: _map,
               facts: _facts,
               settings: widget.settings,
               shelterUrls: _shelterUrls,
               downloadChanges: _downloadChanges,
-              onShowOnMap: () => setState(() => _tab = 1),
+              onShowOnMap: () {
+                Navigator.of(context).popUntil((r) => r.isFirst);
+                setState(() => _tab = 2);
+              },
               onOpenDownloads: () => _openDownloads(en),
               onDemoDone: _demoDone,
             ),
@@ -330,23 +363,17 @@ class _HomePageState extends State<HomePage> {
                           : null,
                     ),
             ),
-            SettingsScreen(
-              settings: widget.settings,
-              downloads: _downloads,
-              en: en,
-              shelter: ValueListenableBuilder(
-                valueListenable: _shelterUrls,
-                builder: (_, urls, _) => _shelterServer
-                    ? ShelterQrCard(urls: urls, name: _shelterName, en: en)
-                    : ShelterSettingsTile(settings: widget.settings, en: en),
-              ),
-            ),
           ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
           onDestinationSelected: (i) => setState(() => _tab = i),
           destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home_rounded),
+              label: en ? 'Home' : 'ホーム',
+            ),
             NavigationDestination(
               icon: const Icon(Icons.chat_bubble_outline_rounded),
               selectedIcon: const Icon(Icons.chat_bubble_rounded),
@@ -357,17 +384,14 @@ class _HomePageState extends State<HomePage> {
               selectedIcon: const Icon(Icons.map_rounded),
               label: en ? 'Map' : '地図',
             ),
-            NavigationDestination(
-              icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings_rounded),
-              label: en ? 'Settings' : '設定',
-            ),
           ],
         ),
       ),
     );
   }
 }
+
+enum AskPageView { home, conversations }
 
 class SpikePage extends StatefulWidget {
   const SpikePage({
@@ -380,7 +404,17 @@ class SpikePage extends StatefulWidget {
     this.settings,
     this.onOpenDownloads,
     this.shelterUrls,
+    this.view = AskPageView.home,
+    this.onOpenSettings,
+    this.onShowAsk,
   });
+
+  /// Home screen or the list of conversations (Ask tab).
+  final AskPageView view;
+  final VoidCallback? onOpenSettings;
+
+  /// "See all" on the home screen: switch to the Ask tab.
+  final VoidCallback? onShowAsk;
 
   /// Set by the shelter computer: its addresses, for the QR code.
   final ValueNotifier<List<String>>? shelterUrls;
@@ -402,8 +436,47 @@ class SpikePage extends StatefulWidget {
 class _SpikePageState extends State<SpikePage> {
   final _llm = LocalLlm();
   final _input = TextEditingController();
+  final _threadInput = TextEditingController();
   final _url = TextEditingController(text: _modelUrl);
-  final _entries = <GroundedAnswer>[];
+  final _threads = ThreadStore();
+
+  /// The open conversation; new questions go here.
+  Thread? _current;
+  List<GroundedAnswer> get _entries => _current?.entries ?? const [];
+
+  /// Bumped on every setState, so an open conversation page rebuilds.
+  final _tick = ValueNotifier<int>(0);
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _tick.value++;
+  }
+
+  /// Starts a conversation and shows it.
+  Thread _startThread() {
+    final t = _threads.create();
+    _openThread(t);
+    return t;
+  }
+
+  void _openThread(Thread t) {
+    _current = t;
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (context) => ValueListenableBuilder(
+              valueListenable: _tick,
+              builder: (context, _, _) => _conversation(context, t),
+            ),
+          ),
+        )
+        .then((_) {
+          if (identical(_current, t)) _current = null;
+          setState(() {});
+        });
+  }
+
   GroundedAnswerer? _answerer;
   final _embedder = LocalEmbedder();
   String _status = 'No model loaded. / モデル未読み込み（「ダウンロード」から取得）';
@@ -449,6 +522,7 @@ class _SpikePageState extends State<SpikePage> {
   @override
   void initState() {
     super.initState();
+    unawaited(_threads.load());
     widget.settings?.addListener(_shelterChanged);
     _shelterChanged();
     if (_modelPath.isNotEmpty) {
@@ -592,6 +666,7 @@ class _SpikePageState extends State<SpikePage> {
     }
     if (afterLoad && _autoBench) await _bench();
     if (afterLoad && _demoQuestions.isNotEmpty) {
+      _startThread();
       for (final q in _demoQuestions.split('|')) {
         await _ask(q.trim());
       }
@@ -662,6 +737,7 @@ class _SpikePageState extends State<SpikePage> {
         _phase = AskPhase.shelter;
       });
       if (_modelPath.isEmpty && _demoQuestions.isNotEmpty) {
+        _startThread();
         for (final q in _demoQuestions.split('|')) {
           await _ask(q.trim());
         }
@@ -679,29 +755,33 @@ class _SpikePageState extends State<SpikePage> {
   }
 
   Future<void> _ask(String question) async {
+    final thread = _current ??= _threads.create();
     // A shelter computer answers first: faster and better than a phone.
     final shelter = _shelter;
     if (shelter != null && _shelterReady) {
       final placeholder = GroundedAnswer(question)..answeredBy = shelter.name;
       setState(() {
         _busy = true;
-        _entries.add(placeholder);
+        thread.entries.add(placeholder);
       });
       try {
         final remote = await shelter.ask(question)
           ..answeredBy = shelter.name;
-        setState(() => _entries[_entries.indexOf(placeholder)] = remote);
+        setState(
+          () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
+        );
+        unawaited(_threads.save());
         _log({'event': 'answer', ...remote.toJson()});
         setState(() => _busy = false);
         return;
       } catch (e) {
         _log({'event': 'shelter_failed', 'error': '$e'});
-        setState(() => _entries.remove(placeholder));
+        setState(() => thread.entries.remove(placeholder));
         if (!_llm.isLoaded) {
           final failed = GroundedAnswer(question)
             ..text = 'Shelter not reachable and no model on this device: $e';
           setState(() {
-            _entries.add(failed);
+            thread.entries.add(failed);
             _busy = false;
           });
           return;
@@ -711,7 +791,7 @@ class _SpikePageState extends State<SpikePage> {
     final entry = GroundedAnswer(question);
     setState(() {
       _busy = true;
-      _entries.add(entry);
+      thread.entries.add(entry);
     });
     try {
       final answerer = _answerer;
@@ -731,10 +811,12 @@ class _SpikePageState extends State<SpikePage> {
       entry.text += '\n[error: $e]';
     } finally {
       setState(() => _busy = false);
+      unawaited(_threads.save());
     }
   }
 
   Future<void> _bench() async {
+    _current = _threads.create(); // results land in their own thread
     final results = <Map<String, Object?>>[];
     final hybrid = _answerer?.hybrid;
     if (hybrid != null) await _logRetrieval(hybrid);
@@ -796,12 +878,35 @@ class _SpikePageState extends State<SpikePage> {
   Widget build(BuildContext context) {
     final ready = (_llm.isLoaded || _shelterReady) && !_busy;
     final en = Localizations.localeOf(context).languageCode != 'ja';
-    final settings = widget.settings;
+    if (widget.view == AskPageView.conversations) {
+      return ConversationsView(
+        en: en,
+        store: _threads,
+        onOpen: _openThread,
+        onOpenSettings: widget.onOpenSettings,
+        bar: QuestionBar(
+          en: en,
+          input: _input,
+          ready: ready,
+          busy: _busy,
+          onSend: _sendNew,
+          onStop: _llm.stop,
+        ),
+      );
+    }
     return AskView(
+      onOpenSettings: widget.onOpenSettings,
       en: en,
       phase: _phase,
       detail: _status,
       shelterName: _shelter?.name,
+      home: widget.map == null
+          ? null
+          : NearestSiteCard(
+              map: widget.map!,
+              en: en,
+              onShowOnMap: widget.onShowOnMap,
+            ),
       detailExtra: _server == null
           ? null
           : ShelterQrCard(
@@ -812,8 +917,18 @@ class _SpikePageState extends State<SpikePage> {
       ready: ready,
       busy: _busy,
       input: _input,
-      onSend: _send,
-      onAsk: (q) => unawaited(_ask(q)),
+      onSend: _sendNew,
+      onAsk: (q) {
+        _startThread();
+        unawaited(_ask(q));
+      },
+      recent: ThreadList(
+        store: _threads,
+        en: en,
+        onOpen: _openThread,
+        max: 3,
+        onSeeAll: widget.onShowAsk,
+      ),
       onStop: _llm.stop,
       onOpenDownloads: widget.onOpenDownloads,
       devActions: [
@@ -823,7 +938,56 @@ class _SpikePageState extends State<SpikePage> {
           DevAction('Load GGUF file…', _busy ? null : _pickFile),
         DevAction('Run test questions', ready ? _bench : null),
       ],
-      itemCount: _entries.length,
+    );
+  }
+
+  /// The conversation page for [t], rebuilt on every state change.
+  Widget _conversation(BuildContext context, Thread t) {
+    final ready = (_llm.isLoaded || _shelterReady) && !_busy;
+    final en = Localizations.localeOf(context).languageCode != 'ja';
+    final settings = widget.settings;
+    return ConversationPage(
+      title: t.title,
+      en: en,
+      actions: [
+        PopupMenuButton<String>(
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'archive',
+              child: ListTile(
+                leading: Icon(
+                  t.archived
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
+                ),
+                title: Text(
+                  t.archived
+                      ? (en ? 'Move back' : '元に戻す')
+                      : (en ? 'Archive' : 'アーカイブ'),
+                ),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: ListTile(
+                leading: const Icon(Icons.delete_outline_rounded),
+                title: Text(en ? 'Delete' : '削除'),
+              ),
+            ),
+          ],
+          onSelected: (v) async {
+            final nav = Navigator.of(context);
+            if (v == 'archive') {
+              _threads.setArchived(t, !t.archived);
+              nav.pop();
+            } else if (await _confirmDelete(context, en)) {
+              _threads.delete(t);
+              nav.pop();
+            }
+          },
+        ),
+      ],
+      itemCount: t.entries.length,
       itemBuilder: (_, i) => ListenableBuilder(
         // Rebuild when the map data, position or settings change.
         listenable: Listenable.merge([
@@ -831,21 +995,59 @@ class _SpikePageState extends State<SpikePage> {
           ?settings,
         ]),
         builder: (_, _) => AnswerCard(
-          answer: _entries[i],
-          grounded: _answerer != null || _entries[i].answeredBy != null,
-          done: !_busy || i < _entries.length - 1,
+          answer: t.entries[i],
+          grounded: _answerer != null || t.entries[i].answeredBy != null,
+          done: !_busy || i < t.entries.length - 1,
           map: widget.map,
           onShowOnMap: widget.onShowOnMap,
           showStats: settings?.showStats ?? false,
         ),
       ),
+      bar: QuestionBar(
+        en: en,
+        input: _threadInput,
+        ready: ready,
+        busy: _busy,
+        onSend: () {
+          final q = _threadInput.text.trim();
+          if (q.isEmpty) return;
+          _threadInput.clear();
+          _current = t;
+          unawaited(_ask(q));
+        },
+        onStop: _llm.stop,
+      ),
     );
   }
 
-  void _send() {
+  Future<bool> _confirmDelete(BuildContext context, bool en) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(en ? 'Delete this conversation?' : 'この会話を削除しますか？'),
+          content: Text(
+            en ? 'It is removed from this device.' : 'この端末から削除されます。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(en ? 'Cancel' : 'キャンセル'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(en ? 'Delete' : '削除'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  /// Home screen: every question starts a new conversation.
+  void _sendNew() {
     final q = _input.text.trim();
     if (q.isEmpty) return;
     _input.clear();
+    _startThread();
     unawaited(_ask(q));
   }
 }

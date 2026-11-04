@@ -8,8 +8,8 @@ Everything runs on the device; the network is only needed to download models.
 [docs/poc-plan.md](docs/poc-plan.md), section 0).
 
 <p>
-  <img src="docs/images/phone-ask.png" width="230" alt="Ask screen with suggested questions">
-  <img src="docs/images/shelter-answer-iphone.png" width="230" alt="Answer with the official tsunami safety line">
+  <img src="docs/images/phone-ask.png" width="230" alt="Home: warning, nearest open site, suggested questions">
+  <img src="docs/images/phone-conversation.png" width="230" alt="Conversation: official safety line, cited answer, where to go">
   <img src="docs/images/phone-map.png" width="230" alt="Offline map with evacuation sites and current information">
 </p>
 

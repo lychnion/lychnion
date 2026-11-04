@@ -24,7 +24,8 @@ const _suggestionsEn = [
   (Icons.forest_outlined, 'What if I meet a bear in the mountains?'),
 ];
 
-/// The Ask screen: header with status, conversation, input bar.
+/// Home screen: status, warnings and nearest site, suggested questions,
+/// recent conversations, and the question bar.
 class AskView extends StatefulWidget {
   const AskView({
     super.key,
@@ -37,13 +38,17 @@ class AskView extends StatefulWidget {
     required this.onSend,
     required this.onAsk,
     required this.onStop,
-    required this.itemCount,
-    required this.itemBuilder,
     this.shelterName,
+    this.recent,
+    this.onOpenSettings,
     this.onOpenDownloads,
     this.devActions = const [],
     this.detailExtra,
+    this.home,
   });
+
+  /// Shown on the empty screen above the suggestions (nearest site, warnings).
+  final Widget? home;
 
   /// Shown under the status details, e.g. the shelter QR code.
   final Widget? detailExtra;
@@ -62,43 +67,20 @@ class AskView extends StatefulWidget {
   final VoidCallback onStop;
   final VoidCallback? onOpenDownloads;
   final List<DevAction> devActions;
-  final int itemCount;
-  final IndexedWidgetBuilder itemBuilder;
+
+  /// Recent conversations, under the suggestions.
+  final Widget? recent;
+
+  /// First entry of the ⋮ menu.
+  final VoidCallback? onOpenSettings;
 
   @override
   State<AskView> createState() => _AskViewState();
 }
 
 class _AskViewState extends State<AskView> {
-  final _scroll = ScrollController();
-  int _lastCount = 0;
-
   bool get en => widget.en;
   String _t(String ja, String english) => en ? english : ja;
-
-  @override
-  void didUpdateWidget(AskView old) {
-    super.didUpdateWidget(old);
-    if (widget.itemCount != _lastCount) {
-      _lastCount = widget.itemCount;
-      // A new question: bring it into view.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.animateTo(
-            _scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,186 +122,139 @@ class _AskViewState extends State<AskView> {
             shelterName: widget.shelterName,
             onTap: () => _showDetail(context),
           ),
-          if (widget.devActions.isNotEmpty)
-            PopupMenuButton<int>(
-              tooltip: _t('開発者向け', 'Developer'),
-              icon: const Icon(Icons.more_vert),
-              itemBuilder: (_) => [
-                for (var i = 0; i < widget.devActions.length; i++)
-                  PopupMenuItem(
-                    value: i,
-                    enabled: widget.devActions[i].onTap != null,
-                    child: Text(widget.devActions[i].label),
-                  ),
-              ],
-              onSelected: (i) => widget.devActions[i].onTap?.call(),
-            ),
+          AppMenu(
+            en: en,
+            onOpenSettings: widget.onOpenSettings,
+            devActions: widget.devActions,
+          ),
           const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          Expanded(
-            child: widget.itemCount == 0
-                ? _emptyState(theme)
-                : ListView.separated(
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    itemCount: widget.itemCount,
-                    separatorBuilder: (_, _) => const SizedBox(height: 20),
-                    itemBuilder: widget.itemBuilder,
-                  ),
+          Expanded(child: _emptyState(theme)),
+          QuestionBar(
+            en: en,
+            input: widget.input,
+            ready: widget.ready,
+            busy: widget.busy,
+            onSend: widget.onSend,
+            onStop: widget.onStop,
           ),
-          _inputBar(theme),
         ],
       ),
     );
   }
 
-  Widget _emptyState(ThemeData theme) {
+  Widget _emptyState(ThemeData theme) => ListView(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+    children: [..._home(theme), ?widget.recent],
+  );
+
+  List<Widget> _home(ThemeData theme) {
     final scheme = theme.colorScheme;
     final suggestions = en ? _suggestionsEn : _suggestionsJa;
     final needsData = widget.phase == AskPhase.noModel;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-      children: [
+    return [
+      Text(
+        _t('もしものときに、\nすぐ聞ける。', 'Ask anything,\neven offline.'),
+        style: theme.textTheme.headlineMedium,
+      ),
+      const SizedBox(height: 10),
+      Text(
+        _t(
+          '防災と応急手当の公的な資料をもとに、インターネットなしで答えます。出典もいっしょに表示します。',
+          'Answers from official safety guides, without internet, '
+              'with the source for every answer.',
+        ),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: 24),
+      if (widget.home case final h?) ...[h, const SizedBox(height: 24)],
+      if (needsData)
+        Card(
+          color: scheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.download_for_offline_rounded,
+                  color: scheme.onPrimaryContainer,
+                  size: 32,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _t('はじめに：データをダウンロード', 'First: download the data'),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: scheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _t(
+                    'Wi-Fi のあるときに一度だけ。その後はオフラインで使えます。',
+                    'Once, on Wi-Fi. After that everything works offline.',
+                  ),
+                  style: TextStyle(color: scheme.onPrimaryContainer),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: widget.onOpenDownloads,
+                  child: Text(_t('ダウンロードへ', 'Go to downloads')),
+                ),
+              ],
+            ),
+          ),
+        )
+      else ...[
         Text(
-          _t('もしものときに、\nすぐ聞ける。', 'Ask anything,\neven offline.'),
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            height: 1.2,
+          _t('たとえば', 'Try asking'),
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: scheme.primary,
+            fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 10),
-        Text(
-          _t(
-            '防災と応急手当の公的な資料をもとに、インターネットなしで答えます。出典もいっしょに表示します。',
-            'Answers from official safety guides, without internet, '
-                'with the source for every answer.',
-          ),
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 24),
-        if (needsData)
-          Card(
-            color: scheme.primaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.download_for_offline_rounded,
-                    color: scheme.onPrimaryContainer,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _t('はじめに：データをダウンロード', 'First: download the data'),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _t(
-                      'Wi-Fi のあるときに一度だけ。その後はオフラインで使えます。',
-                      'Once, on Wi-Fi. After that everything works offline.',
-                    ),
-                    style: TextStyle(color: scheme.onPrimaryContainer),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: widget.onOpenDownloads,
-                    child: Text(_t('ダウンロードへ', 'Go to downloads')),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else ...[
-          Text(
-            _t('たとえば', 'Try asking'),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: scheme.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          for (final (icon, q) in suggestions)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Material(
-                color: scheme.surfaceContainerLow,
+        for (final (icon, q) in suggestions)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Material(
+              color: scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: widget.ready ? () => widget.onAsk(q) : null,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(icon, color: scheme.primary),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(q, style: theme.textTheme.bodyLarge),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 18,
-                          color: scheme.outline,
-                        ),
-                      ],
-                    ),
+                onTap: widget.ready ? () => widget.onAsk(q) : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: scheme.primary),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(q, style: theme.textTheme.bodyMedium),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: scheme.outline,
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-        ],
-      ],
-    );
-  }
-
-  Widget _inputBar(ThemeData theme) => SafeArea(
-    top: false,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: widget.input,
-              enabled: widget.ready,
-              textInputAction: TextInputAction.send,
-              decoration: InputDecoration(
-                hintText: _t('質問を入力', 'Ask a question'),
-                prefixIcon: const Icon(Icons.search_rounded),
-              ),
-              onSubmitted: (_) => widget.onSend(),
-            ),
           ),
-          const SizedBox(width: 8),
-          widget.busy
-              ? IconButton.filledTonal(
-                  tooltip: _t('停止', 'Stop'),
-                  onPressed: widget.onStop,
-                  icon: const Icon(Icons.stop_rounded),
-                )
-              : IconButton.filled(
-                  tooltip: _t('送信', 'Send'),
-                  onPressed: widget.ready ? widget.onSend : null,
-                  icon: const Icon(Icons.arrow_upward_rounded),
-                ),
-        ],
-      ),
-    ),
-  );
+      ],
+    ];
+  }
 
   void _showDetail(BuildContext context) => showModalBottomSheet<void>(
     context: context,
@@ -334,6 +269,11 @@ class _AskViewState extends State<AskView> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
+          if (widget.phase == AskPhase.shelter && widget.shelterName != null)
+            Text(
+              widget.shelterName!,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
           Text(_StatusPill.explain(widget.phase, en)),
           const SizedBox(height: 12),
           SelectableText(
@@ -367,8 +307,8 @@ class _StatusPill extends StatelessWidget {
     AskPhase.noModel => en ? 'Setup needed' : '準備が必要',
     AskPhase.loading => en ? 'Getting ready…' : '準備中…',
     AskPhase.ready => en ? 'Offline ready' : 'オフラインで利用可',
-    AskPhase.shelter =>
-      en ? 'Shelter: ${shelter ?? ''}' : '避難所に接続：${shelter ?? ''}',
+    // Short: the header is narrow on phones; details name the shelter.
+    AskPhase.shelter => en ? 'Shelter' : '避難所',
     AskPhase.serving => en ? 'Shelter computer' : '避難所の端末',
     AskPhase.failed => en ? 'Not ready' : '利用できません',
   };
@@ -512,4 +452,104 @@ class EmptyHint extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Question field and send / stop button, on the home and conversation
+/// screens.
+class QuestionBar extends StatelessWidget {
+  const QuestionBar({
+    super.key,
+    required this.en,
+    required this.input,
+    required this.ready,
+    required this.busy,
+    required this.onSend,
+    required this.onStop,
+  });
+
+  final bool en;
+  final TextEditingController input;
+  final bool ready;
+  final bool busy;
+  final VoidCallback onSend;
+  final VoidCallback onStop;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: input,
+              enabled: ready,
+              textInputAction: TextInputAction.send,
+              style: Theme.of(context).textTheme.bodyLarge,
+              decoration: InputDecoration(
+                hintText: en ? 'Ask a question' : '質問を入力',
+                prefixIcon: const Icon(Icons.search_rounded),
+              ),
+              onSubmitted: (_) => onSend(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          busy
+              ? IconButton.filledTonal(
+                  tooltip: en ? 'Stop' : '停止',
+                  onPressed: onStop,
+                  icon: const Icon(Icons.stop_rounded),
+                )
+              : IconButton.filled(
+                  tooltip: en ? 'Send' : '送信',
+                  onPressed: ready ? onSend : null,
+                  icon: const Icon(Icons.arrow_upward_rounded),
+                ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// ⋮ menu: settings, then developer actions.
+class AppMenu extends StatelessWidget {
+  const AppMenu({
+    super.key,
+    required this.en,
+    this.onOpenSettings,
+    this.devActions = const [],
+  });
+
+  final bool en;
+  final VoidCallback? onOpenSettings;
+  final List<DevAction> devActions;
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<int>(
+    icon: const Icon(Icons.more_vert),
+    itemBuilder: (_) => [
+      if (onOpenSettings != null)
+        PopupMenuItem(
+          value: -1,
+          child: ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: Text(en ? 'Settings' : '設定'),
+          ),
+        ),
+      if (devActions.isNotEmpty) const PopupMenuDivider(),
+      for (var i = 0; i < devActions.length; i++)
+        PopupMenuItem(
+          value: i,
+          enabled: devActions[i].onTap != null,
+          child: ListTile(
+            dense: true,
+            leading: const Icon(Icons.code_rounded),
+            title: Text(devActions[i].label),
+          ),
+        ),
+    ],
+    onSelected: (i) =>
+        i == -1 ? onOpenSettings?.call() : devActions[i].onTap?.call(),
+  );
 }

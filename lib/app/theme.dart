@@ -15,6 +15,7 @@ ThemeData buildTheme(Brightness brightness) {
     colorScheme: scheme,
     brightness: brightness,
     scaffoldBackgroundColor: scheme.surface,
+    textTheme: _typeScale(scheme),
   );
   final radius = BorderRadius.circular(20);
   return base.copyWith(
@@ -26,7 +27,8 @@ ThemeData buildTheme(Brightness brightness) {
       centerTitle: false,
       titleTextStyle: TextStyle(
         fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0,
         color: scheme.onSurface,
       ),
     ),
@@ -70,5 +72,35 @@ ThemeData buildTheme(Brightness brightness) {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
     ),
+  );
+}
+
+/// One small type scale for the whole app, so sizes stay consistent:
+/// heading 26, title 20 / 16, body 16 / 15 / 13, label 14 / 12 / 11.
+/// No extra letter spacing: Material's default spreads Japanese text apart.
+TextTheme _typeScale(ColorScheme c) {
+  TextStyle t(double size, FontWeight w, [double height = 1.4]) => TextStyle(
+    fontSize: size,
+    fontWeight: w,
+    height: height,
+    letterSpacing: 0,
+    color: c.onSurface,
+  );
+  return TextTheme(
+    displayLarge: t(34, FontWeight.w800, 1.2),
+    displayMedium: t(30, FontWeight.w800, 1.2),
+    displaySmall: t(28, FontWeight.w800, 1.2),
+    headlineLarge: t(28, FontWeight.w800, 1.25),
+    headlineMedium: t(26, FontWeight.w800, 1.25),
+    headlineSmall: t(24, FontWeight.w700, 1.25),
+    titleLarge: t(20, FontWeight.w700, 1.3),
+    titleMedium: t(16, FontWeight.w700, 1.35),
+    titleSmall: t(14, FontWeight.w700, 1.35),
+    bodyLarge: t(16, FontWeight.w400, 1.6),
+    bodyMedium: t(15, FontWeight.w400, 1.5),
+    bodySmall: t(13, FontWeight.w400, 1.45),
+    labelLarge: t(14, FontWeight.w600, 1.3),
+    labelMedium: t(12, FontWeight.w600, 1.3),
+    labelSmall: t(11, FontWeight.w600, 1.3),
   );
 }
