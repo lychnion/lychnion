@@ -172,7 +172,7 @@ citation correctness, time to first token, RAM.
 │     ▼                                                                  │
 │  LLM interface ── flutter_edge_ai (llama.cpp / LiteRT-LM)              │
 │                                                                        │
-│  Facts store (later): {fact, time, source, expires_at}                 │
+│  Facts store: {fact, time, source, expires_at} (built, see §7)         │
 │  Map: flutter_map + PMTiles (offline vector tiles)                     │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -266,8 +266,7 @@ manifest. The app shows it under each citation.
 **Out for now, later steps:**
 
 - Outdoor packages (build one after the core works, probably hiking).
-- Current facts store `{fact, time, source, expires_at}` with "expired" shown
-  in the UI.
+- ~~Current facts store~~ (done 2026-11-05, see §7).
 - Sharing packages and facts between devices: Wi-Fi/Bluetooth nearby sync,
   then Meshtastic over BLE (Idea 5). Facts must be small and signed.
 - Shelter / local-government desktop features (several users, printing).
@@ -288,16 +287,17 @@ manifest. The app shows it under each citation.
 
 - Code: private repo on Daniel's GitHub account (`dkastl/fieldkit`),
   Apache 2.0. Public name later.
-- Platforms: macOS and the Android emulator so far; a real phone is still open.
+- Platforms: tested on a Mac, an iPad Air 5, a Pixel 5a and the iPhone
+  simulator (as of 2026-11-05).
 - Sources: clearly open ones only for the PoC (PDL1.0 government pages, GSI).
   東京都 and 日本雪崩ネットワーク not contacted.
 - Language: Japanese and English from the start.
 
-## 7. Results (updated 2026-11-05)
+## 7. Results (updated 2026-11-05, evening)
 
 Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
-`docs/map-results.md`, `docs/device-results.md`, `docs/shelter-results.md`
-and `docs/download-results.md`.
+`docs/map-results.md`, `docs/device-results.md`, `docs/shelter-results.md`,
+`docs/download-results.md` and `docs/facts-results.md`.
 
 | Step | Result |
 |---|---|
@@ -315,6 +315,12 @@ and `docs/download-results.md`.
 | Shelter computer | Desktop app answers phones on the local network (E4B). Pixel 5a without a model: answer in 2.5 s instead of 48 s. Office Wi-Fi blocked device-to-device traffic (client isolation): a shelter needs its own hotspot or a network that allows it. |
 | Downloads | Models (Hugging Face), package and map area (public `dkastl/fieldkit-data` releases) downloaded in the app with resume and SHA-256 check. Pixel 5a: everything downloaded, then airplane mode: cited answer and offline map work. |
 | GSI data gap | 西宮市 and 尼崎市 mark no emergency site for earthquakes (神戸市 marks all). The app now warns when the user's city has no site for the hazard and points to the city's hazard map. |
+| Current facts | Shelter status, blocked roads, water points and warnings, each with time, source (official / sensor / resident) and expiry, kept apart from the model. The most trusted source wins, then the newest; expired facts are never shown. Full or closed shelters are skipped when suggesting where to go. Shown as 「最新の情報（AIの回答ではありません）」 with age and source. |
+| Facts entry | Staff enter facts on the shelter computer's map (status per site, long press for a road or water point, warnings per city), with a lifetime and source; "解除する" clears a fact. Phones pull them every minute. |
+| Radio-sized facts | Compact format for LoRa / Meshtastic: one shelter update is 16 bytes, 12 updates fit in one 190-byte message. Not yet sent over a radio. |
+| Shelter QR code | The shelter computer shows a QR code; the phone camera opens fieldkit, which asks before it connects. Address can also be typed. Tested Mac → iPhone simulator. |
+| App design | Redesigned for demos: chat-style Ask screen with suggested questions and a status label, full-screen map with a sliding panel, Settings with language (device / 日本語 / English) and downloads. |
+| iPhone simulator | Runs the full app (CPU). Needed one build fix for Xcode 27. |
 
 Lessons:
 
@@ -333,9 +339,9 @@ Lessons:
   must say when it cannot find a proper site, not silently send people to the
   next city.
 
-Still open: shelter discovery (QR code / local network), Android GPU,
-routing (distance is straight-line), current-facts store and device sync
-(Idea 5), public name, iOS test of the downloads.
+Still open: Android GPU, routing (distance is straight-line), signed facts
+and an official facts feed, sending facts over a radio mesh (Idea 5), QR test
+with a real phone camera, iOS test of the downloads, public name.
 
 ## Sources
 

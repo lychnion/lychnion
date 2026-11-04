@@ -7,6 +7,14 @@ Everything runs on the device; the network is only needed to download models.
 "fieldkit" is a code name. The public name is still open (see
 [docs/poc-plan.md](docs/poc-plan.md), section 0).
 
+<p>
+  <img src="docs/images/phone-ask.png" width="230" alt="Ask screen with suggested questions">
+  <img src="docs/images/shelter-answer-iphone.png" width="230" alt="Answer with the official tsunami safety line">
+  <img src="docs/images/phone-map.png" width="230" alt="Offline map with evacuation sites and current information">
+</p>
+
+iPhone simulator, 2026-11-05. Shelter status and warnings on the map are test data.
+
 ## Status
 
 - Spike 1 ([results](docs/spike-1-results.md)): Gemma 4 E2B (GGUF) runs on
