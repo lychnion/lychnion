@@ -12,10 +12,15 @@ void main() {
     for (var i = 0; i < near.length; i++) {
       expect(near[i].site.hazards, contains(Hazard.tsunami));
       expect(near[i].site.emergency, isTrue);
-      if (i > 0) expect(near[i].meters, greaterThanOrEqualTo(near[i - 1].meters));
+      if (i > 0) {
+        expect(near[i].meters, greaterThanOrEqualTo(near[i - 1].meters));
+      }
     }
     // ignore: avoid_print
-    print([for (final n in near) '${n.site.name} ${n.meters.round()} m ${n.direction(false)}']);
+    print([
+      for (final n in near)
+        '${n.site.name} ${n.meters.round()} m ${n.direction(false)}',
+    ]);
   });
 
   test('shelters are never offered as emergency sites', () {

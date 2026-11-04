@@ -18,7 +18,8 @@ Everything runs on the device; the network is only needed to download models.
 - Spike 3 ([results](docs/spike-3-results.md)): vector search
   (EmbeddingGemma 2), relevance cut-off, questions in Japanese and English.
 - Offline map ([results](docs/map-results.md)): Nishinomiya area, GSI
-  evacuation sites by hazard, nearest sites from the current position.
+  evacuation sites by hazard, nearest sites from the current position;
+  answers about a hazard show the nearest site and link to the map.
 
 ## Knowledge packages
 

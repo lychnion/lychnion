@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../knowledge/grounded_answer.dart';
+import '../map/hazard_detect.dart';
+import '../map/map_screen.dart' show formatDistance;
+import '../map/map_state.dart';
 
 /// One question with its safety lines, answer and the sources it cites.
 class AnswerCard extends StatelessWidget {
@@ -9,11 +12,17 @@ class AnswerCard extends StatelessWidget {
     required this.answer,
     required this.grounded,
     required this.done,
+    this.map,
+    this.onShowOnMap,
   });
 
   final GroundedAnswer answer;
   final bool grounded;
   final bool done;
+
+  /// When set, answers about a hazard also show the nearest evacuation site.
+  final MapState? map;
+  final void Function()? onShowOnMap;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +83,7 @@ class AnswerCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ..._whereToGo(theme),
             const SizedBox(height: 8),
             SelectableText(answer.text),
             if (grounded && done) ..._grounding(theme),
@@ -144,6 +154,53 @@ class AnswerCard extends StatelessWidget {
               ),
             ],
           ),
+    ];
+  }
+
+  /// Nearest emergency evacuation site for the hazard the question is about.
+  List<Widget> _whereToGo(ThemeData theme) {
+    final m = map;
+    if (m == null || !m.ready) return const [];
+    final hazard = hazardFor(answer.question, answer.alerts);
+    if (hazard == null) return const [];
+    final near = m.nearest(hazard, limit: 1);
+    if (near.isEmpty) return const [];
+    final n = near.first;
+    final en = answer.lang == 'en';
+    return [
+      Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.directions_walk,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                en
+                    ? 'Nearest ${hazard.en.toLowerCase()} evacuation site: ${n.site.name}, '
+                          '${formatDistance(n.meters)} ${n.direction(true)} (straight line)'
+                    : '最寄りの${hazard.ja}の指定緊急避難場所：${n.site.name}（${n.direction(false)}へ直線${formatDistance(n.meters)}）',
+                style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                m.showOnMap(hazard, n.site.point);
+                onShowOnMap?.call();
+              },
+              child: Text(en ? 'Map' : '地図'),
+            ),
+          ],
+        ),
+      ),
     ];
   }
 

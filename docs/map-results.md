@@ -41,14 +41,42 @@ manifest with its bbox and prefecture codes.
 
 ## Open points
 
-- **No street or place names on the map yet.** The Protomaps theme needs
-  label fonts; to check with vector_map_tiles (Japanese glyphs).
+- ~~No street or place names~~ Fixed: the Protomaps v4 label expressions
+  (per-script `case`) are not drawn by vector_tile_renderer 5, so
+  `lib/map/offline_theme.dart` replaces them with a plain name lookup
+  (Japanese or English), removes the online sprites, and drops minor-road
+  labels (mostly road numbers). Labels need the vector render mode.
 - **Old library versions.** The PMTiles plugin pins flutter_map 7 and
   vector_map_tiles 8; the newer betas conflict. Fine for the PoC, to revisit.
 - **Distance is straight-line.** Routes would need a routing graph; a later
   step (Valhalla offline tiles or simpler).
-- **Not yet linked with the assistant.** Next: when a question mentions
-  evacuation (or the tsunami safety line fires), show the nearest site for
-  that hazard under the answer.
+- ~~Not linked with the assistant~~ Done, see below.
 - Data freshness: GSI updates often (Hyogo 2026-10-22, Osaka 2026-10-21 at
   download). The package should carry the date and the app should show it.
+
+## Linked with the assistant (2026-11-04)
+
+![Tsunami question: safety line, nearest tsunami site, cited answer](images/demo-tsunami-answer.png)
+
+When the question is about a hazard (the tsunami safety line fired, or a
+keyword such as 地震 / flood / 土砂 in Japanese or English), the answer shows
+the nearest emergency evacuation site for that hazard, with direction and
+straight-line distance. The 地図 / Map button opens the map tab on that site
+with the hazard selected. Questions without a hazard (bleeding, hiking gear)
+show no site. Keyword list: `lib/map/hazard_detect.dart`.
+
+Demo run without clicking:
+
+```bash
+flutter run -d macos --release \
+  --dart-define=GGUF_MODEL_PATH=... --dart-define=EMBED_MODEL_PATH=... --dart-define=MIN_COS=0.70 \
+  --dart-define=MAP_PMTILES_PATH=... --dart-define=MOCK_LOCATION=34.7376,135.3417 \
+  "--dart-define=ASK=海の近くで強い揺れを感じました。…|What should I do indoors during a strong earthquake?"
+```
+
+It asks the questions, then saves screenshots of the answers and of the map
+to the app's Documents folder.
+
+Open: the site suggestion uses the nearest site only. It does not know
+whether the way there leads toward the sea, or whether higher ground is
+closer; that needs routing and elevation data.

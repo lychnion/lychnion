@@ -14,6 +14,8 @@ import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
 import 'llm/local_embedder.dart';
 import 'map/map_screen.dart';
+import 'map/hazard_detect.dart';
+import 'map/map_state.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
@@ -32,6 +34,8 @@ import 'ui/answer_card.dart';
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
 ///   --dart-define=START_TAB=1                                open on the map
 ///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
+///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
+///                                                            screenshots of the answers and the map
 const _modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
 const _modelUrl = String.fromEnvironment(
   'GGUF_MODEL_URL',
@@ -48,6 +52,7 @@ const _mockLocation = String.fromEnvironment('MOCK_LOCATION');
 const _mapSitesAsset = 'jp.map.nishinomiya.sites.sqlite';
 const _startTab = int.fromEnvironment('START_TAB');
 const _screenshotAfter = int.fromEnvironment('SCREENSHOT_AFTER_S');
+const _demoQuestions = String.fromEnvironment('ASK');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,11 +89,39 @@ class _HomePageState extends State<HomePage> {
   int _tab = _startTab;
   final _shotKey = GlobalKey();
 
+  /// Map data and position, shared by the answers and the map tab.
+  final MapState? _map = _mapPmtiles.isEmpty
+      ? null
+      : MapState(
+          pmtilesPath: _mapPmtiles,
+          sitesAsset: _mapSitesAsset,
+          mockLocation: _mockLocation,
+        );
+
   @override
   void initState() {
     super.initState();
+    unawaited(_map?.load());
     if (_screenshotAfter > 0) {
       Timer(const Duration(seconds: _screenshotAfter), _saveScreenshot);
+    }
+  }
+
+  /// Demo run: screenshot the answers, then the map at the suggested site.
+  Future<void> _demoDone(List<GroundedAnswer> answers) async {
+    await Future<void>.delayed(const Duration(seconds: 2));
+    await _saveScreenshot();
+    final map = _map;
+    if (map == null) return;
+    for (final a in answers) {
+      final h = hazardFor(a.question, a.alerts);
+      final near = map.nearest(h, limit: 1);
+      if (h == null || near.isEmpty) continue;
+      map.showOnMap(h, near.first.site.point);
+      setState(() => _tab = 1);
+      await Future<void>.delayed(const Duration(seconds: 10));
+      await _saveScreenshot();
+      return;
     }
   }
 
@@ -117,19 +150,18 @@ class _HomePageState extends State<HomePage> {
         body: IndexedStack(
           index: _tab,
           children: [
-            const SpikePage(),
+            SpikePage(
+              map: _map,
+              onShowOnMap: () => setState(() => _tab = 1),
+              onDemoDone: _demoDone,
+            ),
             Scaffold(
               appBar: AppBar(title: Text(en ? 'Map' : '地図')),
-              body: _mapPmtiles.isEmpty
+              body: _map == null
                   ? const Center(
                       child: Text('Set MAP_PMTILES_PATH to a .pmtiles file.'),
                     )
-                  : MapScreen(
-                      pmtilesPath: _mapPmtiles,
-                      sitesAsset: _mapSitesAsset,
-                      mockLocation: _mockLocation,
-                      english: en,
-                    ),
+                  : MapScreen(state: _map, english: en),
             ),
           ],
         ),
@@ -153,7 +185,11 @@ class _HomePageState extends State<HomePage> {
 }
 
 class SpikePage extends StatefulWidget {
-  const SpikePage({super.key});
+  const SpikePage({super.key, this.map, this.onShowOnMap, this.onDemoDone});
+
+  final MapState? map;
+  final void Function()? onShowOnMap;
+  final Future<void> Function(List<GroundedAnswer>)? onDemoDone;
 
   @override
   State<SpikePage> createState() => _SpikePageState();
@@ -237,6 +273,12 @@ class _SpikePageState extends State<SpikePage> {
       setState(() => _busy = false);
     }
     if (afterLoad && _autoBench) await _bench();
+    if (afterLoad && _demoQuestions.isNotEmpty) {
+      for (final q in _demoQuestions.split('|')) {
+        await _ask(q.trim());
+      }
+      await widget.onDemoDone?.call(_entries);
+    }
   }
 
   Future<void> _pickFile() async {
@@ -400,10 +442,16 @@ class _SpikePageState extends State<SpikePage> {
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: _entries.length,
-              itemBuilder: (_, i) => AnswerCard(
-                answer: _entries[i],
-                grounded: _answerer != null,
-                done: !_busy || i < _entries.length - 1,
+              itemBuilder: (_, i) => ListenableBuilder(
+                // Rebuild when the map data or position arrives.
+                listenable: widget.map ?? ValueNotifier(0),
+                builder: (_, _) => AnswerCard(
+                  answer: _entries[i],
+                  grounded: _answerer != null,
+                  done: !_busy || i < _entries.length - 1,
+                  map: widget.map,
+                  onShowOnMap: widget.onShowOnMap,
+                ),
               ),
             ),
           ),

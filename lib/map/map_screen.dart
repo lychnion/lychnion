@@ -1,30 +1,17 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
-import 'package:vector_map_tiles_pmtiles/vector_map_tiles_pmtiles.dart';
 
 import 'evac_sites.dart';
+import 'map_state.dart';
+import 'offline_theme.dart';
 
 /// Offline map: base map from a local PMTiles file, emergency evacuation
 /// sites for the chosen hazard, and the nearest ones from the current position.
 class MapScreen extends StatefulWidget {
-  const MapScreen({
-    super.key,
-    required this.pmtilesPath,
-    required this.sitesAsset,
-    this.mockLocation,
-    this.english = false,
-  });
+  const MapScreen({super.key, required this.state, this.english = false});
 
-  final String pmtilesPath;
-  final String sitesAsset;
-
-  /// "lat,lon" for testing without a GPS fix.
-  final String? mockLocation;
+  final MapState state;
   final bool english;
 
   @override
@@ -33,92 +20,63 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final _map = MapController();
-  EvacSites? _sites;
-  PmTilesVectorTileProvider? _tiles;
-  LatLng? _here;
-  String _locationStatus = '';
-  Hazard? _hazard = Hazard.tsunami;
-  String? _error;
+  bool _mapReady = false;
 
+  MapState get s => widget.state;
   bool get en => widget.english;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_load());
+    s.addListener(_changed);
   }
 
-  Future<void> _load() async {
-    try {
-      final sites = await EvacSites.fromAsset(widget.sitesAsset);
-      final tiles = await PmTilesVectorTileProvider.fromSource(
-        widget.pmtilesPath,
-      );
-      setState(() {
-        _sites = sites;
-        _tiles = tiles;
-      });
-      await _locate();
-    } catch (e) {
-      setState(() => _error = '$e');
-    }
+  @override
+  void dispose() {
+    s.removeListener(_changed);
+    super.dispose();
   }
 
-  Future<void> _locate() async {
-    final mock = widget.mockLocation;
-    if (mock != null && mock.isNotEmpty) {
-      final p = mock.split(',').map(double.parse).toList();
-      setState(() {
-        _here = LatLng(p[0], p[1]);
-        _locationStatus = en ? 'Test location' : 'テスト用の位置';
-      });
-      return;
+  void _changed() {
+    final f = s.focus;
+    if (f != null && _mapReady) {
+      _map.move(f, 16);
+      s.focus = null;
     }
-    try {
-      // GPS works without a network; only the satellite fix takes time.
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        setState(
-          () =>
-              _locationStatus = en ? 'No location permission' : '位置情報の許可がありません',
-        );
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          timeLimit: Duration(seconds: 20),
-        ),
-      );
-      setState(() {
-        _here = LatLng(pos.latitude, pos.longitude);
-        _locationStatus = en
-            ? 'Location ±${pos.accuracy.round()} m'
-            : '現在地 ±${pos.accuracy.round()} m';
-      });
-      _map.move(_here!, 15);
-    } catch (e) {
-      setState(
-        () => _locationStatus = en ? 'Location not available' : '現在地を取得できません',
-      );
+    setState(() {});
+  }
+
+  String get _locationStatus {
+    if (s.hereIsMock) return en ? 'Test location' : 'テスト用の位置';
+    if (s.here != null) {
+      final acc = s.accuracy?.round();
+      return en ? 'Location ±$acc m' : '現在地 ±$acc m';
     }
+    return switch (s.error) {
+      'no-permission' => en ? 'No location permission' : '位置情報の許可がありません',
+      'no-location' => en ? 'Location not available' : '現在地を取得できません',
+      _ => '',
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) return Center(child: Text(_error!));
-    final sites = _sites, tiles = _tiles;
+    final sites = s.sites, tiles = s.tiles;
     if (sites == null || tiles == null) {
-      return const Center(child: CircularProgressIndicator());
+      final e = s.error;
+      return Center(
+        child: e != null && e.length > 20
+            ? Text(e)
+            : const CircularProgressIndicator(),
+      );
     }
-    final from = _here ?? sites.center;
-    final nearest = sites.nearest(from, hazard: _hazard);
+    final from = s.from!;
+    final hazard = s.hazard;
+    final nearest = s.nearest(hazard);
     final shown = [
-      for (final s in sites.sites)
-        if (s.emergency && (_hazard == null || s.hazards.contains(_hazard))) s,
+      for (final site in sites.sites)
+        if (site.emergency && (hazard == null || site.hazards.contains(hazard)))
+          site,
     ];
     final theme = Theme.of(context);
 
@@ -135,8 +93,8 @@ class _MapScreenState extends State<MapScreen> {
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
                     label: Text(en ? h.en : h.ja),
-                    selected: _hazard == h,
-                    onSelected: (_) => setState(() => _hazard = h),
+                    selected: hazard == h,
+                    onSelected: (_) => s.selectHazard(h),
                   ),
                 ),
             ],
@@ -147,26 +105,33 @@ class _MapScreenState extends State<MapScreen> {
           child: FlutterMap(
             mapController: _map,
             options: MapOptions(
-              initialCenter: from,
-              initialZoom: 14,
+              initialCenter: s.focus ?? from,
+              initialZoom: 15,
               minZoom: 10,
               maxZoom: 18,
+              onMapReady: () {
+                _mapReady = true;
+                s.focus = null;
+              },
             ),
             children: [
               VectorTileLayer(
-                theme: ProtomapsThemes.lightV4(),
+                theme: offlineLightTheme(english: en),
                 tileProviders: TileProviders({'protomaps': tiles}),
+                // Vector mode draws the labels; raster mode dropped them.
+                layerMode: VectorTileLayerMode.vector,
+                fileCacheTtl: Duration.zero,
                 maximumZoom: 18,
               ),
               MarkerLayer(
                 markers: [
-                  for (final s in shown)
+                  for (final site in shown)
                     Marker(
-                      point: s.point,
+                      point: site.point,
                       width: 14,
                       height: 14,
                       child: Tooltip(
-                        message: s.name,
+                        message: site.name,
                         child: Icon(
                           Icons.place,
                           size: 14,
@@ -185,9 +150,9 @@ class _MapScreenState extends State<MapScreen> {
                         color: theme.colorScheme.error,
                       ),
                     ),
-                  if (_here != null)
+                  if (s.here != null)
                     Marker(
-                      point: _here!,
+                      point: s.here!,
                       width: 18,
                       height: 18,
                       child: const Icon(
@@ -219,14 +184,14 @@ class _MapScreenState extends State<MapScreen> {
                   Expanded(
                     child: Text(
                       en
-                          ? 'Nearest emergency evacuation sites for ${_hazard?.en ?? 'any hazard'}'
-                          : '${_hazard?.ja ?? 'すべて'}の指定緊急避難場所（近い順）',
+                          ? 'Nearest emergency evacuation sites for ${hazard?.en ?? 'any hazard'}'
+                          : '${hazard?.ja ?? 'すべて'}の指定緊急避難場所（近い順）',
                       style: theme.textTheme.titleSmall,
                     ),
                   ),
                   Text(_locationStatus, style: theme.textTheme.bodySmall),
                   IconButton(
-                    onPressed: _locate,
+                    onPressed: s.locate,
                     icon: const Icon(Icons.my_location),
                   ),
                 ],
@@ -236,7 +201,7 @@ class _MapScreenState extends State<MapScreen> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: Text(
-                    '${(n.meters / 1000).toStringAsFixed(n.meters < 1000 ? 2 : 1)} km\n${n.direction(en)}',
+                    '${formatDistance(n.meters)}\n${n.direction(en)}',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall,
                   ),
@@ -276,3 +241,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 }
+
+String formatDistance(double meters) => meters < 1000
+    ? '${meters.round()} m'
+    : '${(meters / 1000).toStringAsFixed(1)} km';
