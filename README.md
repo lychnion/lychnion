@@ -33,6 +33,9 @@ Everything runs on the device; the network is only needed to download models.
 - Offline map ([results](docs/map-results.md)): Nishinomiya area, GSI
   evacuation sites by hazard, nearest sites from the current position;
   answers about a hazard show the nearest site and link to the map.
+- Downloads ([results](docs/download-results.md)): models, knowledge
+  packages and map areas download inside the app, with resume and SHA-256
+  check; the app then runs fully offline. Tested on macOS.
 
 ## Knowledge packages
 
@@ -56,7 +59,14 @@ flutter pub get
 flutter run -d macos
 ```
 
-On macOS, click **Load GGUF file** and pick a model. The app copies it into
+Open the **Downloads** tab (ダウンロード) and download the answer model
+(Gemma 4 E2B, 2.8 GB) and the search model (EmbeddingGemma 2, 310 MB). The
+app loads them as soon as they are checked, on every platform. Wi-Fi only by
+default. The list comes from
+[assets/downloads/catalog.json](assets/downloads/catalog.json); package and
+map files have no public URL yet, so the app uses the bundled package.
+
+Older ways still work: on macOS, click **Load GGUF file** and pick a model. The app copies it into
 its own storage. On Android and iOS, the app downloads the model from the URL
 field (default: Gemma 4 E2B Q4_0 from `ggml-org/gemma-4-E2B-it-GGUF`, 2.8 GB).
 
@@ -72,9 +82,20 @@ Dev flags (spike 3 adds `EMBED_MODEL_PATH` for EmbeddingGemma 2
 flutter run -d macos --dart-define=GGUF_MODEL_PATH=/path/inside/app/storage.gguf --dart-define=AUTO_BENCH=true
 ```
 
+Downloads for testing (local server with Range support):
+
+```bash
+python3 -I tool/serve_downloads.py <folder with catalog.json and files> 8765
+flutter run -d macos --dart-define=DOWNLOAD_BASE_URL=http://127.0.0.1:8765/
+```
+
+`AUTO_DOWNLOAD=id,…` downloads catalog items on start (for scripted tests).
+`MIN_COS` now defaults to 0.70.
+
 ## Layout
 
 - `lib/llm/local_llm.dart`: the only code that talks to the model engine.
+- `lib/download/`: catalog, downloader (resume, SHA-256), Downloads tab.
 - `lib/spike/`: test questions for comparing models and devices.
 - `docs/poc-plan.md`: plan, competitor review, licences, naming notes.
 

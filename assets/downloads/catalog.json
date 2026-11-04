@@ -1,0 +1,97 @@
+{
+  "format": 1,
+  "base": "",
+  "refresh": "",
+  "items": [
+    {
+      "id": "model.gemma-4-e2b-q4_0",
+      "kind": "model",
+      "role": "chat",
+      "title": {"ja": "回答モデル Gemma 4 E2B", "en": "Answer model Gemma 4 E2B"},
+      "version": "Q4_0",
+      "licence": "Apache 2.0 (Google Gemma 4)",
+      "note": {"ja": "スマートフォン・タブレット向け", "en": "For phones and tablets"},
+      "files": [
+        {
+          "name": "gemma-4-E2B-it-Q4_0.gguf",
+          "size": 2841481184,
+          "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52",
+          "url": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf"
+        }
+      ]
+    },
+    {
+      "id": "model.gemma-4-e4b-q4_0",
+      "kind": "model",
+      "role": "chat",
+      "desktop": true,
+      "title": {"ja": "回答モデル Gemma 4 E4B", "en": "Answer model Gemma 4 E4B"},
+      "version": "Q4_0",
+      "licence": "Apache 2.0 (Google Gemma 4)",
+      "note": {"ja": "パソコン向け：回答がより良く、速度は半分", "en": "For computers: better answers, half the speed"},
+      "files": [
+        {
+          "name": "gemma-4-E4B-it-Q4_0.gguf",
+          "size": 4590807392,
+          "sha256": "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2",
+          "url": "https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_0.gguf"
+        }
+      ]
+    },
+    {
+      "id": "model.embeddinggemma-2-q8_0",
+      "kind": "model",
+      "role": "embed",
+      "title": {"ja": "検索モデル EmbeddingGemma 2", "en": "Search model EmbeddingGemma 2"},
+      "version": "Q8_0",
+      "licence": "Apache 2.0 (Google EmbeddingGemma 2)",
+      "note": {"ja": "意味で資料を探す（日本語・英語）", "en": "Finds passages by meaning (Japanese and English)"},
+      "files": [
+        {
+          "name": "embeddinggemma-2-Q8_0.gguf",
+          "size": 309855456,
+          "sha256": "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135",
+          "url": "https://huggingface.co/ggml-org/embeddinggemma-2-GGUF/resolve/main/embeddinggemma-2-Q8_0.gguf"
+        }
+      ]
+    },
+    {
+      "id": "jp.bousai.core",
+      "kind": "package",
+      "title": {"ja": "防災（基本）", "en": "Disaster preparedness (basics)"},
+      "version": "2026.11.0-spike6",
+      "licence": "政府標準利用規約 / PDL 1.0 (出典は各回答に表示)",
+      "note": {"ja": "アプリ内蔵版より新しい版があれば更新", "en": "Updates the copy built into the app"},
+      "files": [
+        {
+          "name": "jp.bousai.core.sqlite",
+          "size": 921600,
+          "sha256": "5ec79a35adddf8b2760a1260df752fa06d0547adacdd5cfdd8c3bf01026644e3",
+          "url": "jp.bousai.core.sqlite"
+        }
+      ]
+    },
+    {
+      "id": "jp.map.nishinomiya",
+      "kind": "map",
+      "title": {"ja": "地図：西宮周辺", "en": "Map: Nishinomiya area"},
+      "version": "2026.11.0",
+      "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ",
+      "note": {"ja": "神戸東部〜大阪西部、避難場所つき", "en": "Eastern Kobe to western Osaka, with evacuation sites"},
+      "files": [
+        {
+          "name": "jp.map.nishinomiya.pmtiles",
+          "size": 26211536,
+          "sha256": "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25",
+          "url": "jp.map.nishinomiya.pmtiles"
+        },
+        {
+          "name": "jp.map.nishinomiya.sites.sqlite",
+          "size": 401408,
+          "sha256": "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371",
+          "url": "jp.map.nishinomiya.sites.sqlite"
+        }
+      ]
+    }
+  ]
+}
