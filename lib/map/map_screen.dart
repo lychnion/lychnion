@@ -187,28 +187,40 @@ class _MapScreenState extends State<MapScreen> {
     ];
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 48,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            children: [
-              for (final h in Hazard.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text(en ? h.en : h.ja),
-                    selected: hazard == h,
-                    onSelected: (_) => s.selectHazard(h),
-                  ),
+    final chips = SizedBox(
+      height: 52,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        children: [
+          for (final h in Hazard.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ChoiceChip(
+                label: Text(en ? h.en : h.ja),
+                selected: hazard == h,
+                showCheckmark: false,
+                backgroundColor: theme.colorScheme.surface,
+                selectedColor: theme.colorScheme.primary,
+                labelStyle: TextStyle(
+                  color: hazard == h
+                      ? theme.colorScheme.onPrimary
+                      : theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
                 ),
-            ],
-          ),
-        ),
-        Expanded(
-          flex: 3,
+                elevation: 2,
+                shadowColor: Colors.black26,
+                side: BorderSide.none,
+                onSelected: (_) => s.selectHazard(h),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    return Stack(
+      children: [
+        Positioned.fill(
           child: FlutterMap(
             mapController: _map,
             options: MapOptions(
@@ -314,137 +326,184 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
         ),
-        Expanded(
-          flex: 2,
-          child: ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      en
-                          ? 'Nearest emergency evacuation sites for ${hazard?.en ?? 'any hazard'}'
-                          : '${hazard?.ja ?? 'すべて'}の指定緊急避難場所（近い順）',
-                      style: theme.textTheme.titleSmall,
+        SafeArea(child: chips),
+        DraggableScrollableSheet(
+          initialChildSize: 0.42,
+          minChildSize: 0.14,
+          maxChildSize: 0.9,
+          snap: true,
+          builder: (context, scroll) => Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+              boxShadow: const [
+                BoxShadow(blurRadius: 16, color: Colors.black26),
+              ],
+            ),
+            child: ListView(
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  Text(_locationStatus, style: theme.textTheme.bodySmall),
-                  IconButton(
-                    onPressed: s.locate,
-                    icon: const Icon(Icons.my_location),
-                  ),
-                ],
-              ),
-              if (s.cityWithoutSiteFor(hazard) case final city?)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.warning_amber,
-                        size: 18,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          noSiteWarning(city, hazard!, en),
-                          style: theme.textTheme.bodySmall,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        en
+                            ? 'Nearest emergency evacuation sites for ${hazard?.en ?? 'any hazard'}'
+                            : '${hazard?.ja ?? 'すべて'}の指定緊急避難場所（近い順）',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Text(_locationStatus, style: theme.textTheme.bodySmall),
+                    IconButton(
+                      onPressed: s.locate,
+                      icon: const Icon(Icons.my_location),
+                    ),
+                  ],
                 ),
-              if (s.facts?.currentOf({
-                    FactKind.warning,
-                    FactKind.roadBlocked,
-                    FactKind.waterPoint,
-                  })
-                  case final cur? when cur.isNotEmpty || _editor != null)
-                CurrentFactsBox(
-                  facts: cur,
-                  now: s.facts!.now,
-                  en: en,
-                  onTap: _editor == null
-                      ? null
-                      : (f) => f.kind == FactKind.warning
-                            ? _editWarning(f, f.subject)
-                            : _editPoint(f),
-                  onAdd: _editor == null
-                      ? null
-                      : () => _editWarning(null, sites.cityAt(from)),
-                ),
-              if (_editor != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    en
-                        ? 'Shelter computer: tap ✎ to set a site\'s status; long-press the map to report a blocked road or water point. Phones connected to this computer get the update within a minute.'
-                        : '避難所の端末：✎で避難場所の状況を入力。地図を長押しで通行止め・給水を登録。接続中のスマホには1分以内に届きます。',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              for (final n in nearest)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Text(
-                    '${formatDistance(n.meters)}\n${n.direction(en)}',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  title: Text(n.site.name),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(n.site.address),
-                      if (s.statusOf(n.site) case final f?)
-                        Text(
-                          factLine(f, s.facts!.now, en: en),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: factColor(f, theme.colorScheme),
-                            fontWeight: FontWeight.bold,
+                if (s.cityWithoutSiteFor(hazard) case final city?)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.warning_amber,
+                          size: 18,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            noSiteWarning(city, hazard!, en),
+                            style: theme.textTheme.bodySmall,
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
-                  onTap: () => _map.move(n.site.point, 16),
-                  trailing: _editor == null
-                      ? null
-                      : IconButton(
-                          tooltip: en ? 'Set status' : '状況を入力',
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _editSite(n.site),
+                if (s.facts?.currentOf({
+                      FactKind.warning,
+                      FactKind.roadBlocked,
+                      FactKind.waterPoint,
+                    })
+                    case final cur? when cur.isNotEmpty || _editor != null)
+                  CurrentFactsBox(
+                    facts: cur,
+                    now: s.facts!.now,
+                    en: en,
+                    onTap: _editor == null
+                        ? null
+                        : (f) => f.kind == FactKind.warning
+                              ? _editWarning(f, f.subject)
+                              : _editPoint(f),
+                    onAdd: _editor == null
+                        ? null
+                        : () => _editWarning(null, sites.cityAt(from)),
+                  ),
+                if (_editor != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      en
+                          ? 'Shelter computer: tap ✎ to set a site\'s status; long-press the map to report a blocked road or water point. Phones connected to this computer get the update within a minute.'
+                          : '避難所の端末：✎で避難場所の状況を入力。地図を長押しで通行止め・給水を登録。接続中のスマホには1分以内に届きます。',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                for (final n in nearest)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 60,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: s.avoid(n.site)
+                            ? theme.colorScheme.surfaceContainerHigh
+                            : theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${formatDistance(n.meters)}\n${n.direction(en)}',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: s.avoid(n.site)
+                              ? theme.colorScheme.onSurfaceVariant
+                              : theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w700,
                         ),
-                ),
-              const SizedBox(height: 8),
-              Text(
-                en
-                    ? 'Straight-line distance, not a route. Emergency evacuation sites are designated per hazard; '
-                          'shelters (指定避難所) are for staying after the danger has passed. The data may be out of '
-                          'date or incomplete: check with your city for the latest information.'
-                    : '直線距離です（道のりではありません）。指定緊急避難場所は災害の種類ごとに指定されています。'
-                          '指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、'
-                          '最新の状況は市町村に確認してください。',
-                style: theme.textTheme.bodySmall,
-              ),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                dense: true,
-                title: Text(
-                  en ? 'GSI usage notes (Japanese)' : '国土地理院 ご利用上の注意',
+                      ),
+                    ),
+                    title: Text(
+                      n.site.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(n.site.address),
+                        if (s.statusOf(n.site) case final f?)
+                          Text(
+                            factLine(f, s.facts!.now, en: en),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: factColor(f, theme.colorScheme),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
+                    ),
+                    onTap: () => _map.move(n.site.point, 16),
+                    trailing: _editor == null
+                        ? null
+                        : IconButton(
+                            tooltip: en ? 'Set status' : '状況を入力',
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _editSite(n.site),
+                          ),
+                  ),
+                const SizedBox(height: 8),
+                Text(
+                  en
+                      ? 'Straight-line distance, not a route. Emergency evacuation sites are designated per hazard; '
+                            'shelters (指定避難所) are for staying after the danger has passed. The data may be out of '
+                            'date or incomplete: check with your city for the latest information.'
+                      : '直線距離です（道のりではありません）。指定緊急避難場所は災害の種類ごとに指定されています。'
+                            '指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、'
+                            '最新の状況は市町村に確認してください。',
                   style: theme.textTheme.bodySmall,
                 ),
-                children: [
-                  SelectableText(
-                    '${sites.notice}\n\n${sites.attribution}',
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(
+                    en ? 'GSI usage notes (Japanese)' : '国土地理院 ご利用上の注意',
                     style: theme.textTheme.bodySmall,
                   ),
-                ],
-              ),
-            ],
+                  children: [
+                    SelectableText(
+                      '${sites.notice}\n\n${sites.attribution}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ],

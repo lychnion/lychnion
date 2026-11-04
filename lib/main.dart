@@ -7,12 +7,17 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'app/settings.dart';
+import 'app/settings_screen.dart';
+import 'app/theme.dart';
 import 'download/catalog.dart';
 import 'download/download_manager.dart';
 import 'download/download_store.dart';
 import 'download/downloads_screen.dart';
+import 'ui/ask_view.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
@@ -88,29 +93,37 @@ const _factsEdit = bool.fromEnvironment('FACTS_EDIT');
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalLlm.init();
-  runApp(const FieldkitApp());
+  final settings = AppSettings();
+  await settings.load();
+  runApp(FieldkitApp(settings: settings));
 }
 
 class FieldkitApp extends StatelessWidget {
-  const FieldkitApp({super.key});
+  const FieldkitApp({super.key, required this.settings});
+
+  final AppSettings settings;
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'fieldkit',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
-    darkTheme: ThemeData(
-      colorSchemeSeed: Colors.teal,
-      brightness: Brightness.dark,
-      useMaterial3: true,
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: settings,
+    builder: (context, _) => MaterialApp(
+      title: 'fieldkit',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      locale: settings.language.locale,
+      supportedLocales: const [Locale('ja'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: HomePage(settings: settings),
     ),
-    home: const HomePage(),
   );
 }
 
-/// Three tabs: ask (the spike screen), the offline map and downloads.
+/// Three tabs: ask, the offline map and settings (with downloads).
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.settings});
+
+  final AppSettings settings;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -229,6 +242,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _openDownloads(bool en) {
+    final dm = _downloads;
+    if (dm == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DownloadsScreen(manager: dm, english: en),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final en = Localizations.localeOf(context).languageCode != 'ja';
@@ -241,19 +264,22 @@ class _HomePageState extends State<HomePage> {
             SpikePage(
               map: _map,
               facts: _facts,
+              settings: widget.settings,
               downloadChanges: _downloadChanges,
               onShowOnMap: () => setState(() => _tab = 1),
+              onOpenDownloads: () => _openDownloads(en),
               onDemoDone: _demoDone,
             ),
             Scaffold(
-              appBar: AppBar(title: Text(en ? 'Map' : '地図')),
               body: _map == null
-                  ? Center(
-                      child: Text(
-                        en
-                            ? 'No map yet. Get a map area under Downloads.'
-                            : '地図がありません。「ダウンロード」から地域を取得してください。',
-                      ),
+                  ? EmptyHint(
+                      icon: Icons.map_outlined,
+                      title: en ? 'No map yet' : '地図がありません',
+                      text: en
+                          ? 'Download your area to see evacuation sites without internet.'
+                          : 'お住まいの地域をダウンロードすると、インターネットなしで避難場所を確認できます。',
+                      action: en ? 'Download a map' : '地図をダウンロード',
+                      onAction: () => _openDownloads(en),
                     )
                   : MapScreen(
                       key: ObjectKey(_map),
@@ -264,9 +290,11 @@ class _HomePageState extends State<HomePage> {
                           : null,
                     ),
             ),
-            _downloads == null
-                ? const Center(child: CircularProgressIndicator())
-                : DownloadsScreen(manager: _downloads!, english: en),
+            SettingsScreen(
+              settings: widget.settings,
+              downloads: _downloads,
+              en: en,
+            ),
           ],
         ),
         bottomNavigationBar: NavigationBar(
@@ -274,16 +302,19 @@ class _HomePageState extends State<HomePage> {
           onDestinationSelected: (i) => setState(() => _tab = i),
           destinations: [
             NavigationDestination(
-              icon: const Icon(Icons.chat_outlined),
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              selectedIcon: const Icon(Icons.chat_bubble_rounded),
               label: en ? 'Ask' : '質問',
             ),
             NavigationDestination(
               icon: const Icon(Icons.map_outlined),
+              selectedIcon: const Icon(Icons.map_rounded),
               label: en ? 'Map' : '地図',
             ),
             NavigationDestination(
-              icon: const Icon(Icons.download_outlined),
-              label: en ? 'Downloads' : 'ダウンロード',
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings_rounded),
+              label: en ? 'Settings' : '設定',
             ),
           ],
         ),
@@ -300,10 +331,14 @@ class SpikePage extends StatefulWidget {
     this.onDemoDone,
     this.downloadChanges,
     this.facts,
+    this.settings,
+    this.onOpenDownloads,
   });
 
   final MapState? map;
   final FactStore? facts;
+  final AppSettings? settings;
+  final VoidCallback? onOpenDownloads;
 
   /// Fires when downloads change; the downloaded model is (re)loaded.
   final Listenable? downloadChanges;
@@ -322,6 +357,7 @@ class _SpikePageState extends State<SpikePage> {
   GroundedAnswerer? _answerer;
   final _embedder = LocalEmbedder();
   String _status = 'No model loaded. / モデル未読み込み（「ダウンロード」から取得）';
+  AskPhase _phase = AskPhase.noModel;
 
   /// What the last load used from Downloads (model, embedder, package).
   String? _loadedDownloads;
@@ -390,6 +426,7 @@ class _SpikePageState extends State<SpikePage> {
     setState(() {
       _busy = true;
       _status = 'Loading model…';
+      _phase = AskPhase.loading;
     });
     try {
       await load();
@@ -458,13 +495,17 @@ class _SpikePageState extends State<SpikePage> {
           ],
         });
       }
-      setState(
-        () => _status =
+      setState(() {
+        _status =
             'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
-            '${_server != null ? ' · shelter server on port ${ShelterServer.defaultPort}' : ''}',
-      );
+            '${_server != null ? ' · shelter server on port ${ShelterServer.defaultPort}' : ''}';
+        _phase = _server != null ? AskPhase.serving : AskPhase.ready;
+      });
     } catch (e) {
-      setState(() => _status = 'Load failed: $e');
+      setState(() {
+        _status = 'Load failed: $e';
+        _phase = AskPhase.failed;
+      });
       _log({'event': 'load_failed', 'error': '$e'});
       return;
     } finally {
@@ -534,6 +575,7 @@ class _SpikePageState extends State<SpikePage> {
       setState(() {
         _shelterReady = true;
         _status = 'Connected to shelter: ${info['name']} (${info['model']})';
+        _phase = AskPhase.shelter;
       });
       if (_modelPath.isEmpty && _demoQuestions.isNotEmpty) {
         for (final q in _demoQuestions.split('|')) {
@@ -663,89 +705,42 @@ class _SpikePageState extends State<SpikePage> {
   @override
   Widget build(BuildContext context) {
     final ready = (_llm.isLoaded || _shelterReady) && !_busy;
-    return Scaffold(
-      appBar: AppBar(title: const Text('fieldkit · spike')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (_usesDownload) ...[
-                  SizedBox(
-                    width: 320,
-                    child: TextField(
-                      controller: _url,
-                      decoration: const InputDecoration(labelText: 'GGUF URL'),
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: _busy ? null : _download,
-                    child: const Text('Download model'),
-                  ),
-                ] else
-                  FilledButton(
-                    onPressed: _busy ? null : _pickFile,
-                    child: const Text('Load GGUF file'),
-                  ),
-                OutlinedButton(
-                  onPressed: ready ? _bench : null,
-                  child: const Text('Run test questions'),
-                ),
-                if (_busy)
-                  TextButton(onPressed: _llm.stop, child: const Text('Stop')),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Align(alignment: Alignment.centerLeft, child: Text(_status)),
-          ),
-          const Divider(),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _entries.length,
-              itemBuilder: (_, i) => ListenableBuilder(
-                // Rebuild when the map data or position arrives.
-                listenable: widget.map ?? ValueNotifier(0),
-                builder: (_, _) => AnswerCard(
-                  answer: _entries[i],
-                  grounded: _answerer != null || _entries[i].answeredBy != null,
-                  done: !_busy || i < _entries.length - 1,
-                  map: widget.map,
-                  onShowOnMap: widget.onShowOnMap,
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _input,
-                      enabled: ready,
-                      decoration: const InputDecoration(
-                        hintText: '質問を入力 / Ask a question',
-                      ),
-                      onSubmitted: (_) => _send(),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: ready ? _send : null,
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+    final en = Localizations.localeOf(context).languageCode != 'ja';
+    final settings = widget.settings;
+    return AskView(
+      en: en,
+      phase: _phase,
+      detail: _status,
+      shelterName: _shelter?.name,
+      ready: ready,
+      busy: _busy,
+      input: _input,
+      onSend: _send,
+      onAsk: (q) => unawaited(_ask(q)),
+      onStop: _llm.stop,
+      onOpenDownloads: widget.onOpenDownloads,
+      devActions: [
+        if (_usesDownload)
+          DevAction('Download model (URL)', _busy ? null : _download)
+        else
+          DevAction('Load GGUF file…', _busy ? null : _pickFile),
+        DevAction('Run test questions', ready ? _bench : null),
+      ],
+      itemCount: _entries.length,
+      itemBuilder: (_, i) => ListenableBuilder(
+        // Rebuild when the map data, position or settings change.
+        listenable: Listenable.merge([
+          widget.map ?? ValueNotifier(0),
+          ?settings,
+        ]),
+        builder: (_, _) => AnswerCard(
+          answer: _entries[i],
+          grounded: _answerer != null || _entries[i].answeredBy != null,
+          done: !_busy || i < _entries.length - 1,
+          map: widget.map,
+          onShowOnMap: widget.onShowOnMap,
+          showStats: settings?.showStats ?? false,
+        ),
       ),
     );
   }

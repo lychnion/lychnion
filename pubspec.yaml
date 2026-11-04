@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_edge_ai: ^2.5.5
   flutter_edge_ai_llama: 0.0.5
   # Needed directly for iOS/macOS SwiftPM linkage (pairs with llamadart 0.15.1).
