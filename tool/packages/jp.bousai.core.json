@@ -2,7 +2,7 @@
   "id": "jp.bousai.core",
   "title": "防災（基本）",
   "language": "ja",
-  "version": "2026.11.0-spike2",
+  "version": "2026.11.0-spike3b",
   "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
   "sources": [
     {
@@ -95,7 +95,25 @@
         ]
       ],
       "source": "kantei-tsunami",
-      "text": "強い揺れや弱くても長い揺れを感じたら、また地震を体で感じなくても、「津波警報」等を見聞きしたら、いち早く海岸から離れ、可能な限り高い場所へ避難してください。震源が陸地に近いと津波警報・注意報が津波の襲来に間に合わないことがあります。"
+      "text": "強い揺れや弱くても長い揺れを感じたら、また地震を体で感じなくても、「津波警報」等を見聞きしたら、いち早く海岸から離れ、可能な限り高い場所へ避難してください。震源が陸地に近いと津波警報・注意報が津波の襲来に間に合わないことがあります。",
+      "all_en": [
+        [
+          "shak",
+          "quake",
+          "tremor"
+        ],
+        [
+          "sea",
+          "beach",
+          "coast",
+          "tsunami",
+          "ocean",
+          "shore",
+          "river mouth"
+        ]
+      ],
+      "text_en": "If you feel strong shaking, or weak but long shaking, or if you hear a tsunami warning even without feeling an earthquake, leave the coast at once and evacuate to the highest place you can. If the epicentre is close to land, tsunami warnings may come too late.",
+      "text_en_note": "Translation by fieldkit, not an official text."
     }
   ],
   "gaps": [
@@ -145,5 +163,14 @@
       "流されている人",
       "巻き込まれた"
     ]
-  }
+  },
+  "skip_headings_all": [
+    "この記事で伝えたいトピックス",
+    "災害関連X（旧Twitter）",
+    "関連お役立ちサイト"
+  ],
+  "drop_lines_containing": [
+    "をYouTubeで再生",
+    "別タブで開きます"
+  ]
 }

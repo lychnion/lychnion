@@ -15,8 +15,10 @@ Everything runs on the device; the network is only needed to download models.
 - Spike 2 ([results](docs/spike-2-results.md)): answers only from a small
   Bousai package of official sources, with checked citations and fixed
   safety lines.
+- Spike 3 ([results](docs/spike-3-results.md)): vector search
+  (EmbeddingGemma 2), relevance cut-off, questions in Japanese and English.
 
-No maps or vector search yet.
+No maps yet.
 
 ## Knowledge packages
 
@@ -46,7 +48,9 @@ field (default: Gemma 4 E2B Q4_0 from `ggml-org/gemma-4-E2B-it-GGUF`, 2.8 GB).
 ([lib/spike/bench_prompts.dart](lib/spike/bench_prompts.dart)) and saves the
 answers with timings as JSON in the app's documents folder.
 
-Dev flags:
+Dev flags (spike 3 adds `EMBED_MODEL_PATH` for EmbeddingGemma 2
+`embeddinggemma-2-Q8_0.gguf` from `ggml-org/embeddinggemma-2-GGUF`, and
+`MIN_COS`, e.g. 0.70):
 
 ```bash
 flutter run -d macos --dart-define=GGUF_MODEL_PATH=/path/inside/app/storage.gguf --dart-define=AUTO_BENCH=true

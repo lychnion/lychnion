@@ -8,9 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'knowledge/grounded_answer.dart';
+import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
+import 'llm/local_embedder.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
+import 'spike/eval_questions.dart';
 import 'ui/answer_card.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
@@ -20,6 +23,8 @@ import 'ui/answer_card.dart';
 ///   --dart-define=GGUF_MODEL_URL=https://...gguf             download on start
 ///   --dart-define=AUTO_BENCH=true                            run the questions after loading
 ///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
+///   --dart-define=EMBED_MODEL_PATH=/path/in/app/storage.gguf  vector search (spike 3)
+///   --dart-define=MIN_COS=0.5                                relevance cut-off for vector search
 const _modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
 const _modelUrl = String.fromEnvironment(
   'GGUF_MODEL_URL',
@@ -29,6 +34,8 @@ const _modelUrl = String.fromEnvironment(
 const _autoBench = bool.fromEnvironment('AUTO_BENCH');
 const _bare = bool.fromEnvironment('BARE');
 const _packageAsset = 'jp.bousai.core.sqlite';
+const _embedPath = String.fromEnvironment('EMBED_MODEL_PATH');
+const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +73,7 @@ class _SpikePageState extends State<SpikePage> {
   final _url = TextEditingController(text: _modelUrl);
   final _entries = <GroundedAnswer>[];
   GroundedAnswerer? _answerer;
+  final _embedder = LocalEmbedder();
   String _status = 'No model loaded.';
   bool _busy = false;
 
@@ -96,7 +104,23 @@ class _SpikePageState extends State<SpikePage> {
       await _llm.newChat(systemInstruction: benchSystemInstruction);
       if (!_bare) {
         final pkg = await KnowledgePackage.fromAsset(_packageAsset);
-        _answerer = GroundedAnswerer(_llm, pkg);
+        HybridRetriever? hybrid;
+        if (_embedPath.isNotEmpty) {
+          final sw = Stopwatch()..start();
+          await _embedder.loadFile(_embedPath);
+          hybrid = HybridRetriever(
+            pkg,
+            _embedder,
+            minCosine: double.parse(_minCos),
+          );
+          await hybrid.index();
+          _log({
+            'event': 'indexed',
+            'ms': sw.elapsedMilliseconds,
+            'model': _embedder.modelName,
+          });
+        }
+        _answerer = GroundedAnswerer(_llm, pkg, hybrid: hybrid);
         _log({
           'event': 'package',
           'id': pkg.id,
@@ -181,7 +205,12 @@ class _SpikePageState extends State<SpikePage> {
 
   Future<void> _bench() async {
     final results = <Map<String, Object?>>[];
-    for (final q in benchPrompts) {
+    final hybrid = _answerer?.hybrid;
+    if (hybrid != null) await _logRetrieval(hybrid);
+    final questions = hybrid != null
+        ? [for (final e in evalQuestions) e.text]
+        : benchPrompts;
+    for (final q in questions) {
       // A fresh chat per question, so answers do not depend on each other.
       if (_bare) await _llm.newChat(systemInstruction: benchSystemInstruction);
       await _ask(q);
@@ -203,6 +232,28 @@ class _SpikePageState extends State<SpikePage> {
     );
     _log({'event': 'bench_done', 'file': out.path});
     setState(() => _status = 'Benchmark saved: ${out.path}');
+  }
+
+  /// Logs the ranking for every eval question, so the cut-off can be tuned.
+  Future<void> _logRetrieval(HybridRetriever hybrid) async {
+    for (final e in evalQuestions) {
+      final ranked = await hybrid.rankAll(e.text);
+      _log({
+        'event': 'rank',
+        'q': e.text,
+        'lang': e.lang,
+        'expected': e.expected,
+        'top': [
+          for (final h in ranked.take(6))
+            {
+              'source': h.passage.source.id,
+              'id': h.passage.id,
+              'cos': double.parse(h.cosine.toStringAsFixed(3)),
+              'kw': double.parse(h.keyword.toStringAsFixed(1)),
+            },
+        ],
+      });
+    }
   }
 
   void _log(Map<String, Object?> data) =>

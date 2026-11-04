@@ -1,4 +1,5 @@
 import '../llm/local_llm.dart';
+import 'hybrid_retriever.dart';
 import 'knowledge_package.dart';
 import 'retriever.dart';
 
@@ -11,11 +12,29 @@ const groundedSystemInstruction =
 
 const noSourceText = '資料に答えがありません';
 
+const groundedSystemInstructionEn =
+    'You answer questions about disaster preparedness and outdoor safety in Japan. '
+    'Use only what the given sources say. The sources are in Japanese; answer in short, plain English. '
+    'End each sentence with the number of the source you used, like [1]. '
+    'If the sources do not answer the question, reply only: "$noSourceTextEn". '
+    'Do not add facts, numbers or steps that are not in the sources.';
+
+const noSourceTextEn = 'No answer in the sources.';
+
+final _japanese = RegExp(r'[\u3040-\u30ff\u4e00-\u9fff]');
+
+/// 'ja' if the question contains Japanese characters, otherwise 'en'.
+String questionLanguage(String q) => _japanese.hasMatch(q) ? 'ja' : 'en';
+
 /// What the app shows for one question.
 class GroundedAnswer {
-  GroundedAnswer(this.question);
+  GroundedAnswer(this.question) : lang = questionLanguage(question);
 
   final String question;
+  final String lang;
+
+  /// The Japanese search query used for an English question.
+  String? searchQuery;
   List<Alert> alerts = [];
   List<Hit> hits = [];
   String text = '';
@@ -36,7 +55,9 @@ class GroundedAnswer {
       if (n >= 1 && n <= hits.length) hits[n - 1],
   ];
 
-  bool get saysNoSource => text.contains(noSourceText);
+  bool get saysNoSource =>
+      text.contains(noSourceText) ||
+      text.toLowerCase().contains('no answer in the sources');
 
   /// The check the UI relies on: an answer without valid citations is not shown as fact.
   bool get isGrounded =>
@@ -44,13 +65,16 @@ class GroundedAnswer {
 
   Map<String, Object?> toJson() => {
     'q': question,
+    'lang': lang,
+    if (searchQuery != null) 'search_query': searchQuery,
     'alerts': [for (final a in alerts) a.id],
     'retrieved': [
       for (final h in hits)
         {
           'id': h.passage.id,
           'source': h.passage.source.id,
-          'score': double.parse(h.score.toStringAsFixed(1)),
+          'score': double.parse(h.score.toStringAsFixed(4)),
+          if (h is RankedHit) 'cos': double.parse(h.cosine.toStringAsFixed(3)),
         },
     ],
     'a': text,
@@ -63,27 +87,43 @@ class GroundedAnswer {
 }
 
 class GroundedAnswerer {
-  GroundedAnswerer(this.llm, this.package) : retriever = Retriever(package);
+  GroundedAnswerer(this.llm, this.package, {this.hybrid})
+    : retriever = Retriever(package);
 
   final LocalLlm llm;
   final KnowledgePackage package;
   final Retriever retriever;
 
+  /// Vector + keyword search; falls back to keywords only when null.
+  final HybridRetriever? hybrid;
+
   /// Fills [answer] step by step; [onUpdate] is called as tokens arrive.
   Future<void> answer(GroundedAnswer answer, void Function() onUpdate) async {
     final q = answer.question;
-    answer.alerts = package.alerts.where((a) => a.matches(q)).toList();
-    answer.hits = retriever.search(q);
+    final en = answer.lang == 'en';
+    // The package is Japanese: search with a Japanese version of the question.
+    final search = en ? await _toJapanese(q) : q;
+    if (en) answer.searchQuery = search;
+    answer.alerts = package.alerts
+        .where((a) => a.matches(q) || a.matches(search))
+        .toList();
+    answer.hits = hybrid != null
+        ? await hybrid!.search(search)
+        : retriever.search(search);
     onUpdate();
     if (answer.hits.isEmpty) {
       // Nothing relevant in the package: do not let the model guess.
-      answer.text = noSourceText;
+      answer.text = en ? noSourceTextEn : noSourceText;
       onUpdate();
       return;
     }
-    await llm.newChat(systemInstruction: groundedSystemInstruction);
+    await llm.newChat(
+      systemInstruction: en
+          ? groundedSystemInstructionEn
+          : groundedSystemInstruction,
+    );
     await for (final t in llm.ask(
-      _prompt(q, answer.hits),
+      _prompt(q, answer.hits, en),
       onDone: (s) => answer.stats = s,
     )) {
       answer.text += t;
@@ -91,8 +131,23 @@ class GroundedAnswerer {
     }
   }
 
-  static String _prompt(String question, List<Hit> hits) {
-    final b = StringBuffer('資料:\n');
+  Future<String> _toJapanese(String question) async {
+    await llm.newChat(
+      systemInstruction:
+          "Translate the user's question into natural Japanese. "
+          'Reply with the Japanese question only, nothing else.',
+      maxOutputTokens: 128,
+    );
+    final b = StringBuffer();
+    await for (final t in llm.ask(question)) {
+      b.write(t);
+    }
+    final ja = b.toString().trim();
+    return ja.isEmpty ? question : ja;
+  }
+
+  static String _prompt(String question, List<Hit> hits, bool en) {
+    final b = StringBuffer(en ? 'Sources:\n' : '資料:\n');
     for (var i = 0; i < hits.length; i++) {
       final p = hits[i].passage;
       b.writeln(
@@ -101,7 +156,7 @@ class GroundedAnswerer {
       b.writeln(p.text);
       b.writeln();
     }
-    b.writeln('質問: $question');
+    b.writeln(en ? 'Question: $question' : '質問: $question');
     return b.toString();
   }
 }

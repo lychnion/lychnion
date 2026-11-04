@@ -1,0 +1,117 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:path_provider/path_provider.dart';
+
+import '../llm/local_embedder.dart';
+import 'knowledge_package.dart';
+import 'retriever.dart';
+
+final _japanese = RegExp(r'[\u3040-\u30ff\u4e00-\u9fff]');
+
+/// One passage with both scores, for ranking and for the spike logs.
+class RankedHit extends Hit {
+  RankedHit(
+    super.passage,
+    super.score, {
+    required this.cosine,
+    required this.keyword,
+  });
+  final double cosine;
+  final double keyword;
+}
+
+/// Vector search (multilingual, so English questions find Japanese text)
+/// combined with the bigram keyword search by reciprocal rank fusion.
+///
+/// [minCosine] is the relevance cut-off: passages less similar than this are
+/// never given to the model. If none pass, the answer is "no source".
+class HybridRetriever {
+  HybridRetriever(this.package, this.embedder, {this.minCosine = 0.0})
+    : keywords = Retriever(package);
+
+  final KnowledgePackage package;
+  final LocalEmbedder embedder;
+  final Retriever keywords;
+  double minCosine;
+  late List<List<double>> _vectors;
+
+  /// Embeds all passages once per package version and model; cached on disk.
+  Future<void> index() async {
+    final dir = Directory(
+      '${(await getApplicationSupportDirectory()).path}/packages',
+    );
+    await dir.create(recursive: true);
+    final cache = File(
+      '${dir.path}/${package.id}-${package.version}-${embedder.modelName}.vectors.json',
+    );
+    if (await cache.exists()) {
+      final data = jsonDecode(await cache.readAsString()) as List;
+      if (data.length == package.passages.length) {
+        _vectors = [for (final v in data) List<double>.from(v as List)];
+        return;
+      }
+    }
+    _vectors = await embedder.documents([
+      for (final p in package.passages) _docText(p),
+    ]);
+    await cache.writeAsString(jsonEncode(_vectors));
+  }
+
+  static String _docText(Passage p) =>
+      [p.source.title, if (p.heading.isNotEmpty) p.heading, p.text].join('\n');
+
+  /// All passages ranked, before the cut-off (used by the eval logs).
+  Future<List<RankedHit>> rankAll(String query) async {
+    final q = await embedder.query(query);
+    final n = package.passages.length;
+    final cos = [for (final v in _vectors) _dot(q, v)];
+    // Keyword search is for Japanese text only: Latin letters in English
+    // questions matched link lists and captions in spike 3.
+    final kw = <int, double>{
+      if (_japanese.hasMatch(query))
+        for (final h in keywords.search(query, limit: n, minScore: 0))
+          h.passage.id: h.score,
+    };
+    final byCos = List<int>.generate(n, (i) => i)
+      ..sort((a, b) => cos[b].compareTo(cos[a]));
+    final byKw = List<int>.generate(n, (i) => i)
+      ..sort(
+        (a, b) => (kw[package.passages[b].id] ?? 0).compareTo(
+          kw[package.passages[a].id] ?? 0,
+        ),
+      );
+    final rrf = List<double>.filled(n, 0);
+    for (var r = 0; r < n; r++) {
+      rrf[byCos[r]] += 1 / (60 + r);
+      // Keyword rank counts only where there was a keyword match at all.
+      if ((kw[package.passages[byKw[r]].id] ?? 0) > 0) {
+        rrf[byKw[r]] += 1 / (60 + r);
+      }
+    }
+    final hits = [
+      for (var i = 0; i < n; i++)
+        RankedHit(
+          package.passages[i],
+          rrf[i],
+          cosine: cos[i],
+          keyword: kw[package.passages[i].id] ?? 0,
+        ),
+    ]..sort((a, b) => b.score.compareTo(a.score));
+    return hits;
+  }
+
+  Future<List<RankedHit>> search(String query, {int limit = 4}) async =>
+      (await rankAll(
+        query,
+      )).where((h) => h.cosine >= minCosine).take(limit).toList();
+
+  static double _dot(List<double> a, List<double> b) {
+    var s = 0.0;
+    for (var i = 0; i < min(a.length, b.length); i++) {
+      s += a[i] * b[i];
+    }
+    return s; // vectors are L2-normalised by the engine
+  }
+}

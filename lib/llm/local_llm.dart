@@ -45,8 +45,10 @@ class LocalLlm {
   edge.InferenceChat? _chat;
   Duration? lastLoadTime;
 
+  /// Registers the llama.cpp engine for chat and for embeddings.
   static Future<void> init() => edge.FlutterEdgeAi.initialize(
     inferenceEngines: const [LlamaEngineProvider()],
+    embeddingBackends: const [LlamaEmbeddingBackend()],
   );
 
   bool get isLoaded => _model != null;

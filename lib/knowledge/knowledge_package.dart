@@ -26,7 +26,14 @@ class Passage {
 
 /// A fixed safety line, quoted word for word from its source.
 class Alert {
-  Alert(this.id, this.source, this.text, this.matchAll);
+  Alert(
+    this.id,
+    this.source,
+    this.text,
+    this.matchAll,
+    this.textEn,
+    this.matchAllEn,
+  );
   final String id;
   final Source source;
   final String text;
@@ -34,8 +41,15 @@ class Alert {
   /// Every group needs at least one word present in the question.
   final List<List<String>> matchAll;
 
-  bool matches(String question) =>
-      matchAll.every((group) => group.any(question.contains));
+  /// Our English translation (not official) and its trigger words.
+  final String? textEn;
+  final List<List<String>> matchAllEn;
+
+  bool matches(String question) {
+    bool all(List<List<String>> groups, String q) =>
+        groups.isNotEmpty && groups.every((g) => g.any(q.contains));
+    return all(matchAll, question) || all(matchAllEn, question.toLowerCase());
+  }
 }
 
 /// A knowledge package: one SQLite file built by tool/build_package.py.
@@ -101,12 +115,20 @@ class KnowledgePackage {
             r['text'],
           ),
       ];
+      List<List<String>> groups(Object? json) => [
+        for (final g in jsonDecode(json as String? ?? '[]') as List)
+          List<String>.from(g as List),
+      ];
       final alerts = [
         for (final r in db.select('SELECT * FROM alerts'))
-          Alert(r['id'], sources[r['source_id']]!, r['text'], [
-            for (final g in jsonDecode(r['match_all']) as List)
-              List<String>.from(g as List),
-          ]),
+          Alert(
+            r['id'],
+            sources[r['source_id']]!,
+            r['text'],
+            groups(r['match_all']),
+            r['text_en'] as String?,
+            groups(r['match_all_en']),
+          ),
       ];
       final synonyms = {
         for (final e in (jsonDecode(meta['synonyms'] ?? '{}') as Map).entries)

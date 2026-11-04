@@ -138,8 +138,11 @@ def main(manifest_path):
     for src in manifest["sources"]:
         text = extract(fetch(src))
         texts[src["id"]] = squash(text)
-        skip = set(src.get("skip_headings", []))  # e.g. cover, contents, reference pages
-        ps = [(h, t) for h, t in passages(clean_lines(text)) if h not in skip]
+        # e.g. cover, contents and link-list sections, and video captions
+        skip = set(src.get("skip_headings", [])) | set(manifest.get("skip_headings_all", []))
+        drop = manifest.get("drop_lines_containing", [])
+        lines = [l for l in clean_lines(text) if not any(d in l for d in drop)]
+        ps = [(h, t) for h, t in passages(lines) if h not in skip]
         if not ps:
             sys.exit(f"no text extracted from {src['id']}")
         rows += [(src["id"], h, t) for h, t in ps]
@@ -163,7 +166,8 @@ def main(manifest_path):
         CREATE VIRTUAL TABLE passages_fts USING fts5(heading, text, content='passages',
                               content_rowid='id', tokenize='trigram');
         CREATE TABLE alerts(id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
-                            text TEXT NOT NULL, match_all TEXT NOT NULL);
+                            text TEXT NOT NULL, match_all TEXT NOT NULL,
+                            text_en TEXT, match_all_en TEXT);
     """)
     for k in ("id", "title", "language", "version", "note"):
         db.execute("INSERT INTO meta VALUES(?,?)", (k, manifest.get(k, "")))
@@ -175,8 +179,10 @@ def main(manifest_path):
                     for s in manifest["sources"]])
     db.executemany("INSERT INTO passages(source_id,heading,text) VALUES(?,?,?)", rows)
     db.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')")
-    db.executemany("INSERT INTO alerts VALUES(?,?,?,?)",
-                   [(a["id"], a["source"], a["text"], json.dumps(a["all"], ensure_ascii=False))
+    # text_en is our translation, shown next to the official Japanese text.
+    db.executemany("INSERT INTO alerts VALUES(?,?,?,?,?,?)",
+                   [(a["id"], a["source"], a["text"], json.dumps(a["all"], ensure_ascii=False),
+                     a.get("text_en"), json.dumps(a.get("all_en", []), ensure_ascii=False))
                     for a in manifest.get("alerts", [])])
     db.commit()
     db.execute("VACUUM")
