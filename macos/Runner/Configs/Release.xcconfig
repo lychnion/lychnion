@@ -1,0 +1,5 @@
+#include "../../Flutter/Flutter-Release.xcconfig"
+#include "Warnings.xcconfig"
+
+// Spike: Apple Silicon only. Flutter 3.44 + Xcode 27 fails the universal-binary check in release builds.
+ARCHS = arm64

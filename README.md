@@ -1,0 +1,50 @@
+# fieldkit
+
+Proof of concept for an offline AI helper for disaster preparedness and the
+outdoors in Japan. One Flutter codebase for iOS, Android, macOS and Windows.
+Everything runs on the device; the network is only needed to download models.
+
+"fieldkit" is a code name. The public name is still open (see
+[docs/poc-plan.md](docs/poc-plan.md), section 0).
+
+## Status
+
+Spike 1: run a small Japanese-capable model (Gemma 4 E2B, GGUF) on the device
+through [flutter_edge_ai](https://pub.dev/packages/flutter_edge_ai) and its
+llama.cpp engine, and measure speed and memory. No retrieval, no citations,
+no maps yet.
+
+## Run
+
+Needs Flutter 3.44+ (Dart 3.12+), Xcode for Apple platforms, the Android SDK
+for Android. Flutter's Swift Package Manager support must stay on (default).
+
+```bash
+flutter pub get
+flutter run -d macos
+```
+
+On macOS, click **Load GGUF file** and pick a model. The app copies it into
+its own storage. On Android and iOS, the app downloads the model from the URL
+field (default: Gemma 4 E2B Q4_0 from `ggml-org/gemma-4-E2B-it-GGUF`, 2.8 GB).
+
+**Run test questions** asks eight fixed Japanese questions
+([lib/spike/bench_prompts.dart](lib/spike/bench_prompts.dart)) and saves the
+answers with timings as JSON in the app's documents folder.
+
+Dev flags:
+
+```bash
+flutter run -d macos --dart-define=GGUF_MODEL_PATH=/path/inside/app/storage.gguf --dart-define=AUTO_BENCH=true
+```
+
+## Layout
+
+- `lib/llm/local_llm.dart`: the only code that talks to the model engine.
+- `lib/spike/`: test questions for comparing models and devices.
+- `docs/poc-plan.md`: plan, competitor review, licences, naming notes.
+
+## Licence
+
+Apache 2.0, see [LICENSE](LICENSE). Models and data have their own licences;
+Gemma 4 is Apache 2.0.

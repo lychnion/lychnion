@@ -1,0 +1,32 @@
+name: fieldkit
+description: "Offline AI helper for disaster preparedness and the outdoors (PoC)"
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_edge_ai: ^2.5.5
+  flutter_edge_ai_llama: 0.0.5
+  # Needed directly for iOS/macOS SwiftPM linkage (pairs with llamadart 0.15.1).
+  llamadart_llama_cpp_flutter: 0.15.0
+  file_selector: ^1.0.3
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# Keep llamadart to llama.cpp only (no LiteRT-LM runtime).
+hooks:
+  user_defines:
+    llamadart:
+      llamadart_native_runtimes: [llama_cpp]
+
+flutter:
+  uses-material-design: true
