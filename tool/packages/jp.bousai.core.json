@@ -1,0 +1,149 @@
+{
+  "id": "jp.bousai.core",
+  "title": "防災（基本）",
+  "language": "ja",
+  "version": "2026.11.0-spike2",
+  "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
+  "sources": [
+    {
+      "id": "kantei-sonae",
+      "title": "災害への備え 事前にできること（防災の手引き）",
+      "publisher": "首相官邸",
+      "url": "https://www.kantei.go.jp/jp/headline/bousai/sonae.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.kantei.go.jp/jp/terms.html",
+      "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/sonae.html）"
+    },
+    {
+      "id": "kantei-jishin",
+      "title": "地震への備えと身の守り方（防災の手引き）",
+      "publisher": "首相官邸",
+      "url": "https://www.kantei.go.jp/jp/headline/bousai/jishin.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.kantei.go.jp/jp/terms.html",
+      "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/jishin.html）"
+    },
+    {
+      "id": "kantei-tsunami",
+      "title": "津波の特徴と避難行動（防災の手引き）",
+      "publisher": "首相官邸",
+      "url": "https://www.kantei.go.jp/jp/headline/bousai/tsunami.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.kantei.go.jp/jp/terms.html",
+      "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/tsunami.html）"
+    },
+    {
+      "id": "kantei-hinan",
+      "title": "避難情報と避難行動（防災の手引き）",
+      "publisher": "首相官邸",
+      "url": "https://www.kantei.go.jp/jp/headline/bousai/hinan.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.kantei.go.jp/jp/terms.html",
+      "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/hinan.html）"
+    },
+    {
+      "id": "kantei-setsugai",
+      "title": "雪害への備え（防災の手引き）",
+      "publisher": "首相官邸",
+      "url": "https://www.kantei.go.jp/jp/headline/bousai/setsugai.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.kantei.go.jp/jp/terms.html",
+      "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/setsugai.html）"
+    },
+    {
+      "id": "fdma-shiketsu",
+      "title": "口頭指導要領 止血法",
+      "publisher": "総務省消防庁",
+      "url": "https://www.fdma.go.jp/laws/item/laws014_04_20130517-3w.doc",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.fdma.go.jp/about/others/post3.html",
+      "attribution": "出典：消防庁ホームページ（https://www.fdma.go.jp/laws/item/laws014_04_20130517-3w.doc）"
+    },
+    {
+      "id": "env-kuma",
+      "title": "クマに出会わないためにできることや出会ってしまった時の対処について",
+      "publisher": "環境省",
+      "url": "https://www.env.go.jp/nature/choju/effort/effort12/kuma-bunseki-r0804.pdf",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.env.go.jp/mail.html",
+      "attribution": "出典：環境省ホームページ（https://www.env.go.jp/nature/choju/effort/effort12/kuma-bunseki-r0804.pdf）",
+      "skip_headings": [
+        "p.1",
+        "p.2",
+        "p.8",
+        "p.9",
+        "p.10"
+      ],
+      "note": "OCR. p.8 (do / don't table) skipped: OCR mixes the two columns, which turned \"don't\" into \"do\" in spike 2."
+    }
+  ],
+  "alerts": [
+    {
+      "id": "tsunami-go-high",
+      "all": [
+        [
+          "揺れ",
+          "地震"
+        ],
+        [
+          "海",
+          "海岸",
+          "沿岸",
+          "津波",
+          "浜",
+          "河口"
+        ]
+      ],
+      "source": "kantei-tsunami",
+      "text": "強い揺れや弱くても長い揺れを感じたら、また地震を体で感じなくても、「津波警報」等を見聞きしたら、いち早く海岸から離れ、可能な限り高い場所へ避難してください。震源が陸地に近いと津波警報・注意報が津波の襲来に間に合わないことがあります。"
+    }
+  ],
+  "gaps": [
+    "Getting lost while hiking: no national open source found yet (only prefectural police leaflets).",
+    "Bear encounter (what to do / not do): the 環境省 table is a two-column image; needs a text source or a checked transcription."
+  ],
+  "synonyms": {
+    "飲み水": [
+      "飲料水"
+    ],
+    "水": [
+      "飲料水"
+    ],
+    "家の中": [
+      "屋内",
+      "家庭"
+    ],
+    "家": [
+      "家庭",
+      "屋内"
+    ],
+    "揺れ": [
+      "地震"
+    ],
+    "持っていく": [
+      "持ち出し",
+      "非常用持ち出し"
+    ],
+    "避難所": [
+      "避難"
+    ],
+    "血": [
+      "出血",
+      "止血"
+    ],
+    "道に迷": [
+      "道迷い",
+      "遭難"
+    ],
+    "クマ": [
+      "熊"
+    ],
+    "雪崩": [
+      "なだれ"
+    ],
+    "仲間": [
+      "流されている人",
+      "巻き込まれた"
+    ]
+  }
+}

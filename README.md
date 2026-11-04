@@ -9,10 +9,24 @@ Everything runs on the device; the network is only needed to download models.
 
 ## Status
 
-Spike 1: run a small Japanese-capable model (Gemma 4 E2B, GGUF) on the device
-through [flutter_edge_ai](https://pub.dev/packages/flutter_edge_ai) and its
-llama.cpp engine, and measure speed and memory. No retrieval, no citations,
-no maps yet.
+- Spike 1 ([results](docs/spike-1-results.md)): Gemma 4 E2B (GGUF) runs on
+  the device through [flutter_edge_ai](https://pub.dev/packages/flutter_edge_ai)
+  and its llama.cpp engine.
+- Spike 2 ([results](docs/spike-2-results.md)): answers only from a small
+  Bousai package of official sources, with checked citations and fixed
+  safety lines.
+
+No maps or vector search yet.
+
+## Knowledge packages
+
+```bash
+python3 -I tool/build_package.py tool/packages/jp.bousai.core.json
+```
+
+Builds `assets/packages/jp.bousai.core.sqlite` (macOS: uses `textutil` and
+Swift for .doc and PDF/OCR). Add `--dart-define=BARE=true` to `flutter run`
+to compare with the model alone.
 
 ## Run
 

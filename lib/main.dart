@@ -7,8 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'knowledge/grounded_answer.dart';
+import 'knowledge/knowledge_package.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
+import 'ui/answer_card.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
 ///
@@ -16,6 +19,7 @@ import 'spike/bench_prompts.dart';
 ///   --dart-define=GGUF_MODEL_PATH=/path/in/app/storage.gguf  load on start
 ///   --dart-define=GGUF_MODEL_URL=https://...gguf             download on start
 ///   --dart-define=AUTO_BENCH=true                            run the questions after loading
+///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
 const _modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
 const _modelUrl = String.fromEnvironment(
   'GGUF_MODEL_URL',
@@ -23,6 +27,8 @@ const _modelUrl = String.fromEnvironment(
       'https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf',
 );
 const _autoBench = bool.fromEnvironment('AUTO_BENCH');
+const _bare = bool.fromEnvironment('BARE');
+const _packageAsset = 'jp.bousai.core.sqlite';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,13 +53,6 @@ class FieldkitApp extends StatelessWidget {
   );
 }
 
-class _Entry {
-  _Entry(this.question);
-  final String question;
-  String answer = '';
-  AnswerStats? stats;
-}
-
 class SpikePage extends StatefulWidget {
   const SpikePage({super.key});
 
@@ -65,7 +64,8 @@ class _SpikePageState extends State<SpikePage> {
   final _llm = LocalLlm();
   final _input = TextEditingController();
   final _url = TextEditingController(text: _modelUrl);
-  final _entries = <_Entry>[];
+  final _entries = <GroundedAnswer>[];
+  GroundedAnswerer? _answerer;
   String _status = 'No model loaded.';
   bool _busy = false;
 
@@ -94,6 +94,16 @@ class _SpikePageState extends State<SpikePage> {
     try {
       await load();
       await _llm.newChat(systemInstruction: benchSystemInstruction);
+      if (!_bare) {
+        final pkg = await KnowledgePackage.fromAsset(_packageAsset);
+        _answerer = GroundedAnswerer(_llm, pkg);
+        _log({
+          'event': 'package',
+          'id': pkg.id,
+          'version': pkg.version,
+          'passages': pkg.passages.length,
+        });
+      }
       _log({
         'event': 'loaded',
         'load_ms': _llm.lastLoadTime?.inMilliseconds,
@@ -143,27 +153,27 @@ class _SpikePageState extends State<SpikePage> {
   );
 
   Future<void> _ask(String question) async {
-    final entry = _Entry(question);
+    final entry = GroundedAnswer(question);
     setState(() {
       _busy = true;
       _entries.add(entry);
     });
     try {
-      await for (final t in _llm.ask(
-        question,
-        onDone: (s) => entry.stats = s,
-      )) {
-        entry.answer += t;
-        setState(() {});
+      final answerer = _answerer;
+      if (answerer != null) {
+        await answerer.answer(entry, () => setState(() {}));
+      } else {
+        await for (final t in _llm.ask(
+          question,
+          onDone: (s) => entry.stats = s,
+        )) {
+          entry.text += t;
+          setState(() {});
+        }
       }
-      _log({
-        'event': 'answer',
-        'q': question,
-        'a': entry.answer,
-        ...?entry.stats?.toJson(),
-      });
+      _log({'event': 'answer', ...entry.toJson()});
     } catch (e) {
-      entry.answer += '\n[error: $e]';
+      entry.text += '\n[error: $e]';
     } finally {
       setState(() => _busy = false);
     }
@@ -173,18 +183,19 @@ class _SpikePageState extends State<SpikePage> {
     final results = <Map<String, Object?>>[];
     for (final q in benchPrompts) {
       // A fresh chat per question, so answers do not depend on each other.
-      await _llm.newChat(systemInstruction: benchSystemInstruction);
+      if (_bare) await _llm.newChat(systemInstruction: benchSystemInstruction);
       await _ask(q);
-      final e = _entries.last;
-      results.add({'q': q, 'a': e.answer, ...?e.stats?.toJson()});
+      results.add(_entries.last.toJson());
     }
     final dir = await getApplicationDocumentsDirectory();
     final out = File(
-      '${dir.path}/fieldkit-bench-${DateTime.now().millisecondsSinceEpoch}.json',
+      '${dir.path}/fieldkit-bench-${_bare ? 'bare' : 'grounded'}-${DateTime.now().millisecondsSinceEpoch}.json',
     );
     await out.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
         'platform': defaultTargetPlatform.name,
+        'mode': _bare ? 'bare' : 'grounded',
+        'package': _answerer?.package.version,
         'backend': _llm.backend,
         'load_ms': _llm.lastLoadTime?.inMilliseconds,
         'results': results,
@@ -246,36 +257,11 @@ class _SpikePageState extends State<SpikePage> {
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: _entries.length,
-              itemBuilder: (_, i) {
-                final e = _entries[i];
-                final s = e.stats;
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          e.question,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 6),
-                        SelectableText(e.answer),
-                        if (s != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              'first token ${s.timeToFirstToken.inMilliseconds} ms · '
-                              '${s.tokensPerSecond.toStringAsFixed(1)} tok/s · '
-                              '${s.outputTokens} tokens · RAM ${s.rssBytes ~/ (1024 * 1024)} MB',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+              itemBuilder: (_, i) => AnswerCard(
+                answer: _entries[i],
+                grounded: _answerer != null,
+                done: !_busy || i < _entries.length - 1,
+              ),
             ),
           ),
           SafeArea(

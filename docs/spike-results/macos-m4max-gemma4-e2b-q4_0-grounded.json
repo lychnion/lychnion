@@ -1,0 +1,289 @@
+{
+  "platform": "macOS",
+  "mode": "grounded",
+  "package": "2026.11.0-spike2",
+  "backend": "GPU",
+  "load_ms": 1615,
+  "results": [
+    {
+      "q": "大きな地震で揺れているとき、家の中ではまず何をすればいいですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 24,
+          "source": "kantei-jishin",
+          "score": 12.2
+        },
+        {
+          "id": 6,
+          "source": "kantei-sonae",
+          "score": 9.9
+        },
+        {
+          "id": 92,
+          "source": "kantei-setsugai",
+          "score": 9.2
+        }
+      ],
+      "a": "家具の移動や落下物から身を守るため、頭を保護しながら大きな家具から離れ、丈夫な机の下などに隠れること、あわてて外に飛び出さないことが挙げられます [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 443,
+      "total_ms": 824,
+      "input_tokens": 664,
+      "output_tokens": 46,
+      "tokens_per_s": 118.1,
+      "rss_mb": 3041
+    },
+    {
+      "q": "海の近くで強い揺れを感じました。津波警報はまだ出ていません。どうすればいいですか？",
+      "alerts": [
+        "tsunami-go-high"
+      ],
+      "retrieved": [
+        {
+          "id": 43,
+          "source": "kantei-tsunami",
+          "score": 28.4
+        },
+        {
+          "id": 47,
+          "source": "kantei-tsunami",
+          "score": 25.2
+        },
+        {
+          "id": 49,
+          "source": "kantei-tsunami",
+          "score": 23.5
+        },
+        {
+          "id": 30,
+          "source": "kantei-jishin",
+          "score": 19.1
+        }
+      ],
+      "a": "強い揺れや弱くても長い揺れを感じたら、「津波警報」を見聞きしたら、いち早く海岸から離れ、可能な限り高い場所へ避難してください [2]。",
+      "cited": [
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 408,
+      "total_ms": 741,
+      "input_tokens": 1040,
+      "output_tokens": 40,
+      "tokens_per_s": 117.5,
+      "rss_mb": 3047
+    },
+    {
+      "q": "停電と断水が3日続いています。家族4人です。飲み水はどれくらい必要ですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 7,
+          "source": "kantei-sonae",
+          "score": 19.1
+        },
+        {
+          "id": 6,
+          "source": "kantei-sonae",
+          "score": 18.1
+        },
+        {
+          "id": 21,
+          "source": "kantei-jishin",
+          "score": 14.6
+        },
+        {
+          "id": 2,
+          "source": "kantei-sonae",
+          "score": 10.1
+        }
+      ],
+      "a": "飲料水は3日分（1人1日3リットルが目安）が必要です [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 327,
+      "total_ms": 508,
+      "input_tokens": 832,
+      "output_tokens": 21,
+      "tokens_per_s": 110.5,
+      "rss_mb": 3055
+    },
+    {
+      "q": "避難所に持っていくべきものを10個挙げてください。",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 8,
+          "source": "kantei-sonae",
+          "score": 39.7
+        },
+        {
+          "id": 2,
+          "source": "kantei-sonae",
+          "score": 21.9
+        },
+        {
+          "id": 3,
+          "source": "kantei-sonae",
+          "score": 20.1
+        },
+        {
+          "id": 7,
+          "source": "kantei-sonae",
+          "score": 15.5
+        }
+      ],
+      "a": "資料に避難所に持っていくべきものを10個挙げるという記述はありません。しかし、「非常時に持ち出すべきもの」をあらかじめリュックサックに詰めておき、いつでもすぐに持ち出せるようにしておくことが推奨されています [1]。また、「身の回りの備え」として「非常用持ち出しバッグ」が挙げられています [3]。",
+      "cited": [
+        1,
+        3
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 275,
+      "total_ms": 908,
+      "input_tokens": 721,
+      "output_tokens": 76,
+      "tokens_per_s": 118.7,
+      "rss_mb": 3062
+    },
+    {
+      "q": "登山中に道に迷いました。スマホの電波がありません。どうすればいいですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 87,
+          "source": "kantei-setsugai",
+          "score": 10.8
+        }
+      ],
+      "a": "携行した無線機や携帯電話で必要に応じて110番や119番通報し救助を求め、状況や現在地の地形など分かる限りの情報を伝えましょう [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 147,
+      "total_ms": 510,
+      "input_tokens": 424,
+      "output_tokens": 43,
+      "tokens_per_s": 115.7,
+      "rss_mb": 3056
+    },
+    {
+      "q": "山でクマに出会ってしまいました。どう行動すればいいですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 99,
+          "source": "env-kuma",
+          "score": 18.9
+        },
+        {
+          "id": 100,
+          "source": "env-kuma",
+          "score": 15.9
+        },
+        {
+          "id": 110,
+          "source": "env-kuma",
+          "score": 15.9
+        },
+        {
+          "id": 101,
+          "source": "env-kuma",
+          "score": 15.7
+        }
+      ],
+      "a": "山でクマに遭遇した場合の正しい対処方法は以下の通りです。\n\n* 慌てず、ゆっくり移動する [3]\n* クマに対して大きな声や音を出して威嚇したり、撃退スプレーを使用したりしない [3]\n* 人の生活圏では電柱や車などとクマが遭遇した場合は背中を見せて走り出す前に遮蔽物を挟むように移動する [3]\n* クマに対して物を投げたりして刺したりしない [3]\n* 近くの車や民家に助けを求める [3]\n* リュックやかばんを置いて逃げる [3]\n\n襲われそうになった場合は、うつ伏せになり、顔や胸、腹部を守り、後頭部と首の後ろは手指を組み合わせて攻撃を防ぐことが重要です [3]。",
+      "cited": [
+        3
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 518,
+      "total_ms": 1956,
+      "input_tokens": 1273,
+      "output_tokens": 174,
+      "tokens_per_s": 120.3,
+      "rss_mb": 3067
+    },
+    {
+      "q": "バックカントリーで雪崩に巻き込まれた仲間を探すとき、最初にすることは何ですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 92,
+          "source": "kantei-setsugai",
+          "score": 40.5
+        },
+        {
+          "id": 85,
+          "source": "kantei-setsugai",
+          "score": 23.4
+        },
+        {
+          "id": 50,
+          "source": "kantei-tsunami",
+          "score": 17.8
+        },
+        {
+          "id": 46,
+          "source": "kantei-tsunami",
+          "score": 13.8
+        }
+      ],
+      "a": "雪崩が止まったら見張りを立て、遭難点と消失点にポールや木などの目印をたてる [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 443,
+      "total_ms": 692,
+      "input_tokens": 1122,
+      "output_tokens": 30,
+      "tokens_per_s": 116.5,
+      "rss_mb": 3071
+    },
+    {
+      "q": "腕から血がたくさん出ています。どう止血すればいいですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 97,
+          "source": "fdma-shiketsu",
+          "score": 18.6
+        }
+      ],
+      "a": "ガーゼやハンカチ、タオルなどを重ねて出血部位に当てて強く押さえること[1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "no_source": false,
+      "ttft_ms": 146,
+      "total_ms": 343,
+      "input_tokens": 415,
+      "output_tokens": 24,
+      "tokens_per_s": 117.3,
+      "rss_mb": 3060
+    }
+  ]
+}
