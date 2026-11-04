@@ -39,4 +39,15 @@ void main() {
     expect(tsunami.matches(benchPrompts[0]), isFalse);
     expect(tsunami.matches('山でクマに出会いました'), isFalse);
   });
+
+  test('bear and lost-in-the-mountains safety lines', () {
+    Alert byId(String id) => pkg.alerts.singleWhere((a) => a.id == id);
+    final bear = byId('bear-move-slowly'), lost = byId('lost-go-back');
+    expect(bear.matches('山でクマに出会ってしまいました。'), isTrue);
+    expect(bear.matches('I saw a bear on the trail.'), isTrue);
+    expect(bear.matches('クマに会わないために山菜採りで気をつけることは？'), isFalse);
+    expect(lost.matches('登山中に道に迷いました。'), isTrue);
+    expect(lost.matches('I got lost while hiking.'), isTrue);
+    expect(lost.matches('避難所への道に迷いました。'), isFalse);
+  });
 }

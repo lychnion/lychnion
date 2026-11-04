@@ -18,8 +18,8 @@ const evalQuestions = <EvalQuestion>[
   EvalQuestion('海の近くで強い揺れを感じました。津波警報はまだ出ていません。どうすればいいですか？', ['kantei-tsunami']),
   EvalQuestion('停電と断水が3日続いています。家族4人です。飲み水はどれくらい必要ですか？', ['kantei-sonae']),
   EvalQuestion('避難所に持っていくべきものを10個挙げてください。', ['kantei-sonae']),
-  EvalQuestion('登山中に道に迷いました。スマホの電波がありません。どうすればいいですか？', []),
-  EvalQuestion('山でクマに出会ってしまいました。どう行動すればいいですか？', []),
+  EvalQuestion('登山中に道に迷いました。スマホの電波がありません。どうすればいいですか？', ['gov-online-yama']),
+  EvalQuestion('山でクマに出会ってしまいました。どう行動すればいいですか？', ['gov-online-kuma']),
   EvalQuestion('バックカントリーで雪崩に巻き込まれた仲間を探すとき、最初にすることは何ですか？', ['kantei-setsugai']),
   EvalQuestion('腕から血がたくさん出ています。どう止血すればいいですか？', ['fdma-shiketsu']),
   // Paraphrases (no shared keywords with the source text).
@@ -30,8 +30,7 @@ const evalQuestions = <EvalQuestion>[
   EvalQuestion('家族と連絡が取れないときに使える伝言サービスはありますか？', ['kantei-sonae']),
   EvalQuestion('屋根の雪下ろしで気をつけることは？', ['kantei-setsugai']),
   EvalQuestion('津波は一回だけですか？', ['kantei-tsunami']),
-  // env-kuma disabled (OCR mixed columns): bears are not covered.
-  EvalQuestion('クマに会わないために山菜採りで気をつけることは？', []),
+  EvalQuestion('クマに会わないために山菜採りで気をつけることは？', ['gov-online-kuma']),
   // English.
   EvalQuestion('What should I do indoors during a strong earthquake?', [
     'kantei-jishin',
@@ -63,7 +62,9 @@ const evalQuestions = <EvalQuestion>[
   EvalQuestion('マムシに噛まれたらどうすればいいですか？', []),
   EvalQuestion('台風が近づいているとき、窓の対策は？', []),
   EvalQuestion('How do I treat a snake bite?', [], lang: 'en'),
-  EvalQuestion('What should I pack for a day hike?', [], lang: 'en'),
+  EvalQuestion('What should I pack for a day hike?', [
+    'gov-online-yama',
+  ], lang: 'en'),
   // Spike 4: volcano is now covered.
   EvalQuestion('噴火警戒レベル3のときは何をすればいいですか？', ['kantei-funka']),
   EvalQuestion('How does volcanic ash affect my health?', [
@@ -75,4 +76,11 @@ const evalQuestions = <EvalQuestion>[
   EvalQuestion('避難所でペットはどうすればいいですか？', []),
   EvalQuestion('How can I make river water safe to drink?', [], lang: 'en'),
   EvalQuestion('How do I use a fire extinguisher?', [], lang: 'en'),
+  // Spike 6: bears and getting lost, now covered.
+  EvalQuestion('I saw a bear on the trail. What should I do?', [
+    'gov-online-kuma',
+  ], lang: 'en'),
+  EvalQuestion('I got lost while hiking. Should I keep going down?', [
+    'gov-online-yama',
+  ], lang: 'en'),
 ];

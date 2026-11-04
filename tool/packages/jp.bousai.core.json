@@ -2,7 +2,7 @@
   "id": "jp.bousai.core",
   "title": "防災（基本）",
   "language": "ja",
-  "version": "2026.11.0-spike5",
+  "version": "2026.11.0-spike6",
   "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
   "sources": [
     {
@@ -85,6 +85,28 @@
       ],
       "note": "OCR. p.8 (do / don't table) skipped: OCR mixes the two columns, which turned \"don't\" into \"do\" in spike 2.",
       "disabled": "OCR of the two-column PDF mixes the columns on several pages (p.6, p.8). Answers inverted advice (\"don't make noise\", \"drop your bag and run\"). Needs a checked text version before use."
+    },
+    {
+      "id": "gov-online-kuma",
+      "title": "クマに出会わないために。知っておきたい対策",
+      "publisher": "政府広報オンライン",
+      "url": "https://www.gov-online.go.jp/article/202609/entry-11625.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.gov-online.go.jp/tos/",
+      "attribution": "出典：政府広報オンライン「クマに出会わないために。知っておきたい対策」（https://www.gov-online.go.jp/article/202609/entry-11625.html）を加工して作成",
+      "snapshot": "snapshots/gov-online-entry-11625.txt",
+      "note": "Article text saved from the browser on 2026-11-05 (the site refuses scripted downloads). Photo (環境省) not used."
+    },
+    {
+      "id": "gov-online-yama",
+      "title": "山の事故を防ごう！登山を楽しむために知っておきたい安全対策",
+      "publisher": "政府広報オンライン",
+      "url": "https://www.gov-online.go.jp/article/201407/entry-9829.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.gov-online.go.jp/tos/",
+      "attribution": "出典：政府広報オンライン「山の事故を防ごう！登山を楽しむために知っておきたい安全対策」（https://www.gov-online.go.jp/article/201407/entry-9829.html）を加工して作成",
+      "snapshot": "snapshots/gov-online-entry-9829.txt",
+      "note": "Article text saved from the browser on 2026-11-05 (updated 2025-10-28 on the site). Graphs and link lists not used."
     }
   ],
   "alerts": [
@@ -124,11 +146,76 @@
       ],
       "text_en": "If you feel strong shaking, or weak but long shaking, or if you hear a tsunami warning even without feeling an earthquake, leave the coast at once and evacuate to the highest place you can. If the epicentre is close to land, tsunami warnings may come too late.",
       "text_en_note": "Translation by fieldkit, not an official text."
+    },
+    {
+      "id": "bear-move-slowly",
+      "all": [
+        [
+          "クマ",
+          "熊"
+        ],
+        [
+          "出会",
+          "遭遇",
+          "会った",
+          "会ってしまった",
+          "出くわ"
+        ]
+      ],
+      "all_en": [
+        [
+          "bear"
+        ],
+        [
+          "meet",
+          "met",
+          "encounter",
+          "see ",
+          "saw",
+          "run into",
+          "ran into"
+        ]
+      ],
+      "source": "gov-online-kuma",
+      "text": "クマに出会ってしまったら、クマを見ながら静かにゆっくり移動することが基本です。",
+      "text_en": "If you meet a bear, the basic rule is to move away quietly and slowly while watching the bear.",
+      "text_en_note": "Translation by fieldkit, not an official text."
+    },
+    {
+      "id": "lost-go-back",
+      "all": [
+        [
+          "道に迷",
+          "迷った",
+          "迷子",
+          "道迷い"
+        ],
+        [
+          "山",
+          "登山",
+          "ハイキング",
+          "下山"
+        ]
+      ],
+      "all_en": [
+        [
+          "lost"
+        ],
+        [
+          "hik",
+          "mountain",
+          "trail",
+          "climb"
+        ]
+      ],
+      "source": "gov-online-yama",
+      "text": "もし、道に迷ってしまったら、そのまま下山をするのではなく、元の道に引き返すようにしましょう。",
+      "text_en": "If you get lost, do not keep going down; go back the way you came.",
+      "text_en_note": "Translation by fieldkit, not an official text."
     }
   ],
   "gaps": [
-    "Getting lost while hiking: no national open source found yet (only prefectural police leaflets).",
-    "Bears (prevention and encounter): 環境省 PDF disabled until a checked text version exists."
+    "Bears: 環境省 PDF still disabled (OCR); covered by the 政府広報オンライン article instead."
   ],
   "synonyms": {
     "飲み水": [

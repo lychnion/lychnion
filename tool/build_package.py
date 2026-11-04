@@ -3,7 +3,8 @@
 
     python3 -I tool/build_package.py tool/packages/jp.bousai.core.json [--max-chars N]
 
-Downloads each source once into build/package-cache/, extracts the text
+Downloads each source once into build/package-cache/ (or reads a saved text
+snapshot, for sites that refuse scripted downloads), extracts the text
 (HTML, Word .doc via macOS textutil, PDF via tool/pdf2txt.swift), splits it
 into short passages and writes assets/packages/<id>.sqlite.
 
@@ -56,7 +57,10 @@ class _Text(HTMLParser):
             self.out.append(data)
 
 
-def fetch(src):
+def fetch(src, manifest_dir):
+    if src.get("snapshot"):
+        # Text saved from a browser for sites that refuse scripted downloads.
+        return manifest_dir / src["snapshot"]
     ext = Path(src["url"].split("?")[0]).suffix or ".html"
     path = CACHE / f"{src['id']}{ext}"
     if not path.exists():
@@ -71,6 +75,8 @@ def extract(path):
         p = _Text()
         p.feed(path.read_bytes().decode("utf-8", "replace"))
         return "".join(p.out)
+    if path.suffix == ".txt":
+        return path.read_text(encoding="utf-8")
     if path.suffix == ".doc":
         return subprocess.run(["textutil", "-convert", "txt", "-stdout", str(path)],
                               check=True, capture_output=True, text=True).stdout
@@ -140,7 +146,7 @@ def main(manifest_path, max_chars=MAX_CHARS):
     texts, rows = {}, []
     manifest["sources"] = [s for s in manifest["sources"] if not s.get("disabled")]
     for src in manifest["sources"]:
-        text = extract(fetch(src))
+        text = extract(fetch(src, Path(manifest_path).parent))
         texts[src["id"]] = squash(text)
         # e.g. cover, contents and link-list sections, and video captions
         skip = set(src.get("skip_headings", [])) | set(manifest.get("skip_headings_all", []))
