@@ -24,6 +24,10 @@ class AppSettings extends ChangeNotifier {
   /// Developer aid: speed and memory under each answer.
   bool showStats = false;
 
+  /// The shelter computer this phone asks first (from a QR code or typed).
+  String? shelterUrl;
+  String? shelterName;
+
   File? _file;
 
   Future<void> load() async {
@@ -36,6 +40,8 @@ class AppSettings extends ChangeNotifier {
         orElse: () => AppLanguage.system,
       );
       showStats = j['show_stats'] == true;
+      shelterUrl = j['shelter_url'] as String?;
+      shelterName = j['shelter_name'] as String?;
     } on Object {
       // No file yet, or unreadable: keep defaults.
     }
@@ -54,7 +60,20 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
+  /// Connects to a shelter computer, or disconnects with null.
+  Future<void> setShelter(String? url, {String? name}) async {
+    shelterUrl = url;
+    shelterName = url == null ? null : name;
+    notifyListeners();
+    await _save();
+  }
+
   Future<void> _save() async => _file?.writeAsString(
-    jsonEncode({'language': language.name, 'show_stats': showStats}),
+    jsonEncode({
+      'language': language.name,
+      'show_stats': showStats,
+      'shelter_url': ?shelterUrl,
+      'shelter_name': ?shelterName,
+    }),
   );
 }

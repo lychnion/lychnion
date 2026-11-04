@@ -42,7 +42,11 @@ class AskView extends StatefulWidget {
     this.shelterName,
     this.onOpenDownloads,
     this.devActions = const [],
+    this.detailExtra,
   });
+
+  /// Shown under the status details, e.g. the shelter QR code.
+  final Widget? detailExtra;
 
   final bool en;
   final AskPhase phase;
@@ -123,7 +127,10 @@ class _AskViewState extends State<AskView> {
               ),
             ),
             const SizedBox(width: 10),
-            const Text('fieldkit'),
+            // Gives way to the status label on narrow phones.
+            const Flexible(
+              child: Text('fieldkit', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         actions: [
@@ -333,6 +340,10 @@ class _AskViewState extends State<AskView> {
             widget.detail,
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (widget.detailExtra case final w?) ...[
+            const SizedBox(height: 16),
+            w,
+          ],
         ],
       ),
     ),
@@ -428,7 +439,7 @@ class _StatusPill extends StatelessWidget {
                   ),
                 const SizedBox(width: 8),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 180),
+                  constraints: const BoxConstraints(maxWidth: 150),
                   child: Text(
                     label(phase, en, shelterName),
                     overflow: TextOverflow.ellipsis,

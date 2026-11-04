@@ -24,7 +24,8 @@ ThemeData buildTheme(Brightness brightness) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: base.textTheme.titleLarge?.copyWith(
+      titleTextStyle: TextStyle(
+        fontSize: 22,
         fontWeight: FontWeight.w700,
         color: scheme.onSurface,
       ),

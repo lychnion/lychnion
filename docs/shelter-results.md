@@ -64,3 +64,35 @@ allow device-to-device traffic. This belongs in the shelter setup guide.
   could be signed by the shelter later (as planned for facts in Idea 5).
 - **Several phones at once:** answered one after another; E4B needs about
   1.5 to 3 s per answer, so a queue forms with many users. Not load-tested.
+
+## Connect by QR code (2026-11-05)
+
+Phones no longer need the shelter address at build time (`SHELTER_URL`).
+
+- The shelter computer shows a QR code and its address under
+  Settings → 避難所 (also in the status details on the Ask screen).
+- The code holds `fieldkit://shelter?url=http://<address>:8642&name=<name>`.
+  Scanned with the phone's normal camera, it opens fieldkit, which asks
+  「〇〇に接続しますか？」 before it connects. No camera code in the app.
+- Or, on the phone: Settings → 避難所のコンピューターに接続 → type the address
+  (`192.168.1.20` is enough; http and port 8642 are added).
+- The phone saves the shelter, reconnects after a restart, retries every
+  30 s while the shelter is not reachable (e.g. before joining its Wi-Fi),
+  and pulls current information once a minute. 切断 disconnects.
+
+Tested: macOS as shelter computer, iPhone 17 simulator as phone. The link
+opened the app, iOS asked "Open in Fieldkit?", the app asked to connect,
+then pulled the facts and the shelter answered the question
+(`answered: 1` on the shelter). Not yet tested on a real phone camera or
+on Android (the intent filter is in place).
+
+![Shelter computer: QR code](images/shelter-qr.png)
+![Phone: answered by the shelter computer](images/shelter-answer-iphone.png)
+
+Notes:
+- A QR code can point anywhere. The app only accepts http(s) addresses
+  without a path, always asks first and shows the address, and the text
+  says to connect only to the shelter you are at. A fake shelter could
+  still send wrong answers or facts: signed facts are still open.
+- `app_links` only receives links in debug builds started by `flutter run`
+  (its own check); release builds on phones are not affected.

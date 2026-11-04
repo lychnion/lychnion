@@ -75,5 +75,20 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- fieldkit://shelter?url=… from the QR code on a shelter computer. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>dev.fieldkit.shelter</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fieldkit</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Links are handled by the app_links package. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 </dict>
 </plist>

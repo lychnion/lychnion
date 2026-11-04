@@ -29,7 +29,11 @@ import 'facts/fact_form.dart';
 import 'facts/fact_store.dart';
 import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
+import 'package:app_links/app_links.dart';
+
 import 'shelter/shelter_client.dart';
+import 'shelter/shelter_link.dart';
+import 'shelter/shelter_panel.dart';
 import 'shelter/shelter_server.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
@@ -150,6 +154,31 @@ class _HomePageState extends State<HomePage> {
 
   DownloadManager? _downloads;
 
+  /// Shelter computer: its addresses for phones (empty when not serving).
+  final _shelterUrls = ValueNotifier<List<String>>(const []);
+
+  StreamSubscription<Uri>? _links;
+
+  bool _asking = false;
+
+  /// A scanned fieldkit://shelter link: ask, then connect. The same link can
+  /// arrive twice (at launch and from the stream): ask only once.
+  Future<void> _openLink(Uri uri) async {
+    final link = ShelterLink.fromUri(uri);
+    if (link == null || !mounted || _asking) return;
+    if (link.url == widget.settings.shelterUrl) return; // already connected
+    _asking = true;
+    try {
+      final en = Localizations.localeOf(context).languageCode != 'ja';
+      if (await confirmShelter(context, link, en: en)) {
+        await widget.settings.setShelter(link.url, name: link.name);
+        setState(() => _tab = 0);
+      }
+    } finally {
+      _asking = false;
+    }
+  }
+
   /// Bumped when a download is installed or deleted.
   final _downloadChanges = ValueNotifier<int>(0);
 
@@ -189,9 +218,19 @@ class _HomePageState extends State<HomePage> {
     unawaited(_map?.load());
     unawaited(_initFacts());
     unawaited(_initDownloads());
+    if (!_shelterServer) {
+      // Phones only: links come from the QR code at a shelter.
+      _links = AppLinks().uriLinkStream.listen((u) => unawaited(_openLink(u)));
+    }
     if (_screenshotAfter > 0) {
       Timer(const Duration(seconds: _screenshotAfter), _saveScreenshot);
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_links?.cancel());
+    super.dispose();
   }
 
   Future<void> _initFacts() async {
@@ -265,6 +304,7 @@ class _HomePageState extends State<HomePage> {
               map: _map,
               facts: _facts,
               settings: widget.settings,
+              shelterUrls: _shelterUrls,
               downloadChanges: _downloadChanges,
               onShowOnMap: () => setState(() => _tab = 1),
               onOpenDownloads: () => _openDownloads(en),
@@ -294,6 +334,12 @@ class _HomePageState extends State<HomePage> {
               settings: widget.settings,
               downloads: _downloads,
               en: en,
+              shelter: ValueListenableBuilder(
+                valueListenable: _shelterUrls,
+                builder: (_, urls, _) => _shelterServer
+                    ? ShelterQrCard(urls: urls, name: _shelterName, en: en)
+                    : ShelterSettingsTile(settings: widget.settings, en: en),
+              ),
             ),
           ],
         ),
@@ -333,7 +379,11 @@ class SpikePage extends StatefulWidget {
     this.facts,
     this.settings,
     this.onOpenDownloads,
+    this.shelterUrls,
   });
+
+  /// Set by the shelter computer: its addresses, for the QR code.
+  final ValueNotifier<List<String>>? shelterUrls;
 
   final MapState? map;
   final FactStore? facts;
@@ -363,11 +413,31 @@ class _SpikePageState extends State<SpikePage> {
   String? _loadedDownloads;
   bool _busy = false;
 
-  /// Phone side: the shelter computer to ask first, if configured.
-  final ShelterClient? _shelter = _shelterUrl.isEmpty
-      ? null
-      : ShelterClient(_shelterUrl);
+  /// Phone side: the shelter computer to ask first (SHELTER_URL, or the
+  /// one saved in settings from a QR code or a typed address).
+  ShelterClient? _shelter;
   bool _shelterReady = false;
+  Timer? _retry;
+
+  String? get _wantedShelter =>
+      _shelterUrl.isNotEmpty ? _shelterUrl : widget.settings?.shelterUrl;
+
+  /// Connects, switches or disconnects when the saved shelter changes.
+  void _shelterChanged() {
+    final want = _wantedShelter;
+    if (want == _shelter?.baseUrl) return;
+    _factsTimer?.cancel();
+    _retry?.cancel();
+    _shelter?.close();
+    _shelter = want == null ? null : ShelterClient(want);
+    setState(() {
+      _shelterReady = false;
+      if (_phase == AskPhase.shelter) {
+        _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
+      }
+    });
+    if (_shelter != null) unawaited(_connectShelter());
+  }
 
   /// Desktop side: answers phones on the local network.
   ShelterServer? _server;
@@ -379,7 +449,8 @@ class _SpikePageState extends State<SpikePage> {
   @override
   void initState() {
     super.initState();
-    if (_shelter != null) unawaited(_connectShelter());
+    widget.settings?.addListener(_shelterChanged);
+    _shelterChanged();
     if (_modelPath.isNotEmpty) {
       unawaited(
         _run(
@@ -398,7 +469,9 @@ class _SpikePageState extends State<SpikePage> {
   @override
   void dispose() {
     widget.downloadChanges?.removeListener(_loadDownloaded);
+    widget.settings?.removeListener(_shelterChanged);
     _factsTimer?.cancel();
+    _retry?.cancel();
     super.dispose();
   }
 
@@ -487,6 +560,9 @@ class _SpikePageState extends State<SpikePage> {
         );
         await _server!.start();
         final addrs = await ShelterServer.localAddresses();
+        widget.shelterUrls?.value = [
+          for (final a in addrs) 'http://$a:${ShelterServer.defaultPort}',
+        ];
         _log({
           'event': 'shelter_started',
           'name': _shelterName,
@@ -499,7 +575,10 @@ class _SpikePageState extends State<SpikePage> {
         _status =
             'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
             '${_server != null ? ' · shelter server on port ${ShelterServer.defaultPort}' : ''}';
-        _phase = _server != null ? AskPhase.serving : AskPhase.ready;
+        // A connected shelter still answers first.
+        _phase = _server != null
+            ? AskPhase.serving
+            : (_shelterReady ? AskPhase.shelter : AskPhase.ready);
       });
     } catch (e) {
       setState(() {
@@ -555,7 +634,9 @@ class _SpikePageState extends State<SpikePage> {
     final store = widget.facts;
     if (store == null) return;
     try {
-      final added = await store.addAll(await _shelter!.facts());
+      final shelter = _shelter;
+      if (shelter == null) return;
+      final added = await store.addAll(await shelter.facts());
       _log({'event': 'facts_pulled', 'new': added});
     } catch (e) {
       _log({'event': 'facts_failed', 'error': '$e'});
@@ -563,8 +644,11 @@ class _SpikePageState extends State<SpikePage> {
   }
 
   Future<void> _connectShelter() async {
+    final shelter = _shelter;
+    if (shelter == null) return;
     try {
-      final info = await _shelter!.info();
+      final info = await shelter.info();
+      if (!identical(shelter, _shelter)) return; // switched meanwhile
       _log({'event': 'shelter_connected', ...info});
       await _pullFacts();
       // Keep current facts in step with the shelter while connected.
@@ -585,21 +669,27 @@ class _SpikePageState extends State<SpikePage> {
       }
     } catch (e) {
       _log({'event': 'shelter_unreachable', 'error': '$e'});
+      if (!mounted || !identical(shelter, _shelter)) return;
       setState(() => _status = 'Shelter not reachable: $e');
+      // The phone may join the shelter Wi-Fi later: try again.
+      _retry = Timer(const Duration(seconds: 30), () {
+        if (identical(shelter, _shelter)) unawaited(_connectShelter());
+      });
     }
   }
 
   Future<void> _ask(String question) async {
     // A shelter computer answers first: faster and better than a phone.
-    if (_shelter != null && _shelterReady) {
-      final placeholder = GroundedAnswer(question)..answeredBy = _shelter.name;
+    final shelter = _shelter;
+    if (shelter != null && _shelterReady) {
+      final placeholder = GroundedAnswer(question)..answeredBy = shelter.name;
       setState(() {
         _busy = true;
         _entries.add(placeholder);
       });
       try {
-        final remote = await _shelter.ask(question)
-          ..answeredBy = _shelter.name;
+        final remote = await shelter.ask(question)
+          ..answeredBy = shelter.name;
         setState(() => _entries[_entries.indexOf(placeholder)] = remote);
         _log({'event': 'answer', ...remote.toJson()});
         setState(() => _busy = false);
@@ -712,6 +802,13 @@ class _SpikePageState extends State<SpikePage> {
       phase: _phase,
       detail: _status,
       shelterName: _shelter?.name,
+      detailExtra: _server == null
+          ? null
+          : ShelterQrCard(
+              urls: widget.shelterUrls?.value ?? const [],
+              name: _shelterName,
+              en: en,
+            ),
       ready: ready,
       busy: _busy,
       input: _input,

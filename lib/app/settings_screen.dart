@@ -11,7 +11,11 @@ class SettingsScreen extends StatelessWidget {
     required this.settings,
     required this.downloads,
     required this.en,
+    this.shelter,
   });
+
+  /// Shelter section: the QR code on a shelter computer, else connect.
+  final Widget? shelter;
 
   final AppSettings settings;
   final DownloadManager? downloads;
@@ -62,6 +66,13 @@ class SettingsScreen extends StatelessWidget {
                 style: theme.textTheme.bodySmall,
               ),
             ),
+            if (shelter != null) ...[
+              _section(context, _t('避難所', 'Shelter')),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: shelter,
+              ),
+            ],
             _section(context, _t('オフラインデータ', 'Offline data')),
             _tile(
               context,
