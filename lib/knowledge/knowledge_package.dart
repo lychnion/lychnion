@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
+
+import '../download/download_store.dart';
 
 class Source {
   Source(
@@ -81,14 +81,8 @@ class KnowledgePackage {
 
   /// Copies a bundled package out of the assets (SQLite needs a real file) and loads it.
   static Future<KnowledgePackage> fromAsset(String name) async {
-    final dir = Directory(
-      '${(await getApplicationSupportDirectory()).path}/packages',
-    );
-    await dir.create(recursive: true);
-    final file = File('${dir.path}/$name');
-    final data = await rootBundle.load('assets/packages/$name');
-    await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
-    return open(file.path);
+    final store = await DownloadStore.instance();
+    return open(await store.copyBundled('packages', name));
   }
 
   static KnowledgePackage open(String path) {

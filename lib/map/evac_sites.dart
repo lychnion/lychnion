@@ -1,11 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
+
+import '../download/download_store.dart';
 
 /// Hazard types as the GSI data defines them.
 enum Hazard {
@@ -76,14 +75,8 @@ class EvacSites {
   String get basemapAttribution => meta['basemap_attribution'] ?? '';
 
   static Future<EvacSites> fromAsset(String name) async {
-    final dir = Directory(
-      '${(await getApplicationSupportDirectory()).path}/maps',
-    );
-    await dir.create(recursive: true);
-    final file = File('${dir.path}/$name');
-    final data = await rootBundle.load('assets/maps/$name');
-    await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
-    return open(file.path);
+    final store = await DownloadStore.instance();
+    return open(await store.copyBundled('maps', name));
   }
 
   static EvacSites open(String path) {

@@ -9,6 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'download/catalog.dart';
+import 'download/download_manager.dart';
+import 'download/download_store.dart';
+import 'download/downloads_screen.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
@@ -32,7 +36,9 @@ import 'util/paths.dart';
 ///   --dart-define=AUTO_BENCH=true                            run the questions after loading
 ///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
 ///   --dart-define=EMBED_MODEL_PATH=/path/in/app/storage.gguf  vector search (spike 3)
-///   --dart-define=MIN_COS=0.5                                relevance cut-off for vector search
+///   --dart-define=MIN_COS=0.5                                relevance cut-off for vector search (default 0.70)
+///   --dart-define=CATALOG_URL=https://…/catalog.json         download catalog (Downloads tab)
+///   --dart-define=DOWNLOAD_BASE_URL=http://host:port/        base for relative catalog URLs
 ///   --dart-define=MAP_PMTILES_PATH=/path/area.pmtiles        offline base map
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
 ///   --dart-define=START_TAB=1                                open on the map
@@ -53,8 +59,9 @@ const _modelUrl = String.fromEnvironment(
 const _autoBench = bool.fromEnvironment('AUTO_BENCH');
 const _bare = bool.fromEnvironment('BARE');
 const _packageAsset = 'jp.bousai.core.sqlite';
+const _packageId = 'jp.bousai.core';
 const _embedPath = String.fromEnvironment('EMBED_MODEL_PATH');
-const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0');
+const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0.70');
 const _mapPmtiles = String.fromEnvironment('MAP_PMTILES_PATH');
 const _mockLocation = String.fromEnvironment('MOCK_LOCATION');
 const _mapSitesAsset = 'jp.map.nishinomiya.sites.sqlite';
@@ -93,7 +100,7 @@ class FieldkitApp extends StatelessWidget {
   );
 }
 
-/// Two tabs: ask (the spike screen) and the offline map.
+/// Three tabs: ask (the spike screen), the offline map and downloads.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -106,7 +113,8 @@ class _HomePageState extends State<HomePage> {
   final _shotKey = GlobalKey();
 
   /// Map data and position, shared by the answers and the map tab.
-  final MapState? _map = _mapPmtiles.isEmpty
+  /// From MAP_PMTILES_PATH, else from a downloaded map area.
+  MapState? _map = _mapPmtiles.isEmpty
       ? null
       : MapState(
           pmtilesPath: _mapPmtiles,
@@ -114,10 +122,45 @@ class _HomePageState extends State<HomePage> {
           mockLocation: _mockLocation,
         );
 
+  DownloadManager? _downloads;
+
+  /// Bumped when a download is installed or deleted.
+  final _downloadChanges = ValueNotifier<int>(0);
+
+  Future<void> _initDownloads() async {
+    final dm = await DownloadManager.create();
+    dm.changes.addListener(() {
+      _useDownloadedMap();
+      _downloadChanges.value++;
+    });
+    setState(() => _downloads = dm);
+    _useDownloadedMap();
+  }
+
+  /// (Re)opens the downloaded map area unless MAP_PMTILES_PATH is set.
+  void _useDownloadedMap() {
+    if (_mapPmtiles.isNotEmpty) return;
+    final p = _downloads!.store.mapPaths();
+    final old = _map;
+    setState(
+      () => _map = p == null
+          ? null
+          : MapState(
+              pmtilesPath: p.pmtiles,
+              sitesAsset: _mapSitesAsset,
+              sitesPath: p.sites,
+              mockLocation: _mockLocation,
+            ),
+    );
+    old?.dispose();
+    unawaited(_map?.load());
+  }
+
   @override
   void initState() {
     super.initState();
     unawaited(_map?.load());
+    unawaited(_initDownloads());
     if (_screenshotAfter > 0) {
       Timer(const Duration(seconds: _screenshotAfter), _saveScreenshot);
     }
@@ -168,17 +211,25 @@ class _HomePageState extends State<HomePage> {
           children: [
             SpikePage(
               map: _map,
+              downloadChanges: _downloadChanges,
               onShowOnMap: () => setState(() => _tab = 1),
               onDemoDone: _demoDone,
             ),
             Scaffold(
               appBar: AppBar(title: Text(en ? 'Map' : '地図')),
               body: _map == null
-                  ? const Center(
-                      child: Text('Set MAP_PMTILES_PATH to a .pmtiles file.'),
+                  ? Center(
+                      child: Text(
+                        en
+                            ? 'No map yet. Get a map area under Downloads.'
+                            : '地図がありません。「ダウンロード」から地域を取得してください。',
+                      ),
                     )
-                  : MapScreen(state: _map, english: en),
+                  : MapScreen(key: ObjectKey(_map), state: _map!, english: en),
             ),
+            _downloads == null
+                ? const Center(child: CircularProgressIndicator())
+                : DownloadsScreen(manager: _downloads!, english: en),
           ],
         ),
         bottomNavigationBar: NavigationBar(
@@ -193,6 +244,10 @@ class _HomePageState extends State<HomePage> {
               icon: const Icon(Icons.map_outlined),
               label: en ? 'Map' : '地図',
             ),
+            NavigationDestination(
+              icon: const Icon(Icons.download_outlined),
+              label: en ? 'Downloads' : 'ダウンロード',
+            ),
           ],
         ),
       ),
@@ -201,9 +256,18 @@ class _HomePageState extends State<HomePage> {
 }
 
 class SpikePage extends StatefulWidget {
-  const SpikePage({super.key, this.map, this.onShowOnMap, this.onDemoDone});
+  const SpikePage({
+    super.key,
+    this.map,
+    this.onShowOnMap,
+    this.onDemoDone,
+    this.downloadChanges,
+  });
 
   final MapState? map;
+
+  /// Fires when downloads change; the downloaded model is (re)loaded.
+  final Listenable? downloadChanges;
   final void Function()? onShowOnMap;
   final Future<void> Function(List<GroundedAnswer>)? onDemoDone;
 
@@ -218,7 +282,10 @@ class _SpikePageState extends State<SpikePage> {
   final _entries = <GroundedAnswer>[];
   GroundedAnswerer? _answerer;
   final _embedder = LocalEmbedder();
-  String _status = 'No model loaded.';
+  String _status = 'No model loaded. / モデル未読み込み（「ダウンロード」から取得）';
+
+  /// What the last load used from Downloads (model, embedder, package).
+  String? _loadedDownloads;
   bool _busy = false;
 
   /// Phone side: the shelter computer to ask first, if configured.
@@ -247,7 +314,33 @@ class _SpikePageState extends State<SpikePage> {
       );
     } else if (_autoBench && _usesDownload) {
       unawaited(_download());
+    } else {
+      widget.downloadChanges?.addListener(_loadDownloaded);
+      unawaited(_loadDownloaded());
     }
+  }
+
+  @override
+  void dispose() {
+    widget.downloadChanges?.removeListener(_loadDownloaded);
+    super.dispose();
+  }
+
+  /// Loads the chat model from the Downloads tab, and loads again when the
+  /// model, the search model or the package there changes.
+  Future<void> _loadDownloaded() async {
+    if (_busy) return;
+    final store = await DownloadStore.instance();
+    final chat = store.chatModelPath();
+    if (chat == null) return;
+    final sig = [
+      chat,
+      store.embedModelPath(),
+      store.installed(ItemKind.package, _packageId)?.version,
+    ].join('|');
+    if (sig == _loadedDownloads) return;
+    _loadedDownloads = sig;
+    await _run(() => _llm.loadFile(chat), afterLoad: true);
   }
 
   Future<void> _run(
@@ -262,11 +355,17 @@ class _SpikePageState extends State<SpikePage> {
       await load();
       await _llm.newChat(systemInstruction: benchSystemInstruction);
       if (!_bare) {
-        final pkg = await KnowledgePackage.fromAsset(_packageAsset);
+        final store = await DownloadStore.instance();
+        final pkg = KnowledgePackage.open(
+          await store.packagePath(_packageId, _packageAsset),
+        );
         HybridRetriever? hybrid;
-        if (_embedPath.isNotEmpty) {
+        final embedPath = _embedPath.isNotEmpty
+            ? await resolvePath(_embedPath)
+            : store.embedModelPath();
+        if (embedPath != null) {
           final sw = Stopwatch()..start();
-          await _embedder.loadFile(await resolvePath(_embedPath));
+          await _embedder.loadFile(embedPath);
           hybrid = HybridRetriever(
             pkg,
             _embedder,

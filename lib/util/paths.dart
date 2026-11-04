@@ -25,3 +25,7 @@ Future<Directory> exchangeDirectory() async {
   }
   return getApplicationDocumentsDirectory();
 }
+
+/// The app's own storage (models, packages, maps, downloads). Not shared,
+/// not visible to adb or the Files app.
+Future<Directory> appSupportDirectory() => getApplicationSupportDirectory();

@@ -11,11 +11,15 @@ class MapState extends ChangeNotifier {
   MapState({
     required this.pmtilesPath,
     required this.sitesAsset,
+    this.sitesPath,
     this.mockLocation,
   });
 
   final String pmtilesPath;
   final String sitesAsset;
+
+  /// A downloaded sites file; wins over [sitesAsset].
+  final String? sitesPath;
 
   /// "lat,lon" for testing without a GPS fix.
   final String? mockLocation;
@@ -36,7 +40,10 @@ class MapState extends ChangeNotifier {
 
   Future<void> load() async {
     try {
-      sites = await EvacSites.fromAsset(sitesAsset);
+      final sp = sitesPath;
+      sites = sp != null
+          ? EvacSites.open(sp)
+          : await EvacSites.fromAsset(sitesAsset);
       tiles = await PmTilesVectorTileProvider.fromSource(
         await resolvePath(pmtilesPath),
       );
