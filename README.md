@@ -20,9 +20,10 @@ Everything runs on the device; the network is only needed to download models.
 - Spike 4 ([results](docs/spike-4-results.md)): near-topic answers; volcano
   page added, "partly covered" label; a yes/no self-check did not work with
   the 2B model.
-- Real device ([results](docs/device-results.md)): iPad Air 5 (M1) runs
+- Real devices ([results](docs/device-results.md)): iPad Air 5 (M1) runs
   the full app offline: about 22 tokens/s, answers in 2 to 9 s, same answers
-  as on the Mac.
+  as on the Mac. Pixel 5a (2021, 6 GB): same quality but about 48 s per
+  answer on the CPU, and memory is borderline.
 - Offline map ([results](docs/map-results.md)): Nishinomiya area, GSI
   evacuation sites by hazard, nearest sites from the current position;
   answers about a hazard show the nearest site and link to the map.

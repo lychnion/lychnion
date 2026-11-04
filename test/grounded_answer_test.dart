@@ -26,6 +26,7 @@ void main() {
       answer('bear', 'The sources do not mention what to do [1].').admitsGap,
       isTrue,
     );
+    expect(answer('避難所', '具体的なリストは記載されていません [1]。').admitsGap, isTrue);
     expect(answer('地震', '丈夫な机の下などに隠れる [1]。').admitsGap, isFalse);
   });
 

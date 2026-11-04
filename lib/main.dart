@@ -134,7 +134,7 @@ class _HomePageState extends State<HomePage> {
         _shotKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 1.5);
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await exchangeDirectory();
     final file = File(
       '${dir.path}/fieldkit-screenshot-${DateTime.now().millisecondsSinceEpoch}.png',
     );
@@ -363,7 +363,7 @@ class _SpikePageState extends State<SpikePage> {
       await _ask(q);
       results.add(_entries.last.toJson());
     }
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await exchangeDirectory();
     final out = File(
       '${dir.path}/fieldkit-bench-${_bare ? 'bare' : 'grounded'}-${DateTime.now().millisecondsSinceEpoch}.json',
     );

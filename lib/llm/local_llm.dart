@@ -112,11 +112,24 @@ class LocalLlm {
     Duration? first;
     var tokens = 0;
     await chat.addQueryChunk(edge.Message.text(text: prompt, isUser: true));
+    // Thinking is off (createChat default), but some models (Qwen3) may still
+    // emit a <think>…</think> block; drop it from the answer.
+    var thinking = false;
     await for (final r in chat.generateChatResponseAsync()) {
       if (r is edge.TextResponse) {
         first ??= sw.elapsed;
         tokens++;
-        yield r.token;
+        final t = r.token;
+        if (t.contains('<think>')) thinking = true;
+        if (thinking) {
+          if (t.contains('</think>')) {
+            thinking = false;
+            final rest = t.split('</think>').last.trimLeft();
+            if (rest.isNotEmpty) yield rest;
+          }
+          continue;
+        }
+        yield t;
       }
     }
     final m = chat.session.getSessionMetrics();

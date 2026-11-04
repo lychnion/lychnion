@@ -48,7 +48,7 @@ class GroundedAnswer {
   bool get admitsGap => isGrounded && _gap.hasMatch(text);
 
   static final _gap = RegExp(
-    r'(記述|記載|情報|説明)(は|が)?(資料に)?(ありません|ない)|書かれていません|資料にはありません'
+    r'(記述|記載|情報|説明)(は|が)?(資料に)?(ありません|ない)|(記載|記述)されていません|書かれていません|書かれていない|資料にはありません'
     r'|not (mention|state|say|contain|cover)|do(es)? not (mention|state|say|contain|cover)|no information',
     caseSensitive: false,
   );

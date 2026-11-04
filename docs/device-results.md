@@ -53,3 +53,57 @@ Mac.
 
 - Pixel 5a (2021, 6 GB): the low end, probably needs a smaller model.
 - Download of models and packages inside the app (now copied by cable).
+
+# Pixel 5a (2021, 6 GB, Android 14)
+
+Date: 2026-11-05. Same app and data, Gemma 4 E2B Q4_0 + EmbeddingGemma 2,
+CPU only (llama.cpp picks the CPU on Android). Raw results:
+[spike-results/pixel5a-gemma4-e2b.json](spike-results/pixel5a-gemma4-e2b.json).
+
+| | Pixel 5a (6 GB) | iPad Air 5 (M1) | Mac M4 Max |
+|---|---|---|---|
+| Engine | CPU | GPU | GPU |
+| Model load | 12 to 14 s | 4 to 14 s | 1.5 to 4.5 s |
+| Writing speed | about 5.5 tokens/s | about 22 | about 115 |
+| Reading the sources (first token) | median 44 s, max 130 s | median 2.1 s | 0.15 to 0.5 s |
+| Whole answer | **median 48 s, max 2.5 min** | median 3.5 s | 1 to 2 s |
+| App memory | 2.0 to 2.4 GB | about 2 GB | 1.6 to 3 GB |
+| 35 test questions | 22 / 23 covered, 10 / 12 uncovered | 23 / 23, 10 / 12 | 23 / 23, 10 / 12 |
+
+- **Quality holds, speed does not.** The answers are as good as on the
+  Mac (16 of 35 word for word the same; the only new miss is the English
+  avalanche question, answered "no answer in the sources"). But nearly a
+  minute per answer is too slow for an emergency.
+- **The bottleneck is reading, not writing.** On the CPU the model reads
+  the question and four passages (about 400 to 1,000 tokens) at well under
+  50 tokens/s. Fewer and shorter passages would help more than a faster
+  writer.
+- **Memory is borderline.** Android closes most other apps (Gmail, Chrome,
+  Slack, Settings) to make room, and kills fieldkit itself as soon as
+  another app comes to the front. The model then has to load again.
+- Embedding the 108 passages the first time took 133 s (cached afterwards).
+  A package should ship with its vectors, so phones never do this.
+- Speed dropped during the run (first answers about 25 to 40 s, later up to
+  2.5 min), most likely because the phone got warm and slowed down.
+
+## What this means for older phones
+
+Small models are faster but lost quality on the Mac (Qwen3-1.7B 20 / 23,
+LFM2.5-1.2B-JP 14 / 23) and both computed the family water amount wrong
+(12 L instead of 36 L). So for phones like the Pixel 5a the options are:
+
+1. Same model, less to read: two shorter passages instead of four, and
+   vectors shipped in the package.
+2. A smaller model plus more fixed safety lines, so the critical answers do
+   not depend on the model.
+3. Use the phone as a client: the desktop version at a shelter answers
+   phones nearby over local Wi-Fi (as in the Idea 4 desktop version).
+
+## Setup notes (Android)
+
+- Release builds keep their private folder closed to adb. Models are pushed
+  to the app's folder on shared storage, `Android/data/<package>/files`
+  (`docs:` paths). The app has to create that folder itself first; if adb
+  creates it, the app cannot see the files.
+- The test turns on "Stay awake while charging" over adb during the run and
+  restores it afterwards (`settings put global stay_on_while_plugged_in`).
