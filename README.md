@@ -39,6 +39,10 @@ Everything runs on the device; the network is only needed to download models.
 - Downloads ([results](docs/download-results.md)): models, knowledge
   packages and map areas download inside the app, with resume and SHA-256
   check; the app then runs fully offline. Tested on macOS.
+- Current facts ([results](docs/facts-results.md)): shelter status,
+  blocked roads and warnings with age and source, apart from the AI; full
+  shelters are skipped; shared by the shelter computer; 16 bytes per update
+  in the radio-sized format.
 
 ## Knowledge packages
 

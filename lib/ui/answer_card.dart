@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../facts/fact.dart';
+import '../facts/fact_view.dart';
 import '../knowledge/grounded_answer.dart';
 import '../map/hazard_detect.dart';
 import '../map/map_screen.dart' show formatDistance, noSiteWarning;
@@ -196,11 +198,19 @@ class AnswerCard extends StatelessWidget {
     if (m == null || !m.ready) return const [];
     final hazard = hazardFor(answer.question, answer.alerts);
     if (hazard == null) return const [];
-    final near = m.nearest(hazard, limit: 1);
+    // Suggest a site that can take people; mention a nearer one that cannot.
+    final near = m.nearest(hazard, limit: 1, skipAvoided: true);
     if (near.isEmpty) return const [];
     final n = near.first;
+    final closest = m.nearest(hazard, limit: 1).first;
+    final skipped = closest.site == n.site ? null : closest;
+    final skippedFact = skipped == null ? null : m.statusOf(skipped.site);
     final en = answer.lang == 'en';
     final noSiteCity = m.cityWithoutSiteFor(hazard);
+    final facts = m.facts;
+    final current =
+        facts?.currentOf({FactKind.warning, FactKind.roadBlocked}) ??
+        const <Fact>[];
     return [
       Container(
         margin: const EdgeInsets.only(top: 8),
@@ -229,6 +239,18 @@ class AnswerCard extends StatelessWidget {
                       color: theme.colorScheme.onSecondaryContainer,
                     ),
                   ),
+                  if (skipped != null && skippedFact != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        en
+                            ? 'Skipped ${skipped.site.name} (${formatDistance(skipped.meters)}): ${factLine(skippedFact, facts!.now, en: true)}'
+                            : '${skipped.site.name}（${formatDistance(skipped.meters)}）は除外：${factLine(skippedFact, facts!.now, en: false)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ),
                   if (noSiteCity != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -253,6 +275,8 @@ class AnswerCard extends StatelessWidget {
           ],
         ),
       ),
+      if (current.isNotEmpty)
+        CurrentFactsBox(facts: current, now: facts!.now, en: en),
     ];
   }
 

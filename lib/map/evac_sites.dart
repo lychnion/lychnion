@@ -34,8 +34,18 @@ enum Hazard {
 }
 
 class EvacSite {
-  EvacSite(this.name, this.address, this.point, this.emergency, this.hazards);
+  EvacSite(
+    this.name,
+    this.address,
+    this.point,
+    this.emergency,
+    this.hazards, {
+    this.uid = '',
+  });
   final String name, address;
+
+  /// GSI 全国共通避難所・避難場所ID (共通ID), used by current facts.
+  final String uid;
   final LatLng point;
 
   /// true: 指定緊急避難場所 (where to flee, per hazard). false: 指定避難所 (where to stay).
@@ -105,12 +115,24 @@ class EvacSites {
               for (final k in (r['hazards'] as String).split(','))
                 ?Hazard.fromKey(k),
             },
+            uid: r['uid'] as String? ?? '',
           ),
       ];
       return EvacSites._(meta, sites);
     } finally {
       db.close();
     }
+  }
+
+  /// Site ids in a fixed order, shared by all devices with this map area
+  /// (for the compact radio format of facts).
+  List<String> get siteIds => sites.map((s) => s.uid).toList();
+
+  EvacSite? byUid(String uid) {
+    for (final s in sites) {
+      if (s.uid == uid) return s;
+    }
+    return null;
   }
 
   /// The municipality the user is probably in: that of the nearest site.

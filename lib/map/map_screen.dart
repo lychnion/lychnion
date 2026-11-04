@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
+import '../facts/fact.dart';
+import '../facts/fact_view.dart';
 import 'evac_sites.dart';
 import 'map_state.dart';
 import 'offline_theme.dart';
@@ -145,11 +148,31 @@ class _MapScreenState extends State<MapScreen> {
                       width: 22,
                       height: 22,
                       child: Icon(
-                        Icons.place,
+                        s.avoid(n.site) ? Icons.block : Icons.place,
                         size: 22,
-                        color: theme.colorScheme.error,
+                        // Full or closed: grey, so it does not look like a target.
+                        color: s.avoid(n.site)
+                            ? Colors.grey
+                            : theme.colorScheme.error,
                       ),
                     ),
+                  for (final f
+                      in s.facts?.currentOf({FactKind.roadBlocked}) ??
+                          const <Fact>[])
+                    if (_point(f.subject) case final p?)
+                      Marker(
+                        point: p,
+                        width: 22,
+                        height: 22,
+                        child: Tooltip(
+                          message: factLine(f, s.facts!.now, en: en),
+                          child: const Icon(
+                            Icons.do_not_disturb_on,
+                            size: 22,
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                      ),
                   if (s.here != null)
                     Marker(
                       point: s.here!,
@@ -217,6 +240,13 @@ class _MapScreenState extends State<MapScreen> {
                     ],
                   ),
                 ),
+              if (s.facts?.currentOf({
+                    FactKind.warning,
+                    FactKind.roadBlocked,
+                    FactKind.waterPoint,
+                  })
+                  case final cur? when cur.isNotEmpty)
+                CurrentFactsBox(facts: cur, now: s.facts!.now, en: en),
               for (final n in nearest)
                 ListTile(
                   dense: true,
@@ -227,7 +257,20 @@ class _MapScreenState extends State<MapScreen> {
                     style: theme.textTheme.bodySmall,
                   ),
                   title: Text(n.site.name),
-                  subtitle: Text(n.site.address),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(n.site.address),
+                      if (s.statusOf(n.site) case final f?)
+                        Text(
+                          factLine(f, s.facts!.now, en: en),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: factColor(f, theme.colorScheme),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
                   onTap: () => _map.move(n.site.point, 16),
                 ),
               const SizedBox(height: 8),
@@ -271,6 +314,13 @@ String noSiteWarning(String city, Hazard hazard, bool en) => en
           'and evacuation guidance.'
     : '国土地理院のデータでは、$cityに${hazard.ja}の指定緊急避難場所が登録されていません。'
           '最寄りの場所は別の市町村の可能性があります。$cityのハザードマップや避難情報を確認してください。';
+
+LatLng? _point(String subject) {
+  final p = subject.split(',');
+  if (p.length != 2) return null;
+  final lat = double.tryParse(p[0]), lon = double.tryParse(p[1]);
+  return lat == null || lon == null ? null : LatLng(lat, lon);
+}
 
 String formatDistance(double meters) => meters < 1000
     ? '${meters.round()} m'

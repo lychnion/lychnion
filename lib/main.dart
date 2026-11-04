@@ -18,6 +18,9 @@ import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
 import 'llm/local_embedder.dart';
 import 'map/map_screen.dart';
+import 'facts/compact_codec.dart';
+import 'facts/demo_facts.dart';
+import 'facts/fact_store.dart';
 import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
 import 'shelter/shelter_client.dart';
@@ -46,6 +49,7 @@ import 'util/paths.dart';
 ///   --dart-define=SHELTER_SERVER=true                        answer phones on the local network (desktop)
 ///   --dart-define=SHELTER_NAME=…                             shown on phones
 ///   --dart-define=SHELTER_URL=http://192.168.1.20:8642       ask this shelter first (phone)
+///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
@@ -76,6 +80,7 @@ const _shelterName = String.fromEnvironment(
   defaultValue: 'fieldkit shelter',
 );
 const _shelterUrl = String.fromEnvironment('SHELTER_URL');
+const _demoFactsFlag = bool.fromEnvironment('DEMO_FACTS');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,14 +117,19 @@ class _HomePageState extends State<HomePage> {
   int _tab = _startTab;
   final _shotKey = GlobalKey();
 
+  /// Current facts (shelter status, blocked roads, warnings), kept apart
+  /// from the model and the knowledge packages.
+  final _facts = FactStore();
+
   /// Map data and position, shared by the answers and the map tab.
   /// From MAP_PMTILES_PATH, else from a downloaded map area.
-  MapState? _map = _mapPmtiles.isEmpty
+  late MapState? _map = _mapPmtiles.isEmpty
       ? null
       : MapState(
           pmtilesPath: _mapPmtiles,
           sitesAsset: _mapSitesAsset,
           mockLocation: _mockLocation,
+          facts: _facts,
         );
 
   DownloadManager? _downloads;
@@ -150,6 +160,7 @@ class _HomePageState extends State<HomePage> {
               sitesAsset: _mapSitesAsset,
               sitesPath: p.sites,
               mockLocation: _mockLocation,
+              facts: _facts,
             ),
     );
     old?.dispose();
@@ -160,9 +171,24 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     unawaited(_map?.load());
+    unawaited(_initFacts());
     unawaited(_initDownloads());
     if (_screenshotAfter > 0) {
       Timer(const Duration(seconds: _screenshotAfter), _saveScreenshot);
+    }
+  }
+
+  Future<void> _initFacts() async {
+    await _facts.load();
+    if (!_demoFactsFlag) return;
+    // Demo facts refer to evacuation sites: wait for the map area.
+    for (var i = 0; i < 300; i++) {
+      final sites = _map?.sites;
+      if (sites != null) {
+        await _facts.addAll(demoFacts(sites, DateTime.now()));
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 200));
     }
   }
 
@@ -174,7 +200,7 @@ class _HomePageState extends State<HomePage> {
     if (map == null) return;
     for (final a in answers) {
       final h = hazardFor(a.question, a.alerts);
-      final near = map.nearest(h, limit: 1);
+      final near = map.nearest(h, limit: 1, skipAvoided: true);
       if (h == null || near.isEmpty) continue;
       map.showOnMap(h, near.first.site.point);
       setState(() => _tab = 1);
@@ -211,6 +237,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             SpikePage(
               map: _map,
+              facts: _facts,
               downloadChanges: _downloadChanges,
               onShowOnMap: () => setState(() => _tab = 1),
               onDemoDone: _demoDone,
@@ -262,9 +289,11 @@ class SpikePage extends StatefulWidget {
     this.onShowOnMap,
     this.onDemoDone,
     this.downloadChanges,
+    this.facts,
   });
 
   final MapState? map;
+  final FactStore? facts;
 
   /// Fires when downloads change; the downloaded model is (re)loaded.
   final Listenable? downloadChanges;
@@ -323,6 +352,7 @@ class _SpikePageState extends State<SpikePage> {
   @override
   void dispose() {
     widget.downloadChanges?.removeListener(_loadDownloaded);
+    _factsTimer?.cancel();
     super.dispose();
   }
 
@@ -403,6 +433,10 @@ class _SpikePageState extends State<SpikePage> {
           answerer: answerer,
           name: _shelterName,
           modelName: _modelPath.split('/').last,
+          facts: widget.facts,
+          codec: widget.map?.sites == null
+              ? null
+              : CompactCodec(widget.map!.sites!.siteIds),
         );
         await _server!.start();
         final addrs = await ShelterServer.localAddresses();
@@ -464,10 +498,29 @@ class _SpikePageState extends State<SpikePage> {
     afterLoad: true,
   );
 
+  Timer? _factsTimer;
+
+  Future<void> _pullFacts() async {
+    final store = widget.facts;
+    if (store == null) return;
+    try {
+      final added = await store.addAll(await _shelter!.facts());
+      _log({'event': 'facts_pulled', 'new': added});
+    } catch (e) {
+      _log({'event': 'facts_failed', 'error': '$e'});
+    }
+  }
+
   Future<void> _connectShelter() async {
     try {
       final info = await _shelter!.info();
       _log({'event': 'shelter_connected', ...info});
+      await _pullFacts();
+      // Keep current facts in step with the shelter while connected.
+      _factsTimer = Timer.periodic(
+        const Duration(minutes: 1),
+        (_) => unawaited(_pullFacts()),
+      );
       setState(() {
         _shelterReady = true;
         _status = 'Connected to shelter: ${info['name']} (${info['model']})';

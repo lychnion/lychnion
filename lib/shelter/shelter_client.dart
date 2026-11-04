@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../facts/fact.dart';
 import '../knowledge/grounded_answer.dart';
 import 'shelter_protocol.dart';
 
@@ -20,6 +21,19 @@ class ShelterClient {
     final j = await _json('GET', '/info', timeout: const Duration(seconds: 5));
     name = j['name'] as String?;
     return j;
+  }
+
+  /// The shelter's current facts (shelter status, blocked roads, warnings).
+  Future<List<Fact>> facts() async {
+    final j = await _json(
+      'GET',
+      '/facts',
+      timeout: const Duration(seconds: 10),
+    );
+    return [
+      for (final f in (j['facts'] as List).cast<Map<String, dynamic>>())
+        Fact.fromJson(f),
+    ];
   }
 
   /// The shelter's answer. Throws on network errors or timeouts, so the

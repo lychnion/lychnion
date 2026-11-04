@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../facts/compact_codec.dart';
+import '../facts/fact_store.dart';
 import '../knowledge/grounded_answer.dart';
 import 'shelter_protocol.dart';
 
 /// Answers questions from phones on the shelter's local network.
 ///
 /// GET /info  → {name, model, package, version}
+/// GET /facts → current facts (JSON, or ?compact=1 for radio-sized messages)
 /// POST /ask  {"question": "…"} → an answer (shelter_protocol.dart)
 ///
 /// No login: anyone on the shelter Wi-Fi may ask. One model, so questions
@@ -17,7 +20,13 @@ class ShelterServer {
     required this.answerer,
     required this.name,
     required this.modelName,
+    this.facts,
+    this.codec,
   });
+
+  /// Current facts the shelter shares with phones (GET /facts).
+  final FactStore? facts;
+  final CompactCodec? codec;
 
   final GroundedAnswerer answerer;
   final String name;
@@ -57,6 +66,20 @@ class ShelterServer {
           'version': answerer.package.version,
           'answered': answered,
         });
+      } else if (req.method == 'GET' && req.uri.path == '/facts') {
+        // All unexpired facts, so phones apply the same conflict rules.
+        final all = facts?.all ?? const [];
+        if (req.uri.queryParameters['compact'] == '1' && codec != null) {
+          _send(res, 200, {
+            'v': shelterProtocolVersion,
+            'messages': codec!.pack(all),
+          });
+        } else {
+          _send(res, 200, {
+            'v': shelterProtocolVersion,
+            'facts': [for (final f in all) f.toJson()],
+          });
+        }
       } else if (req.method == 'POST' && req.uri.path == '/ask') {
         final body = await utf8.decodeStream(req.take(8 * 1024));
         final q = (jsonDecode(body) as Map)['question'];
