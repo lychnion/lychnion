@@ -20,11 +20,12 @@ import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
 import 'ui/answer_card.dart';
+import 'util/paths.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
 ///
 /// Dev flags (all optional):
-///   --dart-define=GGUF_MODEL_PATH=/path/in/app/storage.gguf  load on start
+///   --dart-define=GGUF_MODEL_PATH=/path/in/app/storage.gguf  load on start (docs:… = in Documents)
 ///   --dart-define=GGUF_MODEL_URL=https://...gguf             download on start
 ///   --dart-define=AUTO_BENCH=true                            run the questions after loading
 ///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
@@ -215,7 +216,12 @@ class _SpikePageState extends State<SpikePage> {
   void initState() {
     super.initState();
     if (_modelPath.isNotEmpty) {
-      unawaited(_run(() => _llm.loadFile(_modelPath), afterLoad: true));
+      unawaited(
+        _run(
+          () async => _llm.loadFile(await resolvePath(_modelPath)),
+          afterLoad: true,
+        ),
+      );
     } else if (_autoBench && _usesDownload) {
       unawaited(_download());
     }
@@ -237,7 +243,7 @@ class _SpikePageState extends State<SpikePage> {
         HybridRetriever? hybrid;
         if (_embedPath.isNotEmpty) {
           final sw = Stopwatch()..start();
-          await _embedder.loadFile(_embedPath);
+          await _embedder.loadFile(await resolvePath(_embedPath));
           hybrid = HybridRetriever(
             pkg,
             _embedder,

@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles_pmtiles/vector_map_tiles_pmtiles.dart';
 
+import '../util/paths.dart';
 import 'evac_sites.dart';
 
 /// Map data and position, shared by the map tab and the answers.
@@ -36,7 +37,9 @@ class MapState extends ChangeNotifier {
   Future<void> load() async {
     try {
       sites = await EvacSites.fromAsset(sitesAsset);
-      tiles = await PmTilesVectorTileProvider.fromSource(pmtilesPath);
+      tiles = await PmTilesVectorTileProvider.fromSource(
+        await resolvePath(pmtilesPath),
+      );
       notifyListeners();
       await locate();
     } catch (e) {
