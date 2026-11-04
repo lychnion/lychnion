@@ -1,6 +1,7 @@
 # Offline AI helper (name open): proof of concept plan
 
-Draft, 2026-11-02. Nothing built yet. No repository created.
+Draft 2026-11-02, updated 2026-11-04. PoC built: private repo
+`dkastl/fieldkit` (code name, Apache 2.0). Results in section 7.
 
 "Bousai LLM" is now only the name of the disaster package. The app gets a
 more general name because it also targets hikers, backcountry skiers and
@@ -283,15 +284,41 @@ manifest. The app shows it under each citation.
 5. Map and nearest sites.
 6. Test set run on 3 to 4 devices, write up results.
 
-## 6. Open questions for Daniel
+## 6. Open questions for Daniel (answered 2026-11-04)
 
-- Where should the code live? (new repo, which org, licence: MIT or
-  Apache 2.0?)
-- Start with macOS + Android, or iPhone first?
-- OK to contact 東京都 and 日本雪崩ネットワーク about reuse, or keep to
-  clearly open sources for the PoC?
-- Japanese UI only, or Japanese + English from the start (helps visitors and
-  the grant text)?
+- Code: private repo on Daniel's GitHub account (`dkastl/fieldkit`),
+  Apache 2.0. Public name later.
+- Platforms: macOS and the Android emulator so far; a real phone is still open.
+- Sources: clearly open ones only for the PoC (PDL1.0 government pages, GSI).
+  東京都 and 日本雪崩ネットワーク not contacted.
+- Language: Japanese and English from the start.
+
+## 7. Results (2026-11-04)
+
+Details in the repo: `docs/spike-1-results.md` to `docs/spike-4-results.md`
+and `docs/map-results.md`.
+
+| Step | Result |
+|---|---|
+| 1. Model on device | Gemma 4 E2B (Q4_0, 2.8 GB) via flutter_edge_ai + llama.cpp. Mac M4 Max: ~115 tokens/s, first token ~40 ms, 1.6 to 3 GB RAM. Android emulator (CPU): 1 to 5 tokens/s, 4.5 GB RAM. |
+| 1. Bare model, 8 safety questions | 2 dangerous (tsunami: "wait for TV/radio"; avalanche: no beacon), 1 wrong number (water). |
+| 2. Answers from sources | Package of official pages (首相官邸, 消防庁, 環境省; PDL1.0), citation check, fixed safety lines quoted word for word. Tsunami and water fixed. OCR of a two-column table produced a dangerous bear answer until that page was dropped. |
+| 3. Vector search, English | EmbeddingGemma 2 (310 MB, multilingual). English questions translated to Japanese before search. 28 questions: 23 handled right. |
+| 4. Near-topic answers | Volcano page added. 35 questions: 23 / 23 covered answered from the right source, 10 / 12 uncovered refused. A yes/no self-check with the 2B model did not work; a "partly covered" label instead. |
+| Map | Nishinomiya area: 24 MB offline base map (OSM/Protomaps), 1,613 GSI emergency sites + 1,001 shelters (392 KB). Nearest site per hazard; answers about a hazard show the nearest site and link to the map. |
+
+Lessons:
+
+- The bare model is fast enough but must not answer safety questions alone.
+- A citation is only as good as the source text: tables need a checked text
+  version, not OCR.
+- Content beats cleverness: a missing official page is the main cause of
+  bad answers; self-checks with a 2B model are unreliable.
+- Japanese and English both work with one Japanese package.
+
+Still open: real phone test (memory), bear encounter and hiking sources,
+routing (distance is straight-line), current-facts store and device sync
+(Idea 5), public name.
 
 ## Sources
 
