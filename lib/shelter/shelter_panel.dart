@@ -11,11 +11,15 @@ class ShelterQrCard extends StatelessWidget {
     required this.urls,
     required this.name,
     required this.en,
+    this.keyText,
   });
 
   /// Addresses of this computer on the local network; the first is in the code.
   final List<String> urls;
   final String name;
+
+  /// Public signing key, put in the code so phones trust signed facts.
+  final String? keyText;
   final bool en;
 
   @override
@@ -28,7 +32,11 @@ class ShelterQrCard extends StatelessWidget {
             : 'ネットワークのアドレスがありません。この端末を施設のWi-Fiに接続してください。',
       );
     }
-    final link = ShelterLink(urls.first, name: name).toUri().toString();
+    final link = ShelterLink(
+      urls.first,
+      name: name,
+      key: keyText,
+    ).toUri().toString();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),

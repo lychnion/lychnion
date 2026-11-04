@@ -93,3 +93,40 @@ through on the running app, and no phone was connected for this run.
 - The compact format is not yet sent over any radio, and it drops the note
   and source name to save space. It counts UTF-8 bytes (a Japanese warning
   takes 3 bytes per character).
+
+## Signed facts (2026-11-05)
+
+Official and sensor facts now need a signature from a key the phone trusts.
+
+- **Keys:** each device that enters official facts (the shelter computer,
+  later a city) has its own Ed25519 key (`signing_key` in app support; it
+  never leaves the device). Facts entered there, including the demo facts,
+  are signed. Code: `lib/facts/signing.dart`.
+- **Trust:** a phone keeps a list of trusted keys (`trusted_keys.json`). It
+  trusts a shelter's key when it connects through the shelter's QR code (the
+  code now carries the key) or, for a typed address, on first connect. If
+  the QR code names a key and the computer at that address has another one,
+  the phone does not connect.
+- **Unsigned or wrongly signed "official" facts** count like resident
+  reports: shown as 「公式と表示・署名なし（未確認）」, and they cannot overrule a
+  signed official fact. Changing any field of a signed fact breaks the
+  signature.
+- **Radio format:** one signature per message instead of per fact:
+  `<facts>~<key id>.<signature>` (about 95 bytes). **6 signed updates fit
+  in one 200-byte message** (12 updates → 2 messages of 190 and 191 bytes).
+  A changed message is not verified.
+
+Tested: 5 unit tests (trusted, unknown and missing keys, tampering, conflict
+rules, signed radio messages), and end to end with the Mac as shelter
+computer and the iPhone simulator: after scanning the QR link the phone
+trusted the shelter's key, the 3 official facts were verified and the 2
+resident reports stayed resident reports; with a wrong key in the QR link
+the phone refused to connect.
+
+Open:
+- The signature says which device vouches for a fact, not who wrote it. The
+  demo fact 「気象庁（テスト）」 is signed by the shelter computer. A real
+  feed would be signed by the city or JMA key itself.
+- Keys cannot be revoked yet, and a typed address is trusted on first use.
+- Official keys (city, prefecture) would ship with the map area or
+  knowledge package, so phones trust them without a shelter.

@@ -5,13 +5,22 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'fact.dart';
+import 'signing.dart';
 
 /// Current facts on this device, kept apart from the knowledge packages.
 ///
 /// Facts are only added, never edited: a newer fact replaces an older one
 /// by winning [current]. Expired facts are never returned.
 class FactStore extends ChangeNotifier {
-  FactStore({DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
+  FactStore({DateTime Function()? clock, this.trust, this.signer})
+    : _clock = clock ?? DateTime.now;
+
+  /// Keys whose official / sensor facts count as such. Without a trust
+  /// list (tests, old setups) every fact is taken as it says.
+  final TrustList? trust;
+
+  /// This device's key: official facts entered here are signed with it.
+  FactSigner? signer;
 
   final DateTime Function() _clock;
   final _facts = <Fact>[];
@@ -26,30 +35,50 @@ class FactStore extends ChangeNotifier {
     if (await _file!.exists()) {
       for (final line in await _file!.readAsLines()) {
         if (line.trim().isEmpty) continue;
-        _facts.add(Fact.fromJson(jsonDecode(line) as Map<String, dynamic>));
+        final j = jsonDecode(line) as Map<String, dynamic>;
+        // The check result is kept on this device (it is never sent on).
+        _facts.add(Fact.fromJson(j)..verified = j['v_ok'] as bool? ?? true);
       }
     }
     notifyListeners();
   }
 
-  /// Adds facts not seen before; returns how many were new.
-  Future<int> addAll(Iterable<Fact> facts) async {
+  /// Adds facts not seen before; returns how many were new. Official and
+  /// sensor facts are checked against [trust], unless [checked] (a signed
+  /// radio message was verified already).
+  Future<int> addAll(Iterable<Fact> facts, {bool checked = false}) async {
     final known = {for (final f in _facts) _key(f)};
     final fresh = [
       for (final f in facts)
         if (known.add(_key(f))) f,
     ];
     if (fresh.isEmpty) return 0;
+    final t = trust;
+    if (t != null && !checked) {
+      for (final f in fresh) {
+        f.verified = f.sourceType == SourceType.citizen || await t.verify(f);
+      }
+    }
     _facts.addAll(fresh);
     final file = _file;
     if (file != null) {
       await file.writeAsString(
-        '${fresh.map((f) => jsonEncode(f.toJson())).join('\n')}\n',
+        '${fresh.map((f) => jsonEncode({...f.toJson(), 'v_ok': f.verified})).join('\n')}\n',
         mode: FileMode.append,
       );
     }
     notifyListeners();
     return fresh.length;
+  }
+
+  /// Facts entered on this device: official and sensor ones are signed
+  /// with [signer] first, so other devices can check them.
+  Future<int> addOwn(Iterable<Fact> facts) async {
+    final s = signer;
+    return addAll([
+      for (final f in facts)
+        s != null && f.sourceType != SourceType.citizen ? await s.sign(f) : f,
+    ]);
   }
 
   static String _key(Fact f) =>
@@ -77,9 +106,7 @@ class FactStore extends ChangeNotifier {
   }
 
   static bool _beats(Fact a, Fact b) {
-    if (a.sourceType.trust != b.sourceType.trust) {
-      return a.sourceType.trust > b.sourceType.trust;
-    }
+    if (a.trust != b.trust) return a.trust > b.trust;
     return a.observedAt.isAfter(b.observedAt);
   }
 

@@ -28,6 +28,10 @@ class AppSettings extends ChangeNotifier {
   String? shelterUrl;
   String? shelterName;
 
+  /// The shelter's public key from its QR code; null when typed by hand
+  /// (then the key is taken on first connect).
+  String? shelterKey;
+
   File? _file;
 
   Future<void> load() async {
@@ -42,6 +46,7 @@ class AppSettings extends ChangeNotifier {
       showStats = j['show_stats'] == true;
       shelterUrl = j['shelter_url'] as String?;
       shelterName = j['shelter_name'] as String?;
+      shelterKey = j['shelter_key'] as String?;
     } on Object {
       // No file yet, or unreadable: keep defaults.
     }
@@ -61,9 +66,10 @@ class AppSettings extends ChangeNotifier {
   }
 
   /// Connects to a shelter computer, or disconnects with null.
-  Future<void> setShelter(String? url, {String? name}) async {
+  Future<void> setShelter(String? url, {String? name, String? key}) async {
     shelterUrl = url;
     shelterName = url == null ? null : name;
+    shelterKey = url == null ? null : key;
     notifyListeners();
     await _save();
   }
@@ -74,6 +80,7 @@ class AppSettings extends ChangeNotifier {
       'show_stats': showStats,
       'shelter_url': ?shelterUrl,
       'shelter_name': ?shelterName,
+      'shelter_key': ?shelterKey,
     }),
   );
 }

@@ -63,7 +63,47 @@ class Fact {
     required this.sourceType,
     this.sourceName = '',
     this.note = '',
+    this.keyId,
+    this.sig,
   });
+
+  /// Signature over [canonical] by the key [keyId] (Ed25519, base64url).
+  /// Official and sensor facts need one from a trusted key to count as such.
+  final String? keyId;
+  final String? sig;
+
+  /// Set by the fact store: false when an official or sensor fact has no
+  /// valid signature from a trusted key. Such facts count as resident reports.
+  bool verified = true;
+
+  /// The fields a signature covers, in a fixed order.
+  String get canonical => [
+    kind.code,
+    subject,
+    value,
+    observedAt.toUtc().millisecondsSinceEpoch,
+    expiresAt.toUtc().millisecondsSinceEpoch,
+    sourceType.code,
+    sourceName,
+    note,
+  ].join('\u001f');
+
+  Fact signed(String keyId, String sig) => Fact(
+    kind: kind,
+    subject: subject,
+    value: value,
+    observedAt: observedAt,
+    expiresAt: expiresAt,
+    sourceType: sourceType,
+    sourceName: sourceName,
+    note: note,
+    keyId: keyId,
+    sig: sig,
+  );
+
+  /// Trust used when facts disagree: an unverified official fact counts
+  /// like a resident report.
+  int get trust => verified ? sourceType.trust : SourceType.citizen.trust;
 
   final FactKind kind;
 
@@ -86,8 +126,9 @@ class Fact {
 
   bool isExpired(DateTime now) => !now.isBefore(expiresAt);
 
-  /// Citizen reports stay unconfirmed until someone checks them.
-  bool get unconfirmed => sourceType == SourceType.citizen;
+  /// Citizen reports, and official facts without a valid signature, stay
+  /// unconfirmed.
+  bool get unconfirmed => sourceType == SourceType.citizen || !verified;
 
   ShelterStatus? get shelterStatus =>
       kind == FactKind.shelterStatus ? ShelterStatus.fromKey(value) : null;
@@ -104,6 +145,8 @@ class Fact {
     'source_type': sourceType.code,
     'source_name': sourceName,
     if (note.isNotEmpty) 'note': note,
+    'key_id': ?keyId,
+    'sig': ?sig,
   };
 
   factory Fact.fromJson(Map<String, dynamic> j) => Fact(
@@ -115,6 +158,8 @@ class Fact {
     sourceType: SourceType.fromCode(j['source_type'] as String),
     sourceName: j['source_name'] as String? ?? '',
     note: j['note'] as String? ?? '',
+    keyId: j['key_id'] as String?,
+    sig: j['sig'] as String?,
   );
 
   /// "2時間前" / "2 h ago".
@@ -131,6 +176,10 @@ class Fact {
   /// "市・公式", "センサー", "住民の報告・未確認".
   String sourceLabel({required bool en}) {
     final type = switch (sourceType) {
+      SourceType.official when !verified =>
+        en ? 'says official, not verified' : '公式と表示・署名なし（未確認）',
+      SourceType.sensor when !verified =>
+        en ? 'says sensor, not verified' : 'センサーと表示・署名なし（未確認）',
       SourceType.official => en ? 'official' : '公式',
       SourceType.sensor => en ? 'sensor' : 'センサー',
       SourceType.citizen => en ? 'resident report, unconfirmed' : '住民の報告・未確認',

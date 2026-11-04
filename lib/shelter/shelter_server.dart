@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
+import '../facts/signing.dart';
 import '../knowledge/grounded_answer.dart';
 import 'shelter_protocol.dart';
 
@@ -65,14 +66,19 @@ class ShelterServer {
           'package': answerer.package.id,
           'version': answerer.package.version,
           'answered': answered,
+          // Phones trust this key for the facts the shelter signs.
+          'key': ?facts?.signer?.publicKeyText,
         });
       } else if (req.method == 'GET' && req.uri.path == '/facts') {
         // All unexpired facts, so phones apply the same conflict rules.
         final all = facts?.all ?? const [];
         if (req.uri.queryParameters['compact'] == '1' && codec != null) {
+          final FactSigner? signer = facts?.signer;
           _send(res, 200, {
             'v': shelterProtocolVersion,
-            'messages': codec!.pack(all),
+            'messages': signer == null
+                ? codec!.pack(all)
+                : await signer.packSigned(codec!, all),
           });
         } else {
           _send(res, 200, {

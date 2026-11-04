@@ -9,18 +9,22 @@ library;
 import 'shelter_server.dart';
 
 class ShelterLink {
-  const ShelterLink(this.url, {this.name});
+  const ShelterLink(this.url, {this.name, this.key});
 
   /// Base URL, e.g. http://192.168.1.20:8642
   final String url;
   final String? name;
+
+  /// The shelter's public signing key: its signed facts are trusted, and a
+  /// computer at this address with another key is refused.
+  final String? key;
 
   static const scheme = 'fieldkit';
 
   Uri toUri() => Uri(
     scheme: scheme,
     host: 'shelter',
-    queryParameters: {'url': url, 'name': ?name},
+    queryParameters: {'url': url, 'name': ?name, 'key': ?key},
   );
 
   /// A fieldkit:// link, or null if [uri] is something else.
@@ -29,7 +33,12 @@ class ShelterLink {
     final url = normalize(uri.queryParameters['url'] ?? '');
     if (url == null) return null;
     final name = uri.queryParameters['name'];
-    return ShelterLink(url, name: name == null || name.isEmpty ? null : name);
+    final key = uri.queryParameters['key'];
+    return ShelterLink(
+      url,
+      name: name == null || name.isEmpty ? null : name,
+      key: key == null || key.isEmpty ? null : key,
+    );
   }
 
   /// Turns what a user typed into a base URL, or null if it is not one.

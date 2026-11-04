@@ -319,6 +319,7 @@ Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
 | Facts entry | Staff enter facts on the shelter computer's map (status per site, long press for a road or water point, warnings per city), with a lifetime and source; "解除する" clears a fact. Phones pull them every minute. |
 | Radio-sized facts | Compact format for LoRa / Meshtastic: one shelter update is 16 bytes, 12 updates fit in one 190-byte message. Not yet sent over a radio. |
 | Shelter QR code | The shelter computer shows a QR code; the phone camera opens fieldkit, which asks before it connects. Address can also be typed. Tested Mac → iPhone simulator. |
+| Signed facts | Official facts are signed (Ed25519) by the device that enters them; phones trust a shelter's key through its QR code. Unsigned "official" facts count as resident reports. Radio: one signature per message, 6 signed updates per 200 bytes. |
 | App design | Redesigned for demos: chat-style Ask screen with suggested questions and a status label, full-screen map with a sliding panel, Settings with language (device / 日本語 / English) and downloads. |
 | iPhone simulator | Runs the full app (CPU). Needed one build fix for Xcode 27. |
 
@@ -339,8 +340,8 @@ Lessons:
   must say when it cannot find a proper site, not silently send people to the
   next city.
 
-Still open: Android GPU, routing (distance is straight-line), signed facts
-and an official facts feed, sending facts over a radio mesh (Idea 5), QR test
+Still open: Android GPU, routing (distance is straight-line), an official
+facts feed with city keys, key revocation, sending facts over a radio mesh (Idea 5), QR test
 with a real phone camera, iOS test of the downloads, public name.
 
 ## Sources

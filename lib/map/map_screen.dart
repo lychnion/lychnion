@@ -86,7 +86,7 @@ class _MapScreenState extends State<MapScreen> {
       choices: choices,
       current: current,
     );
-    if (f != null) await s.facts!.addAll([f]);
+    if (f != null) await s.facts!.addOwn([f]);
   }
 
   Future<void> _editSite(EvacSite site) => _enter(

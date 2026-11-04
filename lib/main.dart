@@ -27,6 +27,7 @@ import 'facts/compact_codec.dart';
 import 'facts/demo_facts.dart';
 import 'facts/fact_form.dart';
 import 'facts/fact_store.dart';
+import 'facts/signing.dart';
 import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
 import 'package:app_links/app_links.dart';
@@ -147,7 +148,8 @@ class _HomePageState extends State<HomePage> {
 
   /// Current facts (shelter status, blocked roads, warnings), kept apart
   /// from the model and the knowledge packages.
-  final _facts = FactStore();
+  final _trust = TrustList();
+  late final _facts = FactStore(trust: _trust);
 
   /// Map data and position, shared by the answers and the map tab.
   /// From MAP_PMTILES_PATH, else from a downloaded map area.
@@ -179,7 +181,11 @@ class _HomePageState extends State<HomePage> {
     try {
       final en = Localizations.localeOf(context).languageCode != 'ja';
       if (await confirmShelter(context, link, en: en)) {
-        await widget.settings.setShelter(link.url, name: link.name);
+        await widget.settings.setShelter(
+          link.url,
+          name: link.name,
+          key: link.key,
+        );
         setState(() => _tab = 0);
       }
     } finally {
@@ -242,13 +248,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initFacts() async {
+    final dir = await getApplicationSupportDirectory();
+    await _trust.load(File('${dir.path}/trusted_keys.json'));
+    // Devices that enter official facts (shelter computer, demo) sign them.
+    if (_shelterServer || _factsEdit || _demoFactsFlag) {
+      final signer = await FactSigner.loadOrCreate(
+        File('${dir.path}/signing_key'),
+      );
+      _facts.signer = signer;
+      await _trust.add(signer.publicKeyText, _shelterName);
+    }
     await _facts.load();
     if (!_demoFactsFlag) return;
     // Demo facts refer to evacuation sites: wait for the map area.
     for (var i = 0; i < 300; i++) {
       final sites = _map?.sites;
       if (sites != null) {
-        await _facts.addAll(demoFacts(sites, DateTime.now()));
+        await _facts.addOwn(demoFacts(sites, DateTime.now()));
         return;
       }
       await Future<void>.delayed(const Duration(milliseconds: 200));
@@ -301,7 +317,12 @@ class _HomePageState extends State<HomePage> {
           shelter: ValueListenableBuilder(
             valueListenable: _shelterUrls,
             builder: (_, urls, _) => _shelterServer
-                ? ShelterQrCard(urls: urls, name: _shelterName, en: en)
+                ? ShelterQrCard(
+                    urls: urls,
+                    name: _shelterName,
+                    en: en,
+                    keyText: _facts.signer?.publicKeyText,
+                  )
                 : ShelterSettingsTile(settings: widget.settings, en: en),
           ),
         );
@@ -718,12 +739,33 @@ class _SpikePageState extends State<SpikePage> {
     }
   }
 
+  /// Trusts the shelter's signing key. With a key from the QR code, a
+  /// computer with another key is refused (someone else at that address).
+  Future<bool> _trustShelterKey(Map<String, dynamic> info) async {
+    final key = info['key'] as String?;
+    final expected = widget.settings?.shelterKey;
+    final trust = widget.facts?.trust;
+    if (expected != null && key != expected) {
+      _log({'event': 'shelter_key_mismatch'});
+      setState(() {
+        _status = 'Shelter key does not match the QR code: not connected.';
+        _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
+      });
+      return false;
+    }
+    if (key != null && trust != null) {
+      await trust.add(key, info['name'] as String? ?? 'shelter');
+    }
+    return true;
+  }
+
   Future<void> _connectShelter() async {
     final shelter = _shelter;
     if (shelter == null) return;
     try {
       final info = await shelter.info();
       if (!identical(shelter, _shelter)) return; // switched meanwhile
+      if (!await _trustShelterKey(info)) return;
       _log({'event': 'shelter_connected', ...info});
       await _pullFacts();
       // Keep current facts in step with the shelter while connected.
@@ -913,6 +955,7 @@ class _SpikePageState extends State<SpikePage> {
               urls: widget.shelterUrls?.value ?? const [],
               name: _shelterName,
               en: en,
+              keyText: widget.facts?.signer?.publicKeyText,
             ),
       ready: ready,
       busy: _busy,
