@@ -57,10 +57,21 @@ const evalQuestions = <EvalQuestion>[
     lang: 'en',
   ),
   // Not covered by the package: the right answer is "no source".
-  EvalQuestion('火山が噴火したらどうすればいいですか？', []),
+  EvalQuestion('火山が噴火したらどうすればいいですか？', ['kantei-funka']),
   EvalQuestion('熱中症の応急手当を教えてください。', []),
   EvalQuestion('マムシに噛まれたらどうすればいいですか？', []),
   EvalQuestion('台風が近づいているとき、窓の対策は？', []),
   EvalQuestion('How do I treat a snake bite?', [], lang: 'en'),
   EvalQuestion('What should I pack for a day hike?', [], lang: 'en'),
+  // Spike 4: volcano is now covered.
+  EvalQuestion('噴火警戒レベル3のときは何をすればいいですか？', ['kantei-funka']),
+  EvalQuestion('How does volcanic ash affect my health?', [
+    'kantei-funka',
+  ], lang: 'en'),
+  // Spike 4: near-topic questions the package does not answer.
+  EvalQuestion('地震保険には入ったほうがいいですか？', []),
+  EvalQuestion('停電のとき、冷蔵庫の食べ物はいつまで安全ですか？', []),
+  EvalQuestion('避難所でペットはどうすればいいですか？', []),
+  EvalQuestion('How can I make river water safe to drink?', [], lang: 'en'),
+  EvalQuestion('How do I use a fire extinguisher?', [], lang: 'en'),
 ];

@@ -105,6 +105,19 @@ class AnswerCard extends StatelessWidget {
 
   List<Widget> _grounding(ThemeData theme) {
     final en = answer.lang == 'en';
+    if (answer.relatedOnly) {
+      return [
+        _note(
+          theme,
+          en
+              ? 'The sources have related information, but no direct answer to this question.'
+              : '資料には関連する情報がありますが、この質問への直接の答えはありません。',
+          Icons.info_outline,
+        ),
+        for (var n = 1; n <= answer.hits.length; n++)
+          _passageTile(theme, n, en),
+      ];
+    }
     if (answer.saysNoSource || answer.hits.isEmpty) {
       return [
         _note(
@@ -117,6 +130,14 @@ class AnswerCard extends StatelessWidget {
       ];
     }
     return [
+      if (answer.admitsGap)
+        _note(
+          theme,
+          en
+              ? 'Only partly covered by the sources. Check the passages below and official information.'
+              : '資料で一部しか確認できない回答です。下の資料と公的な情報を確認してください。',
+          Icons.warning_amber,
+        ),
       if (!answer.isGrounded)
         _note(
           theme,
@@ -134,27 +155,32 @@ class AnswerCard extends StatelessWidget {
           Icons.warning_amber,
         ),
       for (final n in answer.citedNumbers.toList()..sort())
-        if (n >= 1 && n <= answer.hits.length)
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            dense: true,
-            title: Text(
-              '[$n] ${answer.hits[n - 1].passage.source.publisher}「${answer.hits[n - 1].passage.source.title}」',
-              style: theme.textTheme.bodySmall,
-            ),
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: SelectableText(
-                  '${answer.hits[n - 1].passage.text}\n\n'
-                  '${answer.hits[n - 1].passage.source.attribution}（${answer.hits[n - 1].passage.source.licence}）\n'
-                  '${en ? 'Excerpt shown by fieldkit (source in Japanese).' : '※ fieldkit が一部を抜き出して表示しています。'}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
-          ),
+        if (n >= 1 && n <= answer.hits.length) _passageTile(theme, n, en),
     ];
+  }
+
+  /// Passage [n] (1-based) with its source and licence, collapsed.
+  Widget _passageTile(ThemeData theme, int n, bool en) {
+    final p = answer.hits[n - 1].passage;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(
+        '[$n] ${p.source.publisher}「${p.source.title}」',
+        style: theme.textTheme.bodySmall,
+      ),
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: SelectableText(
+            '${p.text}\n\n'
+            '${p.source.attribution}（${p.source.licence}）\n'
+            '${en ? 'Excerpt shown by fieldkit (source in Japanese).' : '※ fieldkit が一部を抜き出して表示しています。'}',
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+      ],
+    );
   }
 
   /// Nearest emergency evacuation site for the hazard the question is about.

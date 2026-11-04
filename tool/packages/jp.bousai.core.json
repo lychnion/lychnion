@@ -2,7 +2,7 @@
   "id": "jp.bousai.core",
   "title": "防災（基本）",
   "language": "ja",
-  "version": "2026.11.0-spike3b",
+  "version": "2026.11.0-spike4",
   "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
   "sources": [
     {
@@ -49,6 +49,15 @@
       "licence": "PDL1.0",
       "licence_url": "https://www.kantei.go.jp/jp/terms.html",
       "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/setsugai.html）"
+    },
+    {
+      "id": "kantei-funka",
+      "title": "火山噴火への備えと避難（防災の手引き）",
+      "publisher": "首相官邸",
+      "url": "https://www.kantei.go.jp/jp/headline/bousai/funka.html",
+      "licence": "PDL1.0",
+      "licence_url": "https://www.kantei.go.jp/jp/terms.html",
+      "attribution": "出典：首相官邸ホームページ（https://www.kantei.go.jp/jp/headline/bousai/funka.html）"
     },
     {
       "id": "fdma-shiketsu",

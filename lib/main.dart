@@ -34,6 +34,7 @@ import 'ui/answer_card.dart';
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
 ///   --dart-define=START_TAB=1                                open on the map
 ///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
+///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
 ///                                                            screenshots of the answers and the map
 const _modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
@@ -53,6 +54,7 @@ const _mapSitesAsset = 'jp.map.nishinomiya.sites.sqlite';
 const _startTab = int.fromEnvironment('START_TAB');
 const _screenshotAfter = int.fromEnvironment('SCREENSHOT_AFTER_S');
 const _demoQuestions = String.fromEnvironment('ASK');
+const _relevanceCheck = bool.fromEnvironment('RELEVANCE_CHECK');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -248,7 +250,12 @@ class _SpikePageState extends State<SpikePage> {
             'model': _embedder.modelName,
           });
         }
-        _answerer = GroundedAnswerer(_llm, pkg, hybrid: hybrid);
+        _answerer = GroundedAnswerer(
+          _llm,
+          pkg,
+          hybrid: hybrid,
+          checkRelevance: _relevanceCheck,
+        );
         _log({
           'event': 'package',
           'id': pkg.id,
@@ -358,6 +365,7 @@ class _SpikePageState extends State<SpikePage> {
       const JsonEncoder.withIndent('  ').convert({
         'platform': defaultTargetPlatform.name,
         'mode': _bare ? 'bare' : 'grounded',
+        'relevance_check': _relevanceCheck,
         'package': _answerer?.package.version,
         'backend': _llm.backend,
         'load_ms': _llm.lastLoadTime?.inMilliseconds,
