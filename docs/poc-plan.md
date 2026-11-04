@@ -296,7 +296,8 @@ manifest. The app shows it under each citation.
 ## 7. Results (updated 2026-11-05)
 
 Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
-`docs/map-results.md` and `docs/device-results.md`.
+`docs/map-results.md`, `docs/device-results.md`, `docs/shelter-results.md`
+and `docs/download-results.md`.
 
 | Step | Result |
 |---|---|
@@ -311,6 +312,9 @@ Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
 | iPad Air 5 (M1, 8 GB) | Full app offline: ~22 tokens/s, answers in 2 to 9 s, ~2 GB memory, same results as the Mac. |
 | Pixel 5a (2021, 6 GB) | Same quality, but CPU only: median 48 s per answer; memory borderline. Reading less (2 short passages) gets ~29 s at a small quality cost. |
 | Small phone models | Qwen3-1.7B 20 / 23, LFM2.5-1.2B-JP 14 / 23; both computed the family water amount wrong (12 L instead of 36 L). |
+| Shelter computer | Desktop app answers phones on the local network (E4B). Pixel 5a without a model: answer in 2.5 s instead of 48 s. Office Wi-Fi blocked device-to-device traffic (client isolation): a shelter needs its own hotspot or a network that allows it. |
+| Downloads | Models (Hugging Face), package and map area (public `dkastl/fieldkit-data` releases) downloaded in the app with resume and SHA-256 check. Pixel 5a: everything downloaded, then airplane mode: cited answer and offline map work. |
+| GSI data gap | 西宮市 and 尼崎市 mark no emergency site for earthquakes (神戸市 marks all). The app now warns when the user's city has no site for the hazard and points to the city's hazard map. |
 
 Lessons:
 
@@ -324,11 +328,14 @@ Lessons:
 - Fixed safety lines carry the critical action even when the small model's
   own answer is weak.
 - Recent phones and tablets run the app well; older Android phones need GPU
-  support or a shelter computer that answers over local Wi-Fi.
+  support or a shelter computer that answers over local Wi-Fi (shown working).
+- Official open data has gaps too (missing earthquake designations): the app
+  must say when it cannot find a proper site, not silently send people to the
+  next city.
 
-Still open: shelter desktop serving phones over Wi-Fi, Android GPU,
-in-app download of models and packages, routing (distance is straight-line),
-current-facts store and device sync (Idea 5), public name.
+Still open: shelter discovery (QR code / local network), Android GPU,
+routing (distance is straight-line), current-facts store and device sync
+(Idea 5), public name, iOS test of the downloads.
 
 ## Sources
 
