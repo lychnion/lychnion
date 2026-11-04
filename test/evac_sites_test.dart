@@ -38,4 +38,14 @@ void main() {
   test('keeps the GSI usage notes for the app', () {
     expect(sites.notice, contains('ご利用上の注意'));
   });
+
+  test('city from the address and missing hazard designations', () {
+    expect(sites.cityAt(cityHall), '西宮市');
+    // GSI data: Nishinomiya marks no site for earthquakes, Kobe marks all.
+    expect(sites.cityHasSiteFor('西宮市', Hazard.earthquake), isFalse);
+    expect(sites.cityHasSiteFor('西宮市', Hazard.tsunami), isTrue);
+    expect(sites.cityHasSiteFor('神戸市', Hazard.earthquake), isTrue);
+    final near = sites.nearest(cityHall, hazard: Hazard.earthquake, limit: 1);
+    expect(near.single.site.city, isNot('西宮市'));
+  });
 }

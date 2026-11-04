@@ -80,3 +80,13 @@ to the app's Documents folder.
 Open: the site suggestion uses the nearest site only. It does not know
 whether the way there leads toward the sea, or whether higher ground is
 closer; that needs routing and elevation data.
+
+## Cities without sites for a hazard (2026-11-05)
+
+In the GSI data 西宮市 (0 of 200) and 尼崎市 (0 of 113) mark no emergency site
+for earthquakes, so the nearest earthquake site for 西宮市役所 is in 芦屋市
+(2.2 km). The app now finds the user's city (the city of the nearest site of
+any kind) and, when that city has no site for the hazard, says so in the
+answer box and on the map: 「国土地理院のデータでは、西宮市に地震の指定緊急避難場所が
+登録されていません。最寄りの場所は別の市町村の可能性があります。西宮市のハザードマップや
+避難情報を確認してください。」

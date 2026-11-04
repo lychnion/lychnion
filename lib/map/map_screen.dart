@@ -196,6 +196,27 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ],
               ),
+              if (s.cityWithoutSiteFor(hazard) case final city?)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.warning_amber,
+                        size: 18,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          noSiteWarning(city, hazard!, en),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               for (final n in nearest)
                 ListTile(
                   dense: true,
@@ -241,6 +262,15 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 }
+
+/// Shown when the user's city has no emergency site for [hazard] in the
+/// GSI data, so the nearest one may be in another city.
+String noSiteWarning(String city, Hazard hazard, bool en) => en
+    ? 'The GSI data lists no ${hazard.en.toLowerCase()} evacuation site in $city. '
+          'The nearest site may be in another city. Check $city\'s own hazard map '
+          'and evacuation guidance.'
+    : '国土地理院のデータでは、$cityに${hazard.ja}の指定緊急避難場所が登録されていません。'
+          '最寄りの場所は別の市町村の可能性があります。$cityのハザードマップや避難情報を確認してください。';
 
 String formatDistance(double meters) => meters < 1000
     ? '${meters.round()} m'

@@ -41,6 +41,14 @@ class EvacSite {
   /// true: 指定緊急避難場所 (where to flee, per hazard). false: 指定避難所 (where to stay).
   final bool emergency;
   final Set<Hazard> hazards;
+
+  /// Municipality from the address, e.g. 西宮市 or 大阪市 (GSI writes
+  /// 都道府県 + 市区町村 first).
+  late final String city = _city.firstMatch(address)?.group(2) ?? '';
+
+  static final _city = RegExp(
+    r'^(東京都|北海道|(?:京都|大阪)府|.{2,3}県)(.+?(?:市|郡.+?[町村]|[町村]))',
+  );
 }
 
 class SiteDistance {
@@ -104,6 +112,28 @@ class EvacSites {
       db.close();
     }
   }
+
+  /// The municipality the user is probably in: that of the nearest site.
+  String cityAt(LatLng from) {
+    const d = Distance();
+    EvacSite? best;
+    var bestM = double.infinity;
+    for (final s in sites) {
+      final m = d.as(LengthUnit.Meter, from, s.point);
+      if (m < bestM) {
+        bestM = m;
+        best = s;
+      }
+    }
+    return best?.city ?? '';
+  }
+
+  /// Whether [city] has any emergency site designated for [hazard] in the
+  /// data. Some cities register sites without hazard types (Nishinomiya and
+  /// Amagasaki have none for earthquakes), so "nearest" may lie in the next city.
+  bool cityHasSiteFor(String city, Hazard hazard) => sites.any(
+    (s) => s.emergency && s.city == city && s.hazards.contains(hazard),
+  );
 
   /// Emergency sites for [hazard] (all emergency sites if null), nearest first.
   List<SiteDistance> nearest(LatLng from, {Hazard? hazard, int limit = 5}) {

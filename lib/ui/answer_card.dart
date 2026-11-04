@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../knowledge/grounded_answer.dart';
 import '../map/hazard_detect.dart';
-import '../map/map_screen.dart' show formatDistance;
+import '../map/map_screen.dart' show formatDistance, noSiteWarning;
 import '../map/map_state.dart';
 
 /// One question with its safety lines, answer and the sources it cites.
@@ -200,6 +200,7 @@ class AnswerCard extends StatelessWidget {
     if (near.isEmpty) return const [];
     final n = near.first;
     final en = answer.lang == 'en';
+    final noSiteCity = m.cityWithoutSiteFor(hazard);
     return [
       Container(
         margin: const EdgeInsets.only(top: 8),
@@ -216,12 +217,30 @@ class AnswerCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                en
-                    ? 'Nearest ${hazard.en.toLowerCase()} evacuation site: ${n.site.name}, '
-                          '${formatDistance(n.meters)} ${n.direction(true)} (straight line)'
-                    : '最寄りの${hazard.ja}の指定緊急避難場所：${n.site.name}（${n.direction(false)}へ直線${formatDistance(n.meters)}）',
-                style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    en
+                        ? 'Nearest ${hazard.en.toLowerCase()} evacuation site: ${n.site.name}, '
+                              '${formatDistance(n.meters)} ${n.direction(true)} (straight line)'
+                        : '最寄りの${hazard.ja}の指定緊急避難場所：${n.site.name}（${n.direction(false)}へ直線${formatDistance(n.meters)}）',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  if (noSiteCity != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        noSiteWarning(noSiteCity, hazard, en),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             TextButton(

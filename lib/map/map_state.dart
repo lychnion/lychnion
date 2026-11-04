@@ -96,6 +96,14 @@ class MapState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The user's city when it has no site for [h] in the data, else null.
+  String? cityWithoutSiteFor(Hazard? h) {
+    final s = sites, f = from;
+    if (s == null || f == null || h == null) return null;
+    final city = s.cityAt(f);
+    return city.isEmpty || s.cityHasSiteFor(city, h) ? null : city;
+  }
+
   List<SiteDistance> nearest(Hazard? h, {int limit = 5}) {
     final s = sites, f = from;
     if (s == null || f == null) return const [];
