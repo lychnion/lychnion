@@ -120,3 +120,42 @@ chat model choice, Wi-Fi setting default.
   space" when writing fails.
 - The old "Download model" field on phones (`fromNetwork`) is still there;
   it can go once the Downloads tab is tested on phones.
+
+## Test on Android (Pixel 5a, 2026-11-05)
+
+Clean install of the `main` build (old app and files removed first), then
+everything downloaded inside the app over office Wi-Fi: package and map area
+from the `dkastl/fieldkit-data` release, models from Hugging Face. Driven by
+`AUTO_DOWNLOAD`; screenshots and taps over adb.
+
+| Item | Size | Result |
+|---|---|---|
+| Knowledge package | 0.9 MB | 0.5 s, checked |
+| Map area Nishinomiya | 26.6 MB | 3 s, checked |
+| Search model EmbeddingGemma 2 | 310 MB | 27 s, checked |
+| Answer model Gemma 4 E2B | 2.84 GB | about 12.6 MB/s; **Stop** at 574 MB showed "Paused", **Resume** continued; checked (the SHA-256 of 2.8 GB takes a minute or two on this phone) |
+
+![Downloads tab on the Pixel 5a](images/pixel-downloads.png)
+
+Then **airplane mode** (no Wi-Fi, no mobile data) and a question typed in the
+app: "What should I do indoors during a strong earthquake?" Answer in 35 s
+(CPU), cited from 首相官邸「地震への備えと身の守り方」, with the nearest
+earthquake site and a working link to the offline map.
+
+![Offline answer](images/pixel-offline-answer.png) ![Offline map](images/pixel-offline-map.png)
+
+### Finding: cities without earthquake sites in the GSI data
+
+The nearest earthquake sites for 西宮市役所 are in 芦屋市 (2.2 km and more). In
+the GSI data for this area, 西宮市 (0 of 200 emergency sites) and 尼崎市
+(0 of 113) mark no site for earthquakes, while 神戸市 marks all 154 and 芦屋市
+19 of 40. The app follows the data and sends a Nishinomiya resident to the
+next city. It should instead say when the user's own city has no site for
+that hazard in the data, and point to the city's own hazard map.
+
+### Notes
+
+- After the run, Android's log no longer showed the start of the download
+  (the log buffer rolls over); the Downloads tab is the reliable view.
+- With a Japanese keyboard, adb's Enter key goes to the keyboard, not the
+  send button; tap the button.
