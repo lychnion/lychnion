@@ -107,3 +107,31 @@ LFM2.5-1.2B-JP 14 / 23) and both computed the family water amount wrong
   creates it, the app cannot see the files.
 - The test turns on "Stay awake while charging" over adb during the run and
   restores it afterwards (`settings put global stay_on_while_plugged_in`).
+
+## Less to read (2026-11-05)
+
+Test of option 1 above, on the Mac (35 questions). Pixel times are estimated
+from the Pixel run: about 18 tokens/s reading, 5.5 tokens/s writing.
+Raw results: `spike-results/macos-read-*.json`.
+
+| Passages per answer × size | Covered | Uncovered refused | Tokens read (median) | Pixel answer, estimated |
+|---|---|---|---|---|
+| 4 × 420 characters (default) | 23 / 23 | 10 / 12 | 794 | 48 s (measured) |
+| 2 × 420 | 21 / 23 | 10 / 12 | 484 | ~33 s |
+| 3 × 220 | 21 / 23 | 9 / 12 | 495 | ~33 s |
+| 2 × 220 | 22 / 23 | 9 / 12 | 391 | ~29 s |
+
+- Reading less saves up to 40 %, but the Pixel class stays near half a
+  minute: the instructions, the question and (for English) the translation
+  step are a fixed cost. Quality drops slightly (the shelter list, river
+  water, in one variant the English tsunami question).
+- Default stays at 4 × 420 for iPad and desktop. `TOP_K` (app) and
+  `--max-chars` (package builder) remain as settings for phones.
+- Older Android phones need a different fix: GPU use (newer llamadart
+  versions include Vulkan on Android, not yet tested) or the shelter desktop
+  answering phones over local Wi-Fi.
+
+**Vectors in the package:** `tool/add_vectors.py` adds the passage vectors
+to the package (108 × 768 floats, package 376 → 816 KB). The app uses them
+when they match its embedding model, so indexing drops from 133 s on the
+Pixel (3 s on the Mac) to nothing.

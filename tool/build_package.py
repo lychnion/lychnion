@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds a knowledge package (one SQLite file) from a JSON manifest.
 
-    python3 -I tool/build_package.py tool/packages/jp.bousai.core.json
+    python3 -I tool/build_package.py tool/packages/jp.bousai.core.json [--max-chars N]
 
 Downloads each source once into build/package-cache/, extracts the text
 (HTML, Word .doc via macOS textutil, PDF via tool/pdf2txt.swift), splits it
@@ -104,7 +104,7 @@ def clean_lines(text):
     return lines
 
 
-def passages(lines):
+def passages(lines, max_chars=MAX_CHARS):
     """Groups lines into passages of up to MAX_CHARS, each with its heading."""
     heading, buf, out = "", [], []
 
@@ -118,7 +118,7 @@ def passages(lines):
             flush()
             heading = line[3:].strip()
             continue
-        if buf and sum(len(b) for b in buf) + len(line) > MAX_CHARS:
+        if buf and sum(len(b) for b in buf) + len(line) > max_chars:
             flush()
         buf.append(line)
     flush()
@@ -130,8 +130,11 @@ def squash(s):
     return re.sub(r"\s+", "", s)
 
 
-def main(manifest_path):
+def main(manifest_path, max_chars=MAX_CHARS):
     manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    if max_chars != MAX_CHARS:
+        # A different cut is a different package: vectors cached per version.
+        manifest["version"] += f"+c{max_chars}"
     CACHE.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     texts, rows = {}, []
@@ -142,7 +145,7 @@ def main(manifest_path):
         skip = set(src.get("skip_headings", [])) | set(manifest.get("skip_headings_all", []))
         drop = manifest.get("drop_lines_containing", [])
         lines = [l for l in clean_lines(text) if not any(d in l for d in drop)]
-        ps = [(h, t) for h, t in passages(lines) if h not in skip]
+        ps = [(h, t) for h, t in passages(lines, max_chars) if h not in skip]
         if not ps:
             sys.exit(f"no text extracted from {src['id']}")
         rows += [(src["id"], h, t) for h, t in ps]
@@ -191,6 +194,12 @@ def main(manifest_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    chars = MAX_CHARS
+    if "--max-chars" in args:
+        i = args.index("--max-chars")
+        chars = int(args[i + 1])
+        del args[i:i + 2]
+    if len(args) != 1:
         sys.exit(__doc__)
-    main(sys.argv[1])
+    main(args[0], chars)

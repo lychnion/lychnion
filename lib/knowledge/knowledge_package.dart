@@ -64,6 +64,7 @@ class KnowledgePackage {
     this.passages,
     this.alerts,
     this.synonyms,
+    this.vectors,
   );
 
   final String id, title, version;
@@ -73,6 +74,10 @@ class KnowledgePackage {
 
   /// Words to add to a question before keyword search (飲み水 → 飲料水).
   final Map<String, List<String>> synonyms;
+
+  /// Precomputed passage vectors per embedding model file name, in passage
+  /// order (tool/add_vectors.py). Saves phones from indexing the package.
+  final Map<String, List<List<double>>> vectors;
 
   /// Copies a bundled package out of the assets (SQLite needs a real file) and loads it.
   static Future<KnowledgePackage> fromAsset(String name) async {
@@ -134,6 +139,22 @@ class KnowledgePackage {
         for (final e in (jsonDecode(meta['synonyms'] ?? '{}') as Map).entries)
           e.key as String: List<String>.from(e.value as List),
       };
+      final vectors = <String, List<List<double>>>{};
+      final hasVectors = db
+          .select("SELECT 1 FROM sqlite_master WHERE name = 'vectors'")
+          .isNotEmpty;
+      if (hasVectors) {
+        for (final r in db.select(
+          'SELECT model, vec FROM vectors ORDER BY model, passage_id',
+        )) {
+          final bytes = r['vec'] as Uint8List;
+          final floats = bytes.buffer.asFloat32List(
+            bytes.offsetInBytes,
+            bytes.lengthInBytes ~/ 4,
+          );
+          (vectors[r['model'] as String] ??= []).add(List<double>.from(floats));
+        }
+      }
       return KnowledgePackage._(
         meta['id']!,
         meta['title'] ?? '',
@@ -142,6 +163,7 @@ class KnowledgePackage {
         passages,
         alerts,
         synonyms,
+        vectors,
       );
     } finally {
       db.close();

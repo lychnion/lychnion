@@ -35,6 +35,7 @@ import 'util/paths.dart';
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
 ///   --dart-define=START_TAB=1                                open on the map
 ///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
+///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
 ///                                                            screenshots of the answers and the map
@@ -56,6 +57,7 @@ const _startTab = int.fromEnvironment('START_TAB');
 const _screenshotAfter = int.fromEnvironment('SCREENSHOT_AFTER_S');
 const _demoQuestions = String.fromEnvironment('ASK');
 const _relevanceCheck = bool.fromEnvironment('RELEVANCE_CHECK');
+const _topK = int.fromEnvironment('TOP_K', defaultValue: 4);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -261,6 +263,7 @@ class _SpikePageState extends State<SpikePage> {
           pkg,
           hybrid: hybrid,
           checkRelevance: _relevanceCheck,
+          topK: _topK,
         );
         _log({
           'event': 'package',
@@ -372,6 +375,7 @@ class _SpikePageState extends State<SpikePage> {
         'platform': defaultTargetPlatform.name,
         'mode': _bare ? 'bare' : 'grounded',
         'relevance_check': _relevanceCheck,
+        'top_k': _topK,
         'package': _answerer?.package.version,
         'backend': _llm.backend,
         'load_ms': _llm.lastLoadTime?.inMilliseconds,

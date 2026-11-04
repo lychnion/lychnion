@@ -32,6 +32,8 @@ Everything runs on the device; the network is only needed to download models.
 
 ```bash
 python3 -I tool/build_package.py tool/packages/jp.bousai.core.json
+# after one app run has embedded the package (vectors cache on the Mac):
+python3 -I tool/add_vectors.py assets/packages/jp.bousai.core.sqlite <cache>.vectors.json embeddinggemma-2-Q8_0.gguf
 ```
 
 Builds `assets/packages/jp.bousai.core.sqlite` (macOS: uses `textutil` and

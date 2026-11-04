@@ -37,8 +37,14 @@ class HybridRetriever {
   double minCosine;
   late List<List<double>> _vectors;
 
-  /// Embeds all passages once per package version and model; cached on disk.
+  /// Uses the vectors shipped in the package if they match the embedding
+  /// model; otherwise embeds all passages once and caches them on disk.
   Future<void> index() async {
+    final shipped = package.vectors[embedder.modelName];
+    if (shipped != null && shipped.length == package.passages.length) {
+      _vectors = shipped;
+      return;
+    }
     final dir = Directory(
       '${(await getApplicationSupportDirectory()).path}/packages',
     );

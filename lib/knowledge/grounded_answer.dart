@@ -111,7 +111,11 @@ class GroundedAnswerer {
     this.package, {
     this.hybrid,
     this.checkRelevance = false,
+    this.topK = 4,
   }) : retriever = Retriever(package);
+
+  /// How many passages the model reads. Reading is the slow part on phones.
+  final int topK;
 
   /// Ask the model first whether the passages answer the question at all.
   final bool checkRelevance;
@@ -134,8 +138,8 @@ class GroundedAnswerer {
         .where((a) => a.matches(q) || a.matches(search))
         .toList();
     answer.hits = hybrid != null
-        ? await hybrid!.search(search)
-        : retriever.search(search);
+        ? await hybrid!.search(search, limit: topK)
+        : retriever.search(search, limit: topK);
     onUpdate();
     if (answer.hits.isEmpty) {
       // Nothing relevant in the package: do not let the model guess.
