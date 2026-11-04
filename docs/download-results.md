@@ -54,18 +54,26 @@ fetch a newer catalog from the URL in its `refresh` field (or the dev flag
 shows **Update**. Relative file URLs resolve against `base` (or the
 catalog's own URL, or `DOWNLOAD_BASE_URL`).
 
-Models point to Hugging Face. **Package and map files have no public URL
-yet** (`base` is empty), so those two items show "no download source yet"
-and the app uses the bundled package. A private GitHub repo cannot serve
-them: release assets of a private repo need a token.
+Models point to Hugging Face. Package and map files are release assets of
+the public repo [dkastl/fieldkit-data](https://github.com/dkastl/fieldkit-data)
+(its README lists sources and licences, including the GSI notes). The
+bundled catalog uses `base` = the `2026.11.0` release; `refresh` is
+`…/releases/latest/download/catalog.json`, so a new release with a new
+catalog reaches the app the next time the Downloads tab opens online.
+GitHub redirects release downloads to its file servers, which honour Range
+(checked: `206`, `content-range` correct). A private repo would not work:
+its release files need a token.
 
-After rebuilding a package or map:
+To publish a new package or map version:
 
 ```bash
 python3 -I tool/catalog.py assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
+# bump the item's "version" and "base" (new tag) in the catalog, then:
+gh release create <tag> -R dkastl/fieldkit-data assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
 ```
 
-then bump the item's `version` and upload the file next to the catalog.
+Upload unchanged files of other items again too, or keep their absolute
+URLs of the older release in the catalog.
 
 ## Test on macOS
 
@@ -84,6 +92,7 @@ already there).
 | Gemma 4 E4B (4.6 GB) already on disk, no record | **Check file**: hashed in 21 s, adopted |
 | After the downloads | E2B loaded from the download (GPU), tsunami question answered with sources, map from the downloaded files |
 | Network use after the downloads | none (`lsof -i` on the app: no connections) |
+| From GitHub release 2026.11.0, no local server | catalog refreshed from `releases/latest`; package 0.7 s, map area 2.1 s, both checked |
 
 ![Map tab opened from the downloaded map area](images/macos-map-downloaded.png)
 
@@ -102,9 +111,6 @@ chat model choice, Wi-Fi setting default.
 
 ## Open
 
-- **Hosting for packages and maps** (decision needed): a public static URL,
-  e.g. a public Hugging Face dataset repo, Cloudflare R2, or releases of a
-  public GitHub repo.
 - Android (Pixel 5a) and iOS not tested yet. Hashing runs on the main
   isolate; about 200 MB/s on the Mac, a phone will be slower (the UI stays
   usable, but checking 2.8 GB may take a minute).

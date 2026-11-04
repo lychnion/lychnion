@@ -64,7 +64,8 @@ Open the **Downloads** tab (ダウンロード) and download the answer model
 app loads them as soon as they are checked, on every platform. Wi-Fi only by
 default. The list comes from
 [assets/downloads/catalog.json](assets/downloads/catalog.json); package and
-map files have no public URL yet, so the app uses the bundled package.
+map files are releases of the public repo
+[dkastl/fieldkit-data](https://github.com/dkastl/fieldkit-data).
 
 Older ways still work: on macOS, click **Load GGUF file** and pick a model. The app copies it into
 its own storage. On Android and iOS, the app downloads the model from the URL

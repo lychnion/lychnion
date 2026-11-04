@@ -1,16 +1,22 @@
 {
   "format": 1,
-  "base": "",
-  "refresh": "",
+  "base": "https://github.com/dkastl/fieldkit-data/releases/download/2026.11.0/",
+  "refresh": "https://github.com/dkastl/fieldkit-data/releases/latest/download/catalog.json",
   "items": [
     {
       "id": "model.gemma-4-e2b-q4_0",
       "kind": "model",
       "role": "chat",
-      "title": {"ja": "回答モデル Gemma 4 E2B", "en": "Answer model Gemma 4 E2B"},
+      "title": {
+        "ja": "回答モデル Gemma 4 E2B",
+        "en": "Answer model Gemma 4 E2B"
+      },
       "version": "Q4_0",
       "licence": "Apache 2.0 (Google Gemma 4)",
-      "note": {"ja": "スマートフォン・タブレット向け", "en": "For phones and tablets"},
+      "note": {
+        "ja": "スマートフォン・タブレット向け",
+        "en": "For phones and tablets"
+      },
       "files": [
         {
           "name": "gemma-4-E2B-it-Q4_0.gguf",
@@ -25,10 +31,16 @@
       "kind": "model",
       "role": "chat",
       "desktop": true,
-      "title": {"ja": "回答モデル Gemma 4 E4B", "en": "Answer model Gemma 4 E4B"},
+      "title": {
+        "ja": "回答モデル Gemma 4 E4B",
+        "en": "Answer model Gemma 4 E4B"
+      },
       "version": "Q4_0",
       "licence": "Apache 2.0 (Google Gemma 4)",
-      "note": {"ja": "パソコン向け：回答がより良く、速度は半分", "en": "For computers: better answers, half the speed"},
+      "note": {
+        "ja": "パソコン向け：回答がより良く、速度は半分",
+        "en": "For computers: better answers, half the speed"
+      },
       "files": [
         {
           "name": "gemma-4-E4B-it-Q4_0.gguf",
@@ -42,10 +54,16 @@
       "id": "model.embeddinggemma-2-q8_0",
       "kind": "model",
       "role": "embed",
-      "title": {"ja": "検索モデル EmbeddingGemma 2", "en": "Search model EmbeddingGemma 2"},
+      "title": {
+        "ja": "検索モデル EmbeddingGemma 2",
+        "en": "Search model EmbeddingGemma 2"
+      },
       "version": "Q8_0",
       "licence": "Apache 2.0 (Google EmbeddingGemma 2)",
-      "note": {"ja": "意味で資料を探す（日本語・英語）", "en": "Finds passages by meaning (Japanese and English)"},
+      "note": {
+        "ja": "意味で資料を探す（日本語・英語）",
+        "en": "Finds passages by meaning (Japanese and English)"
+      },
       "files": [
         {
           "name": "embeddinggemma-2-Q8_0.gguf",
@@ -58,10 +76,16 @@
     {
       "id": "jp.bousai.core",
       "kind": "package",
-      "title": {"ja": "防災（基本）", "en": "Disaster preparedness (basics)"},
+      "title": {
+        "ja": "防災（基本）",
+        "en": "Disaster preparedness (basics)"
+      },
       "version": "2026.11.0-spike6",
-      "licence": "政府標準利用規約 / PDL 1.0 (出典は各回答に表示)",
-      "note": {"ja": "アプリ内蔵版より新しい版があれば更新", "en": "Updates the copy built into the app"},
+      "licence": "PDL 1.0（出典は各回答に表示）",
+      "note": {
+        "ja": "アプリ内蔵版より新しい版があれば更新",
+        "en": "Updates the copy built into the app"
+      },
       "files": [
         {
           "name": "jp.bousai.core.sqlite",
@@ -74,10 +98,16 @@
     {
       "id": "jp.map.nishinomiya",
       "kind": "map",
-      "title": {"ja": "地図：西宮周辺", "en": "Map: Nishinomiya area"},
+      "title": {
+        "ja": "地図：西宮周辺",
+        "en": "Map: Nishinomiya area"
+      },
       "version": "2026.11.0",
       "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ",
-      "note": {"ja": "神戸東部〜大阪西部、避難場所つき", "en": "Eastern Kobe to western Osaka, with evacuation sites"},
+      "note": {
+        "ja": "神戸東部〜大阪西部、避難場所つき",
+        "en": "Eastern Kobe to western Osaka, with evacuation sites"
+      },
       "files": [
         {
           "name": "jp.map.nishinomiya.pmtiles",
