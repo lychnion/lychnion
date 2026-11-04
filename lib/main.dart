@@ -1,16 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
 import 'llm/local_embedder.dart';
+import 'map/map_screen.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
@@ -25,6 +28,10 @@ import 'ui/answer_card.dart';
 ///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
 ///   --dart-define=EMBED_MODEL_PATH=/path/in/app/storage.gguf  vector search (spike 3)
 ///   --dart-define=MIN_COS=0.5                                relevance cut-off for vector search
+///   --dart-define=MAP_PMTILES_PATH=/path/area.pmtiles        offline base map
+///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
+///   --dart-define=START_TAB=1                                open on the map
+///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
 const _modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
 const _modelUrl = String.fromEnvironment(
   'GGUF_MODEL_URL',
@@ -36,6 +43,11 @@ const _bare = bool.fromEnvironment('BARE');
 const _packageAsset = 'jp.bousai.core.sqlite';
 const _embedPath = String.fromEnvironment('EMBED_MODEL_PATH');
 const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0');
+const _mapPmtiles = String.fromEnvironment('MAP_PMTILES_PATH');
+const _mockLocation = String.fromEnvironment('MOCK_LOCATION');
+const _mapSitesAsset = 'jp.map.nishinomiya.sites.sqlite';
+const _startTab = int.fromEnvironment('START_TAB');
+const _screenshotAfter = int.fromEnvironment('SCREENSHOT_AFTER_S');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,8 +68,88 @@ class FieldkitApp extends StatelessWidget {
       brightness: Brightness.dark,
       useMaterial3: true,
     ),
-    home: const SpikePage(),
+    home: const HomePage(),
   );
+}
+
+/// Two tabs: ask (the spike screen) and the offline map.
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _tab = _startTab;
+  final _shotKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (_screenshotAfter > 0) {
+      Timer(const Duration(seconds: _screenshotAfter), _saveScreenshot);
+    }
+  }
+
+  // Dev aid: lets scripts see the app without screen-recording rights.
+  Future<void> _saveScreenshot() async {
+    final boundary =
+        _shotKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+    final image = await boundary.toImage(pixelRatio: 1.5);
+    final png = await image.toByteData(format: ui.ImageByteFormat.png);
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(
+      '${dir.path}/fieldkit-screenshot-${DateTime.now().millisecondsSinceEpoch}.png',
+    );
+    await file.writeAsBytes(png!.buffer.asUint8List());
+    debugPrint(
+      'FIELDKIT ${jsonEncode({'event': 'screenshot', 'file': file.path})}',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final en = Localizations.localeOf(context).languageCode != 'ja';
+    return RepaintBoundary(
+      key: _shotKey,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _tab,
+          children: [
+            const SpikePage(),
+            Scaffold(
+              appBar: AppBar(title: Text(en ? 'Map' : '地図')),
+              body: _mapPmtiles.isEmpty
+                  ? const Center(
+                      child: Text('Set MAP_PMTILES_PATH to a .pmtiles file.'),
+                    )
+                  : MapScreen(
+                      pmtilesPath: _mapPmtiles,
+                      sitesAsset: _mapSitesAsset,
+                      mockLocation: _mockLocation,
+                      english: en,
+                    ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => setState(() => _tab = i),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.chat_outlined),
+              label: en ? 'Ask' : '質問',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.map_outlined),
+              label: en ? 'Map' : '地図',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class SpikePage extends StatefulWidget {

@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Needed to download models once; inference itself is offline. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Nearest evacuation sites; works offline. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="fieldkit"
         android:name="${applicationName}"
