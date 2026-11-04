@@ -36,6 +36,9 @@ class GroundedAnswer {
   /// The Japanese search query used for an English question.
   String? searchQuery;
 
+  /// Name of the shelter computer that answered, if not this device.
+  String? answeredBy;
+
   /// Result of the relevance check: false means the passages are related but
   /// do not answer the question, so no answer was generated.
   bool? judgedRelevant;
@@ -84,6 +87,7 @@ class GroundedAnswer {
     'q': question,
     'lang': lang,
     if (searchQuery != null) 'search_query': searchQuery,
+    if (answeredBy != null) 'answered_by': answeredBy,
     if (judgedRelevant != null) 'judged_relevant': judgedRelevant,
     'alerts': [for (final a in alerts) a.id],
     'retrieved': [

@@ -26,6 +26,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Connects to the shelter computer on this Wi-Fi to answer questions.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Shows the nearest evacuation sites. Your location stays on this device.</string>
 	<key>UIApplicationSceneManifest</key>

@@ -38,6 +38,13 @@ class AnswerCard extends StatelessWidget {
               answer.question,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
+            if (answer.answeredBy != null)
+              Text(
+                answer.lang == 'en'
+                    ? 'Answered by shelter: ${answer.answeredBy}'
+                    : '避難所のコンピューターが回答：${answer.answeredBy}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             for (final a in answer.alerts)
               Container(
                 margin: const EdgeInsets.only(top: 8),

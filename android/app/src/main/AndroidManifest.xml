@@ -4,7 +4,9 @@
     <!-- Nearest evacuation sites; works offline. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- usesCleartextTraffic: phones ask the shelter computer over plain http on the local Wi-Fi (PoC). -->
     <application
+        android:usesCleartextTraffic="true"
         android:label="fieldkit"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

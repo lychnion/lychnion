@@ -16,6 +16,8 @@ import 'llm/local_embedder.dart';
 import 'map/map_screen.dart';
 import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
+import 'shelter/shelter_client.dart';
+import 'shelter/shelter_server.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
@@ -35,6 +37,9 @@ import 'util/paths.dart';
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
 ///   --dart-define=START_TAB=1                                open on the map
 ///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
+///   --dart-define=SHELTER_SERVER=true                        answer phones on the local network (desktop)
+///   --dart-define=SHELTER_NAME=…                             shown on phones
+///   --dart-define=SHELTER_URL=http://192.168.1.20:8642       ask this shelter first (phone)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
@@ -58,6 +63,12 @@ const _screenshotAfter = int.fromEnvironment('SCREENSHOT_AFTER_S');
 const _demoQuestions = String.fromEnvironment('ASK');
 const _relevanceCheck = bool.fromEnvironment('RELEVANCE_CHECK');
 const _topK = int.fromEnvironment('TOP_K', defaultValue: 4);
+const _shelterServer = bool.fromEnvironment('SHELTER_SERVER');
+const _shelterName = String.fromEnvironment(
+  'SHELTER_NAME',
+  defaultValue: 'fieldkit shelter',
+);
+const _shelterUrl = String.fromEnvironment('SHELTER_URL');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -210,6 +221,15 @@ class _SpikePageState extends State<SpikePage> {
   String _status = 'No model loaded.';
   bool _busy = false;
 
+  /// Phone side: the shelter computer to ask first, if configured.
+  final ShelterClient? _shelter = _shelterUrl.isEmpty
+      ? null
+      : ShelterClient(_shelterUrl);
+  bool _shelterReady = false;
+
+  /// Desktop side: answers phones on the local network.
+  ShelterServer? _server;
+
   bool get _usesDownload =>
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
@@ -217,6 +237,7 @@ class _SpikePageState extends State<SpikePage> {
   @override
   void initState() {
     super.initState();
+    if (_shelter != null) unawaited(_connectShelter());
     if (_modelPath.isNotEmpty) {
       unawaited(
         _run(
@@ -277,9 +298,27 @@ class _SpikePageState extends State<SpikePage> {
         'load_ms': _llm.lastLoadTime?.inMilliseconds,
         'backend': _llm.backend,
       });
+      final answerer = _answerer;
+      if (_shelterServer && answerer != null) {
+        _server = ShelterServer(
+          answerer: answerer,
+          name: _shelterName,
+          modelName: _modelPath.split('/').last,
+        );
+        await _server!.start();
+        final addrs = await ShelterServer.localAddresses();
+        _log({
+          'event': 'shelter_started',
+          'name': _shelterName,
+          'urls': [
+            for (final a in addrs) 'http://$a:${ShelterServer.defaultPort}',
+          ],
+        });
+      }
       setState(
         () => _status =
-            'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms',
+            'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
+            '${_server != null ? ' · shelter server on port ${ShelterServer.defaultPort}' : ''}',
       );
     } catch (e) {
       setState(() => _status = 'Load failed: $e');
@@ -326,7 +365,55 @@ class _SpikePageState extends State<SpikePage> {
     afterLoad: true,
   );
 
+  Future<void> _connectShelter() async {
+    try {
+      final info = await _shelter!.info();
+      _log({'event': 'shelter_connected', ...info});
+      setState(() {
+        _shelterReady = true;
+        _status = 'Connected to shelter: ${info['name']} (${info['model']})';
+      });
+      if (_modelPath.isEmpty && _demoQuestions.isNotEmpty) {
+        for (final q in _demoQuestions.split('|')) {
+          await _ask(q.trim());
+        }
+        await widget.onDemoDone?.call(_entries);
+      }
+    } catch (e) {
+      _log({'event': 'shelter_unreachable', 'error': '$e'});
+      setState(() => _status = 'Shelter not reachable: $e');
+    }
+  }
+
   Future<void> _ask(String question) async {
+    // A shelter computer answers first: faster and better than a phone.
+    if (_shelter != null && _shelterReady) {
+      final placeholder = GroundedAnswer(question)..answeredBy = _shelter.name;
+      setState(() {
+        _busy = true;
+        _entries.add(placeholder);
+      });
+      try {
+        final remote = await _shelter.ask(question)
+          ..answeredBy = _shelter.name;
+        setState(() => _entries[_entries.indexOf(placeholder)] = remote);
+        _log({'event': 'answer', ...remote.toJson()});
+        setState(() => _busy = false);
+        return;
+      } catch (e) {
+        _log({'event': 'shelter_failed', 'error': '$e'});
+        setState(() => _entries.remove(placeholder));
+        if (!_llm.isLoaded) {
+          final failed = GroundedAnswer(question)
+            ..text = 'Shelter not reachable and no model on this device: $e';
+          setState(() {
+            _entries.add(failed);
+            _busy = false;
+          });
+          return;
+        }
+      }
+    }
     final entry = GroundedAnswer(question);
     setState(() {
       _busy = true;
@@ -413,7 +500,7 @@ class _SpikePageState extends State<SpikePage> {
 
   @override
   Widget build(BuildContext context) {
-    final ready = _llm.isLoaded && !_busy;
+    final ready = (_llm.isLoaded || _shelterReady) && !_busy;
     return Scaffold(
       appBar: AppBar(title: const Text('fieldkit · spike')),
       body: Column(
@@ -465,7 +552,7 @@ class _SpikePageState extends State<SpikePage> {
                 listenable: widget.map ?? ValueNotifier(0),
                 builder: (_, _) => AnswerCard(
                   answer: _entries[i],
-                  grounded: _answerer != null,
+                  grounded: _answerer != null || _entries[i].answeredBy != null,
                   done: !_busy || i < _entries.length - 1,
                   map: widget.map,
                   onShowOnMap: widget.onShowOnMap,
