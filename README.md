@@ -20,6 +20,9 @@ Everything runs on the device; the network is only needed to download models.
 - Spike 4 ([results](docs/spike-4-results.md)): near-topic answers; volcano
   page added, "partly covered" label; a yes/no self-check did not work with
   the 2B model.
+- Spike 5 ([results](docs/spike-5-results.md)): Gemma 4 E4B for desktop
+  (better answers, half the speed); OCR'd bear source disabled after it
+  inverted advice.
 - Real devices ([results](docs/device-results.md)): iPad Air 5 (M1) runs
   the full app offline: about 22 tokens/s, answers in 2 to 9 s, same answers
   as on the Mac. Pixel 5a (2021, 6 GB): same quality but about 48 s per

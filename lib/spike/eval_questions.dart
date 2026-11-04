@@ -30,7 +30,8 @@ const evalQuestions = <EvalQuestion>[
   EvalQuestion('家族と連絡が取れないときに使える伝言サービスはありますか？', ['kantei-sonae']),
   EvalQuestion('屋根の雪下ろしで気をつけることは？', ['kantei-setsugai']),
   EvalQuestion('津波は一回だけですか？', ['kantei-tsunami']),
-  EvalQuestion('クマに会わないために山菜採りで気をつけることは？', ['env-kuma']),
+  // env-kuma disabled (OCR mixed columns): bears are not covered.
+  EvalQuestion('クマに会わないために山菜採りで気をつけることは？', []),
   // English.
   EvalQuestion('What should I do indoors during a strong earthquake?', [
     'kantei-jishin',

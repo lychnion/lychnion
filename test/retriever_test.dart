@@ -27,7 +27,8 @@ void main() {
     expect(topSources(benchPrompts[0]), contains('kantei-jishin'));
     expect(topSources(benchPrompts[1]).first, 'kantei-tsunami');
     expect(topSources(benchPrompts[2]), contains('kantei-sonae'));
-    expect(topSources(benchPrompts[5]), contains('env-kuma'));
+    // The bear source is disabled (OCR mixed its columns).
+    expect(topSources(benchPrompts[5]), isNot(contains('env-kuma')));
     expect(topSources(benchPrompts[6]).first, 'kantei-setsugai');
     expect(topSources(benchPrompts[7]), contains('fdma-shiketsu'));
   });

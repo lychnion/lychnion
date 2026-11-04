@@ -1,0 +1,1261 @@
+{
+  "platform": "macOS",
+  "mode": "grounded",
+  "relevance_check": false,
+  "top_k": 4,
+  "package": "2026.11.0-spike5",
+  "backend": "GPU",
+  "load_ms": 1591,
+  "results": [
+    {
+      "q": "大きな地震で揺れているとき、家の中ではまず何をすればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 19,
+          "source": "kantei-jishin",
+          "score": 0.0333,
+          "cos": 0.831
+        },
+        {
+          "id": 27,
+          "source": "kantei-jishin",
+          "score": 0.0308,
+          "cos": 0.782
+        },
+        {
+          "id": 24,
+          "source": "kantei-jishin",
+          "score": 0.0282,
+          "cos": 0.794
+        },
+        {
+          "id": 18,
+          "source": "kantei-jishin",
+          "score": 0.0281,
+          "cos": 0.793
+        }
+      ],
+      "a": "家具の移動や落下物から身を守るため、頭を保護しながら大きな家具から離れ、丈夫な机の下などに隠れること、あわてて外に飛び出さないことが挙げられます [1]。また、室内の家具や什器の転倒・移動や、天井の落下、エレベーターの故障などの危険性があるため、日ごろから家具やオフィス機器等の固定を確認することが推奨されています [2]。",
+      "cited": [
+        1,
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 331,
+      "total_ms": 1066,
+      "input_tokens": 746,
+      "output_tokens": 92,
+      "tokens_per_s": 123.8,
+      "rss_mb": 3496
+    },
+    {
+      "q": "海の近くで強い揺れを感じました。津波警報はまだ出ていません。どうすればいいですか？",
+      "lang": "ja",
+      "alerts": [
+        "tsunami-go-high"
+      ],
+      "retrieved": [
+        {
+          "id": 40,
+          "source": "kantei-tsunami",
+          "score": 0.0331,
+          "cos": 0.803
+        },
+        {
+          "id": 37,
+          "source": "kantei-tsunami",
+          "score": 0.0325,
+          "cos": 0.761
+        },
+        {
+          "id": 42,
+          "source": "kantei-tsunami",
+          "score": 0.0318,
+          "cos": 0.757
+        },
+        {
+          "id": 41,
+          "source": "kantei-tsunami",
+          "score": 0.0315,
+          "cos": 0.766
+        }
+      ],
+      "a": "強い揺れを感じたら、また地震を体で感じなくても、「津波警報」等を見聞きしたら、いち早く海岸から離れ、可能な限り高い場所へ避難してください [1]。直ちに高台や津波避難ビルへ避難することが命を守る鉄則です [2]。",
+      "cited": [
+        1,
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 390,
+      "total_ms": 919,
+      "input_tokens": 1000,
+      "output_tokens": 65,
+      "tokens_per_s": 121.0,
+      "rss_mb": 3506
+    },
+    {
+      "q": "停電と断水が3日続いています。家族4人です。飲み水はどれくらい必要ですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 5,
+          "source": "kantei-sonae",
+          "score": 0.0331,
+          "cos": 0.714
+        },
+        {
+          "id": 6,
+          "source": "kantei-sonae",
+          "score": 0.0331,
+          "cos": 0.702
+        },
+        {
+          "id": 2,
+          "source": "kantei-sonae",
+          "score": 0.032,
+          "cos": 0.701
+        }
+      ],
+      "a": "飲料水は、1人1日3リットルが目安で、3日分が必要とされています [2]。",
+      "cited": [
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 231,
+      "total_ms": 427,
+      "input_tokens": 615,
+      "output_tokens": 24,
+      "tokens_per_s": 117.3,
+      "rss_mb": 3513
+    },
+    {
+      "q": "避難所に持っていくべきものを10個挙げてください。",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 7,
+          "source": "kantei-sonae",
+          "score": 0.0333,
+          "cos": 0.804
+        },
+        {
+          "id": 6,
+          "source": "kantei-sonae",
+          "score": 0.0325,
+          "cos": 0.77
+        },
+        {
+          "id": 54,
+          "source": "kantei-hinan",
+          "score": 0.0313,
+          "cos": 0.751
+        },
+        {
+          "id": 10,
+          "source": "kantei-sonae",
+          "score": 0.0303,
+          "cos": 0.748
+        }
+      ],
+      "a": "資料に避難所に持っていくべきものの具体的なリストは書かれていません [3]。",
+      "cited": [
+        3
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": true,
+      "no_source": false,
+      "ttft_ms": 407,
+      "total_ms": 560,
+      "input_tokens": 938,
+      "output_tokens": 18,
+      "tokens_per_s": 111.1,
+      "rss_mb": 3505
+    },
+    {
+      "q": "登山中に道に迷いました。スマホの電波がありません。どうすればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 76,
+          "source": "kantei-setsugai",
+          "score": 0.0333,
+          "cos": 0.746
+        },
+        {
+          "id": 75,
+          "source": "kantei-setsugai",
+          "score": 0.0299,
+          "cos": 0.725
+        }
+      ],
+      "a": "必要に応じて110番や119番通報し救助を求め、状況や現在地の地形など分かる限りの情報を伝えましょう [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 194,
+      "total_ms": 468,
+      "input_tokens": 498,
+      "output_tokens": 34,
+      "tokens_per_s": 120.4,
+      "rss_mb": 3510
+    },
+    {
+      "q": "山でクマに出会ってしまいました。どう行動すればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 76,
+          "source": "kantei-setsugai",
+          "score": 0.0323,
+          "cos": 0.728
+        },
+        {
+          "id": 75,
+          "source": "kantei-setsugai",
+          "score": 0.029,
+          "cos": 0.706
+        },
+        {
+          "id": 74,
+          "source": "kantei-setsugai",
+          "score": 0.028,
+          "cos": 0.713
+        },
+        {
+          "id": 22,
+          "source": "kantei-jishin",
+          "score": 0.0167,
+          "cos": 0.739
+        }
+      ],
+      "a": "資料に答えがありません",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true,
+      "ttft_ms": 182,
+      "total_ms": 225,
+      "input_tokens": 799,
+      "output_tokens": 5,
+      "tokens_per_s": 95.2,
+      "rss_mb": 3515
+    },
+    {
+      "q": "バックカントリーで雪崩に巻き込まれた仲間を探すとき、最初にすることは何ですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 81,
+          "source": "kantei-setsugai",
+          "score": 0.0333,
+          "cos": 0.753
+        },
+        {
+          "id": 74,
+          "source": "kantei-setsugai",
+          "score": 0.0328,
+          "cos": 0.729
+        },
+        {
+          "id": 73,
+          "source": "kantei-setsugai",
+          "score": 0.0308,
+          "cos": 0.702
+        },
+        {
+          "id": 76,
+          "source": "kantei-setsugai",
+          "score": 0.028,
+          "cos": 0.721
+        }
+      ],
+      "a": "流されている人を見続けること [1]",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 607,
+      "total_ms": 686,
+      "input_tokens": 1247,
+      "output_tokens": 9,
+      "tokens_per_s": 102.6,
+      "rss_mb": 3507
+    },
+    {
+      "q": "腕から血がたくさん出ています。どう止血すればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 96,
+          "source": "fdma-shiketsu",
+          "score": 0.0333,
+          "cos": 0.77
+        }
+      ],
+      "a": "ガーゼやハンカチ、タオルなどを重ねて出血部位に当てて強く押さえること[1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 167,
+      "total_ms": 377,
+      "input_tokens": 415,
+      "output_tokens": 24,
+      "tokens_per_s": 110.0,
+      "rss_mb": 3512
+    },
+    {
+      "q": "地震のとき、部屋の中ではどこに隠れればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 19,
+          "source": "kantei-jishin",
+          "score": 0.0333,
+          "cos": 0.826
+        },
+        {
+          "id": 4,
+          "source": "kantei-sonae",
+          "score": 0.0313,
+          "cos": 0.783
+        },
+        {
+          "id": 18,
+          "source": "kantei-jishin",
+          "score": 0.0293,
+          "cos": 0.76
+        },
+        {
+          "id": 56,
+          "source": "kantei-hinan",
+          "score": 0.029,
+          "cos": 0.752
+        }
+      ],
+      "a": "大きな家具から離れ、頭を保護しながら丈夫な机の下などに隠れることが推奨されています [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 337,
+      "total_ms": 527,
+      "input_tokens": 793,
+      "output_tokens": 23,
+      "tokens_per_s": 116.4,
+      "rss_mb": 3516
+    },
+    {
+      "q": "災害に備えて家に置いておく水の量は？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 5,
+          "source": "kantei-sonae",
+          "score": 0.0331,
+          "cos": 0.791
+        },
+        {
+          "id": 6,
+          "source": "kantei-sonae",
+          "score": 0.0328,
+          "cos": 0.794
+        },
+        {
+          "id": 2,
+          "source": "kantei-sonae",
+          "score": 0.0325,
+          "cos": 0.778
+        },
+        {
+          "id": 56,
+          "source": "kantei-hinan",
+          "score": 0.0304,
+          "cos": 0.756
+        }
+      ],
+      "a": "飲料水は3日分（1人1日3リットルが目安）の備蓄が推奨されています [2]。また、大規模災害発生時には「1週間分」の備蓄が望ましいとされています [2]。",
+      "cited": [
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 341,
+      "total_ms": 734,
+      "input_tokens": 806,
+      "output_tokens": 48,
+      "tokens_per_s": 119.6,
+      "rss_mb": 3502
+    },
+    {
+      "q": "車を運転していて地震が来たらどうする？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 23,
+          "source": "kantei-jishin",
+          "score": 0.0318,
+          "cos": 0.82
+        },
+        {
+          "id": 3,
+          "source": "kantei-sonae",
+          "score": 0.0303,
+          "cos": 0.738
+        },
+        {
+          "id": 25,
+          "source": "kantei-jishin",
+          "score": 0.0293,
+          "cos": 0.711
+        },
+        {
+          "id": 67,
+          "source": "kantei-setsugai",
+          "score": 0.0286,
+          "cos": 0.727
+        }
+      ],
+      "a": "あわてて急ハンドルや急ブレーキをかけず緩やかに速度を落とし、ハザードランプを点灯して周りの車に注意を促し、道路の左側に停止する [1]",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 305,
+      "total_ms": 678,
+      "input_tokens": 757,
+      "output_tokens": 45,
+      "tokens_per_s": 118.3,
+      "rss_mb": 3507
+    },
+    {
+      "q": "避難場所と避難所は何が違いますか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 54,
+          "source": "kantei-hinan",
+          "score": 0.0333,
+          "cos": 0.862
+        },
+        {
+          "id": 10,
+          "source": "kantei-sonae",
+          "score": 0.032,
+          "cos": 0.729
+        },
+        {
+          "id": 50,
+          "source": "kantei-hinan",
+          "score": 0.032,
+          "cos": 0.739
+        },
+        {
+          "id": 55,
+          "source": "kantei-hinan",
+          "score": 0.0315,
+          "cos": 0.748
+        }
+      ],
+      "a": "避難場所は災害の危険から緊急的に逃れるための場所で、災害の種類ごとに市町村が指定しています。一方、避難所は自宅に戻れなくなった場合に一定期間滞在する施設です [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 290,
+      "total_ms": 666,
+      "input_tokens": 725,
+      "output_tokens": 46,
+      "tokens_per_s": 119.7,
+      "rss_mb": 3512
+    },
+    {
+      "q": "家族と連絡が取れないときに使える伝言サービスはありますか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 9,
+          "source": "kantei-sonae",
+          "score": 0.0333,
+          "cos": 0.762
+        }
+      ],
+      "a": "災害用伝言ダイヤルや災害用伝言板があります [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 133,
+      "total_ms": 261,
+      "input_tokens": 403,
+      "output_tokens": 16,
+      "tokens_per_s": 118.1,
+      "rss_mb": 3502
+    },
+    {
+      "q": "屋根の雪下ろしで気をつけることは？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 62,
+          "source": "kantei-setsugai",
+          "score": 0.0331,
+          "cos": 0.792
+        },
+        {
+          "id": 60,
+          "source": "kantei-setsugai",
+          "score": 0.0325,
+          "cos": 0.785
+        },
+        {
+          "id": 61,
+          "source": "kantei-setsugai",
+          "score": 0.0325,
+          "cos": 0.79
+        },
+        {
+          "id": 58,
+          "source": "kantei-setsugai",
+          "score": 0.032,
+          "cos": 0.786
+        }
+      ],
+      "a": "はしごの固定を忘れずに！[1]",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 395,
+      "total_ms": 496,
+      "input_tokens": 954,
+      "output_tokens": 12,
+      "tokens_per_s": 108.9,
+      "rss_mb": 3506
+    },
+    {
+      "q": "津波は一回だけですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 39,
+          "source": "kantei-tsunami",
+          "score": 0.0333,
+          "cos": 0.748
+        },
+        {
+          "id": 38,
+          "source": "kantei-tsunami",
+          "score": 0.032,
+          "cos": 0.742
+        },
+        {
+          "id": 40,
+          "source": "kantei-tsunami",
+          "score": 0.0315,
+          "cos": 0.712
+        },
+        {
+          "id": 46,
+          "source": "kantei-tsunami",
+          "score": 0.0313,
+          "cos": 0.709
+        }
+      ],
+      "a": "いいえ、津波は一度だけでなく繰り返し襲ってくることがあります。後から来る波の方が高くなることもあります [1]。",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 367,
+      "total_ms": 575,
+      "input_tokens": 869,
+      "output_tokens": 25,
+      "tokens_per_s": 115.9,
+      "rss_mb": 3511
+    },
+    {
+      "q": "クマに会わないために山菜採りで気をつけることは？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 22,
+          "source": "kantei-jishin",
+          "score": 0.0167,
+          "cos": 0.7
+        }
+      ],
+      "a": "資料に答えがありません。",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true,
+      "ttft_ms": 63,
+      "total_ms": 114,
+      "input_tokens": 181,
+      "output_tokens": 6,
+      "tokens_per_s": 98.0,
+      "rss_mb": 3502
+    },
+    {
+      "q": "What should I do indoors during a strong earthquake?",
+      "lang": "en",
+      "search_query": "激しい地震の際に屋内で何をすべきですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 19,
+          "source": "kantei-jishin",
+          "score": 0.0316,
+          "cos": 0.828
+        },
+        {
+          "id": 18,
+          "source": "kantei-jishin",
+          "score": 0.0306,
+          "cos": 0.787
+        },
+        {
+          "id": 33,
+          "source": "kantei-jishin",
+          "score": 0.0291,
+          "cos": 0.752
+        },
+        {
+          "id": 29,
+          "source": "kantei-jishin",
+          "score": 0.0284,
+          "cos": 0.739
+        }
+      ],
+      "a": "When you are inside, protect yourself from falling objects by moving away from large furniture while protecting your head and hiding under sturdy tables [1]. Do not rush outside. If you are cooking or heating with fire, extinguish the fire if you can, but do not try to put it out if you are away from the source of the fire [1]. Open doors to secure an evacuation route [1].",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 322,
+      "total_ms": 974,
+      "input_tokens": 722,
+      "output_tokens": 80,
+      "tokens_per_s": 121.4,
+      "rss_mb": 3510
+    },
+    {
+      "q": "I am near the beach and felt strong shaking. There is no tsunami warning yet. What should I do?",
+      "lang": "en",
+      "search_query": "ビーチの近くにいて、強い揺れを感じました。まだ津波警報は出ていません。どうすればいいですか？",
+      "alerts": [
+        "tsunami-go-high"
+      ],
+      "retrieved": [
+        {
+          "id": 40,
+          "source": "kantei-tsunami",
+          "score": 0.0331,
+          "cos": 0.797
+        },
+        {
+          "id": 37,
+          "source": "kantei-tsunami",
+          "score": 0.0321,
+          "cos": 0.748
+        },
+        {
+          "id": 42,
+          "source": "kantei-tsunami",
+          "score": 0.0318,
+          "cos": 0.748
+        },
+        {
+          "id": 47,
+          "source": "kantei-tsunami",
+          "score": 0.0308,
+          "cos": 0.737
+        }
+      ],
+      "a": "If you feel strong shaking, or even a weak but long shaking, and see a tsunami warning, evacuate from the coast immediately to the highest possible place [1]. If you are near the beach due to swimming, evacuation is also necessary even with a tsunami advisory; start evacuating by moving away from the sea [1]. When evacuating, go towards nearby high ground, tsunami evacuation towers, or tsunami evacuation buildings [1]. Do not enter the disaster area until the tsunami warning or advisory has been canceled and safety is confirmed [1].",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 474,
+      "total_ms": 1359,
+      "input_tokens": 1055,
+      "output_tokens": 108,
+      "tokens_per_s": 121.0,
+      "rss_mb": 3505
+    },
+    {
+      "q": "How much drinking water should a family store for emergencies?",
+      "lang": "en",
+      "search_query": "緊急時に家族が備えるべき飲料水の量はどれくらいですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 5,
+          "source": "kantei-sonae",
+          "score": 0.0331,
+          "cos": 0.755
+        },
+        {
+          "id": 6,
+          "source": "kantei-sonae",
+          "score": 0.0331,
+          "cos": 0.759
+        },
+        {
+          "id": 2,
+          "source": "kantei-sonae",
+          "score": 0.0315,
+          "cos": 0.741
+        },
+        {
+          "id": 56,
+          "source": "kantei-hinan",
+          "score": 0.0303,
+          "cos": 0.702
+        }
+      ],
+      "a": "You should store enough drinking water for 3 days (3 liters per person per day is a guideline) [2].",
+      "cited": [
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 344,
+      "total_ms": 540,
+      "input_tokens": 794,
+      "output_tokens": 24,
+      "tokens_per_s": 117.9,
+      "rss_mb": 3512
+    },
+    {
+      "q": "How do I stop heavy bleeding from an arm?",
+      "lang": "en",
+      "search_query": "腕からの激しい出血を止めるにはどうすればいいですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 96,
+          "source": "fdma-shiketsu",
+          "score": 0.0333,
+          "cos": 0.753
+        }
+      ],
+      "a": "Apply direct pressure by placing gauze, handkerchief, or towel on the bleeding site and pressing hard [1]. Do not tie hands or arms with thin ropes or wire as it can injure blood vessels or nerves [1]. If consciousness (reaction) is lost, notify immediately [1].",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 177,
+      "total_ms": 640,
+      "input_tokens": 398,
+      "output_tokens": 56,
+      "tokens_per_s": 118.8,
+      "rss_mb": 3507
+    },
+    {
+      "q": "A friend was buried by an avalanche. What do we do first?",
+      "lang": "en",
+      "search_query": "友人があらゆる雪崩で埋まされた場合、最初に何をすべきですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 81,
+          "source": "kantei-setsugai",
+          "score": 0.0328,
+          "cos": 0.785
+        },
+        {
+          "id": 77,
+          "source": "kantei-setsugai",
+          "score": 0.0325,
+          "cos": 0.74
+        },
+        {
+          "id": 73,
+          "source": "kantei-setsugai",
+          "score": 0.0309,
+          "cos": 0.752
+        },
+        {
+          "id": 76,
+          "source": "kantei-setsugai",
+          "score": 0.0308,
+          "cos": 0.731
+        }
+      ],
+      "a": "Escape towards the edge of the avalanche flow [1]. Inform others that a friend is caught in the avalanche [1]. Remove items from your body [1]. Try to float on the snow if you are in the snow [1]. Create space in front of your mouth with your hands when the snow seems to stop [1]. If you can hear people above you in the snow, make a loud noise [1].",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 494,
+      "total_ms": 1193,
+      "input_tokens": 1148,
+      "output_tokens": 84,
+      "tokens_per_s": 118.7,
+      "rss_mb": 3503
+    },
+    {
+      "q": "What is the difference between an evacuation site and an evacuation shelter?",
+      "lang": "en",
+      "search_query": "避難所と避難場所の違いは何ですか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 54,
+          "source": "kantei-hinan",
+          "score": 0.0333,
+          "cos": 0.852
+        },
+        {
+          "id": 50,
+          "source": "kantei-hinan",
+          "score": 0.032,
+          "cos": 0.733
+        },
+        {
+          "id": 51,
+          "source": "kantei-hinan",
+          "score": 0.0318,
+          "cos": 0.711
+        },
+        {
+          "id": 10,
+          "source": "kantei-sonae",
+          "score": 0.0318,
+          "cos": 0.716
+        }
+      ],
+      "a": "Evacuation sites are places to escape from the danger of a disaster urgently, designated by municipalities according to the type of disaster [1]. Evacuation shelters are facilities where you can stay for a certain period if you cannot return home [1].",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 315,
+      "total_ms": 707,
+      "input_tokens": 722,
+      "output_tokens": 48,
+      "tokens_per_s": 120.2,
+      "rss_mb": 3511
+    },
+    {
+      "q": "火山が噴火したらどうすればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 89,
+          "source": "kantei-funka",
+          "score": 0.0323,
+          "cos": 0.809
+        },
+        {
+          "id": 91,
+          "source": "kantei-funka",
+          "score": 0.0323,
+          "cos": 0.795
+        },
+        {
+          "id": 94,
+          "source": "kantei-funka",
+          "score": 0.0315,
+          "cos": 0.806
+        },
+        {
+          "id": 87,
+          "source": "kantei-funka",
+          "score": 0.0315,
+          "cos": 0.78
+        }
+      ],
+      "a": "噴火警報・予報の説明（気象庁）や命にかかわる「火山災害」噴火警戒レベルを理解し、防災情報をチェックしましょう [4]。噴火の恐れがある場合には、「警戒が必要な範囲」から事前の避難が必要です。地元の市町村の指示があった場合には、それに従いましょう [1]。",
+      "cited": [
+        1,
+        4
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 428,
+      "total_ms": 1036,
+      "input_tokens": 1022,
+      "output_tokens": 73,
+      "tokens_per_s": 118.6,
+      "rss_mb": 3503
+    },
+    {
+      "q": "熱中症の応急手当を教えてください。",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [],
+      "a": "資料に答えがありません",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    },
+    {
+      "q": "マムシに噛まれたらどうすればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [],
+      "a": "資料に答えがありません",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    },
+    {
+      "q": "台風が近づいているとき、窓の対策は？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 66,
+          "source": "kantei-setsugai",
+          "score": 0.0167,
+          "cos": 0.7
+        }
+      ],
+      "a": "資料に答えがありません [1]",
+      "cited": [
+        1
+      ],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true,
+      "ttft_ms": 68,
+      "total_ms": 134,
+      "input_tokens": 233,
+      "output_tokens": 8,
+      "tokens_per_s": 106.1,
+      "rss_mb": 3508
+    },
+    {
+      "q": "How do I treat a snake bite?",
+      "lang": "en",
+      "search_query": "蛇に噛まれた場合の対処法を教えてください。",
+      "alerts": [],
+      "retrieved": [],
+      "a": "No answer in the sources.",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    },
+    {
+      "q": "What should I pack for a day hike?",
+      "lang": "en",
+      "search_query": "日帰りハイキングに何を持っていくべきですか？",
+      "alerts": [],
+      "retrieved": [],
+      "a": "No answer in the sources.",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    },
+    {
+      "q": "噴火警戒レベル3のときは何をすればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 89,
+          "source": "kantei-funka",
+          "score": 0.0333,
+          "cos": 0.807
+        },
+        {
+          "id": 90,
+          "source": "kantei-funka",
+          "score": 0.0328,
+          "cos": 0.794
+        },
+        {
+          "id": 94,
+          "source": "kantei-funka",
+          "score": 0.0315,
+          "cos": 0.788
+        },
+        {
+          "id": 91,
+          "source": "kantei-funka",
+          "score": 0.0315,
+          "cos": 0.777
+        }
+      ],
+      "a": "資料に噴火警戒レベル3についての具体的な行動は書かれていません [1][2][3][4]。",
+      "cited": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": true,
+      "no_source": false,
+      "ttft_ms": 414,
+      "total_ms": 599,
+      "input_tokens": 989,
+      "output_tokens": 23,
+      "tokens_per_s": 118.9,
+      "rss_mb": 3507
+    },
+    {
+      "q": "How does volcanic ash affect my health?",
+      "lang": "en",
+      "search_query": "火山灰は健康にどのような影響を与えますか？",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 93,
+          "source": "kantei-funka",
+          "score": 0.0328,
+          "cos": 0.791
+        },
+        {
+          "id": 92,
+          "source": "kantei-funka",
+          "score": 0.0328,
+          "cos": 0.782
+        },
+        {
+          "id": 94,
+          "source": "kantei-funka",
+          "score": 0.032,
+          "cos": 0.722
+        },
+        {
+          "id": 87,
+          "source": "kantei-funka",
+          "score": 0.0306,
+          "cos": 0.704
+        }
+      ],
+      "a": "Contact with volcanic ash can cause skin inflammation, pain, swelling, and infections from scratches [1]. Volcanic ash is very small and enters the lungs with the air, which can increase coughing, shortness of breath, runny nose, and sore nose or throat. People with asthma or bronchitis may experience attacks like coughing fits, chest tightness, and labored breathing, and those with serious heart conditions should also be cautious [2]. If volcanic ash gets into your eyes, do not rub it with your hands; rinse it with water and use glasses instead of contact lenses [2].",
+      "cited": [
+        1,
+        2
+      ],
+      "invalid_citations": [],
+      "grounded": true,
+      "admits_gap": false,
+      "no_source": false,
+      "ttft_ms": 480,
+      "total_ms": 1412,
+      "input_tokens": 1122,
+      "output_tokens": 114,
+      "tokens_per_s": 121.2,
+      "rss_mb": 3503
+    },
+    {
+      "q": "地震保険には入ったほうがいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 11,
+          "source": "kantei-jishin",
+          "score": 0.0292,
+          "cos": 0.7
+        },
+        {
+          "id": 3,
+          "source": "kantei-sonae",
+          "score": 0.029,
+          "cos": 0.732
+        },
+        {
+          "id": 27,
+          "source": "kantei-jishin",
+          "score": 0.0289,
+          "cos": 0.711
+        },
+        {
+          "id": 24,
+          "source": "kantei-jishin",
+          "score": 0.0281,
+          "cos": 0.715
+        }
+      ],
+      "a": "資料に答えがありません",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true,
+      "ttft_ms": 284,
+      "total_ms": 326,
+      "input_tokens": 667,
+      "output_tokens": 5,
+      "tokens_per_s": 95.2,
+      "rss_mb": 3507
+    },
+    {
+      "q": "停電のとき、冷蔵庫の食べ物はいつまで安全ですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [],
+      "a": "資料に答えがありません",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    },
+    {
+      "q": "避難所でペットはどうすればいいですか？",
+      "lang": "ja",
+      "alerts": [],
+      "retrieved": [
+        {
+          "id": 54,
+          "source": "kantei-hinan",
+          "score": 0.0331,
+          "cos": 0.754
+        },
+        {
+          "id": 7,
+          "source": "kantei-sonae",
+          "score": 0.0318,
+          "cos": 0.736
+        },
+        {
+          "id": 10,
+          "source": "kantei-sonae",
+          "score": 0.0313,
+          "cos": 0.735
+        },
+        {
+          "id": 55,
+          "source": "kantei-hinan",
+          "score": 0.031,
+          "cos": 0.76
+        }
+      ],
+      "a": "資料に答えがありません",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true,
+      "ttft_ms": 287,
+      "total_ms": 329,
+      "input_tokens": 786,
+      "output_tokens": 5,
+      "tokens_per_s": 97.6,
+      "rss_mb": 3512
+    },
+    {
+      "q": "How can I make river water safe to drink?",
+      "lang": "en",
+      "search_query": "川の水を飲むのに安全にするにはどうすればいいですか？",
+      "alerts": [],
+      "retrieved": [],
+      "a": "No answer in the sources.",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    },
+    {
+      "q": "How do I use a fire extinguisher?",
+      "lang": "en",
+      "search_query": "消火器の使い方を教えてください。",
+      "alerts": [],
+      "retrieved": [],
+      "a": "No answer in the sources.",
+      "cited": [],
+      "invalid_citations": [],
+      "grounded": false,
+      "admits_gap": false,
+      "no_source": true
+    }
+  ]
+}

@@ -138,6 +138,7 @@ def main(manifest_path, max_chars=MAX_CHARS):
     CACHE.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     texts, rows = {}, []
+    manifest["sources"] = [s for s in manifest["sources"] if not s.get("disabled")]
     for src in manifest["sources"]:
         text = extract(fetch(src))
         texts[src["id"]] = squash(text)

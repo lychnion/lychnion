@@ -2,7 +2,7 @@
   "id": "jp.bousai.core",
   "title": "防災（基本）",
   "language": "ja",
-  "version": "2026.11.0-spike4",
+  "version": "2026.11.0-spike5",
   "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
   "sources": [
     {
@@ -83,7 +83,8 @@
         "p.9",
         "p.10"
       ],
-      "note": "OCR. p.8 (do / don't table) skipped: OCR mixes the two columns, which turned \"don't\" into \"do\" in spike 2."
+      "note": "OCR. p.8 (do / don't table) skipped: OCR mixes the two columns, which turned \"don't\" into \"do\" in spike 2.",
+      "disabled": "OCR of the two-column PDF mixes the columns on several pages (p.6, p.8). Answers inverted advice (\"don't make noise\", \"drop your bag and run\"). Needs a checked text version before use."
     }
   ],
   "alerts": [
@@ -127,7 +128,7 @@
   ],
   "gaps": [
     "Getting lost while hiking: no national open source found yet (only prefectural police leaflets).",
-    "Bear encounter (what to do / not do): the 環境省 table is a two-column image; needs a text source or a checked transcription."
+    "Bears (prevention and encounter): 環境省 PDF disabled until a checked text version exists."
   ],
   "synonyms": {
     "飲み水": [
