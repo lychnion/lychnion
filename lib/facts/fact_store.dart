@@ -62,15 +62,18 @@ class FactStore extends ChangeNotifier {
   ];
 
   /// The winning fact per topic: the most trusted source first, then the
-  /// newest report from that source. Expired facts never win.
+  /// newest report from that source. Expired facts never win. A winning
+  /// "cleared" fact (road reopened, warning lifted) hides the topic.
   List<Fact> get current {
     final best = <String, Fact>{};
     for (final f in all) {
       final b = best[f.topic];
       if (b == null || _beats(f, b)) best[f.topic] = f;
     }
-    return best.values.toList()
-      ..sort((a, b) => b.observedAt.compareTo(a.observedAt));
+    return [
+      for (final f in best.values)
+        if (!f.isCleared) f,
+    ]..sort((a, b) => b.observedAt.compareTo(a.observedAt));
   }
 
   static bool _beats(Fact a, Fact b) {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fieldkit/facts/compact_codec.dart';
 import 'package:fieldkit/facts/fact.dart';
 import 'package:fieldkit/facts/fact_store.dart';
@@ -69,6 +71,37 @@ void main() {
     });
   });
 
+  group('clearing', () {
+    Fact road(String value, SourceType src, int minutesAgo) => Fact(
+      kind: FactKind.roadBlocked,
+      subject: '34.7349,135.3420',
+      value: value,
+      observedAt: now.subtract(Duration(minutes: minutesAgo)),
+      expiresAt: now.add(const Duration(hours: 3)),
+      sourceType: src,
+    );
+
+    test('a newer "cleared" fact hides the topic', () async {
+      final store = FactStore(clock: () => now);
+      await store.addAll([
+        road('blocked', SourceType.official, 60),
+        road(Fact.cleared, SourceType.official, 5),
+      ]);
+      expect(store.currentOf({FactKind.roadBlocked}), isEmpty);
+      // Still shared, so other devices apply the same rule.
+      expect(store.all, hasLength(2));
+    });
+
+    test('a resident cannot clear an official fact', () async {
+      final store = FactStore(clock: () => now);
+      await store.addAll([
+        road('blocked', SourceType.official, 60),
+        road(Fact.cleared, SourceType.citizen, 5),
+      ]);
+      expect(store.currentOf({FactKind.roadBlocked}).single.value, 'blocked');
+    });
+  });
+
   test('age and source labels', () {
     final f = status('full', SourceType.official, minutesAgo: 120);
     expect(f.age(now, en: false), '2時間前');
@@ -113,6 +146,23 @@ void main() {
       );
       expect(msgs.first.length, lessThanOrEqualTo(200));
       expect([for (final m in msgs) ...codec.unpack(m)].length, facts.length);
+    });
+
+    test('Japanese text counts as UTF-8 bytes', () {
+      final facts = [
+        for (var i = 0; i < 12; i++)
+          Fact(
+            kind: FactKind.warning,
+            subject: '西宮市',
+            value: '津波警報$i',
+            observedAt: now,
+            expiresAt: now.add(const Duration(hours: 3)),
+            sourceType: SourceType.official,
+          ),
+      ];
+      for (final m in codec.pack(facts)) {
+        expect(utf8.encode(m).length, lessThanOrEqualTo(200));
+      }
     });
 
     test('points, not sites, are kept as lat,lon', () {

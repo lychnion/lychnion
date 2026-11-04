@@ -79,6 +79,11 @@ class Fact {
   final String sourceName;
   final String note;
 
+  /// Value meaning "no longer true": a road reopened, a warning lifted.
+  static const cleared = 'cleared';
+
+  bool get isCleared => value == cleared;
+
   bool isExpired(DateTime now) => !now.isBefore(expiresAt);
 
   /// Citizen reports stay unconfirmed until someone checks them.

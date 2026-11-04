@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'fact.dart';
 
 /// Compact text format for facts over radio (Meshtastic, about 200 bytes per
@@ -98,5 +100,6 @@ class CompactCodec {
       if (part.isNotEmpty) decode(part),
   ];
 
-  static int _bytes(String s) => s.codeUnits.length; // ASCII except text values
+  /// UTF-8 bytes: Japanese text (warnings) takes 3 bytes per character.
+  static int _bytes(String s) => utf8.encode(s).length;
 }

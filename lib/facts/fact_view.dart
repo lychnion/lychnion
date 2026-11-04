@@ -31,11 +31,19 @@ class CurrentFactsBox extends StatelessWidget {
     required this.facts,
     required this.now,
     required this.en,
+    this.onTap,
+    this.onAdd,
   });
 
   final List<Fact> facts;
   final DateTime now;
   final bool en;
+
+  /// Set where facts can be entered (shelter computer): edit one fact.
+  final void Function(Fact)? onTap;
+
+  /// Set where facts can be entered: add a warning.
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -57,14 +65,23 @@ class CurrentFactsBox extends StatelessWidget {
             style: theme.textTheme.labelMedium,
           ),
           for (final f in facts)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '• ${factLine(f, now, en: en)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: factColor(f, theme.colorScheme),
+            InkWell(
+              onTap: onTap == null ? null : () => onTap!(f),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '• ${factLine(f, now, en: en)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: factColor(f, theme.colorScheme),
+                  ),
                 ),
               ),
+            ),
+          if (onAdd != null)
+            TextButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, size: 16),
+              label: Text(en ? 'Add warning' : '警報・注意報を追加'),
             ),
         ],
       ),

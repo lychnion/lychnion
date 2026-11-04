@@ -41,8 +41,8 @@ Everything runs on the device; the network is only needed to download models.
   check; the app then runs fully offline. Tested on macOS.
 - Current facts ([results](docs/facts-results.md)): shelter status,
   blocked roads and warnings with age and source, apart from the AI; full
-  shelters are skipped; shared by the shelter computer; 16 bytes per update
-  in the radio-sized format.
+  shelters are skipped; staff enter them on the shelter computer, phones
+  pull them every minute; 16 bytes per update in the radio-sized format.
 
 ## Knowledge packages
 

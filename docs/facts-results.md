@@ -42,6 +42,32 @@ flutter run -d macos --release ... --dart-define=DEMO_FACTS=true \
   "--dart-define=ASK=海の近くで強い揺れを感じました。どうすればいいですか？"
 ```
 
+## Entering facts (shelter computer)
+
+On the shelter computer (`SHELTER_SERVER=true`, or `FACTS_EDIT=true` for
+testing) the map tab lets staff enter facts:
+
+- ✎ next to a site: set it to 開設 / 混雑 / 満員 / 閉鎖, with a note.
+- Long press on the map: report a blocked road or a water point there.
+- 「警報・注意報を追加」 in the current-information box: add a warning for the
+  city; tap a line to change it.
+- Every entry has a lifetime (1, 3, 6 or 24 hours) and a source: 公式
+  (staff, city) or 住民の報告 (a resident told the staff). The source name is
+  the shelter's name (`SHELTER_NAME`).
+- 「解除する」 marks a road as reopened or a warning as lifted. This adds a
+  new "cleared" fact rather than deleting the old one, so phones that only
+  pull facts apply it too. A resident report cannot clear an official fact.
+
+Phones connected to the shelter computer pull its facts once a minute.
+
+![Shelter computer: entry controls](images/facts-shelter-entry.png)
+
+Checked: widget tests for the form (status, lifetime, note, source; `|` and
+`;` are removed because the radio format uses them), store tests for
+clearing, and a macOS run as shelter computer: the map tab shows the entry
+controls and `GET /facts` returns the facts. The form was not clicked
+through on the running app, and no phone was connected for this run.
+
 ## Sharing
 
 - **Shelter computer:** `GET /facts` returns all unexpired facts, so phones
@@ -55,11 +81,15 @@ flutter run -d macos --release ... --dart-define=DEMO_FACTS=true \
 
 ## Open
 
-- No way to enter facts in the app yet; they come from the demo flag or a
-  shelter computer. A shelter-side form and an official feed (e.g. city
-  open data) are next.
+- No official feed yet (e.g. city open data); facts come from the
+  shelter computer or the demo flag.
+- Anyone using the shelter computer can enter an "official" fact. Fine for
+  staff-run computers; a public or shared device needs a sign-in or
+  signatures.
 - Facts are not signed. Anyone on the shelter Wi-Fi network could only read
   them, not write, but a future write path needs signatures.
 - The answer shows the status of a skipped site, not yet the status of the
   suggested one (in the demo 市民会館 is 「混雑」, shown only on the map).
-- The compact format is not yet sent over any radio.
+- The compact format is not yet sent over any radio, and it drops the note
+  and source name to save space. It counts UTF-8 bytes (a Japanese warning
+  takes 3 bytes per character).

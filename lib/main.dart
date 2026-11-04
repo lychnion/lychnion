@@ -20,6 +20,7 @@ import 'llm/local_embedder.dart';
 import 'map/map_screen.dart';
 import 'facts/compact_codec.dart';
 import 'facts/demo_facts.dart';
+import 'facts/fact_form.dart';
 import 'facts/fact_store.dart';
 import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
@@ -49,6 +50,7 @@ import 'util/paths.dart';
 ///   --dart-define=SHELTER_SERVER=true                        answer phones on the local network (desktop)
 ///   --dart-define=SHELTER_NAME=…                             shown on phones
 ///   --dart-define=SHELTER_URL=http://192.168.1.20:8642       ask this shelter first (phone)
+///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with SHELTER_SERVER)
 ///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
@@ -81,6 +83,7 @@ const _shelterName = String.fromEnvironment(
 );
 const _shelterUrl = String.fromEnvironment('SHELTER_URL');
 const _demoFactsFlag = bool.fromEnvironment('DEMO_FACTS');
+const _factsEdit = bool.fromEnvironment('FACTS_EDIT');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -252,7 +255,14 @@ class _HomePageState extends State<HomePage> {
                             : '地図がありません。「ダウンロード」から地域を取得してください。',
                       ),
                     )
-                  : MapScreen(key: ObjectKey(_map), state: _map!, english: en),
+                  : MapScreen(
+                      key: ObjectKey(_map),
+                      state: _map!,
+                      english: en,
+                      editor: _shelterServer || _factsEdit
+                          ? const FactEditor(sourceName: _shelterName)
+                          : null,
+                    ),
             ),
             _downloads == null
                 ? const Center(child: CircularProgressIndicator())
