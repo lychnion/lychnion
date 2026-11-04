@@ -1,1 +1,6 @@
 #include "Generated.xcconfig"
+
+// Xcode 27's lipo checks one architecture per call, and Flutter's framework
+// check asks for "arm64 x86_64" at once and fails. Apple Silicon simulators
+// only need arm64.
+ARCHS[sdk=iphonesimulator*] = arm64
