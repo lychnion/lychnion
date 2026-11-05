@@ -214,8 +214,33 @@ Spot checks: 西宮市役所, 甲子園, 阪急西宮北口 and the 夙川 hills
 Open:
 - The data are the prefectures' assumptions (Nankai Trough, largest
   class). A real tsunami can be larger or smaller: the app says so.
-- The inundation areas are not drawn on the map (25,000 polygons); only
-  the card, the site labels and the way out use them.
+- ~~The inundation areas are not drawn on the map.~~ Done, see below.
 - Other areas need their prefecture's A40 file named in the manifest.
   京都府 and 長崎県 ask to be contacted for commercial use; 香川県 is not
   available from MLIT.
+
+## Inundation areas on the map (2026-11-05)
+
+![Tsunami mode: inundation areas coloured by expected depth, with legend](images/phone-inundation-map.png)
+
+- `tool/build_inundation_tiles.py` draws the same A40 polygons into
+  transparent map tiles, coloured by expected depth (light yellow below
+  0.3 m to purple at 5 m or more, after the hazard map portal's colours),
+  zoom 10 to 16. Tiles without inundation are left out. **818 tiles,
+  1.5 MB** (`<id>.inundation.mbtiles`, next to the PMTiles file), built in
+  9 s.
+- The app shows the layer in tsunami mode only, under the route line, with
+  a legend under the inundation card. It reads the tiles straight from the
+  MBTiles file with SQLite (`lib/map/inundation_tiles.dart`), no new
+  library.
+
+How to build:
+
+```bash
+build/route-venv/bin/python -I tool/build_inundation_tiles.py tool/maps/nishinomiya.json
+```
+
+Open:
+- Above zoom 16 the tiles are scaled up and look blocky. Zoom 17 would
+  roughly quadruple the tile count (still a few MB).
+- Like the walking graph, the tiles are not in the download catalog yet.

@@ -9,6 +9,7 @@ import '../facts/fact.dart';
 import '../facts/fact_store.dart';
 import '../util/paths.dart';
 import 'evac_sites.dart';
+import 'inundation_tiles.dart';
 import 'route_graph.dart';
 
 /// "lat,lon" subject of a point fact (blocked road, water point).
@@ -35,6 +36,7 @@ class MapState extends ChangeNotifier {
   @override
   void dispose() {
     facts?.removeListener(notifyListeners);
+    inundationTiles?.dispose();
     super.dispose();
   }
 
@@ -58,6 +60,10 @@ class MapState extends ChangeNotifier {
   final String? routesPath;
 
   RouteGraph? routes;
+
+  /// Tsunami inundation areas as map tiles (tool/build_inundation_tiles.py),
+  /// next to the PMTiles file as `<id>.inundation.mbtiles`.
+  InundationTiles? inundationTiles;
 
   /// Walks from the current position (normal and tsunami), kept until the
   /// position or the blocked roads change.
@@ -92,10 +98,26 @@ class MapState extends ChangeNotifier {
       );
       notifyListeners();
       await _loadRoutes();
+      await _loadInundationTiles();
       await locate();
     } catch (e) {
       error = '$e';
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadInundationTiles() async {
+    final path = await resolvePath(
+      pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.inundation.mbtiles'),
+    );
+    if (!path.endsWith('.inundation.mbtiles') || !await File(path).exists()) {
+      return;
+    }
+    try {
+      inundationTiles = InundationTiles.open(path);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('inundation tiles: $e');
     }
   }
 

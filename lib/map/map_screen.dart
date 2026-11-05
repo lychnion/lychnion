@@ -9,6 +9,7 @@ import '../facts/fact.dart';
 import '../facts/fact_form.dart';
 import '../facts/fact_view.dart';
 import 'evac_sites.dart';
+import 'inundation_tiles.dart';
 import 'map_state.dart';
 import 'route_graph.dart';
 import 'offline_theme.dart';
@@ -351,6 +352,13 @@ class _MapScreenState extends State<MapScreen> {
                 fileCacheTtl: Duration.zero,
                 maximumZoom: 18,
               ),
+              if (hazard == Hazard.tsunami && s.inundationTiles != null)
+                TileLayer(
+                  tileProvider: s.inundationTiles!,
+                  minNativeZoom: InundationTiles.minZoom,
+                  maxNativeZoom: InundationTiles.maxZoom,
+                  maxZoom: 18,
+                ),
               if (route != null)
                 PolylineLayer(
                   polylines: [
@@ -574,6 +582,8 @@ class _MapScreenState extends State<MapScreen> {
                 const SizedBox(height: 8),
                 if (hazard == Hazard.tsunami && s.floodHere != null)
                   _floodCard(theme, s.floodHere!, out),
+                if (hazard == Hazard.tsunami && s.inundationTiles != null)
+                  _floodLegend(theme),
                 for (final n in nearest) _siteRow(theme, n),
                 if (s.facts?.currentOf({
                       FactKind.warning,
@@ -695,6 +705,44 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+
+  /// Colours of the inundation layer by expected depth.
+  Widget _floodLegend(ThemeData theme) => Padding(
+    padding: const EdgeInsets.only(top: 2, bottom: 6),
+    child: Wrap(
+      spacing: 10,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          en ? 'Expected depth:' : '浸水の深さ（想定）',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        for (final e in InundationTiles.colours.entries)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: e.value,
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: Colors.black12),
+                ),
+              ),
+              const SizedBox(width: 3),
+              Text(
+                floodDepth(e.key, en: en),
+                style: theme.textTheme.labelSmall,
+              ),
+            ],
+          ),
+      ],
+    ),
+  );
 
   /// One site: distance, name, status; tap to see it on the map and open
   /// its address.
