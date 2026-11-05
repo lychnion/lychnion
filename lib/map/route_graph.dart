@@ -18,6 +18,7 @@ class RouteGraph {
     this._len, [
     this._height,
     this._flood,
+    this._floodVersion = 0,
   ]) {
     // Nodes come sorted by 0.001° cell: remember where each cell starts.
     for (var i = 0; i < _lat.length; i++) {
@@ -47,10 +48,42 @@ class RouteGraph {
   bool get hasHeights => _height != null;
   bool get hasFlood => _flood != null;
 
+  /// File version 3 stored depth classes, version 4 lower and upper bounds.
+  final int _floodVersion;
+
   /// Tsunami inundation at node [i]: 0 clear of any inundation area (50 m
-  /// or more), 1 close to one, 2..8 inside by expected depth (see
-  /// [floodDepth]). 0 when the graph has no inundation data.
-  int floodOf(int i) => _flood?[i] ?? 0;
+  /// or more), 1 close to one, 2 or more inside: 2 + the lower depth bound
+  /// (index into [depthBounds]), so deeper is larger. 0 when the graph has
+  /// no inundation data.
+  int floodOf(int i) {
+    final d = depthOf(i);
+    if (d != null) return 2 + d.lo;
+    return _flood?[i] == 1 ? 1 : 0;
+  }
+
+  /// The expected inundation depth at node [i], or null outside.
+  Depth? depthOf(int i) {
+    final v = _flood?[i] ?? 0;
+    if (_floodVersion >= 4) {
+      return v < 16 ? null : (lo: v & 15, hi: v >> 4);
+    }
+    // Version 3: classes 2..8 for <0.3, 0.3–1, 1–2, 2–3, 3–4, 4–5, 5 m+.
+    if (v < 2) return null;
+    final lo = v - 2;
+    return (lo: lo, hi: v == 8 ? 9 : lo + 1);
+  }
+
+  /// The deepest lower bound in the area (index into [depthBounds]), for
+  /// the legend; -1 without inundation data.
+  late final int deepest = () {
+    var m = -1;
+    if (_flood == null) return m;
+    for (var i = 0; i < nodeCount; i++) {
+      final d = depthOf(i);
+      if (d != null && d.lo > m) m = d.lo;
+    }
+    return m;
+  }();
 
   /// Ground height of node [i] above sea level in metres, or null.
   double? heightOf(int i) {
@@ -63,7 +96,7 @@ class RouteGraph {
     final b = ByteData.sublistView(bytes);
     if (bytes.length < 16 ||
         String.fromCharCodes(bytes.sublist(0, 4)) != 'FKRG' ||
-        !const [1, 2, 3].contains(b.getUint32(4, Endian.little))) {
+        !const [1, 2, 3, 4].contains(b.getUint32(4, Endian.little))) {
       throw const FormatException('not a fieldkit route graph');
     }
     final version = b.getUint32(4, Endian.little);
@@ -108,7 +141,16 @@ class RouteGraph {
       flood = Uint8List.fromList(bytes.sublist(at, at + n));
       at += n;
     }
-    return RouteGraph._(lat, lon, offsets, targets, len, height, flood);
+    return RouteGraph._(
+      lat,
+      lon,
+      offsets,
+      targets,
+      len,
+      height,
+      flood,
+      version,
+    );
   }
 
   static Future<RouteGraph> load(String path) async =>
@@ -249,6 +291,7 @@ class RouteInfo {
     this.startFlood = 0,
     this.endFlood = 0,
     this.maxFlood = 0,
+    this.endDepth,
   });
 
   /// Real walking metres.
@@ -265,6 +308,9 @@ class RouteInfo {
   /// Tsunami inundation ([RouteGraph.floodOf]) at the start, at the end and
   /// the deepest on the way.
   final int startFlood, endFlood, maxFlood;
+
+  /// Expected inundation depth at the end, or null outside.
+  final Depth? endDepth;
 
   /// How far below the start the route goes on the way (metres, ≥ 0).
   double get dip {
@@ -348,6 +394,7 @@ class WalkTree {
       startFlood: graph.floodOf(start),
       endFlood: graph.floodOf(end),
       maxFlood: maxFlood,
+      endDepth: graph.depthOf(end),
     );
   }
 
@@ -402,15 +449,28 @@ class _Heap {
   }
 }
 
-/// Expected inundation depth for a [RouteGraph.floodOf] value of 2 or more,
-/// e.g. 「1〜2 m」 / "1–2 m". Empty below 2.
-String floodDepth(int f, {required bool en}) => switch (f) {
-  2 => en ? 'under 0.3 m' : '0.3 m未満',
-  3 => en ? '0.3–1 m' : '0.3〜1 m',
-  4 => en ? '1–2 m' : '1〜2 m',
-  5 => en ? '2–3 m' : '2〜3 m',
-  6 => en ? '3–4 m' : '3〜4 m',
-  7 => en ? '4–5 m' : '4〜5 m',
-  8 => en ? '5 m or more' : '5 m以上',
-  _ => '',
-};
+/// Depth bounds in metres, as in tool/build_routes.py.
+const depthBounds = [0.0, 0.3, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
+
+/// Expected inundation depth between depthBounds[lo] and depthBounds[hi]
+/// metres; hi = 9: no upper bound.
+typedef Depth = ({int lo, int hi});
+
+String _m(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
+
+/// 「1〜2 m」 / "1–2 m", 「0.3 m未満」, 「5 m以上」.
+String depthLabel(Depth d, {required bool en}) {
+  if (d.hi >= depthBounds.length) {
+    final lo = _m(depthBounds[d.lo]);
+    return en ? '$lo m or more' : '$lo m以上';
+  }
+  final hi = _m(depthBounds[d.hi]);
+  if (d.lo == 0) return en ? 'under $hi m' : '$hi m未満';
+  final lo = _m(depthBounds[d.lo]);
+  return en ? '$lo–$hi m' : '$lo〜$hi m';
+}
+
+/// Legend entry for colour [lo]: 「0.3 m未満」, then 「1 m〜」 / "from 1 m".
+String depthFromLabel(int lo, {required bool en}) => lo == 0
+    ? (en ? 'under 0.3 m' : '0.3 m未満')
+    : (en ? 'from ${_m(depthBounds[lo])} m' : '${_m(depthBounds[lo])} m〜');

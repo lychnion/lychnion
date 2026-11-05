@@ -631,7 +631,8 @@ class _MapScreenState extends State<MapScreen> {
   Widget _floodCard(ThemeData theme, int flood, RouteInfo? out) {
     final scheme = theme.colorScheme;
     final inside = flood >= 2;
-    final depth = floodDepth(flood, en: en);
+    final d = s.depthHere;
+    final depth = d == null ? '' : depthLabel(d, en: en);
     final title = inside
         ? (en
               ? 'You are in the tsunami inundation area (expected $depth)'
@@ -721,25 +722,26 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
         for (final e in InundationTiles.colours.entries)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: e.value,
-                  borderRadius: BorderRadius.circular(3),
-                  border: Border.all(color: Colors.black12),
+          if (e.key <= max(s.routes?.deepest ?? 6, 0))
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: e.value,
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(color: Colors.black12),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 3),
-              Text(
-                floodDepth(e.key, en: en),
-                style: theme.textTheme.labelSmall,
-              ),
-            ],
-          ),
+                const SizedBox(width: 3),
+                Text(
+                  depthFromLabel(e.key, en: en),
+                  style: theme.textTheme.labelSmall,
+                ),
+              ],
+            ),
       ],
     ),
   );

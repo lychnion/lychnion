@@ -44,14 +44,17 @@ class InundationTiles extends TileProvider {
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABpfZFQAAAAABJRU5ErkJggg==',
   );
 
-  /// Legend colours by depth class (2..8), as in the builder.
+  /// Legend colours by lower depth bound (index into depthBounds), as in
+  /// tool/build_inundation_tiles.py.
   static const colours = {
-    2: Color(0xFFFFF5A0),
-    3: Color(0xFFFFDC82),
-    4: Color(0xFFFFB98C),
-    5: Color(0xFFFF968C),
-    6: Color(0xFFF07396),
-    7: Color(0xFFD75FBE),
-    8: Color(0xFFA050D2),
+    0: Color(0xFFFFF5A0),
+    1: Color(0xFFFFDC82),
+    2: Color(0xFFFFB98C),
+    3: Color(0xFFFF968C),
+    4: Color(0xFFF07396),
+    5: Color(0xFFD75FBE),
+    6: Color(0xFFA050D2),
+    7: Color(0xFF6E3CBE),
+    8: Color(0xFF46288C),
   };
 }

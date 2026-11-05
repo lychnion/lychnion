@@ -13,6 +13,7 @@ Uint8List encode(
   List<(int, int)> edges, {
   List<double>? heights,
   List<int>? flood,
+  int floodVersion = 3,
 }) {
   const r = 111195.0; // metres per degree, near enough for tests
   final adj = [for (final _ in nodes) <int>[]];
@@ -26,7 +27,7 @@ Uint8List encode(
   void i32(int v) =>
       b.add((ByteData(4)..setInt32(0, v, Endian.little)).buffer.asUint8List());
   b.add('FKRG'.codeUnits);
-  u32(flood != null ? 3 : (heights == null ? 1 : 2));
+  u32(flood != null ? floodVersion : (heights == null ? 1 : 2));
   u32(nodes.length);
   u32(adj.fold(0, (s, a) => s + a.length));
   for (final n in nodes) {
@@ -202,7 +203,8 @@ void main() {
     );
     expect(fg.hasFlood, isTrue);
     expect(fg.floodOf(4), 6);
-    expect(floodDepth(6, en: false), '3〜4 m');
+    expect(depthLabel(fg.depthOf(4)!, en: false), '3〜4 m');
+    expect(fg.depthOf(0), isNull);
     // From 3 the nearest clear point is 0, straight north (100 m).
     final t = fg.walkFrom(nodes[3], preferHigh: true);
     final out = t.wayOut!;
@@ -218,6 +220,28 @@ void main() {
     expect(fg.walkFrom(nodes[3]).routeTo(nodes[5])!.path, passes(nodes[4]));
     // Already clear: no way out needed.
     expect(fg.walkFrom(nodes[0], preferHigh: true).wayOut, isNull);
+  });
+
+  test('version 4: depth as lower and upper bound', () {
+    // 16 * hi + lo: 3–5 m (lo 4, hi 6), 10–20 m (7, 8), 5 m or more (6, 9).
+    final fg = RouteGraph.parse(
+      encode(
+        nodes,
+        [(0, 1), (1, 2), (3, 4), (4, 5), (0, 3), (1, 4), (2, 5)],
+        heights: [2, 2, 2, 2, 2, 2],
+        flood: [0, 1, 16 * 6 + 4, 16 * 8 + 7, 16 * 9 + 6, 16 * 1 + 0],
+        floodVersion: 4,
+      ),
+    );
+    expect(fg.floodOf(0), 0);
+    expect(fg.floodOf(1), 1);
+    expect(fg.floodOf(3), 2 + 7);
+    expect(depthLabel(fg.depthOf(2)!, en: false), '3〜5 m');
+    expect(depthLabel(fg.depthOf(3)!, en: true), '10–20 m');
+    expect(depthLabel(fg.depthOf(4)!, en: false), '5 m以上');
+    expect(depthLabel(fg.depthOf(5)!, en: true), 'under 0.3 m');
+    expect(fg.deepest, 7);
+    expect(depthFromLabel(7, en: false), '10 m〜');
   });
 
   test('version 1 files have no heights', () {

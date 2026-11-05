@@ -94,7 +94,17 @@ class MapState extends ChangeNotifier {
 
   Future<void> load() async {
     try {
-      final sp = sitesPath;
+      // A downloaded sites file, else one next to the PMTiles file (another
+      // area copied over), else the built-in one.
+      var sp = sitesPath;
+      if (sp == null) {
+        final next = await resolvePath(
+          pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.sites.sqlite'),
+        );
+        if (next.endsWith('.sites.sqlite') && await File(next).exists()) {
+          sp = next;
+        }
+      }
       sites = sp != null
           ? EvacSites.open(sp)
           : await EvacSites.fromAsset(sitesAsset);
@@ -169,6 +179,14 @@ class MapState extends ChangeNotifier {
     if (g == null || !g.hasFlood || f == null) return null;
     final n = g.nearestNode(f);
     return n == null ? null : g.floodOf(n.node);
+  }
+
+  /// Expected inundation depth at the current position, or null.
+  Depth? get depthHere {
+    final g = routes, f = from;
+    if (g == null || !g.hasFlood || f == null) return null;
+    final n = g.nearestNode(f);
+    return n == null ? null : g.depthOf(n.node);
   }
 
   /// For tsunami: the best walk out of the inundation area, when the

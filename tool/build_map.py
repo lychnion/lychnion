@@ -4,7 +4,8 @@
     python3 -I tool/build_map.py tool/maps/nishinomiya.json
 
 Writes:
-  assets/maps/<id>.sites.sqlite   evacuation sites in the area (GSI data)
+  assets/maps/<id>.sites.sqlite   evacuation sites in the area (GSI data);
+                                  build/maps/ instead with "bundle": false
   build/maps/<id>.pmtiles         base map (OpenStreetMap via Protomaps; not in git)
 
 Needs the `pmtiles` command (brew install pmtiles). The GSI data comes with
@@ -80,7 +81,10 @@ def main(manifest_path):
     if not rows:
         sys.exit("no sites inside the bounding box")
 
-    out = ROOT / "assets" / "maps" / f"{m['id']}.sites.sqlite"
+    # Only the bundled area's sites go into the app's assets; other areas
+    # ("bundle": false) are downloaded or copied over, like their tiles.
+    sites_dir = ROOT / "assets" / "maps" if m.get("bundle", True) else ROOT / "build" / "maps"
+    out = sites_dir / f"{m['id']}.sites.sqlite"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.unlink(missing_ok=True)
     db = sqlite3.connect(out)

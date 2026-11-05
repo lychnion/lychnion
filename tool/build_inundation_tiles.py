@@ -32,16 +32,19 @@ _spec.loader.exec_module(br)
 ZOOMS = range(10, 17)
 ALPHA = 140  # of 255: the base map stays readable underneath
 
-# Depth class (2..8, see build_routes.py) → colour, light yellow for shallow
-# to purple for 5 m or more, after the hazard map portal's tsunami legend.
+# Colour by the lower depth bound (index into build_routes.DEPTHS), light
+# yellow for shallow to dark purple for 20 m or more, after the hazard map
+# portal's tsunami legend. The app's legend uses the same colours.
 COLOURS = {
-    2: (255, 245, 160),  # < 0.3 m
-    3: (255, 220, 130),  # 0.3–1 m
-    4: (255, 185, 140),  # 1–2 m
-    5: (255, 150, 140),  # 2–3 m
-    6: (240, 115, 150),  # 3–4 m
-    7: (215, 95, 190),   # 4–5 m
-    8: (160, 80, 210),   # 5 m or more
+    0: (255, 245, 160),  # below 0.3 m
+    1: (255, 220, 130),  # from 0.3 m
+    2: (255, 185, 140),  # from 1 m
+    3: (255, 150, 140),  # from 2 m
+    4: (240, 115, 150),  # from 3 m
+    5: (215, 95, 190),   # from 4 m
+    6: (160, 80, 210),   # from 5 m
+    7: (110, 60, 190),   # from 10 m
+    8: (70, 40, 140),    # from 20 m
 }
 
 
@@ -110,7 +113,7 @@ def main(manifest_path):
                 draw = ImageDraw.Draw(img)
                 # Deeper on top, so a deep area is never hidden by a shallow one.
                 for j in sorted(hits, key=lambda j: classes[j]):
-                    fill = COLOURS[classes[j]] + (ALPHA,)
+                    fill = COLOURS[classes[j][0]] + (ALPHA,)
                     for p in rings(polys[j]):
                         pts = [to_px(z, x, y, lon, lat) for lon, lat in p.exterior.coords]
                         if len(pts) < 3:

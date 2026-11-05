@@ -258,3 +258,48 @@ On an update the app now keeps files that are already there and match
 their checksum, so going from 2026.11.0 to 2026.11.1 downloads only the
 13 MB of new files, not the 26 MB base map again. A phone that downloaded
 the map gets routes, heights and the tsunami layer without a cable.
+
+## Second area: Kushimoto (2026-11-05)
+
+![Kushimoto: way out of a 3–5 m inundation area, uphill in 391 m](images/phone-kushimoto.png)
+
+串本町 (Wakayama) on the Kii peninsula: the highest Nankai Trough tsunami
+estimate in Japan, a narrow town between the sea and steep hills. Built
+from the same sources with `tool/maps/kushimoto.json` (Wakayama A40 file
+2016, GSI prefecture 30000, the Kansai OSM extract):
+
+| File | Size |
+|---|---|
+| Base map (`pmtiles`) | 1.8 MB |
+| Sites (374 emergency sites, 126 shelters) | – |
+| Walking graph (26,074 points, 5,258 inside the inundation area) | 0.7 MB |
+| Inundation tiles (480) | 0.6 MB |
+
+The area is not bundled (`"bundle": false`: its sites file goes to
+`build/maps/`, not the app's assets) and not in the download catalog. For a
+test it was copied to the simulator; with `MAP_PMTILES_PATH` the app now
+also takes the sites file next to the PMTiles file.
+
+**Depth ranges differ by prefecture.** Wakayama uses 3–5 m, 5–10 m and
+10–20 m; Hyogo and Osaka 3–4 m and 4–5 m. The graph (format version 4) now
+stores each point's lower and upper bound, so the app says 「想定3〜5 m」 and
+not a wrong 「3〜4 m」. Version 3 files (the published Nishinomiya graph)
+are still read; the tile colours for the old classes did not change.
+
+Tsunami routes against the shortest walk (targets 300 m to 1.5 km away):
+
+| Start | Ground | Inundation | Way out | Routes changed | Walk longer | Routes into deeper water |
+|---|---|---|---|---|---|---|
+| 串本 town centre | 4.4 m | 3–5 m | **391 m, to 13.9 m** | 78 % | +17 % | 214 → 180 |
+| 古座 | 4.5 m | 5–10 m | 605 m, to 2.1 m | 48 % | +5 % | 0 → 0 |
+| 今津, Nishinomiya (for comparison) | 1.1 m | 1–2 m | 910 m, to 2.4 m | 66 % | +10 % | 421 → 409 |
+
+In Kushimoto the higher-ground rule matters: the way out leads up a hill in
+about 7 minutes, and fewer routes cross deeper water. In 古座 the way out
+follows the valley and stays low (2.1 m): outside the official area, but
+not high. In Nishinomiya there is no hill to reach.
+
+Open:
+- Kushimoto is not in the download catalog (needs a new release).
+- The home screen card shows the nearest site for any hazard, even while a
+  tsunami warning is active; it should use the hazard of the warning.

@@ -14,7 +14,7 @@ in "routes.inundation"), and writes build/maps/<id>.routes.bin (not in git).
 
 File format (little endian, read by lib/map/route_graph.dart):
 
-    header   'FKRG', u32 version=3, u32 nodes, u32 edges
+    header   'FKRG', u32 version=4, u32 nodes, u32 edges
     lat      i32[nodes]   degrees * 1e6
     lon      i32[nodes]
     offsets  u32[nodes+1] edges of node i are offsets[i] .. offsets[i+1]-1
@@ -26,11 +26,13 @@ File format (little endian, read by lib/map/route_graph.dart):
     (padding to 4 bytes)
     flood    u8[nodes]    tsunami inundation: 0 outside and at least 50 m
                           from any inundation area, 1 outside but closer,
-                          2..8 inside, by expected depth: <0.3 m, 0.3-1,
-                          1-2, 2-3, 3-4, 4-5, 5 m or more
+                          else inside: 16 * hi + lo, the expected depth
+                          between DEPTHS[lo] and DEPTHS[hi] metres
+                          (hi = 9: no upper bound)
     (padding to 4 bytes)
 
-Version 1 (no heights) and 2 (no flood) files are still read by the app.
+Version 1 (no heights), 2 (no flood) and 3 (flood as classes 2..8: <0.3 m,
+0.3-1, 1-2, 2-3, 3-4, 4-5, 5 m or more) files are still read by the app.
 
 Every edge is stored in both directions (one-way streets do not apply to
 people on foot). Nodes are sorted by a 0.001° grid, so each grid cell is
@@ -40,6 +42,7 @@ MIN_PART nodes) are dropped, so a position never snaps onto them.
 import io
 import json
 import math
+import re
 import struct
 import sys
 import urllib.error
@@ -145,16 +148,31 @@ class Heights:
 
 # A40 depth labels differ by prefecture and year ("0.3m未満", "0.01～0.3m",
 # "1m以上 ～ 2m未満", "1.0～2.0m"): classify by the lower bound.
-DEPTH_FROM = [0.3, 1, 2, 3, 4, 5]  # class 2 below 0.3 m, then up to 8
+# Depth bounds in metres. Prefectures use different ranges (Hyogo 3-4 m,
+# Wakayama 3-5 m and 10-20 m), so each area keeps its lower and upper bound
+# as indexes into this list; 9 means no upper bound.
+DEPTHS = [0, 0.3, 1, 2, 3, 4, 5, 10, 20]
 NEAR_ZONE = 0.0005  # degrees, about 50 m
 
 
 def depth_class(label):
-    s = label.replace("ｍ", "m").replace(" ", "")
-    if "未満" in s and "以上" not in s:  # "0.3m未満"
-        return 2
-    low = float(s.split("m")[0].split("～")[0])
-    return 2 + sum(1 for b in DEPTH_FROM if low >= b - 1e-9)
+    """(lo, hi) indexes into DEPTHS for an A40 depth label: "0.3m未満",
+    "0.01～0.3m", "1m以上 ～ 2m未満", "1.0～2.0m", "5m以上", "5.0m～"."""
+    s = label.replace("ｍ", "m").replace(" ", "").replace("～", "~")
+    nums = [float(x) for x in re.findall(r"\d+(?:\.\d+)?", s)]
+    if "未満" in s and "以上" not in s and "~" not in s:  # "0.3m未満"
+        lo, hi = 0.0, nums[0]
+    elif len(nums) >= 2:
+        lo, hi = nums[0], nums[1]
+    else:  # "5m以上", "5.0m～"
+        lo, hi = nums[0], None
+    lo_i = max(i for i, b in enumerate(DEPTHS) if b <= lo + 1e-9)
+    if hi is None:
+        return lo_i, 9
+    hi_i = min((i for i, b in enumerate(DEPTHS) if b >= hi - 1e-9), default=9)
+    if lo_i == 0 and hi_i == 0:
+        hi_i = 1
+    return lo_i, max(hi_i, lo_i + 1)
 
 
 def inundation(files, bbox):
@@ -188,9 +206,13 @@ def flood_classes(points, files, bbox):
     near_p, _ = tree.query(geoms, predicate="dwithin", distance=NEAR_ZONE)
     for i in near_p:
         out[i] = 1
+    deepest = {}
     pi, poly = tree.query(geoms, predicate="intersects")
     for i, j in zip(pi, poly):
-        out[i] = max(out[i], classes[j])
+        if classes[j] > deepest.get(i, (-1, -1)):
+            deepest[i] = classes[j]
+    for i, (lo, hi) in deepest.items():
+        out[i] = 16 * hi + lo
     return out
 
 
@@ -304,7 +326,7 @@ def main(manifest_path):
     print(f"heights: {len(kept) - unknown} points, {unknown} without a value")
     flood = array("B", flood_classes(
         [h.loc[ids[v]] for v in kept], m["routes"].get("inundation", []), m["bbox"]))
-    inside = sum(1 for x in flood if x >= 2)
+    inside = sum(1 for x in flood if x >= 16)
     print(f"inundation: {inside} points inside, {sum(1 for x in flood if x == 1)} near the edge")
     offsets, targets, lengths = array("I", [0]), array("I"), array("H")
     for v in kept:
@@ -316,7 +338,7 @@ def main(manifest_path):
 
     out = OUT / f"{m['id']}.routes.bin"
     with open(out, "wb") as f:
-        f.write(b"FKRG" + struct.pack("<III", 3, len(kept), len(targets)))
+        f.write(b"FKRG" + struct.pack("<III", 4, len(kept), len(targets)))
         for a in (lat, lon, offsets, targets, lengths, height, flood):
             if sys.byteorder != "little":
                 a.byteswap()

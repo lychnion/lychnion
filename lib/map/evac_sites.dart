@@ -94,10 +94,10 @@ class SiteDistance {
     if (r == null || h == null) return '';
     final parts = [
       en ? '${_h(h)} m above sea level' : '海抜${_h(h)} m',
-      if (r.endFlood >= 2)
+      if (r.endDepth case final d?)
         en
-            ? 'expected flooding ${floodDepth(r.endFlood, en: true)}'
-            : '浸水想定${floodDepth(r.endFlood, en: false)}',
+            ? 'expected flooding ${depthLabel(d, en: true)}'
+            : '浸水想定${depthLabel(d, en: false)}',
       if (r.dip >= minDip && r.lowest != null)
         en
             ? 'dips to ${_h(r.lowest!)} m on the way'
