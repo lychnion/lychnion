@@ -27,6 +27,7 @@ class MapState extends ChangeNotifier {
     required this.sitesAsset,
     this.sitesPath,
     this.routesPath,
+    this.inundationPath,
     this.mockLocation,
     this.facts,
   }) {
@@ -60,6 +61,10 @@ class MapState extends ChangeNotifier {
   final String? routesPath;
 
   RouteGraph? routes;
+
+  /// Inundation tiles. Default: next to the PMTiles file,
+  /// `<id>.inundation.mbtiles`.
+  final String? inundationPath;
 
   /// Tsunami inundation areas as map tiles (tool/build_inundation_tiles.py),
   /// next to the PMTiles file as `<id>.inundation.mbtiles`.
@@ -108,7 +113,11 @@ class MapState extends ChangeNotifier {
 
   Future<void> _loadInundationTiles() async {
     final path = await resolvePath(
-      pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.inundation.mbtiles'),
+      inundationPath ??
+          pmtilesPath.replaceFirst(
+            RegExp(r'\.pmtiles$'),
+            '.inundation.mbtiles',
+          ),
     );
     if (!path.endsWith('.inundation.mbtiles') || !await File(path).exists()) {
       return;

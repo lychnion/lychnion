@@ -218,12 +218,21 @@ class DownloadStore {
     return copyBundled('packages', asset);
   }
 
-  /// Tiles and sites of the first installed map area, or null.
-  ({String pmtiles, String sites})? mapPaths() {
+  /// Tiles and sites of the first installed map area, or null. Newer map
+  /// versions also have a walking graph and tsunami inundation tiles.
+  ({String pmtiles, String sites, String? routes, String? inundation})?
+  mapPaths() {
     for (final i in allInstalled(ItemKind.map)) {
-      final t = i.fileEnding('.pmtiles'), s = i.fileEnding('.sqlite');
+      final t = i.fileEnding('.pmtiles'), s = i.fileEnding('.sites.sqlite');
       if (t != null && s != null) {
-        return (pmtiles: path(i, t), sites: path(i, s));
+        final r = i.fileEnding('.routes.bin');
+        final f = i.fileEnding('.inundation.mbtiles');
+        return (
+          pmtiles: path(i, t),
+          sites: path(i, s),
+          routes: r == null ? null : path(i, r),
+          inundation: f == null ? null : path(i, f),
+        );
       }
     }
     return null;

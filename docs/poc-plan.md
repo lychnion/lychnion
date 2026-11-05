@@ -342,8 +342,7 @@ Lessons:
   must say when it cannot find a proper site, not silently send people to the
   next city.
 
-Still open: Android GPU, the walking graph and inundation tiles in the
-download catalog, an official
+Still open: Android GPU, an official
 facts feed with city keys, key revocation, sending facts over a radio mesh (Idea 5), QR test
 with a real phone camera, iOS test of the downloads, public name.
 

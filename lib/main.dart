@@ -218,6 +218,8 @@ class _HomePageState extends State<HomePage> {
               pmtilesPath: p.pmtiles,
               sitesAsset: _mapSitesAsset,
               sitesPath: p.sites,
+              routesPath: p.routes,
+              inundationPath: p.inundation,
               mockLocation: _mockLocation,
               facts: _facts,
             ),

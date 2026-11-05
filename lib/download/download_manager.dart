@@ -215,15 +215,14 @@ class DownloadManager extends ChangeNotifier {
       ..speed = 0;
     notifyListeners();
     try {
-      // A file that is already there and matches (copied by cable, or the
-      // first file of an interrupted map download) is not fetched again.
-      // On update the new file replaces the old one only once verified.
+      // A file that is already there and matches (copied by cable, the
+      // first file of an interrupted map download, or a file an update did
+      // not change) is not fetched again. On update a changed file replaces
+      // the old one only once verified.
       var done = 0;
       for (final f in item.files) {
         final target = File('${dir.path}/${f.name}');
-        final inst = store.installed(item.kind, item.id);
         if (!force &&
-            inst == null &&
             await target.exists() &&
             await target.length() == f.size &&
             await sha256OfFile(target, cancel: cancel) == f.sha256) {

@@ -137,8 +137,8 @@ unit tests, not in the app.
 
 Open:
 - ~~The route does not know about tsunami.~~ Partly done, see below.
-- Not in the download catalog yet: the downloaded map area has no graph,
-  so phones that downloaded the map still see straight lines.
+- ~~Not in the download catalog yet.~~ Done: map area version 2026.11.1
+  (see the end of this page).
 - The graph has no information on damage, narrow alleys, steps for
   wheelchairs, or crowds.
 
@@ -243,4 +243,18 @@ build/route-venv/bin/python -I tool/build_inundation_tiles.py tool/maps/nishinom
 Open:
 - Above zoom 16 the tiles are scaled up and look blocky. Zoom 17 would
   roughly quadruple the tile count (still a few MB).
-- Like the walking graph, the tiles are not in the download catalog yet.
+- ~~Not in the download catalog yet.~~ Done, see below.
+
+## In the download catalog (2026-11-05)
+
+The map area item `jp.map.nishinomiya` is now version **2026.11.1** with
+four files: the base map and sites as before, plus the walking graph
+(`routes.bin`, 11.5 MB) and the inundation tiles (`inundation.mbtiles`,
+1.5 MB). The two new files are in the `2026.11.1` release of
+dkastl/fieldkit-data; the unchanged files still come from `2026.11.0`
+(absolute URLs in the catalog).
+
+On an update the app now keeps files that are already there and match
+their checksum, so going from 2026.11.0 to 2026.11.1 downloads only the
+13 MB of new files, not the 26 MB base map again. A phone that downloaded
+the map gets routes, heights and the tsunami layer without a cable.
