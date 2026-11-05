@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../facts/fact.dart';
 import '../facts/fact_view.dart';
-import '../map/map_screen.dart' show formatDistance;
 import '../map/map_state.dart';
 
 /// Home screen: active warnings and the nearest evacuation site that can
@@ -109,9 +108,7 @@ class NearestSiteCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              en
-                                  ? '${formatDistance(near.first.meters)} ${near.first.direction(true)} · straight line'
-                                  : '${near.first.direction(false)}へ${formatDistance(near.first.meters)} · 直線距離',
+                              near.first.label(en),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: scheme.onSecondaryContainer,
                               ),

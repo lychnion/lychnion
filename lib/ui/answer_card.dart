@@ -374,9 +374,11 @@ class AnswerCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            en
-                                ? '${formatDistance(n.meters)} ${n.direction(true)} · straight line'
-                                : '${n.direction(false)}へ${formatDistance(n.meters)} · 直線距離',
+                            [
+                              n.label(en),
+                              if (m.avoidsBlocked && n.walk != null)
+                                en ? 'blocked roads considered' : '通行止めを考慮',
+                            ].join(' · '),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: on,
                             ),
@@ -398,10 +400,10 @@ class AnswerCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             en
-                                ? 'Not ${skipped.site.name} (${formatDistance(skipped.meters)}): '
+                                ? 'Not ${skipped.site.name} (${formatDistance(skipped.walk ?? skipped.meters)}): '
                                       '${skippedFact.shelterStatus?.en ?? skippedFact.value}, '
                                       '${skippedFact.age(facts!.now, en: true)}'
-                                : '${skipped.site.name}（${formatDistance(skipped.meters)}）は'
+                                : '${skipped.site.name}（${formatDistance(skipped.walk ?? skipped.meters)}）は'
                                       '${skippedFact.shelterStatus?.ja ?? skippedFact.value}'
                                       '（${skippedFact.age(facts!.now, en: false)}）',
                             style: theme.textTheme.bodySmall?.copyWith(

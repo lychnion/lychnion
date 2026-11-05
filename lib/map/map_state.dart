@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,6 +9,15 @@ import '../facts/fact.dart';
 import '../facts/fact_store.dart';
 import '../util/paths.dart';
 import 'evac_sites.dart';
+import 'route_graph.dart';
+
+/// "lat,lon" subject of a point fact (blocked road, water point).
+LatLng? pointOf(String subject) {
+  final p = subject.split(',');
+  if (p.length != 2) return null;
+  final lat = double.tryParse(p[0]), lon = double.tryParse(p[1]);
+  return lat == null || lon == null ? null : LatLng(lat, lon);
+}
 
 /// Map data and position, shared by the map tab and the answers.
 class MapState extends ChangeNotifier {
@@ -14,6 +25,7 @@ class MapState extends ChangeNotifier {
     required this.pmtilesPath,
     required this.sitesAsset,
     this.sitesPath,
+    this.routesPath,
     this.mockLocation,
     this.facts,
   }) {
@@ -40,6 +52,17 @@ class MapState extends ChangeNotifier {
 
   /// A downloaded sites file; wins over [sitesAsset].
   final String? sitesPath;
+
+  /// Walking graph (tool/build_routes.py). Default: next to the PMTiles
+  /// file, `<id>.routes.bin`. Without it, distances are straight lines.
+  final String? routesPath;
+
+  RouteGraph? routes;
+
+  /// Walks from the current position, kept until the position or the
+  /// blocked roads change.
+  WalkTree? _tree;
+  String? _treeKey;
 
   /// "lat,lon" for testing without a GPS fix.
   final String? mockLocation;
@@ -68,12 +91,61 @@ class MapState extends ChangeNotifier {
         await resolvePath(pmtilesPath),
       );
       notifyListeners();
+      await _loadRoutes();
       await locate();
     } catch (e) {
       error = '$e';
       notifyListeners();
     }
   }
+
+  Future<void> _loadRoutes() async {
+    final path = await resolvePath(
+      routesPath ??
+          pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.routes.bin'),
+    );
+    if (!path.endsWith('.routes.bin') || !await File(path).exists()) return;
+    try {
+      final sw = Stopwatch()..start();
+      routes = await RouteGraph.load(path);
+      debugPrint(
+        'routes: ${routes!.nodeCount} nodes in ${sw.elapsedMilliseconds} ms',
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('routes: $e');
+    }
+  }
+
+  /// Nodes near blocked roads are not walked through.
+  static const blockedRadius = 25.0;
+
+  /// Points of current blocked-road facts.
+  List<LatLng> get blockedPoints => [
+    for (final f in facts?.currentOf({FactKind.roadBlocked}) ?? const <Fact>[])
+      ?pointOf(f.subject),
+  ];
+
+  /// Shortest walks from the current position, or null without a graph.
+  WalkTree? get walks {
+    final g = routes, f = from;
+    if (g == null || f == null) return null;
+    final blocked = blockedPoints;
+    final key = '${f.latitude},${f.longitude}|${blocked.join(';')}';
+    if (key != _treeKey) {
+      final sw = Stopwatch()..start();
+      _tree = g.walkFrom(
+        f,
+        blocked: {for (final p in blocked) ...g.nodesNear(p, blockedRadius)},
+      );
+      _treeKey = key;
+      debugPrint('routes: walk tree in ${sw.elapsedMilliseconds} ms');
+    }
+    return _tree;
+  }
+
+  /// Whether routes take at least one blocked road into account.
+  bool get avoidsBlocked => routes != null && blockedPoints.isNotEmpty;
 
   Future<void> locate() async {
     final mock = mockLocation;
@@ -124,8 +196,10 @@ class MapState extends ChangeNotifier {
     return city.isEmpty || s.cityHasSiteFor(city, h) ? null : city;
   }
 
-  /// Nearest sites for [h]. With [skipAvoided], full or closed sites are
-  /// left out, so the suggestion is a place that can take people.
+  /// Nearest sites for [h], by walking distance when the area has a
+  /// walking graph, else by straight line. With [skipAvoided], full or
+  /// closed sites are left out, so the suggestion is a place that can take
+  /// people.
   List<SiteDistance> nearest(
     Hazard? h, {
     int limit = 5,
@@ -133,7 +207,17 @@ class MapState extends ChangeNotifier {
   }) {
     final s = sites, f = from;
     if (s == null || f == null) return const [];
-    final all = s.nearest(f, hazard: h, limit: limit + 20);
+    var all = s.nearest(f, hazard: h, limit: limit + 20);
+    final tree = walks;
+    if (tree != null && tree.onNetwork) {
+      // The nearest by walking is almost always among the 25 nearest in a
+      // straight line. Sites without a route go last.
+      all = [for (final n in all) n.withWalk(tree.metersTo(n.site.point), tree)]
+        ..sort(
+          (a, b) =>
+              (a.walk ?? 1e9 + a.meters).compareTo(b.walk ?? 1e9 + b.meters),
+        );
+    }
     return [
       for (final n in all)
         if (!skipAvoided || !avoid(n.site)) n,

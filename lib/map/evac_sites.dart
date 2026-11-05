@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../download/download_store.dart';
+import 'route_graph.dart';
 
 /// Hazard types as the GSI data defines them.
 enum Hazard {
@@ -62,10 +63,43 @@ class EvacSite {
 }
 
 class SiteDistance {
-  SiteDistance(this.site, this.meters, this.bearing);
+  SiteDistance(this.site, this.meters, this.bearing, {this.walk, this.tree});
   final EvacSite site;
+
+  /// Straight-line metres.
   final double meters;
   final double bearing;
+
+  /// Walking metres on the route, when the area has a walking graph and a
+  /// route was found.
+  final double? walk;
+  final WalkTree? tree;
+
+  SiteDistance withWalk(double? walk, WalkTree tree) =>
+      SiteDistance(site, meters, bearing, walk: walk, tree: tree);
+
+  /// The walking route, from the current position to the site.
+  List<LatLng>? get path => walk == null ? null : tree?.pathTo(site.point);
+
+  /// Walking minutes at 60 m a minute (1 m/s): slower than everyday
+  /// walking, as tsunami evacuation plans assume.
+  int? get minutes => walk == null ? null : max(1, (walk! / 60).round());
+
+  /// "Walk 850 m · about 14 min", or the straight line and direction.
+  String label(bool en) {
+    final w = walk;
+    if (w != null) {
+      return en
+          ? '${_fmt(w)} walk · about $minutes min'
+          : '徒歩${_fmt(w)}・約$minutes分';
+    }
+    return en
+        ? '${_fmt(meters)} ${direction(true)} · straight line'
+        : '${direction(false)}へ${_fmt(meters)} · 直線距離';
+  }
+
+  static String _fmt(double m) =>
+      m < 1000 ? '${m.round()} m' : '${(m / 1000).toStringAsFixed(1)} km';
 
   /// 8-point compass direction in Japanese or English.
   String direction(bool en) {

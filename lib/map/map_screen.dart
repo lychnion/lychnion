@@ -60,6 +60,15 @@ class _MapScreenState extends State<MapScreen> {
 
   void _changed() {
     final f = s.focus;
+    if (f != null) {
+      // "Show on map" from an answer or the home card: route to that site.
+      _selected = s
+          .nearest(s.hazard)
+          .where((n) => n.site.point == f)
+          .firstOrNull
+          ?.site
+          .uid;
+    }
     if (f != null && _mapReady) {
       _moveTo(f);
       s.focus = null;
@@ -195,6 +204,13 @@ class _MapScreenState extends State<MapScreen> {
           site,
     ];
     final theme = Theme.of(context);
+    // Route to the site opened in the list, else to the nearest site that
+    // can take people.
+    final target =
+        nearest.where((n) => n.site.uid == _selected).firstOrNull ??
+        nearest.where((n) => !s.avoid(n.site)).firstOrNull;
+    final route = target?.path;
+    final walking = s.routes != null;
 
     final chips = SizedBox(
       height: 52,
@@ -253,6 +269,18 @@ class _MapScreenState extends State<MapScreen> {
                 fileCacheTtl: Duration.zero,
                 maximumZoom: 18,
               ),
+              if (route != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: route,
+                      strokeWidth: 6,
+                      color: theme.colorScheme.primary,
+                      borderStrokeWidth: 2,
+                      borderColor: Colors.white,
+                    ),
+                  ],
+                ),
               MarkerLayer(
                 markers: [
                   for (final site in shown)
@@ -289,7 +317,7 @@ class _MapScreenState extends State<MapScreen> {
                             FactKind.waterPoint,
                           }) ??
                           const <Fact>[])
-                    if (_point(f.subject) case final p?)
+                    if (pointOf(f.subject) case final p?)
                       Marker(
                         point: p,
                         width: 22,
@@ -382,8 +410,10 @@ class _MapScreenState extends State<MapScreen> {
                           Text(
                             [
                               en
-                                  ? '${hazard?.en ?? 'Any hazard'} · straight line'
-                                  : '${hazard?.ja ?? 'すべての災害'} · 直線距離',
+                                  ? '${hazard?.en ?? 'Any hazard'} · ${walking ? 'walking distance' : 'straight line'}'
+                                  : '${hazard?.ja ?? 'すべての災害'} · ${walking ? '徒歩の道のり' : '直線距離'}',
+                              if (s.avoidsBlocked)
+                                en ? 'blocked roads considered' : '通行止めを考慮',
                               if (_locationStatus.isNotEmpty) _locationStatus,
                             ].join(' · '),
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -505,7 +535,7 @@ class _MapScreenState extends State<MapScreen> {
               child: Column(
                 children: [
                   Text(
-                    formatDistance(n.meters),
+                    formatDistance(n.walk ?? n.meters),
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: avoid
                           ? scheme.onSurfaceVariant
@@ -514,7 +544,9 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                   Text(
-                    n.direction(en),
+                    n.minutes != null
+                        ? (en ? '${n.minutes} min' : '約${n.minutes}分')
+                        : n.direction(en),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: avoid
                           ? scheme.onSurfaceVariant
@@ -607,13 +639,23 @@ class _MapScreenState extends State<MapScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              en
-                  ? 'Distances are straight lines, not routes. Emergency evacuation sites (指定緊急避難場所) '
-                        'are designated per hazard; shelters (指定避難所) are for staying after the danger has '
-                        'passed. The data may be out of date or incomplete: check with your city.'
-                  : '距離は直線距離です（道のりではありません）。指定緊急避難場所は災害の種類ごとに指定されています。'
-                        '指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、'
-                        '最新の状況は市町村に確認してください。',
+              (s.routes != null
+                      ? (en
+                            ? 'Distances are walking routes on OpenStreetMap roads and paths, '
+                                  'at 60 m a minute. The route does not know about damage, '
+                                  'crowds or tsunami height: follow official guidance and what you see. '
+                            : '距離は OpenStreetMap の道路・歩道に沿った徒歩の道のりです（分速60 m で計算）。'
+                                  '被害や混雑、津波の高さは考慮していません。公式の情報と現地の状況に従ってください。')
+                      : (en
+                            ? 'Distances are straight lines, not routes. '
+                            : '距離は直線距離です（道のりではありません）。')) +
+                  (en
+                      ? 'Emergency evacuation sites (指定緊急避難場所) '
+                            'are designated per hazard; shelters (指定避難所) are for staying after the danger has '
+                            'passed. The data may be out of date or incomplete: check with your city.'
+                      : '指定緊急避難場所は災害の種類ごとに指定されています。'
+                            '指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、'
+                            '最新の状況は市町村に確認してください。'),
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -641,13 +683,6 @@ String noSiteWarning(String city, Hazard hazard, bool en) => en
           'and evacuation guidance.'
     : '国土地理院のデータでは、$cityに${hazard.ja}の指定緊急避難場所が登録されていません。'
           '最寄りの場所は別の市町村の可能性があります。$cityのハザードマップや避難情報を確認してください。';
-
-LatLng? _point(String subject) {
-  final p = subject.split(',');
-  if (p.length != 2) return null;
-  final lat = double.tryParse(p[0]), lon = double.tryParse(p[1]);
-  return lat == null || lon == null ? null : LatLng(lat, lon);
-}
 
 String formatDistance(double meters) => meters < 1000
     ? '${meters.round()} m'

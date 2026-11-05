@@ -10,6 +10,11 @@
     "licence": "ODbL 1.0",
     "attribution": "© OpenStreetMap contributors (ODbL), Protomaps"
   },
+  "routes": {
+    "source": "https://download.geofabrik.de/asia/japan/kansai-latest.osm.pbf",
+    "licence": "ODbL 1.0",
+    "attribution": "© OpenStreetMap contributors (ODbL)"
+  },
   "sites": {
     "prefectures": ["27000", "28000"],
     "base_url": "https://hinanmap.gsi.go.jp/hinanjocp/defaultFtpData/csv/",

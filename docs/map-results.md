@@ -48,8 +48,7 @@ manifest with its bbox and prefecture codes.
   labels (mostly road numbers). Labels need the vector render mode.
 - **Old library versions.** The PMTiles plugin pins flutter_map 7 and
   vector_map_tiles 8; the newer betas conflict. Fine for the PoC, to revisit.
-- **Distance is straight-line.** Routes would need a routing graph; a later
-  step (Valhalla offline tiles or simpler).
+- ~~Distance is straight-line.~~ Fixed: walking routes, see below.
 - ~~Not linked with the assistant~~ Done, see below.
 - Data freshness: GSI updates often (Hyogo 2026-10-22, Osaka 2026-10-21 at
   download). The package should carry the date and the app should show it.
@@ -90,3 +89,53 @@ any kind) and, when that city has no site for the hazard, says so in the
 answer box and on the map: 「国土地理院のデータでは、西宮市に地震の指定緊急避難場所が
 登録されていません。最寄りの場所は別の市町村の可能性があります。西宮市のハザードマップや
 避難情報を確認してください。」
+
+## Walking routes (2026-11-05)
+
+![Map: walking route to the selected site, distances in walking metres and minutes](images/phone-route.png)
+
+Distances are now walking distances along roads and paths, not straight
+lines.
+
+- **Data:** a walking graph built from the OpenStreetMap Kansai extract
+  (Geofabrik, ODbL) for the same bbox as the map: all roads and paths people
+  may walk on (no motorways, nothing marked `foot=no` or private), both
+  directions. **396,353 points, 10.4 MB** (`<id>.routes.bin`, next to the
+  PMTiles file). Builds in 21 s.
+- **On the phone:** one shortest-path search from the current position
+  (up to 6 km) serves every site; it is redone when the position or the
+  blocked roads change. iPhone simulator, debug build: graph loads in
+  166 ms, search 19 ms. No routing library, about 250 lines of Dart
+  (`lib/map/route_graph.dart`).
+- **Sites are sorted by walking distance.** The 25 nearest in a straight
+  line are checked; a site with no route goes last.
+- **Minutes** at 60 m a minute (1 m/s), slower than everyday walking, as
+  tsunami evacuation plans assume.
+- **Blocked roads** (current facts) are not walked through: points within
+  25 m of a blocked-road report are left out of the search.
+- **Map:** the route to the site opened in the list (or the nearest one
+  that takes people) is drawn as a line. The home card and the answer say
+  「徒歩272 m・約5分」 / "272 m walk · about 5 min".
+
+Without a `routes.bin` file the app falls back to straight lines, as before.
+
+How to build:
+
+```bash
+python3 -m venv build/route-venv && build/route-venv/bin/pip install osmium
+build/route-venv/bin/python -I tool/build_routes.py tool/maps/nishinomiya.json
+```
+
+Tested: 6 unit tests (shortest path, detour round a blocked point, snapping
+a position to the nearest road, no road nearby, wrong file, the real
+Nishinomiya graph), and on the iPhone simulator: home card, site list,
+route line and answer. A blocked road on the route was tested only in the
+unit tests, not in the app.
+
+Open:
+- The route does not know about tsunami: it can lead toward the sea, and
+  it does not prefer higher ground. That needs elevation data.
+- Not in the download catalog yet: the downloaded map area has no graph,
+  so phones that downloaded the map still see straight lines.
+- The graph has no information on damage, narrow alleys, steps for
+  wheelchairs, or crowds.
