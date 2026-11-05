@@ -171,6 +171,47 @@ class _MapScreenState extends State<MapScreen> {
       ? (value: value, ja: '通行止め', en: 'road blocked')
       : (value: value, ja: value, en: value);
 
+  /// Phones: the list of hazards, as a bottom sheet.
+  Future<void> _pickHazard() async {
+    final h = await showModalBottomSheet<Hazard>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (c) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                child: Text(
+                  en ? 'Which hazard?' : 'どの災害ですか？',
+                  style: Theme.of(c).textTheme.titleLarge,
+                ),
+              ),
+              for (final h in Hazard.values)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                  title: Text(en ? h.en : h.ja),
+                  trailing: s.hazard == h
+                      ? Icon(
+                          Icons.check_rounded,
+                          color: Theme.of(c).colorScheme.primary,
+                        )
+                      : null,
+                  selected: s.hazard == h,
+                  onTap: () => Navigator.pop(c, h),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (h != null) s.selectHazard(h);
+  }
+
   String get _locationStatus {
     if (s.hereIsMock) return en ? 'Test location' : 'テスト用の位置';
     if (s.here != null) {
@@ -212,34 +253,71 @@ class _MapScreenState extends State<MapScreen> {
     final route = target?.path;
     final walking = s.routes != null;
 
-    final chips = SizedBox(
-      height: 52,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: [
-          for (final h in Hazard.values)
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(
-                label: Text(en ? h.en : h.ja),
-                selected: hazard == h,
-                showCheckmark: false,
-                backgroundColor: theme.colorScheme.surface,
-                selectedColor: theme.colorScheme.primary,
-                labelStyle: TextStyle(
-                  color: hazard == h
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
+    Widget chip(Hazard h) => ChoiceChip(
+      label: Text(en ? h.en : h.ja),
+      selected: hazard == h,
+      showCheckmark: false,
+      backgroundColor: theme.colorScheme.surface,
+      selectedColor: theme.colorScheme.primary,
+      labelStyle: TextStyle(
+        color: hazard == h
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
+      elevation: 2,
+      shadowColor: Colors.black26,
+      side: BorderSide.none,
+      onSelected: (_) => s.selectHazard(h),
+    );
+
+    // Wide screens show all eight hazards; phones show the chosen one as a
+    // button that opens the full list (a scrolling row hid half of them).
+    final chips = LayoutBuilder(
+      builder: (context, c) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: c.maxWidth >= 700
+            ? Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [for (final h in Hazard.values) chip(h)],
+              )
+            : Align(
+                alignment: Alignment.topLeft,
+                child: ActionChip(
+                  avatar: Icon(
+                    Icons.warning_amber_rounded,
+                    size: 18,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        hazard == null
+                            ? (en ? 'Hazard' : '災害の種類')
+                            : (en ? hazard.en : hazard.ja),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.expand_more_rounded,
+                        size: 20,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ],
+                  ),
+                  backgroundColor: theme.colorScheme.primary,
+                  labelStyle: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  elevation: 2,
+                  shadowColor: Colors.black26,
+                  side: BorderSide.none,
+                  tooltip: en ? 'Choose the hazard' : '災害の種類を選ぶ',
+                  onPressed: _pickHazard,
                 ),
-                elevation: 2,
-                shadowColor: Colors.black26,
-                side: BorderSide.none,
-                onSelected: (_) => s.selectHazard(h),
               ),
-            ),
-        ],
       ),
     );
 
