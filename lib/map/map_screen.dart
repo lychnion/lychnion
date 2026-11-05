@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -8,6 +10,7 @@ import '../facts/fact_form.dart';
 import '../facts/fact_view.dart';
 import 'evac_sites.dart';
 import 'map_state.dart';
+import 'route_graph.dart';
 import 'offline_theme.dart';
 
 /// Offline map: base map from a local PMTiles file, emergency evacuation
@@ -250,7 +253,8 @@ class _MapScreenState extends State<MapScreen> {
     final target =
         nearest.where((n) => n.site.uid == _selected).firstOrNull ??
         nearest.where((n) => !s.avoid(n.site)).firstOrNull;
-    final route = target?.path;
+    final out = s.wayOut(hazard);
+    final route = _selected == _wayOutId ? out?.path : target?.path;
     final walking = s.routes != null;
 
     Widget chip(Hazard h) => ChoiceChip(
@@ -353,7 +357,9 @@ class _MapScreenState extends State<MapScreen> {
                     Polyline(
                       points: route,
                       strokeWidth: 6,
-                      color: theme.colorScheme.primary,
+                      color: _selected == _wayOutId
+                          ? Colors.teal.shade700
+                          : theme.colorScheme.primary,
                       borderStrokeWidth: 2,
                       borderColor: Colors.white,
                     ),
@@ -418,6 +424,17 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
+                  if (_selected == _wayOutId && out != null)
+                    Marker(
+                      point: out.path.last,
+                      width: 26,
+                      height: 26,
+                      child: Icon(
+                        Icons.flag_rounded,
+                        size: 26,
+                        color: Colors.teal.shade700,
+                      ),
+                    ),
                   if (s.here != null)
                     Marker(
                       point: s.here!,
@@ -440,6 +457,12 @@ class _MapScreenState extends State<MapScreen> {
                   if (s.routes?.hasHeights ?? false)
                     TextSourceAttribution(
                       en ? 'Heights: GSI elevation tiles' : '標高：国土地理院 標高タイル',
+                    ),
+                  if (s.routes?.hasFlood ?? false)
+                    TextSourceAttribution(
+                      en
+                          ? 'Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited'
+                          : '津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工',
                     ),
                 ],
               ),
@@ -549,6 +572,8 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 const SizedBox(height: 8),
+                if (hazard == Hazard.tsunami && s.floodHere != null)
+                  _floodCard(theme, s.floodHere!, out),
                 for (final n in nearest) _siteRow(theme, n),
                 if (s.facts?.currentOf({
                       FactKind.warning,
@@ -586,6 +611,88 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  static const _wayOutId = '__way_out__';
+
+  /// Tsunami: whether the current position is in the official inundation
+  /// area, and the way out of it (tap to draw it).
+  Widget _floodCard(ThemeData theme, int flood, RouteInfo? out) {
+    final scheme = theme.colorScheme;
+    final inside = flood >= 2;
+    final depth = floodDepth(flood, en: en);
+    final title = inside
+        ? (en
+              ? 'You are in the tsunami inundation area (expected $depth)'
+              : '現在地は津波浸水想定区域内です（想定$depth）')
+        : flood == 1
+        ? (en
+              ? 'You are close to the tsunami inundation area'
+              : '現在地は津波浸水想定区域のすぐ近くです')
+        : (en
+              ? 'You are outside the tsunami inundation area'
+              : '現在地は津波浸水想定区域の外です');
+    final minutes = out == null ? null : max(1, (out.meters / 60).round());
+    final bg = inside ? scheme.errorContainer : scheme.surfaceContainerHigh;
+    final fg = inside ? scheme.onErrorContainer : scheme.onSurface;
+    final selected = _selected == _wayOutId;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: out == null
+              ? null
+              : () {
+                  setState(() => _selected = selected ? null : _wayOutId);
+                  if (!selected) _moveTo(out.path.last, 15);
+                },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(
+                  inside ? Icons.waves_rounded : Icons.check_circle_outline,
+                  color: fg,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: fg,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        out != null
+                            ? (en
+                                  ? 'Out of the area: ${formatDistance(out.meters)} walk · about $minutes min'
+                                  : '区域の外まで 徒歩${formatDistance(out.meters)}・約$minutes分')
+                            : (en
+                                  ? 'Based on the official expected inundation. A larger tsunami can go further.'
+                                  : '公表された浸水想定によります。想定を超える津波もあります。'),
+                        style: theme.textTheme.bodySmall?.copyWith(color: fg),
+                      ),
+                    ],
+                  ),
+                ),
+                if (out != null)
+                  Icon(
+                    selected ? Icons.flag_rounded : Icons.flag_outlined,
+                    color: fg,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

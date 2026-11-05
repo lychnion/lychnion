@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Builds the offline walking graph for one map area.
 
-    python3 -m venv build/route-venv && build/route-venv/bin/pip install osmium pillow
+    python3 -m venv build/route-venv
+    build/route-venv/bin/pip install osmium pillow pyshp shapely
     build/route-venv/bin/python -I tool/build_routes.py tool/maps/nishinomiya.json
 
 Reads the OpenStreetMap extract named in the manifest ("routes.source",
 downloaded once to build/map-cache/), keeps the ways people can walk on
 inside the area's bbox, adds the ground height of every point from the GSI
-elevation tiles (標高タイル, 5 m grid where available, else 10 m), and
-writes build/maps/<id>.routes.bin (not in git).
+elevation tiles (標高タイル, 5 m grid where available, else 10 m) and the
+expected tsunami inundation depth (国土数値情報 津波浸水想定, A40, files named
+in "routes.inundation"), and writes build/maps/<id>.routes.bin (not in git).
 
 File format (little endian, read by lib/map/route_graph.dart):
 
-    header   'FKRG', u32 version=2, u32 nodes, u32 edges
+    header   'FKRG', u32 version=3, u32 nodes, u32 edges
     lat      i32[nodes]   degrees * 1e6
     lon      i32[nodes]
     offsets  u32[nodes+1] edges of node i are offsets[i] .. offsets[i+1]-1
@@ -22,8 +24,13 @@ File format (little endian, read by lib/map/route_graph.dart):
     height   i16[nodes]   ground height above sea level, decimetres;
                           -32768 where the tiles have no value
     (padding to 4 bytes)
+    flood    u8[nodes]    tsunami inundation: 0 outside and at least 50 m
+                          from any inundation area, 1 outside but closer,
+                          2..8 inside, by expected depth: <0.3 m, 0.3-1,
+                          1-2, 2-3, 3-4, 4-5, 5 m or more
+    (padding to 4 bytes)
 
-Version 1 files (no heights) are still read by the app.
+Version 1 (no heights) and 2 (no flood) files are still read by the app.
 
 Every edge is stored in both directions (one-way streets do not apply to
 people on foot). Nodes are sorted by a 0.001° grid, so each grid cell is
@@ -42,6 +49,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import osmium
+import shapefile
+import shapely
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -132,6 +141,57 @@ class Heights:
                 continue  # no value at this pixel
             return (v - (1 << 24) if v > 1 << 23 else v) * 0.01
         return None
+
+
+# A40 depth labels differ by prefecture and year ("0.3m未満", "0.01～0.3m",
+# "1m以上 ～ 2m未満", "1.0～2.0m"): classify by the lower bound.
+DEPTH_FROM = [0.3, 1, 2, 3, 4, 5]  # class 2 below 0.3 m, then up to 8
+NEAR_ZONE = 0.0005  # degrees, about 50 m
+
+
+def depth_class(label):
+    s = label.replace("ｍ", "m").replace(" ", "")
+    if "未満" in s and "以上" not in s:  # "0.3m未満"
+        return 2
+    low = float(s.split("m")[0].split("～")[0])
+    return 2 + sum(1 for b in DEPTH_FROM if low >= b - 1e-9)
+
+
+def inundation(files, bbox):
+    """(polygons, depth class per polygon) inside the bbox."""
+    w, s_, e, n = bbox
+    area = shapely.box(w, s_, e, n)
+    polys, classes = [], []
+    for f in files:
+        path = CACHE / "a40" / f
+        r = shapefile.Reader(str(path), encoding="cp932")
+        label_at = [x[0] for x in r.fields[1:]].index("A40_003")
+        for sr in r.iterShapeRecords():
+            b = sr.shape.bbox
+            if b[2] < w or b[0] > e or b[3] < s_ or b[1] > n:
+                continue
+            g = shapely.geometry.shape(sr.shape.__geo_interface__)
+            if not g.is_valid:
+                g = shapely.make_valid(g)
+            polys.append(g.intersection(area))
+            classes.append(depth_class(sr.record[label_at]))
+    return polys, classes
+
+
+def flood_classes(points, files, bbox):
+    """flood value (see the format) for each (lat, lon)."""
+    polys, classes = inundation(files, bbox)
+    print(f"{len(polys)} inundation polygons in the area")
+    tree = shapely.STRtree(polys)
+    geoms = shapely.points([(lon, lat) for lat, lon in points])
+    out = bytearray(len(points))
+    near_p, _ = tree.query(geoms, predicate="dwithin", distance=NEAR_ZONE)
+    for i in near_p:
+        out[i] = 1
+    pi, poly = tree.query(geoms, predicate="intersects")
+    for i, j in zip(pi, poly):
+        out[i] = max(out[i], classes[j])
+    return out
 
 
 def walkable(tags):
@@ -242,6 +302,10 @@ def main(manifest_path):
         height.append(NO_HEIGHT if e is None else max(-32767, min(32767, round(e * 10))))
     unknown = sum(1 for e in height if e == NO_HEIGHT)
     print(f"heights: {len(kept) - unknown} points, {unknown} without a value")
+    flood = array("B", flood_classes(
+        [h.loc[ids[v]] for v in kept], m["routes"].get("inundation", []), m["bbox"]))
+    inside = sum(1 for x in flood if x >= 2)
+    print(f"inundation: {inside} points inside, {sum(1 for x in flood if x == 1)} near the edge")
     offsets, targets, lengths = array("I", [0]), array("I"), array("H")
     for v in kept:
         p = h.loc[ids[v]]
@@ -252,8 +316,8 @@ def main(manifest_path):
 
     out = OUT / f"{m['id']}.routes.bin"
     with open(out, "wb") as f:
-        f.write(b"FKRG" + struct.pack("<III", 2, len(kept), len(targets)))
-        for a in (lat, lon, offsets, targets, lengths, height):
+        f.write(b"FKRG" + struct.pack("<III", 3, len(kept), len(targets)))
+        for a in (lat, lon, offsets, targets, lengths, height, flood):
             if sys.byteorder != "little":
                 a.byteswap()
             f.write(a.tobytes())

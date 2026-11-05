@@ -321,6 +321,7 @@ Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
 | Shelter QR code | The shelter computer shows a QR code; the phone camera opens fieldkit, which asks before it connects. Address can also be typed. Tested Mac → iPhone simulator. |
 | Signed facts | Official facts are signed (Ed25519) by the device that enters them; phones trust a shelter's key through its QR code. Unsigned "official" facts count as resident reports. Radio: one signature per message, 6 signed updates per 200 bytes. |
 | Walking routes | Distances and minutes along roads and paths (OpenStreetMap walking graph, 10.4 MB for the Nishinomiya area), the route drawn on the map, sites sorted by walking distance, blocked roads avoided. Search 19 ms on the simulator. For tsunami, GSI ground heights: routes keep to higher ground, each site shows its height above sea level, a route that dips 2 m or more is flagged. Small effect in flat Nishinomiya (routes 0–6 % longer, dips slightly lower). |
+| Tsunami inundation area | Official expected inundation (国土数値情報 A40, CC BY 4.0) on every road point. In tsunami mode the map says whether you are inside (with expected depth) and draws the way out of the area; routes avoid deep areas; each site shows its expected flooding. |
 | App design | Redesigned for demos: chat-style Ask screen with suggested questions and a status label, full-screen map with a sliding panel, Settings with language (device / 日本語 / English) and downloads. |
 | iPhone simulator | Runs the full app (CPU). Needed one build fix for Xcode 27. |
 
@@ -341,9 +342,8 @@ Lessons:
   must say when it cannot find a proper site, not silently send people to the
   next city.
 
-Still open: Android GPU, tsunami routes that know the coast, rivers and
-inundation map (heights alone help little in flat areas), the walking
-graph in the download catalog, an official
+Still open: Android GPU, drawing the inundation areas on the map, the
+walking graph in the download catalog, an official
 facts feed with city keys, key revocation, sending facts over a radio mesh (Idea 5), QR test
 with a real phone camera, iOS test of the downloads, public name.
 

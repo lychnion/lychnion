@@ -7,7 +7,8 @@ import 'package:latlong2/latlong.dart';
 /// Offline walking graph for one map area, built by tool/build_routes.py
 /// from OpenStreetMap. Nodes are points on roads and paths; every edge can be
 /// walked both ways. Version 2 files also carry the ground height of every
-/// node (GSI elevation tiles).
+/// node (GSI elevation tiles), version 3 the expected tsunami inundation
+/// depth (国土数値情報 A40).
 class RouteGraph {
   RouteGraph._(
     this._lat,
@@ -16,6 +17,7 @@ class RouteGraph {
     this._targets,
     this._len, [
     this._height,
+    this._flood,
   ]) {
     // Nodes come sorted by 0.001° cell: remember where each cell starts.
     for (var i = 0; i < _lat.length; i++) {
@@ -34,12 +36,21 @@ class RouteGraph {
   /// Ground height per node in decimetres ([noHeight]: unknown), or null.
   final Int16List? _height;
   static const noHeight = -32768;
+
+  /// Tsunami inundation per node (see tool/build_routes.py), or null.
+  final Uint8List? _flood;
   final _cellStart = <int, int>{};
   final _cellEnd = <int, int>{};
 
   int get nodeCount => _lat.length;
 
   bool get hasHeights => _height != null;
+  bool get hasFlood => _flood != null;
+
+  /// Tsunami inundation at node [i]: 0 clear of any inundation area (50 m
+  /// or more), 1 close to one, 2..8 inside by expected depth (see
+  /// [floodDepth]). 0 when the graph has no inundation data.
+  int floodOf(int i) => _flood?[i] ?? 0;
 
   /// Ground height of node [i] above sea level in metres, or null.
   double? heightOf(int i) {
@@ -52,7 +63,7 @@ class RouteGraph {
     final b = ByteData.sublistView(bytes);
     if (bytes.length < 16 ||
         String.fromCharCodes(bytes.sublist(0, 4)) != 'FKRG' ||
-        !const [1, 2].contains(b.getUint32(4, Endian.little))) {
+        !const [1, 2, 3].contains(b.getUint32(4, Endian.little))) {
       throw const FormatException('not a fieldkit route graph');
     }
     final version = b.getUint32(4, Endian.little);
@@ -91,7 +102,13 @@ class RouteGraph {
         height[k] = b.getInt16(at, Endian.little);
       }
     }
-    return RouteGraph._(lat, lon, offsets, targets, len, height);
+    Uint8List? flood;
+    if (version >= 3) {
+      at += -at % 4;
+      flood = Uint8List.fromList(bytes.sublist(at, at + n));
+      at += n;
+    }
+    return RouteGraph._(lat, lon, offsets, targets, len, height, flood);
   }
 
   static Future<RouteGraph> load(String path) async =>
@@ -155,12 +172,17 @@ class RouteGraph {
   /// Extra cost in metres per metre a step goes down, with `preferHigh`.
   static const downCost = 20.0;
 
+  /// With `preferHigh`, a step into an inundation area costs this much more
+  /// per depth class: 1.4 times below 0.3 m, up to 3.8 times at 5 m or more.
+  static const floodCost = 0.4;
+
   /// Best walks from [from] to every node up to [maxMeters] away.
   /// Nodes in [blocked] are never entered (e.g. near a blocked road).
   ///
-  /// With [preferHigh] (tsunami), low roads cost more and going down costs
-  /// extra, so the walk keeps to higher ground even if it is a little
-  /// longer. Distances reported are still the real walking metres.
+  /// With [preferHigh] (tsunami), low roads, going down and the expected
+  /// inundation areas cost more, so the walk keeps to higher, drier ground
+  /// even if it is a little longer. Distances reported are still the real
+  /// walking metres.
   WalkTree walkFrom(
     LatLng from, {
     double maxMeters = 6000,
@@ -172,7 +194,7 @@ class RouteGraph {
     final cost = Float64List(n)..fillRange(0, n, double.infinity);
     final walked = Float64List(n);
     final prev = Int32List(n)..fillRange(0, n, -1);
-    final high = preferHigh && hasHeights;
+    final high = preferHigh && (hasHeights || hasFlood);
     if (start == null) {
       return WalkTree._(this, from, null, 0, cost, walked, prev);
     }
@@ -198,6 +220,10 @@ class RouteGraph {
             if (hu < hv) c += downCost * (hv - hu);
           }
         }
+        if (high) {
+          final f = floodOf(u);
+          if (f >= 2) c *= 1 + floodCost * (f - 1);
+        }
         final nd = d + c;
         if (nd < cost[u]) {
           cost[u] = nd;
@@ -220,6 +246,9 @@ class RouteInfo {
     this.startHeight,
     this.endHeight,
     this.lowest,
+    this.startFlood = 0,
+    this.endFlood = 0,
+    this.maxFlood = 0,
   });
 
   /// Real walking metres.
@@ -232,6 +261,10 @@ class RouteInfo {
   /// Ground heights above sea level (metres): where the walk starts, the
   /// road point nearest the destination, and the lowest point on the way.
   final double? startHeight, endHeight, lowest;
+
+  /// Tsunami inundation ([RouteGraph.floodOf]) at the start, at the end and
+  /// the deepest on the way.
+  final int startFlood, endFlood, maxFlood;
 
   /// How far below the start the route goes on the way (metres, ≥ 0).
   double get dip {
@@ -267,28 +300,56 @@ class WalkTree {
 
   /// The route to [to], or null when none was found in range.
   RouteInfo? routeTo(LatLng to) => _routes.putIfAbsent(to, () {
-    final start = _start;
     final e = graph.nearestNode(to, maxMeters: 250);
-    if (start == null || e == null || !_cost[e.node].isFinite) return null;
+    return e == null ? null : _route(e.node, e.meters, to);
+  });
+
+  /// The way out of the tsunami inundation area: the best walk to a road
+  /// point at least 50 m clear of it. Null when the start is already clear,
+  /// the graph has no inundation data, or no way out is in range.
+  late final RouteInfo? wayOut = () {
+    final start = _start;
+    if (start == null || !graph.hasFlood || graph.floodOf(start) == 0) {
+      return null;
+    }
+    int? best;
+    var bestCost = double.infinity;
+    for (var i = 0; i < _cost.length; i++) {
+      if (_cost[i] < bestCost && graph.floodOf(i) == 0) {
+        bestCost = _cost[i];
+        best = i;
+      }
+    }
+    return best == null ? null : _route(best, 0, graph.point(best));
+  }();
+
+  RouteInfo? _route(int end, double endMeters, LatLng to) {
+    final start = _start;
+    if (start == null || !_cost[end].isFinite) return null;
     final nodes = <int>[];
-    for (var v = e.node; v != -1; v = _prev[v]) {
+    for (var v = end; v != -1; v = _prev[v]) {
       nodes.add(v);
     }
     double? lowest;
+    var maxFlood = 0;
     for (final v in nodes) {
       final h = graph.heightOf(v);
       if (h != null && (lowest == null || h < lowest)) lowest = h;
+      maxFlood = max(maxFlood, graph.floodOf(v));
     }
-    final extra = _startMeters + e.meters;
+    final extra = _startMeters + endMeters;
     return RouteInfo(
-      meters: _walked[e.node] + extra,
-      cost: _cost[e.node] + extra,
+      meters: _walked[end] + extra,
+      cost: _cost[end] + extra,
       path: [from, for (final v in nodes.reversed) graph.point(v), to],
       startHeight: graph.heightOf(start),
-      endHeight: graph.heightOf(e.node),
+      endHeight: graph.heightOf(end),
       lowest: lowest,
+      startFlood: graph.floodOf(start),
+      endFlood: graph.floodOf(end),
+      maxFlood: maxFlood,
     );
-  });
+  }
 
   /// Walking metres to [to], or null when no route was found in range.
   double? metersTo(LatLng to) => routeTo(to)?.meters;
@@ -340,3 +401,16 @@ class _Heap {
     return top;
   }
 }
+
+/// Expected inundation depth for a [RouteGraph.floodOf] value of 2 or more,
+/// e.g. 「1〜2 m」 / "1–2 m". Empty below 2.
+String floodDepth(int f, {required bool en}) => switch (f) {
+  2 => en ? 'under 0.3 m' : '0.3 m未満',
+  3 => en ? '0.3–1 m' : '0.3〜1 m',
+  4 => en ? '1–2 m' : '1〜2 m',
+  5 => en ? '2–3 m' : '2〜3 m',
+  6 => en ? '3–4 m' : '3〜4 m',
+  7 => en ? '4–5 m' : '4〜5 m',
+  8 => en ? '5 m or more' : '5 m以上',
+  _ => '',
+};

@@ -128,7 +128,22 @@ class MapState extends ChangeNotifier {
 
   /// Tsunami routes keep to higher ground (when the graph has heights).
   bool prefersHigh(Hazard? h) =>
-      h == Hazard.tsunami && (routes?.hasHeights ?? false);
+      h == Hazard.tsunami &&
+      ((routes?.hasHeights ?? false) || (routes?.hasFlood ?? false));
+
+  /// Tsunami inundation at the current position ([RouteGraph.floodOf]), or
+  /// null without inundation data or a position on the road network.
+  int? get floodHere {
+    final g = routes, f = from;
+    if (g == null || !g.hasFlood || f == null) return null;
+    final n = g.nearestNode(f);
+    return n == null ? null : g.floodOf(n.node);
+  }
+
+  /// For tsunami: the best walk out of the inundation area, when the
+  /// current position is in it or close to it.
+  RouteInfo? wayOut(Hazard? h) =>
+      h == Hazard.tsunami ? walksFor(h)?.wayOut : null;
 
   /// Best walks from the current position for hazard [h], or null without
   /// a graph.
@@ -166,6 +181,7 @@ class MapState extends ChangeNotifier {
       final p = mock.split(',').map(double.parse).toList();
       here = LatLng(p[0], p[1]);
       hereIsMock = true;
+      focus = here;
       notifyListeners();
       return;
     }

@@ -40,6 +40,7 @@ manifest with its bbox and prefecture codes.
 | OpenStreetMap via Protomaps | ODbL 1.0 | Attribution on the map |
 | OpenStreetMap via Geofabrik (walking graph) | ODbL 1.0 | Attribution on the map |
 | GSI 標高タイル (DEM5A, DEM10B) | 国土地理院コンテンツ利用規約 | 「標高：国土地理院 標高タイル」 on the map |
+| 国土数値情報 津波浸水想定 (A40): 兵庫県 2016, 大阪府 2023 | CC BY 4.0 (both prefectures in the open-data group) | 「津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工」 on the map |
 
 ## Open points
 
@@ -178,9 +179,43 @@ Open:
 - In flat low areas the real answer is a tall building (津波避難ビル), not
   higher ground. The GSI sites include those buildings, but the data does
   not say how high their safe floor is.
-- The route still does not know where the sea or the rivers are; a
-  tsunami runs up rivers (the 武庫川 and 夙川 here). Distance from the coast
-  and rivers, or the official inundation map (浸水想定区域), would be the
-  next step.
+- ~~The route does not know the inundation area.~~ Done, see below.
 - Heights are ground heights: bridges and elevated roads get the height
   of the ground or water below.
+
+## Tsunami inundation area (2026-11-05)
+
+![Tsunami: you are in the inundation area, way out drawn on the map](images/phone-inundation.png)
+
+- **Data:** 国土数値情報 津波浸水想定 (MLIT, A40), the prefectures' official
+  expected inundation for the largest assumed tsunami, as polygons with a
+  depth class. 兵庫県 (2016 file) and 大阪府 (2023 file), CC BY 4.0. 25,629
+  polygons fall in the map area. (The 2018 兵庫県 file covers only the
+  Sea of Japan coast.)
+- **Per road point:** inside (with the depth class), within 50 m of an
+  area, or clear. 57,156 road points are inside, 13,528 near the edge. The
+  graph grew from 11.1 to 11.5 MB; the build takes 26 s.
+- **Tsunami routes** also cost more inside the area, more the deeper it
+  is (1.4 times below 0.3 m, up to 3.8 times at 5 m or more), on top of
+  the height rules.
+- **Shown in tsunami mode:**
+  - a card at the top of the map list: 「現在地は津波浸水想定区域内です
+    （想定1〜2 m）· 区域の外まで 徒歩910 m・約15分」 (test position 今津), or that you are near
+    or outside the area; tap it to draw the way out (teal line, flag);
+  - each site's expected flooding: 「海抜1.5 m · 浸水想定1〜2 m」 (many
+    tsunami evacuation buildings are inside the area: go upstairs);
+  - the answer card adds the way out.
+- **The way out** is the best tsunami walk to a road point at least 50 m
+  clear of every inundation area.
+
+Spot checks: 西宮市役所, 甲子園, 阪急西宮北口 and the 夙川 hills are outside,
+今津 near the port is in a 1–2 m area, south 芦屋 under 0.3 m.
+
+Open:
+- The data are the prefectures' assumptions (Nankai Trough, largest
+  class). A real tsunami can be larger or smaller: the app says so.
+- The inundation areas are not drawn on the map (25,000 polygons); only
+  the card, the site labels and the way out use them.
+- Other areas need their prefecture's A40 file named in the manifest.
+  京都府 and 長崎県 ask to be contacted for commercial use; 香川県 is not
+  available from MLIT.

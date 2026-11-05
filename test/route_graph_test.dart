@@ -6,11 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
 /// Writes a graph in the routes.bin format. [edges] are undirected.
-/// With [heights] (metres per node) it writes version 2.
+/// With [heights] (metres per node) it writes version 2, with [flood]
+/// as well version 3.
 Uint8List encode(
   List<LatLng> nodes,
   List<(int, int)> edges, {
   List<double>? heights,
+  List<int>? flood,
 }) {
   const r = 111195.0; // metres per degree, near enough for tests
   final adj = [for (final _ in nodes) <int>[]];
@@ -24,7 +26,7 @@ Uint8List encode(
   void i32(int v) =>
       b.add((ByteData(4)..setInt32(0, v, Endian.little)).buffer.asUint8List());
   b.add('FKRG'.codeUnits);
-  u32(heights == null ? 1 : 2);
+  u32(flood != null ? 3 : (heights == null ? 1 : 2));
   u32(nodes.length);
   u32(adj.fold(0, (s, a) => s + a.length));
   for (final n in nodes) {
@@ -65,6 +67,12 @@ Uint8List encode(
         )..setInt16(0, (h * 10).round(), Endian.little)).buffer.asUint8List(),
       );
     }
+  }
+  if (flood != null) {
+    while (b.length % 4 != 0) {
+      b.addByte(0);
+    }
+    b.add(flood);
   }
   return b.toBytes();
 }
@@ -179,6 +187,37 @@ void main() {
     expect(high.path, passes(line[3]));
     expect(high.dip, 0);
     expect(high.meters, greaterThan(short.meters * 1.3));
+  });
+
+  test('inundation: the way out and avoiding deep water', () {
+    // South street inside the inundation area (3–4 m at node 4), north
+    // street clear. All flat at 2 m.
+    final fg = RouteGraph.parse(
+      encode(
+        nodes,
+        [(0, 1), (1, 2), (3, 4), (4, 5), (0, 3), (1, 4), (2, 5)],
+        heights: [2, 2, 2, 2, 2, 2],
+        flood: [0, 0, 0, 4, 6, 4],
+      ),
+    );
+    expect(fg.hasFlood, isTrue);
+    expect(fg.floodOf(4), 6);
+    expect(floodDepth(6, en: false), '3〜4 m');
+    // From 3 the nearest clear point is 0, straight north (100 m).
+    final t = fg.walkFrom(nodes[3], preferHigh: true);
+    final out = t.wayOut!;
+    expect(out.startFlood, 4);
+    expect(out.endFlood, 0);
+    expect(out.meters, closeTo(100, 10));
+    expect([out.path.last], passes(nodes[0]));
+    // To 5 the tsunami walk leaves the area first instead of crossing 4.
+    final r = t.routeTo(nodes[5])!;
+    expect(r.path, isNot(passes(nodes[4])));
+    expect(r.endFlood, 4);
+    // Without tsunami: the short way through 4.
+    expect(fg.walkFrom(nodes[3]).routeTo(nodes[5])!.path, passes(nodes[4]));
+    // Already clear: no way out needed.
+    expect(fg.walkFrom(nodes[0], preferHigh: true).wayOut, isNull);
   });
 
   test('version 1 files have no heights', () {
