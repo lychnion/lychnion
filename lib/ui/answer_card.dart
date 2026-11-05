@@ -376,6 +376,11 @@ class AnswerCard extends StatelessWidget {
                           Text(
                             [
                               n.label(en),
+                              if (m.prefersHigh(hazard) &&
+                                  n.heightLabel(en).isNotEmpty)
+                                n.heightLabel(en),
+                              if (m.prefersHigh(hazard))
+                                en ? 'keeps to higher ground' : '高い道を優先',
                               if (m.avoidsBlocked && n.walk != null)
                                 en ? 'blocked roads considered' : '通行止めを考慮',
                             ].join(' · '),

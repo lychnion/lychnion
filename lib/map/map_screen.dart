@@ -437,6 +437,10 @@ class _MapScreenState extends State<MapScreen> {
                   TextSourceAttribution(
                     en ? 'Evacuation sites: GSI Japan' : '避難場所：国土地理院',
                   ),
+                  if (s.routes?.hasHeights ?? false)
+                    TextSourceAttribution(
+                      en ? 'Heights: GSI elevation tiles' : '標高：国土地理院 標高タイル',
+                    ),
                 ],
               ),
             ],
@@ -490,6 +494,8 @@ class _MapScreenState extends State<MapScreen> {
                               en
                                   ? '${hazard?.en ?? 'Any hazard'} · ${walking ? 'walking distance' : 'straight line'}'
                                   : '${hazard?.ja ?? 'すべての災害'} · ${walking ? '徒歩の道のり' : '直線距離'}',
+                              if (s.prefersHigh(hazard))
+                                en ? 'keeps to higher ground' : '高い道を優先',
                               if (s.avoidsBlocked)
                                 en ? 'blocked roads considered' : '通行止めを考慮',
                               if (_locationStatus.isNotEmpty) _locationStatus,
@@ -649,6 +655,15 @@ class _MapScreenState extends State<MapScreen> {
                       decoration: avoid ? TextDecoration.lineThrough : null,
                     ),
                   ),
+                  if (s.prefersHigh(s.hazard) && n.heightLabel(en).isNotEmpty)
+                    Text(
+                      n.heightLabel(en),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: (n.route?.dip ?? 0) >= SiteDistance.minDip
+                            ? scheme.error
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
                   if (status != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -724,6 +739,17 @@ class _MapScreenState extends State<MapScreen> {
                                   'crowds or tsunami height: follow official guidance and what you see. '
                             : '距離は OpenStreetMap の道路・歩道に沿った徒歩の道のりです（分速60 m で計算）。'
                                   '被害や混雑、津波の高さは考慮していません。公式の情報と現地の状況に従ってください。')
+                      : '') +
+                  (s.routes?.hasHeights ?? false
+                      ? (en
+                            ? 'For tsunami the route keeps to higher ground and avoids going down, even if '
+                                  'it is a little longer. Heights are ground heights (GSI elevation tiles): at a '
+                                  'tsunami evacuation building, go up to the upper floors. '
+                            : '津波の場合は、少し遠回りでも高い道を通り、下り坂を避ける経路を選びます。高さは地面の標高'
+                                  '（国土地理院 標高タイル）です。津波避難ビルでは上の階へ上がってください。')
+                      : '') +
+                  (s.routes != null
+                      ? ''
                       : (en
                             ? 'Distances are straight lines, not routes. '
                             : '距離は直線距離です（道のりではありません）。')) +

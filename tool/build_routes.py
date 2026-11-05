@@ -1,37 +1,48 @@
 #!/usr/bin/env python3
 """Builds the offline walking graph for one map area.
 
-    python3 -m venv build/route-venv && build/route-venv/bin/pip install osmium
+    python3 -m venv build/route-venv && build/route-venv/bin/pip install osmium pillow
     build/route-venv/bin/python -I tool/build_routes.py tool/maps/nishinomiya.json
 
 Reads the OpenStreetMap extract named in the manifest ("routes.source",
 downloaded once to build/map-cache/), keeps the ways people can walk on
-inside the area's bbox, and writes build/maps/<id>.routes.bin (not in git).
+inside the area's bbox, adds the ground height of every point from the GSI
+elevation tiles (標高タイル, 5 m grid where available, else 10 m), and
+writes build/maps/<id>.routes.bin (not in git).
 
 File format (little endian, read by lib/map/route_graph.dart):
 
-    header   'FKRG', u32 version=1, u32 nodes, u32 edges
+    header   'FKRG', u32 version=2, u32 nodes, u32 edges
     lat      i32[nodes]   degrees * 1e6
     lon      i32[nodes]
     offsets  u32[nodes+1] edges of node i are offsets[i] .. offsets[i+1]-1
     targets  u32[edges]
     lengths  u16[edges]   decimetres
     (padding to 4 bytes)
+    height   i16[nodes]   ground height above sea level, decimetres;
+                          -32768 where the tiles have no value
+    (padding to 4 bytes)
+
+Version 1 files (no heights) are still read by the app.
 
 Every edge is stored in both directions (one-way streets do not apply to
 people on foot). Nodes are sorted by a 0.001° grid, so each grid cell is
 one run of nodes. Small pieces of road not connected to the rest (under
 MIN_PART nodes) are dropped, so a position never snaps onto them.
 """
+import io
 import json
 import math
 import struct
 import sys
+import urllib.error
 import urllib.request
 from array import array
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import osmium
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "build" / "map-cache"
@@ -57,6 +68,70 @@ def fetch(url, name):
             while chunk := r.read(1 << 20):
                 f.write(chunk)
     return path
+
+
+# GSI elevation tiles: 5 m grid (DEM5A, laser survey) first, 10 m where it
+# has no value. https://maps.gsi.go.jp/development/demtile.html
+DEM = [("dem5a_png", 15), ("dem_png", 14)]
+NO_HEIGHT = -32768
+
+
+def _tile_xy(lat, lon, z):
+    n = 2 ** z
+    x = (lon + 180) / 360 * n
+    y = (1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * n
+    return x, y
+
+
+def _get_tile(name, z, x, y):
+    """Pixels of one tile, or None if GSI has none (sea, outside the survey)."""
+    path = CACHE / "dem" / name / str(z) / str(x) / f"{y}.png"
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        url = f"https://cyberjapandata.gsi.go.jp/xyz/{name}/{z}/{x}/{y}.png"
+        req = urllib.request.Request(url, headers={"User-Agent": "fieldkit-route-builder"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                path.write_bytes(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+            path.write_bytes(b"")  # remember: no tile here
+    data = path.read_bytes()
+    return Image.open(io.BytesIO(data)).convert("RGB").load() if data else None
+
+
+class Heights:
+    """Ground height at a point from the GSI tiles (metres, or None)."""
+
+    def __init__(self):
+        self.tiles = {}
+
+    def preload(self, points):
+        need = set()
+        for lat, lon in points:
+            for name, z in DEM:
+                x, y = _tile_xy(lat, lon, z)
+                need.add((name, z, int(x), int(y)))
+        missing = [k for k in need if k not in self.tiles]
+        print(f"{len(missing)} elevation tiles")
+        # A few at a time: GSI is a public service.
+        with ThreadPoolExecutor(4) as ex:
+            for k, px in zip(missing, ex.map(lambda k: _get_tile(*k), missing)):
+                self.tiles[k] = px
+
+    def at(self, lat, lon):
+        for name, z in DEM:
+            x, y = _tile_xy(lat, lon, z)
+            px = self.tiles.get((name, z, int(x), int(y)))
+            if px is None:
+                continue
+            r, g, b = px[min(255, int((x % 1) * 256)), min(255, int((y % 1) * 256))]
+            v = (r << 16) + (g << 8) + b
+            if v == 1 << 23:
+                continue  # no value at this pixel
+            return (v - (1 << 24) if v > 1 << 23 else v) * 0.01
+        return None
 
 
 def walkable(tags):
@@ -159,6 +234,14 @@ def main(manifest_path):
 
     lat = array("i", (round(h.loc[ids[v]][0] * 1e6) for v in kept))
     lon = array("i", (round(h.loc[ids[v]][1] * 1e6) for v in kept))
+    hs = Heights()
+    hs.preload(h.loc[ids[v]] for v in kept)
+    height = array("h")
+    for v in kept:
+        e = hs.at(*h.loc[ids[v]])
+        height.append(NO_HEIGHT if e is None else max(-32767, min(32767, round(e * 10))))
+    unknown = sum(1 for e in height if e == NO_HEIGHT)
+    print(f"heights: {len(kept) - unknown} points, {unknown} without a value")
     offsets, targets, lengths = array("I", [0]), array("I"), array("H")
     for v in kept:
         p = h.loc[ids[v]]
@@ -169,12 +252,12 @@ def main(manifest_path):
 
     out = OUT / f"{m['id']}.routes.bin"
     with open(out, "wb") as f:
-        f.write(b"FKRG" + struct.pack("<III", 1, len(kept), len(targets)))
-        for a in (lat, lon, offsets, targets, lengths):
+        f.write(b"FKRG" + struct.pack("<III", 2, len(kept), len(targets)))
+        for a in (lat, lon, offsets, targets, lengths, height):
             if sys.byteorder != "little":
                 a.byteswap()
             f.write(a.tobytes())
-        f.write(b"\0" * (-f.tell() % 4))
+            f.write(b"\0" * (-f.tell() % 4))
     km = sum(lengths) / 10 / 1000 / 2
     print(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB, {len(kept)} nodes, {km:.0f} km of ways)")
 

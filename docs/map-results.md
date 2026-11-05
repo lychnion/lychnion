@@ -38,6 +38,8 @@ manifest with its bbox and prefecture codes.
 |---|---|---|
 | GSI 指定緊急避難場所・指定避難所データ | 国土地理院コンテンツ利用規約 + usage notes (agreed on 2026-11-04 by Daniel) | Attribution and the notes in the app; marked as edited (area cut) |
 | OpenStreetMap via Protomaps | ODbL 1.0 | Attribution on the map |
+| OpenStreetMap via Geofabrik (walking graph) | ODbL 1.0 | Attribution on the map |
+| GSI 標高タイル (DEM5A, DEM10B) | 国土地理院コンテンツ利用規約 | 「標高：国土地理院 標高タイル」 on the map |
 
 ## Open points
 
@@ -133,9 +135,52 @@ route line and answer. A blocked road on the route was tested only in the
 unit tests, not in the app.
 
 Open:
-- The route does not know about tsunami: it can lead toward the sea, and
-  it does not prefer higher ground. That needs elevation data.
+- ~~The route does not know about tsunami.~~ Partly done, see below.
 - Not in the download catalog yet: the downloaded map area has no graph,
   so phones that downloaded the map still see straight lines.
 - The graph has no information on damage, narrow alleys, steps for
   wheelchairs, or crowds.
+
+## Tsunami: higher ground (2026-11-05)
+
+![Tsunami: height above sea level per site, route keeps to higher ground](images/phone-tsunami-heights.png)
+
+- **Heights:** every road point now has its ground height from the GSI
+  elevation tiles (標高タイル, 5 m grid from laser survey, 10 m grid where
+  that has no value). 396,323 of 396,353 points have a height; the graph
+  grew from 10.4 to 11.1 MB. 776 tiles, fetched once at build time.
+- **Tsunami routes:** roads below 10 m cost more (up to 3 times at sea
+  level) and every metre down costs 20 m extra. The route keeps to higher
+  ground and avoids going down, even if it is a little longer. Sites are
+  sorted by this cost; the distance shown is still the real walk. Other
+  hazards use the shortest walk.
+- **Shown:** ground height near each site (「海抜3.6 m」 / "3.6 m above sea
+  level") and, in red, when the route goes 2 m or more below the start
+  (「途中で海抜1.2 mまで下がる」). The answer card adds 「高い道を優先」.
+- **Speed:** the high-ground search takes 16 ms on the simulator.
+
+How much it changes (500 m to 2 km walks, real graph):
+
+| Start | Height | Routes changed | Walk longer | Mean dip |
+|---|---|---|---|---|
+| 西宮市役所 | 3.6 m | 56 % | +2 % | 1.54 → 1.36 m |
+| 今津 (near the port) | 1.1 m | 44 % | +1 % | 0.52 → 0.38 m |
+| 甲子園 | 1.2 m | 33 % | 0 % | 1.03 → 0.89 m |
+| 芦屋 south | 1.0 m | 61 % | +6 % | 0.05 → 0.03 m |
+
+The effect is small here: southern Nishinomiya is flat, 1 to 4 m above
+sea level, so there is little higher ground to keep to. Most remaining
+dips cannot be avoided (the site is lower than the start). In hilly
+coastal towns (Sanriku, Kii peninsula) the same rule should matter more;
+not tested.
+
+Open:
+- In flat low areas the real answer is a tall building (津波避難ビル), not
+  higher ground. The GSI sites include those buildings, but the data does
+  not say how high their safe floor is.
+- The route still does not know where the sea or the rivers are; a
+  tsunami runs up rivers (the 武庫川 and 夙川 here). Distance from the coast
+  and rivers, or the official inundation map (浸水想定区域), would be the
+  next step.
+- Heights are ground heights: bridges and elevated roads get the height
+  of the ground or water below.

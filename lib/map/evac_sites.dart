@@ -63,23 +63,47 @@ class EvacSite {
 }
 
 class SiteDistance {
-  SiteDistance(this.site, this.meters, this.bearing, {this.walk, this.tree});
+  SiteDistance(this.site, this.meters, this.bearing, {this.route});
   final EvacSite site;
 
   /// Straight-line metres.
   final double meters;
   final double bearing;
 
-  /// Walking metres on the route, when the area has a walking graph and a
-  /// route was found.
-  final double? walk;
-  final WalkTree? tree;
+  /// The walking route, when the area has a walking graph and a route was
+  /// found.
+  final RouteInfo? route;
 
-  SiteDistance withWalk(double? walk, WalkTree tree) =>
-      SiteDistance(site, meters, bearing, walk: walk, tree: tree);
+  SiteDistance withRoute(RouteInfo? route) =>
+      SiteDistance(site, meters, bearing, route: route);
+
+  /// Walking metres on the route.
+  double? get walk => route?.meters;
 
   /// The walking route, from the current position to the site.
-  List<LatLng>? get path => walk == null ? null : tree?.pathTo(site.point);
+  List<LatLng>? get path => route?.path;
+
+  /// A route that goes this many metres below the start is flagged. Less
+  /// is within the noise of flat coastal ground.
+  static const minDip = 2.0;
+
+  /// "海抜 5 m" for the ground near the site, and how low the way goes when
+  /// it dips [minDip] or more below the start. Empty without heights.
+  String heightLabel(bool en) {
+    final r = route, h = r?.endHeight;
+    if (r == null || h == null) return '';
+    final parts = [
+      en ? '${_h(h)} m above sea level' : '海抜${_h(h)} m',
+      if (r.dip >= minDip && r.lowest != null)
+        en
+            ? 'dips to ${_h(r.lowest!)} m on the way'
+            : '途中で海抜${_h(r.lowest!)} mまで下がる',
+    ];
+    return parts.join(' · ');
+  }
+
+  static String _h(double m) =>
+      m.abs() < 10 ? m.toStringAsFixed(1) : m.round().toString();
 
   /// Walking minutes at 60 m a minute (1 m/s): slower than everyday
   /// walking, as tsunami evacuation plans assume.

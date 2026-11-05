@@ -59,9 +59,9 @@ class MapState extends ChangeNotifier {
 
   RouteGraph? routes;
 
-  /// Walks from the current position, kept until the position or the
-  /// blocked roads change.
-  WalkTree? _tree;
+  /// Walks from the current position (normal and tsunami), kept until the
+  /// position or the blocked roads change.
+  final _trees = <bool, WalkTree>{};
   String? _treeKey;
 
   /// "lat,lon" for testing without a GPS fix.
@@ -126,22 +126,35 @@ class MapState extends ChangeNotifier {
       ?pointOf(f.subject),
   ];
 
-  /// Shortest walks from the current position, or null without a graph.
-  WalkTree? get walks {
+  /// Tsunami routes keep to higher ground (when the graph has heights).
+  bool prefersHigh(Hazard? h) =>
+      h == Hazard.tsunami && (routes?.hasHeights ?? false);
+
+  /// Best walks from the current position for hazard [h], or null without
+  /// a graph.
+  WalkTree? walksFor(Hazard? h) {
     final g = routes, f = from;
     if (g == null || f == null) return null;
     final blocked = blockedPoints;
     final key = '${f.latitude},${f.longitude}|${blocked.join(';')}';
     if (key != _treeKey) {
+      _trees.clear();
+      _treeKey = key;
+    }
+    final high = prefersHigh(h);
+    return _trees.putIfAbsent(high, () {
       final sw = Stopwatch()..start();
-      _tree = g.walkFrom(
+      final t = g.walkFrom(
         f,
+        preferHigh: high,
         blocked: {for (final p in blocked) ...g.nodesNear(p, blockedRadius)},
       );
-      _treeKey = key;
-      debugPrint('routes: walk tree in ${sw.elapsedMilliseconds} ms');
-    }
-    return _tree;
+      debugPrint(
+        'routes: walk tree${high ? ' (high ground)' : ''} '
+        'in ${sw.elapsedMilliseconds} ms',
+      );
+      return t;
+    });
   }
 
   /// Whether routes take at least one blocked road into account.
@@ -208,14 +221,17 @@ class MapState extends ChangeNotifier {
     final s = sites, f = from;
     if (s == null || f == null) return const [];
     var all = s.nearest(f, hazard: h, limit: limit + 20);
-    final tree = walks;
+    final tree = walksFor(h);
     if (tree != null && tree.onNetwork) {
       // The nearest by walking is almost always among the 25 nearest in a
       // straight line. Sites without a route go last.
-      all = [for (final n in all) n.withWalk(tree.metersTo(n.site.point), tree)]
+      // Sorted by what the search minimised: for tsunami that favours
+      // higher ground over the shortest walk.
+      all = [for (final n in all) n.withRoute(tree.routeTo(n.site.point))]
         ..sort(
-          (a, b) =>
-              (a.walk ?? 1e9 + a.meters).compareTo(b.walk ?? 1e9 + b.meters),
+          (a, b) => (a.route?.cost ?? 1e9 + a.meters).compareTo(
+            b.route?.cost ?? 1e9 + b.meters,
+          ),
         );
     }
     return [

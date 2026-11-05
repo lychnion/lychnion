@@ -6,9 +6,17 @@ import 'package:latlong2/latlong.dart';
 
 /// Offline walking graph for one map area, built by tool/build_routes.py
 /// from OpenStreetMap. Nodes are points on roads and paths; every edge can be
-/// walked both ways.
+/// walked both ways. Version 2 files also carry the ground height of every
+/// node (GSI elevation tiles).
 class RouteGraph {
-  RouteGraph._(this._lat, this._lon, this._offsets, this._targets, this._len) {
+  RouteGraph._(
+    this._lat,
+    this._lon,
+    this._offsets,
+    this._targets,
+    this._len, [
+    this._height,
+  ]) {
     // Nodes come sorted by 0.001° cell: remember where each cell starts.
     for (var i = 0; i < _lat.length; i++) {
       final c = _cellOf(_lat[i], _lon[i]);
@@ -22,19 +30,32 @@ class RouteGraph {
 
   /// Edge lengths in decimetres.
   final Uint16List _len;
+
+  /// Ground height per node in decimetres ([noHeight]: unknown), or null.
+  final Int16List? _height;
+  static const noHeight = -32768;
   final _cellStart = <int, int>{};
   final _cellEnd = <int, int>{};
 
   int get nodeCount => _lat.length;
+
+  bool get hasHeights => _height != null;
+
+  /// Ground height of node [i] above sea level in metres, or null.
+  double? heightOf(int i) {
+    final h = _height?[i];
+    return h == null || h == noHeight ? null : h / 10;
+  }
 
   /// Parses a routes.bin file (see tool/build_routes.py for the format).
   factory RouteGraph.parse(Uint8List bytes) {
     final b = ByteData.sublistView(bytes);
     if (bytes.length < 16 ||
         String.fromCharCodes(bytes.sublist(0, 4)) != 'FKRG' ||
-        b.getUint32(4, Endian.little) != 1) {
+        !const [1, 2].contains(b.getUint32(4, Endian.little))) {
       throw const FormatException('not a fieldkit route graph');
     }
+    final version = b.getUint32(4, Endian.little);
     final n = b.getUint32(8, Endian.little);
     final e = b.getUint32(12, Endian.little);
     var at = 16;
@@ -62,7 +83,15 @@ class RouteGraph {
       len[k] = b.getUint16(at, Endian.little);
     }
     if (offsets[n] != e) throw const FormatException('broken route graph');
-    return RouteGraph._(lat, lon, offsets, targets, len);
+    Int16List? height;
+    if (version >= 2) {
+      at += -at % 4;
+      height = Int16List(n);
+      for (var k = 0; k < n; k++, at += 2) {
+        height[k] = b.getInt16(at, Endian.little);
+      }
+    }
+    return RouteGraph._(lat, lon, offsets, targets, len, height);
   }
 
   static Future<RouteGraph> load(String path) async =>
@@ -119,37 +148,95 @@ class RouteGraph {
     return null;
   }
 
-  /// Shortest walks from [from] to every node up to [maxMeters] away.
+  /// Roads below this height (metres) cost more in [walkFrom] with
+  /// `preferHigh`; at sea level three times as much.
+  static const lowGround = 10.0;
+
+  /// Extra cost in metres per metre a step goes down, with `preferHigh`.
+  static const downCost = 20.0;
+
+  /// Best walks from [from] to every node up to [maxMeters] away.
   /// Nodes in [blocked] are never entered (e.g. near a blocked road).
+  ///
+  /// With [preferHigh] (tsunami), low roads cost more and going down costs
+  /// extra, so the walk keeps to higher ground even if it is a little
+  /// longer. Distances reported are still the real walking metres.
   WalkTree walkFrom(
     LatLng from, {
     double maxMeters = 6000,
     Set<int> blocked = const {},
+    bool preferHigh = false,
   }) {
     final start = nearestNode(from);
     final n = nodeCount;
-    final dist = Float64List(n)..fillRange(0, n, double.infinity);
+    final cost = Float64List(n)..fillRange(0, n, double.infinity);
+    final walked = Float64List(n);
     final prev = Int32List(n)..fillRange(0, n, -1);
-    if (start == null) return WalkTree._(this, from, null, 0, dist, prev);
+    final high = preferHigh && hasHeights;
+    if (start == null) {
+      return WalkTree._(this, from, null, 0, cost, walked, prev);
+    }
+    final maxCost = high ? maxMeters * 3 : maxMeters;
     final heap = _Heap();
-    dist[start.node] = 0;
+    cost[start.node] = 0;
     heap.push(0, start.node);
     while (heap.isNotEmpty) {
       final d = heap.topKey, v = heap.pop();
-      if (d > dist[v]) continue; // stale entry
-      if (d > maxMeters) break;
+      if (d > cost[v]) continue; // stale entry
+      if (d > maxCost || walked[v] > maxMeters) break;
+      final hv = high ? heightOf(v) : null;
       for (var k = _offsets[v]; k < _offsets[v + 1]; k++) {
         final u = _targets[k];
         if (blocked.contains(u)) continue;
-        final nd = d + _len[k] / 10;
-        if (nd < dist[u]) {
-          dist[u] = nd;
+        final m = _len[k] / 10;
+        var c = m;
+        if (hv != null) {
+          final hu = heightOf(u);
+          if (hu != null) {
+            final low = (lowGround - (hv + hu) / 2) / lowGround;
+            c *= 1 + 2 * low.clamp(0.0, 1.0);
+            if (hu < hv) c += downCost * (hv - hu);
+          }
+        }
+        final nd = d + c;
+        if (nd < cost[u]) {
+          cost[u] = nd;
+          walked[u] = walked[v] + m;
           prev[u] = v;
           heap.push(nd, u);
         }
       }
     }
-    return WalkTree._(this, from, start.node, start.meters, dist, prev);
+    return WalkTree._(this, from, start.node, start.meters, cost, walked, prev);
+  }
+}
+
+/// One route found by a [WalkTree].
+class RouteInfo {
+  RouteInfo({
+    required this.meters,
+    required this.cost,
+    required this.path,
+    this.startHeight,
+    this.endHeight,
+    this.lowest,
+  });
+
+  /// Real walking metres.
+  final double meters;
+
+  /// What the search minimised (= [meters] unless it preferred high ground).
+  final double cost;
+  final List<LatLng> path;
+
+  /// Ground heights above sea level (metres): where the walk starts, the
+  /// road point nearest the destination, and the lowest point on the way.
+  final double? startHeight, endHeight, lowest;
+
+  /// How far below the start the route goes on the way (metres, ≥ 0).
+  double get dip {
+    final s = startHeight, l = lowest;
+    return s == null || l == null ? 0 : max(0, s - l);
   }
 }
 
@@ -160,7 +247,8 @@ class WalkTree {
     this.from,
     this._start,
     this._startMeters,
-    this._dist,
+    this._cost,
+    this._walked,
     this._prev,
   );
 
@@ -170,33 +258,43 @@ class WalkTree {
 
   /// From [from] to the first node on a road.
   final double _startMeters;
-  final Float64List _dist;
+  final Float64List _cost, _walked;
   final Int32List _prev;
+  final _routes = <LatLng, RouteInfo?>{};
 
   /// The start position is on (or near) the road network.
   bool get onNetwork => _start != null;
 
-  ({int node, double meters})? _end(LatLng to) =>
-      graph.nearestNode(to, maxMeters: 250);
-
-  /// Walking metres to [to], or null when no route was found in range.
-  double? metersTo(LatLng to) {
-    final e = _end(to);
-    if (_start == null || e == null) return null;
-    final d = _dist[e.node];
-    return d.isFinite ? _startMeters + d + e.meters : null;
-  }
-
-  /// The path to [to] as points, from [from] to [to], or null.
-  List<LatLng>? pathTo(LatLng to) {
-    final e = _end(to);
-    if (_start == null || e == null || !_dist[e.node].isFinite) return null;
+  /// The route to [to], or null when none was found in range.
+  RouteInfo? routeTo(LatLng to) => _routes.putIfAbsent(to, () {
+    final start = _start;
+    final e = graph.nearestNode(to, maxMeters: 250);
+    if (start == null || e == null || !_cost[e.node].isFinite) return null;
     final nodes = <int>[];
     for (var v = e.node; v != -1; v = _prev[v]) {
       nodes.add(v);
     }
-    return [from, for (final v in nodes.reversed) graph.point(v), to];
-  }
+    double? lowest;
+    for (final v in nodes) {
+      final h = graph.heightOf(v);
+      if (h != null && (lowest == null || h < lowest)) lowest = h;
+    }
+    final extra = _startMeters + e.meters;
+    return RouteInfo(
+      meters: _walked[e.node] + extra,
+      cost: _cost[e.node] + extra,
+      path: [from, for (final v in nodes.reversed) graph.point(v), to],
+      startHeight: graph.heightOf(start),
+      endHeight: graph.heightOf(e.node),
+      lowest: lowest,
+    );
+  });
+
+  /// Walking metres to [to], or null when no route was found in range.
+  double? metersTo(LatLng to) => routeTo(to)?.meters;
+
+  /// The path to [to] as points, from [from] to [to], or null.
+  List<LatLng>? pathTo(LatLng to) => routeTo(to)?.path;
 }
 
 /// Binary min-heap of (key, node).

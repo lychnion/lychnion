@@ -13,7 +13,9 @@
   "routes": {
     "source": "https://download.geofabrik.de/asia/japan/kansai-latest.osm.pbf",
     "licence": "ODbL 1.0",
-    "attribution": "© OpenStreetMap contributors (ODbL)"
+    "attribution": "© OpenStreetMap contributors (ODbL)",
+    "heights": "国土地理院 標高タイル（DEM5A・DEM10B）",
+    "heights_licence": "国土地理院コンテンツ利用規約"
   },
   "sites": {
     "prefectures": ["27000", "28000"],
