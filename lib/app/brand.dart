@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 /// Lychnion brand colours (brand canvas, board 4). No red: red and orange
 /// stay reserved for official warnings the app relays.
 abstract final class Brand {
+  /// Where the source code is (AGPL: offered to every user).
+  static const sourceUrl = 'https://github.com/lychnion/lychnion';
+
   static const name = 'Lychnion';
   static const nameJa = 'リクニオン';
 
@@ -53,7 +56,19 @@ abstract final class Brand {
 }
 
 /// Shows the fonts' licences on the app's licence page.
-void addFontLicenses() {
+/// Registers the app's own licence and the brand fonts' licences for the
+/// licence page (showLicensePage).
+void addLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    yield const LicenseEntryWithLineBreaks(
+      [Brand.name],
+      'Copyright the Lychnion authors.\n\n'
+      'Free software under the GNU Affero General Public License, '
+      'version 3, with an app store exception. You may share and change '
+      'it; anyone who passes it on must give its users the source code.\n\n'
+      'Source code: ${Brand.sourceUrl}',
+    );
+  });
   for (final (family, file) in const [
     ('BIZ UDPGothic', 'assets/fonts/OFL-BIZUDPGothic.txt'),
     ('Lexend', 'assets/fonts/OFL-Lexend.txt'),

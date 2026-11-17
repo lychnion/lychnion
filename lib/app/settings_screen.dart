@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../download/download_manager.dart';
 import '../download/downloads_screen.dart';
@@ -92,7 +93,10 @@ class SettingsScreen extends StatelessWidget {
               _NavTile(
                 icon: Icons.info_outline_rounded,
                 title: _t('${Brand.nameJa}について', 'About ${Brand.name}'),
-                subtitle: _t('しくみ・ご注意・開発者向け', 'How it works, notes, developer'),
+                subtitle: _t(
+                  'しくみ・ご注意・オープンソース',
+                  'How it works, notes, open source',
+                ),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => _AboutPage(settings: settings, en: en),
@@ -266,6 +270,56 @@ class _AboutPage extends StatelessWidget {
                     '研究用の試作版です。緊急時は自治体・気象庁などの公式情報に従ってください。',
                     'A research prototype. In an emergency, follow official '
                         'information from your city and the Japan Meteorological Agency.',
+                  ),
+                ),
+              ],
+            ),
+            _Group(
+              title: _t('オープンソース', 'Open source'),
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  leading: Icon(
+                    Icons.code_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: Text(_t('ソースコード', 'Source code')),
+                  subtitle: Text(
+                    _t(
+                      'だれでも中身を確認・改良できます（GNU AGPL v3）。'
+                          '配布する人は、利用者にソースコードを提供する義務があります。',
+                      'Anyone can check and improve how it works (GNU AGPL v3). '
+                          'Whoever passes it on must give users the source code.',
+                    ),
+                  ),
+                  trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+                  onTap: () => launchUrl(
+                    Uri.parse(Brand.sourceUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: Icon(
+                    Icons.gavel_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: Text(_t('ライセンス', 'Licences')),
+                  subtitle: Text(
+                    _t(
+                      'アプリ、使用しているソフトウェアとフォント',
+                      'The app, the software and fonts it uses',
+                    ),
+                  ),
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: Brand.nameIn(en: en),
+                    applicationLegalese:
+                        '© the Lychnion authors · GNU AGPL v3 '
+                        '(app store exception)\n${Brand.sourceUrl}',
                   ),
                 ),
               ],

@@ -126,5 +126,23 @@ flutter run -d macos --dart-define=DOWNLOAD_BASE_URL=http://127.0.0.1:8765/
 
 ## Licence
 
-Apache 2.0, see [LICENSE](LICENSE). Models and data have their own licences;
-Gemma 4 is Apache 2.0.
+The code is free software under the
+[GNU Affero General Public License, version 3](LICENSE), with an
+[app store exception](LICENSE-APPSTORE-EXCEPTION.md) so the app can be
+published in the App Store and Google Play. Anyone who passes the app on,
+changed or not, must give its users the source code. This includes a
+shelter computer that answers phones over the network. Copyright: the
+[Lychnion authors](AUTHORS). To contribute, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Data and models keep their own licences:
+
+| What | Licence |
+|---|---|
+| Knowledge packages (official pages) | Mostly PDL1.0 (compatible with CC BY 4.0); each source is listed in `tool/packages/*.json` and shown with every answer |
+| Maps: OpenStreetMap data | ODbL (share-alike) |
+| Maps: 国土地理院 and 国土数値情報 layers | GSI terms, CC BY 4.0 |
+| Models (Gemma 4, EmbeddingGemma 2) | Apache 2.0 |
+| Fonts (BIZ UDPGothic, Lexend, Zen Maru Gothic) | SIL OFL 1.1 |
+
+Versions up to commit `064f50a` were published under Apache 2.0.
