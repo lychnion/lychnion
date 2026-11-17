@@ -1,6 +1,6 @@
-import 'package:fieldkit/knowledge/grounded_answer.dart';
-import 'package:fieldkit/knowledge/knowledge_package.dart';
-import 'package:fieldkit/knowledge/retriever.dart';
+import 'package:lychnion/knowledge/grounded_answer.dart';
+import 'package:lychnion/knowledge/knowledge_package.dart';
+import 'package:lychnion/knowledge/retriever.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

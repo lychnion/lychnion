@@ -89,12 +89,12 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "dev.fieldkit" "\0"
+            VALUE "CompanyName", "Lychnion" "\0"
             VALUE "FileDescription", "Lychnion" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "fieldkit" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 dev.fieldkit. All rights reserved." "\0"
-            VALUE "OriginalFilename", "fieldkit.exe" "\0"
+            VALUE "InternalName", "lychnion" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Lychnion. All rights reserved." "\0"
+            VALUE "OriginalFilename", "lychnion.exe" "\0"
             VALUE "ProductName", "Lychnion" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

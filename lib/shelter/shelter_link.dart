@@ -1,7 +1,7 @@
 /// Links that tell a phone which shelter computer to use.
 ///
-/// The shelter computer shows `fieldkit://shelter?url=…&name=…` as a QR
-/// code. Scanning it with the phone's camera opens fieldkit, which asks the
+/// The shelter computer shows `lychnion://shelter?url=…&name=…` as a QR
+/// code. Scanning it with the phone's camera opens Lychnion, which asks the
 /// user before it connects. A typed address (`192.168.1.20`,
 /// `http://192.168.1.20:8642`) works too.
 library;
@@ -19,7 +19,10 @@ class ShelterLink {
   /// computer at this address with another key is refused.
   final String? key;
 
-  static const scheme = 'fieldkit';
+  static const scheme = 'lychnion';
+
+  /// QR codes printed before the rename still open the app.
+  static const oldScheme = 'fieldkit';
 
   Uri toUri() => Uri(
     scheme: scheme,
@@ -27,9 +30,13 @@ class ShelterLink {
     queryParameters: {'url': url, 'name': ?name, 'key': ?key},
   );
 
-  /// A fieldkit:// link, or null if [uri] is something else.
+  /// A lychnion:// (or old fieldkit://) link, or null if [uri] is
+  /// something else.
   static ShelterLink? fromUri(Uri uri) {
-    if (uri.scheme != scheme || uri.host != 'shelter') return null;
+    if ((uri.scheme != scheme && uri.scheme != oldScheme) ||
+        uri.host != 'shelter') {
+      return null;
+    }
     final url = normalize(uri.queryParameters['url'] ?? '');
     if (url == null) return null;
     final name = uri.queryParameters['name'];

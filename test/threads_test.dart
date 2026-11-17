@@ -1,6 +1,6 @@
-import 'package:fieldkit/knowledge/grounded_answer.dart';
-import 'package:fieldkit/shelter/shelter_protocol.dart';
-import 'package:fieldkit/ui/threads.dart';
+import 'package:lychnion/knowledge/grounded_answer.dart';
+import 'package:lychnion/shelter/shelter_protocol.dart';
+import 'package:lychnion/ui/threads.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-package dev.fieldkit.fieldkit
+package com.lychnion.app
 
 import io.flutter.embedding.android.FlutterActivity
 

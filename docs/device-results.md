@@ -43,7 +43,7 @@ Mac.
   stop working after 7 days and must be reinstalled.
 - Models and map are copied over the cable into the app's Documents folder:
   `xcrun devicectl device copy to --domain-type appDataContainer
-  --domain-identifier dev.fieldkit.fieldkit`. The app accepts `docs:` paths
+  --domain-identifier com.lychnion.app`. The app accepts `docs:` paths
   for this (`lib/util/paths.dart`).
 - iOS release builds do not show the app's log in `devicectl --console`;
   the test writes its results and screenshots to Documents, copied back with
@@ -144,7 +144,7 @@ Flutter's framework check for "arm64 x86_64" failed; `ios/Flutter/Debug.xcconfig
 now builds the simulator for arm64 only.
 
 Model and map files go into the app's Documents folder
-(`xcrun simctl get_app_container <device> dev.fieldkit.fieldkit data`), then
+(`xcrun simctl get_app_container <device> com.lychnion.app data`), then
 `docs:` paths work as on a real iPhone. The simulator runs the model on the
 CPU: loading took 14 s, the tsunami question answered with the safety line,
 the nearest open site (full 市役所 skipped) and a cited answer. Speed on the

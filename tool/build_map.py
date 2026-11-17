@@ -41,7 +41,7 @@ HAZARDS = {
 def fetch(url, name):
     path = CACHE / name
     if not path.exists():
-        req = urllib.request.Request(url, headers={"User-Agent": "fieldkit-map-builder"})
+        req = urllib.request.Request(url, headers={"User-Agent": "lychnion-map-builder"})
         with urllib.request.urlopen(req, timeout=120) as r:
             path.write_bytes(r.read())
     return path

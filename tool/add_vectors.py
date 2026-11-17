@@ -4,8 +4,8 @@
     python3 -I tool/add_vectors.py assets/packages/jp.bousai.core.sqlite VECTORS.json MODEL_NAME
 
 VECTORS.json is the cache the app writes after embedding the package once
-(on macOS: ~/Library/Containers/dev.fieldkit.fieldkit/Data/Library/
-Application Support/dev.fieldkit.fieldkit/packages/<id>-<version>-<model>.vectors.json).
+(on macOS: ~/Library/Containers/com.lychnion.app/Data/Library/
+Application Support/com.lychnion.app/packages/<id>-<version>-<model>.vectors.json).
 It lists one vector per passage, in passage id order. MODEL_NAME must be the
 embedding model file name the app loads (e.g. embeddinggemma-2-Q8_0.gguf).
 """

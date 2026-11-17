@@ -97,7 +97,7 @@ class RouteGraph {
     if (bytes.length < 16 ||
         String.fromCharCodes(bytes.sublist(0, 4)) != 'FKRG' ||
         !const [1, 2, 3, 4].contains(b.getUint32(4, Endian.little))) {
-      throw const FormatException('not a fieldkit route graph');
+      throw const FormatException('not a Lychnion route graph');
     }
     final version = b.getUint32(4, Endian.little);
     final n = b.getUint32(8, Endian.little);

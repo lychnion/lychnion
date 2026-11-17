@@ -251,7 +251,7 @@ The map area item `jp.map.nishinomiya` is now version **2026.11.1** with
 four files: the base map and sites as before, plus the walking graph
 (`routes.bin`, 11.5 MB) and the inundation tiles (`inundation.mbtiles`,
 1.5 MB). The two new files are in the `2026.11.1` release of
-dkastl/fieldkit-data; the unchanged files still come from `2026.11.0`
+lychnion/lychnion-data; the unchanged files still come from `2026.11.0`
 (absolute URLs in the catalog).
 
 On an update the app now keeps files that are already there and match

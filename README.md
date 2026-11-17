@@ -6,8 +6,7 @@ Everything runs on the device; the network is only needed to download models.
 
 Lychnion (Greek λυχνίον, "small lamp") is the public name. The brand
 (logo, colours, icons) follows the Lychnion brand canvas. "fieldkit" is the
-old code name and is still used for the repository, the Dart package, the
-bundle IDs and the `fieldkit://` shelter link. App icons are drawn by
+old code name; shelter QR codes made with it (`fieldkit://`) still work. App icons are drawn by
 `tool/build_icons.py`.
 
 <p>
@@ -88,7 +87,7 @@ app loads them as soon as they are checked, on every platform. Wi-Fi only by
 default. The list comes from
 [assets/downloads/catalog.json](assets/downloads/catalog.json); package and
 map files are releases of the public repo
-[dkastl/fieldkit-data](https://github.com/dkastl/fieldkit-data).
+[lychnion/lychnion-data](https://github.com/lychnion/lychnion-data).
 
 Older ways still work: on macOS, click **Load GGUF file** and pick a model. The app copies it into
 its own storage. On Android and iOS, the app downloads the model from the URL

@@ -55,7 +55,7 @@ shows **Update**. Relative file URLs resolve against `base` (or the
 catalog's own URL, or `DOWNLOAD_BASE_URL`).
 
 Models point to Hugging Face. Package and map files are release assets of
-the public repo [dkastl/fieldkit-data](https://github.com/dkastl/fieldkit-data)
+the public repo [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data)
 (its README lists sources and licences, including the GSI notes). The
 bundled catalog uses `base` = the `2026.11.0` release; `refresh` is
 `…/releases/latest/download/catalog.json`, so a new release with a new
@@ -69,7 +69,7 @@ To publish a new package or map version:
 ```bash
 python3 -I tool/catalog.py assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
 # bump the item's "version" and "base" (new tag) in the catalog, then:
-gh release create <tag> -R dkastl/fieldkit-data assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
+gh release create <tag> -R lychnion/lychnion-data assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
 ```
 
 Upload unchanged files of other items again too, or keep their absolute
@@ -125,7 +125,7 @@ chat model choice, Wi-Fi setting default.
 
 Clean install of the `main` build (old app and files removed first), then
 everything downloaded inside the app over office Wi-Fi: package and map area
-from the `dkastl/fieldkit-data` release, models from Hugging Face. Driven by
+from the `lychnion/lychnion-data` release, models from Hugging Face. Driven by
 `AUTO_DOWNLOAD`; screenshots and taps over adb.
 
 | Item | Size | Result |

@@ -20,7 +20,7 @@ const _baseUrl = String.fromEnvironment('DOWNLOAD_BASE_URL');
 const _autoDownload = String.fromEnvironment('AUTO_DOWNLOAD');
 
 void _log(Map<String, Object?> data) =>
-    debugPrint('FIELDKIT ${jsonEncode(data)}');
+    debugPrint('LYCHNION ${jsonEncode(data)}');
 
 /// Above this size the app asks before downloading.
 const largeDownloadBytes = 1000 * 1000 * 1000;

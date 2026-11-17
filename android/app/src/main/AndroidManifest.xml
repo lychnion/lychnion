@@ -31,11 +31,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- fieldkit://shelter?url=… from the QR code on a shelter computer. -->
+            <!-- lychnion://shelter?url=… from the QR code on a shelter computer
+                 (fieldkit:// on codes made before the rename). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="lychnion" android:host="shelter"/>
                 <data android:scheme="fieldkit" android:host="shelter"/>
             </intent-filter>
             <!-- Links are handled by the app_links package. -->

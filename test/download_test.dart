@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-import 'package:fieldkit/download/catalog.dart';
-import 'package:fieldkit/download/download_store.dart';
-import 'package:fieldkit/download/downloader.dart';
+import 'package:lychnion/download/catalog.dart';
+import 'package:lychnion/download/download_store.dart';
+import 'package:lychnion/download/downloader.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Serves [data] at /file with Range support, /redirect → /file, and can
@@ -73,7 +73,7 @@ void main() {
       FileSpec(url: url, name: 'f.bin', size: data.length, sha256: hash ?? sum);
 
   setUp(() async {
-    tmp = await Directory.systemTemp.createTemp('fieldkit-dl');
+    tmp = await Directory.systemTemp.createTemp('lychnion-dl');
     server = TestServer(data);
     await server.start();
   });

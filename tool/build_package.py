@@ -64,7 +64,7 @@ def fetch(src, manifest_dir):
     ext = Path(src["url"].split("?")[0]).suffix or ".html"
     path = CACHE / f"{src['id']}{ext}"
     if not path.exists():
-        req = urllib.request.Request(src["url"], headers={"User-Agent": "fieldkit-package-builder"})
+        req = urllib.request.Request(src["url"], headers={"User-Agent": "lychnion-package-builder"})
         with urllib.request.urlopen(req, timeout=60) as r:
             path.write_bytes(r.read())
     return path

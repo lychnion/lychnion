@@ -75,14 +75,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<!-- fieldkit://shelter?url=… from the QR code on a shelter computer. -->
+	<!-- lychnion://shelter?url=… from the QR code on a shelter computer
+	     (fieldkit:// on codes made before the rename). -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>dev.fieldkit.shelter</string>
+			<string>com.lychnion.shelter</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>lychnion</string>
 				<string>fieldkit</string>
 			</array>
 		</dict>

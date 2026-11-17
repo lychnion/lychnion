@@ -172,7 +172,7 @@ class _HomePageState extends State<HomePage> {
 
   bool _asking = false;
 
-  /// A scanned fieldkit://shelter link: ask, then connect. The same link can
+  /// A scanned lychnion://shelter link: ask, then connect. The same link can
   /// arrive twice (at launch and from the stream): ask only once.
   Future<void> _openLink(Uri uri) async {
     final link = ShelterLink.fromUri(uri);
@@ -300,11 +300,11 @@ class _HomePageState extends State<HomePage> {
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
     final dir = await exchangeDirectory();
     final file = File(
-      '${dir.path}/fieldkit-screenshot-${DateTime.now().millisecondsSinceEpoch}.png',
+      '${dir.path}/lychnion-screenshot-${DateTime.now().millisecondsSinceEpoch}.png',
     );
     await file.writeAsBytes(png!.buffer.asUint8List());
     debugPrint(
-      'FIELDKIT ${jsonEncode({'event': 'screenshot', 'file': file.path})}',
+      'LYCHNION ${jsonEncode({'event': 'screenshot', 'file': file.path})}',
     );
   }
 
@@ -876,7 +876,7 @@ class _SpikePageState extends State<SpikePage> {
     }
     final dir = await exchangeDirectory();
     final out = File(
-      '${dir.path}/fieldkit-bench-${_bare ? 'bare' : 'grounded'}-${DateTime.now().millisecondsSinceEpoch}.json',
+      '${dir.path}/lychnion-bench-${_bare ? 'bare' : 'grounded'}-${DateTime.now().millisecondsSinceEpoch}.json',
     );
     await out.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
@@ -917,7 +917,7 @@ class _SpikePageState extends State<SpikePage> {
   }
 
   void _log(Map<String, Object?> data) =>
-      debugPrint('FIELDKIT ${jsonEncode(data)}');
+      debugPrint('LYCHNION ${jsonEncode(data)}');
 
   @override
   Widget build(BuildContext context) {

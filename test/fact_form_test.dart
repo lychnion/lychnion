@@ -1,5 +1,5 @@
-import 'package:fieldkit/facts/fact.dart';
-import 'package:fieldkit/facts/fact_form.dart';
+import 'package:lychnion/facts/fact.dart';
+import 'package:lychnion/facts/fact_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

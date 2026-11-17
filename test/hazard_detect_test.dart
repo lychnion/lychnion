@@ -1,5 +1,5 @@
-import 'package:fieldkit/map/evac_sites.dart';
-import 'package:fieldkit/map/hazard_detect.dart';
+import 'package:lychnion/map/evac_sites.dart';
+import 'package:lychnion/map/hazard_detect.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

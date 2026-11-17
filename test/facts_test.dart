@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:fieldkit/facts/compact_codec.dart';
-import 'package:fieldkit/facts/fact.dart';
-import 'package:fieldkit/facts/fact_store.dart';
-import 'package:fieldkit/map/evac_sites.dart';
+import 'package:lychnion/facts/compact_codec.dart';
+import 'package:lychnion/facts/fact.dart';
+import 'package:lychnion/facts/fact_store.dart';
+import 'package:lychnion/map/evac_sites.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

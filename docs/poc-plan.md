@@ -1,7 +1,8 @@
-# Offline AI helper (name open): proof of concept plan
+# Lychnion (offline AI helper): proof of concept plan
 
 Draft 2026-11-02, updated 2026-11-05. PoC built: private repo
-`dkastl/fieldkit` (code name, Apache 2.0). Results in section 7.
+`lychnion/lychnion` (Apache 2.0; code name was fieldkit, public name
+Lychnion since 2026-11-17). Results in section 7.
 
 "Bousai LLM" is now only the name of the disaster package. The app gets a
 more general name because it also targets hikers, backcountry skiers and
@@ -285,8 +286,8 @@ manifest. The app shows it under each citation.
 
 ## 6. Open questions for Daniel (answered 2026-11-04)
 
-- Code: private repo on Daniel's GitHub account (`dkastl/fieldkit`),
-  Apache 2.0. Public name later.
+- Code: private repo, first on Daniel's GitHub account, since 2026-11-17
+  in the `lychnion` org (`lychnion/lychnion`), Apache 2.0.
 - Platforms: tested on a Mac, an iPad Air 5, a Pixel 5a and the iPhone
   simulator (as of 2026-11-05).
 - Sources: clearly open ones only for the PoC (PDL1.0 government pages, GSI).
@@ -313,7 +314,7 @@ Details in the repo: `docs/spike-1-results.md` to `docs/spike-6-results.md`,
 | Pixel 5a (2021, 6 GB) | Same quality, but CPU only: median 48 s per answer; memory borderline. Reading less (2 short passages) gets ~29 s at a small quality cost. |
 | Small phone models | Qwen3-1.7B 20 / 23, LFM2.5-1.2B-JP 14 / 23; both computed the family water amount wrong (12 L instead of 36 L). |
 | Shelter computer | Desktop app answers phones on the local network (E4B). Pixel 5a without a model: answer in 2.5 s instead of 48 s. Office Wi-Fi blocked device-to-device traffic (client isolation): a shelter needs its own hotspot or a network that allows it. |
-| Downloads | Models (Hugging Face), package and map area (public `dkastl/fieldkit-data` releases) downloaded in the app with resume and SHA-256 check. Pixel 5a: everything downloaded, then airplane mode: cited answer and offline map work. |
+| Downloads | Models (Hugging Face), package and map area (public `lychnion/lychnion-data` releases) downloaded in the app with resume and SHA-256 check. Pixel 5a: everything downloaded, then airplane mode: cited answer and offline map work. |
 | GSI data gap | 西宮市 and 尼崎市 mark no emergency site for earthquakes (神戸市 marks all). The app now warns when the user's city has no site for the hazard and points to the city's hazard map. |
 | Current facts | Shelter status, blocked roads, water points and warnings, each with time, source (official / sensor / resident) and expiry, kept apart from the model. The most trusted source wins, then the newest; expired facts are never shown. Full or closed shelters are skipped when suggesting where to go. Shown as 「最新の情報（AIの回答ではありません）」 with age and source. |
 | Facts entry | Staff enter facts on the shelter computer's map (status per site, long press for a road or water point, warnings per city), with a lifetime and source; "解除する" clears a fact. Phones pull them every minute. |

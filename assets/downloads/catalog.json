@@ -1,7 +1,7 @@
 {
   "format": 1,
-  "base": "https://github.com/dkastl/fieldkit-data/releases/download/2026.11.1/",
-  "refresh": "https://github.com/dkastl/fieldkit-data/releases/latest/download/catalog.json",
+  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/",
+  "refresh": "https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json",
   "items": [
     {
       "id": "model.gemma-4-e2b-q4_0",
@@ -91,7 +91,7 @@
           "name": "jp.bousai.core.sqlite",
           "size": 921600,
           "sha256": "5ec79a35adddf8b2760a1260df752fa06d0547adacdd5cfdd8c3bf01026644e3",
-          "url": "https://github.com/dkastl/fieldkit-data/releases/download/2026.11.0/jp.bousai.core.sqlite"
+          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.bousai.core.sqlite"
         }
       ]
     },
@@ -113,13 +113,13 @@
           "name": "jp.map.nishinomiya.pmtiles",
           "size": 26211536,
           "sha256": "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25",
-          "url": "https://github.com/dkastl/fieldkit-data/releases/download/2026.11.0/jp.map.nishinomiya.pmtiles"
+          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.pmtiles"
         },
         {
           "name": "jp.map.nishinomiya.sites.sqlite",
           "size": 401408,
           "sha256": "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371",
-          "url": "https://github.com/dkastl/fieldkit-data/releases/download/2026.11.0/jp.map.nishinomiya.sites.sqlite"
+          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.sites.sqlite"
         },
         {
           "name": "jp.map.nishinomiya.routes.bin",

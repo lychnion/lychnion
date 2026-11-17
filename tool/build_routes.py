@@ -75,7 +75,7 @@ def fetch(url, name):
     path = CACHE / name
     if not path.exists():
         print(f"downloading {url}")
-        req = urllib.request.Request(url, headers={"User-Agent": "fieldkit-route-builder"})
+        req = urllib.request.Request(url, headers={"User-Agent": "lychnion-route-builder"})
         with urllib.request.urlopen(req, timeout=600) as r, open(path, "wb") as f:
             while chunk := r.read(1 << 20):
                 f.write(chunk)
@@ -101,7 +101,7 @@ def _get_tile(name, z, x, y):
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         url = f"https://cyberjapandata.gsi.go.jp/xyz/{name}/{z}/{x}/{y}.png"
-        req = urllib.request.Request(url, headers={"User-Agent": "fieldkit-route-builder"})
+        req = urllib.request.Request(url, headers={"User-Agent": "lychnion-route-builder"})
         try:
             with urllib.request.urlopen(req, timeout=60) as r:
                 path.write_bytes(r.read())

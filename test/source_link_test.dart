@@ -1,5 +1,5 @@
-import 'package:fieldkit/knowledge/knowledge_package.dart';
-import 'package:fieldkit/ui/source_link.dart';
+import 'package:lychnion/knowledge/knowledge_package.dart';
+import 'package:lychnion/ui/source_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

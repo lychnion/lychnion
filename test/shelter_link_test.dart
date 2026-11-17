@@ -1,4 +1,4 @@
-import 'package:fieldkit/shelter/shelter_link.dart';
+import 'package:lychnion/shelter/shelter_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -28,8 +28,17 @@ void main() {
   test('links for other apps or with bad addresses are ignored', () {
     expect(ShelterLink.fromUri(Uri.parse('https://example.com')), isNull);
     expect(
-      ShelterLink.fromUri(Uri.parse('fieldkit://shelter?url=file:///etc')),
+      ShelterLink.fromUri(Uri.parse('lychnion://shelter?url=file:///etc')),
       isNull,
     );
+  });
+
+  test('links use lychnion://, old fieldkit:// codes still work', () {
+    const link = ShelterLink('http://192.168.1.20:8642');
+    expect(link.toUri().scheme, 'lychnion');
+    final old = ShelterLink.fromUri(
+      Uri.parse('fieldkit://shelter?url=http://192.168.1.20:8642'),
+    );
+    expect(old?.url, 'http://192.168.1.20:8642');
   });
 }

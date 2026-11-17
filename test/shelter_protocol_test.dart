@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:fieldkit/knowledge/grounded_answer.dart';
-import 'package:fieldkit/knowledge/knowledge_package.dart';
-import 'package:fieldkit/knowledge/retriever.dart';
-import 'package:fieldkit/llm/local_llm.dart';
-import 'package:fieldkit/shelter/shelter_protocol.dart';
+import 'package:lychnion/knowledge/grounded_answer.dart';
+import 'package:lychnion/knowledge/knowledge_package.dart';
+import 'package:lychnion/knowledge/retriever.dart';
+import 'package:lychnion/llm/local_llm.dart';
+import 'package:lychnion/shelter/shelter_protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

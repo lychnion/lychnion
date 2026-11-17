@@ -1,4 +1,4 @@
-import 'package:fieldkit/map/evac_sites.dart';
+import 'package:lychnion/map/evac_sites.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 

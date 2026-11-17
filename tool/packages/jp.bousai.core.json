@@ -145,7 +145,7 @@
         ]
       ],
       "text_en": "If you feel strong shaking, or weak but long shaking, or if you hear a tsunami warning even without feeling an earthquake, leave the coast at once and evacuate to the highest place you can. If the epicentre is close to land, tsunami warnings may come too late.",
-      "text_en_note": "Translation by fieldkit, not an official text."
+      "text_en_note": "Translation by Lychnion, not an official text."
     },
     {
       "id": "bear-move-slowly",
@@ -179,7 +179,7 @@
       "source": "gov-online-kuma",
       "text": "クマに出会ってしまったら、クマを見ながら静かにゆっくり移動することが基本です。",
       "text_en": "If you meet a bear, the basic rule is to move away quietly and slowly while watching the bear.",
-      "text_en_note": "Translation by fieldkit, not an official text."
+      "text_en_note": "Translation by Lychnion, not an official text."
     },
     {
       "id": "lost-go-back",
@@ -211,7 +211,7 @@
       "source": "gov-online-yama",
       "text": "もし、道に迷ってしまったら、そのまま下山をするのではなく、元の道に引き返すようにしましょう。",
       "text_en": "If you get lost, do not keep going down; go back the way you came.",
-      "text_en_note": "Translation by fieldkit, not an official text."
+      "text_en_note": "Translation by Lychnion, not an official text."
     }
   ],
   "gaps": [
