@@ -79,13 +79,14 @@ class AnswerCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      answer.answeredBy != null
-                          ? Icons.cell_tower_rounded
-                          : Icons.health_and_safety_rounded,
-                      size: 16,
-                      color: scheme.primary,
-                    ),
+                    if (answer.answeredBy != null)
+                      Icon(
+                        Icons.cell_tower_rounded,
+                        size: 16,
+                        color: scheme.primary,
+                      )
+                    else
+                      const LychnionMark(size: 18),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
