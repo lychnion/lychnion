@@ -129,8 +129,15 @@ class LychnionApp extends StatelessWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: HomePage(settings: settings),
       // Dev screenshots include pages pushed on top (conversations).
-      builder: (context, child) =>
-          RepaintBoundary(key: _appShotKey, child: child),
+      // English headings use Lexend; the language is known only here
+      // (it may follow the device).
+      builder: (context, child) {
+        final en = Localizations.localeOf(context).languageCode != 'ja';
+        final shot = RepaintBoundary(key: _appShotKey, child: child);
+        return en
+            ? Theme(data: withEnglishHeadings(Theme.of(context)), child: shot)
+            : shot;
+      },
     ),
   );
 }

@@ -165,6 +165,33 @@ ThemeData buildTheme(Brightness brightness) {
   );
 }
 
+/// English: headings in Lexend (brand canvas), body text stays BIZ
+/// UDPGothic. Japanese words inside a heading (a site name) fall back to
+/// BIZ UDPGothic, which Lexend lacks.
+ThemeData withEnglishHeadings(ThemeData t) {
+  TextStyle? lex(TextStyle? s) => s?.copyWith(
+    fontFamily: Brand.wordmarkFont,
+    fontFamilyFallback: const [Brand.textFont],
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.2,
+  );
+  final tt = t.textTheme;
+  return t.copyWith(
+    textTheme: tt.copyWith(
+      displayLarge: lex(tt.displayLarge),
+      displayMedium: lex(tt.displayMedium),
+      displaySmall: lex(tt.displaySmall),
+      headlineLarge: lex(tt.headlineLarge),
+      headlineMedium: lex(tt.headlineMedium),
+      headlineSmall: lex(tt.headlineSmall),
+      titleLarge: lex(tt.titleLarge),
+    ),
+    appBarTheme: t.appBarTheme.copyWith(
+      titleTextStyle: lex(t.appBarTheme.titleTextStyle),
+    ),
+  );
+}
+
 /// One small type scale for the whole app, so sizes stay consistent:
 /// heading 26, title 20 / 16, body 16 / 15 / 13, label 14 / 12 / 11.
 /// No extra letter spacing: Material's default spreads Japanese text apart.
