@@ -7,6 +7,7 @@ import '../knowledge/knowledge_package.dart' show Alert, foreignLabel;
 import '../map/hazard_detect.dart';
 import '../map/map_screen.dart' show formatDistance, noSiteWarning;
 import '../map/map_state.dart';
+import 'answer_text.dart';
 import 'source_link.dart';
 import '../app/brand.dart';
 import 'breathing_light.dart';
@@ -101,20 +102,6 @@ class AnswerCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (sources.isNotEmpty)
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                        onPressed: () => _showSources(context, sources, en),
-                        icon: const Icon(Icons.menu_book_rounded, size: 16),
-                        label: Text(
-                          en
-                              ? 'Sources (${sources.length})'
-                              : '出典 ${sources.length}件',
-                        ),
-                      ),
                   ],
                 ),
                 for (final a in answer.alerts) SafetyLine(alert: a, en: en),
@@ -132,14 +119,18 @@ class AnswerCard extends StatelessWidget {
                       ),
                     ],
                   )
-                else
-                  SelectableText(
-                    superscriptCitations(answer.text),
-                    style: theme.textTheme.bodyLarge,
-                  ),
+                else if (_shownText case final t when t.isNotEmpty)
+                  SelectableText(t, style: theme.textTheme.bodyLarge),
                 if (grounded && done) ..._notes(theme, en),
                 const SizedBox(height: 14),
                 ..._whereToGo(theme),
+                if (done && (sources.isNotEmpty || answer.alerts.isNotEmpty))
+                  _SourcesFooter(
+                    answer: answer,
+                    numbers: sources,
+                    en: en,
+                    onTap: () => _showSources(context, sources, en),
+                  ),
                 if (showStats && s != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -157,6 +148,10 @@ class AnswerCard extends StatelessWidget {
       ],
     );
   }
+
+  /// The answer without citation numbers and without sentences that only
+  /// repeat a safety line shown above (the full text is kept for checks).
+  String get _shownText => shownAnswer(answer.text, answer.alerts);
 
   /// Passages to list under "Sources": the cited ones, or all found ones
   /// when the answer only had related material.
@@ -232,18 +227,24 @@ class AnswerCard extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              en
-                  ? 'The answer is based only on these passages from official guides (in Japanese).'
-                  : '回答は、公的な資料の次の部分だけにもとづいています。',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            for (final n in numbers) ...[
+            for (final a in answer.alerts) ...[
+              const SizedBox(height: 12),
+              _SafetyLineSource(alert: a, en: en),
+            ],
+            if (numbers.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _passage(theme, n, en),
+              Text(
+                en
+                    ? 'The answer is based only on these passages from official guides.'
+                    : '回答は、公的な資料の次の部分だけにもとづいています。',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              for (final n in numbers) ...[
+                const SizedBox(height: 16),
+                _passage(theme, n, en),
+              ],
             ],
           ],
         );
@@ -464,94 +465,156 @@ class AnswerCard extends StatelessWidget {
   );
 }
 
-const _sup = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
-
-/// "…高い場所 [1]。" → "…高い場所¹。": citations stay visible but quiet.
-String superscriptCitations(String text) => text.replaceAllMapped(
-  RegExp(r'\s?\[(\d{1,2})\]'),
-  (m) => m[1]!.split('').map((d) => _sup[int.parse(d)]).join(),
-);
-
-/// A fixed safety line, quoted word for word from its official source.
-/// In English the translation leads; the official Japanese folds away.
-class SafetyLine extends StatefulWidget {
+/// A fixed safety line, quoted word for word from its official source: the
+/// key message of the answer. In English our translation is shown; the
+/// official text and the source are one tap away (sources footer).
+class SafetyLine extends StatelessWidget {
   const SafetyLine({super.key, required this.alert, required this.en});
 
   final Alert alert;
   final bool en;
 
   @override
-  State<SafetyLine> createState() => _SafetyLineState();
-}
-
-class _SafetyLineState extends State<SafetyLine> {
-  bool _open = false;
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final on = theme.colorScheme.onErrorContainer;
-    final a = widget.alert;
-    final translated = widget.en && a.textEn != null;
-    final small = theme.textTheme.bodySmall?.copyWith(color: on);
+    final a = alert;
     return Container(
       margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Icon(Icons.warning_rounded, color: on, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              en && a.textEn != null ? a.textEn! : a.text,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: on,
+                fontWeight: FontWeight.w700,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One quiet line under the answer: "ⓘ 出典：首相官邸 ほか1件". The
+/// attribution the licences ask for stays visible; details on tap.
+class _SourcesFooter extends StatelessWidget {
+  const _SourcesFooter({
+    required this.answer,
+    required this.numbers,
+    required this.en,
+    required this.onTap,
+  });
+
+  final GroundedAnswer answer;
+  final List<int> numbers;
+  final bool en;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    final publishers = <String>{
+      for (final a in answer.alerts) a.source.publisher,
+      for (final n in numbers) answer.hits[n - 1].passage.source.publisher,
+    }.toList();
+    final more = publishers.length - 1;
+    final label = en
+        ? 'Source: ${publishers.first}${more > 0 ? ' and $more more' : ''}'
+        : '出典：${publishers.first}${more > 0 ? ' ほか$more件' : ''}';
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
             children: [
-              Icon(Icons.warning_rounded, color: on, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
+              Icon(Icons.info_outline_rounded, size: 18, color: color),
+              const SizedBox(width: 6),
+              Flexible(
                 child: Text(
-                  translated ? a.textEn! : a.text,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: on,
-                    height: 1.5,
-                  ),
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(color: color),
                 ),
               ),
+              Icon(Icons.chevron_right_rounded, size: 18, color: color),
             ],
           ),
-          if (_open && translated) ...[
+        ),
+      ),
+    );
+  }
+}
+
+/// In the sources sheet: where a safety line comes from, and for English
+/// the official Japanese text next to our translation.
+class _SafetyLineSource extends StatelessWidget {
+  const _SafetyLineSource({required this.alert, required this.en});
+
+  final Alert alert;
+  final bool en;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final a = alert;
+    final translated = en && a.textEn != null;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_rounded,
+                  size: 18,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    en
+                        ? 'Safety line, quoted word for word'
+                        : '安全のための一文（原文のまま）',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
-            Text(
-              'Official text (translated above by ${Brand.name}):',
-              style: small,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              a.text,
-              style: theme.textTheme.bodyMedium?.copyWith(color: on),
-            ),
-          ],
-          // The source stays visible: the licence (PDL1.0) asks for it.
-          Padding(
-            padding: const EdgeInsets.only(left: 32, top: 6, bottom: 6),
-            child: SourceLink(source: a.source, style: small),
-          ),
-          if (translated)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: on,
-                  visualDensity: VisualDensity.compact,
-                ),
-                onPressed: () => setState(() => _open = !_open),
-                child: Text(
-                  _open ? 'Hide official text' : 'Show official text',
-                ),
+            if (translated)
+              Text(
+                'Official text (the translation in the answer is by ${Brand.name}, not official):',
+                style: theme.textTheme.bodySmall,
+              ),
+            SelectableText(a.text, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            SourceLink(
+              source: a.source,
+              suffix: '（${a.source.licence}）',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
