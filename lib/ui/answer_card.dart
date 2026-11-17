@@ -94,7 +94,7 @@ class AnswerCard extends StatelessWidget {
                             ? (en
                                   ? 'Shelter computer · ${answer.answeredBy}'
                                   : '避難所のコンピューター · ${answer.answeredBy}')
-                            : Brand.name,
+                            : Brand.nameIn(en: en),
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: scheme.onSurfaceVariant,

@@ -98,12 +98,10 @@ class _AskViewState extends State<AskView> {
             // Gives way to the status label on narrow phones.
             Flexible(
               child: Text(
-                Brand.name,
+                Brand.nameIn(en: en),
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: Brand.wordmarkFont,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.3,
+                style: Brand.wordmarkStyle(
+                  en: en,
                   color: theme.brightness == Brightness.dark
                       ? scheme.onSurface
                       : Brand.night,

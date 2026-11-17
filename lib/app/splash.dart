@@ -136,7 +136,8 @@ class _Intro extends StatelessWidget {
                   const Text(
                     Brand.nameJa,
                     style: TextStyle(
-                      fontFamily: Brand.textFont,
+                      fontFamily: Brand.wordmarkFontJa,
+                      fontFamilyFallback: [Brand.textFont],
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                       letterSpacing: 2.2,

@@ -30,6 +30,26 @@ abstract final class Brand {
 
   /// The wordmark and English headings.
   static const wordmarkFont = 'Lexend';
+
+  /// リクニオン in the logo (only these letters are bundled).
+  static const wordmarkFontJa = 'ZenMaruGothic';
+
+  /// The name as a wordmark: "Lychnion" in Lexend for English,
+  /// 「リクニオン」 in Zen Maru Gothic for Japanese.
+  static TextStyle wordmarkStyle({required bool en, Color? color}) => en
+      ? TextStyle(
+          fontFamily: wordmarkFont,
+          fontWeight: FontWeight.w500,
+          letterSpacing: -0.3,
+          color: color,
+        )
+      : TextStyle(
+          fontFamily: wordmarkFontJa,
+          fontFamilyFallback: const [textFont],
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+          color: color,
+        );
 }
 
 /// Shows the fonts' licences on the app's licence page.
@@ -37,6 +57,7 @@ void addFontLicenses() {
   for (final (family, file) in const [
     ('BIZ UDPGothic', 'assets/fonts/OFL-BIZUDPGothic.txt'),
     ('Lexend', 'assets/fonts/OFL-Lexend.txt'),
+    ('Zen Maru Gothic', 'assets/fonts/OFL-ZenMaruGothic.txt'),
   ]) {
     LicenseRegistry.addLicense(() async* {
       yield LicenseEntryWithLineBreaks([

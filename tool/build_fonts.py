@@ -6,6 +6,7 @@
 The download dir holds, from github.com/google/fonts (all SIL OFL 1.1):
     bizudpgothic_BIZUDPGothic-Regular.ttf, bizudpgothic_BIZUDPGothic-Bold.ttf
     lexend_Lexend[wght].ttf
+    zenmarugothic_ZenMaruGothic-Bold.ttf
 
 Writes assets/fonts/ (in git):
 - BIZUDPGothic-{Regular,Bold}.ttf: app text. Cut down to ASCII, Latin-1,
@@ -15,7 +16,9 @@ Writes assets/fonts/ (in git):
   system font.
 - Lexend-{Medium,SemiBold}.ttf: the wordmark and English headings. Fixed
   weights cut from the variable font, Latin only.
-- OFL.txt for both families.
+- ZenMaruGothic-Bold.ttf: only the letters of リクニオン, for the name in
+  Japanese (the brand canvas sets it in Zen Maru Gothic). A few KB.
+- OFL-*.txt for each family.
 
 Needs fonttools (pip install fonttools).
 """
@@ -88,6 +91,10 @@ def main(dl):
         subset_font(tmp, dst, latin)
         tmp.unlink()
         print(f"{dst.name}: {dst.stat().st_size / 1e3:.0f} KB")
+    dst = OUT / "ZenMaruGothic-Bold.ttf"
+    subset_font(dl / "zenmarugothic_ZenMaruGothic-Bold.ttf", dst, {ord(c) for c in "リクニオン"})
+    print(f"{dst.name}: {dst.stat().st_size / 1e3:.0f} KB")
+    shutil.copy(dl / "zenmarugothic_OFL.txt", OUT / "OFL-ZenMaruGothic.txt")
     shutil.copy(dl / "bizudpgothic_OFL.txt", OUT / "OFL-BIZUDPGothic.txt")
     shutil.copy(dl / "lexend_OFL.txt", OUT / "OFL-Lexend.txt")
 

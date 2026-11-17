@@ -52,6 +52,7 @@ flutter:
     - assets/downloads/
     - assets/fonts/OFL-BIZUDPGothic.txt
     - assets/fonts/OFL-Lexend.txt
+    - assets/fonts/OFL-ZenMaruGothic.txt
   # Brand fonts (SIL OFL 1.1), made by tool/build_fonts.py.
   fonts:
     - family: BIZUDPGothic
@@ -65,3 +66,8 @@ flutter:
           weight: 500
         - asset: assets/fonts/Lexend-SemiBold.ttf
           weight: 600
+    # Only the letters of リクニオン.
+    - family: ZenMaruGothic
+      fonts:
+        - asset: assets/fonts/ZenMaruGothic-Bold.ttf
+          weight: 700
