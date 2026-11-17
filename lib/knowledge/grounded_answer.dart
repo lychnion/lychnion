@@ -2,10 +2,12 @@ import '../llm/local_llm.dart';
 import 'hybrid_retriever.dart';
 import 'knowledge_package.dart';
 import 'retriever.dart';
+import 'subjects.dart';
 
 const groundedSystemInstruction =
     'あなたは日本の防災とアウトドアの安全について答えるアシスタントです。'
-    '必ず、与えられた資料に書かれていることだけを使って、日本語で短く答えてください。'
+    '必ず、与えられた資料に書かれていることだけを使って、日本語で答えてください。'
+    'いちばん大切なことから、3文以内で短く答えてください。'
     '文の終わりに、根拠にした資料の番号を [1] のように付けてください。'
     '資料に答えが書かれていない場合は「資料に答えがありません」とだけ答えてください。'
     '自分の知識で補ったり、資料にない数字や手順を足したりしないでください。';
@@ -14,7 +16,8 @@ const noSourceText = '資料に答えがありません';
 
 const groundedSystemInstructionEn =
     'You answer questions about disaster preparedness and outdoor safety in Japan. '
-    'Use only what the given sources say. The sources are in Japanese; answer in short, plain English. '
+    'Use only what the given sources say. The sources are in Japanese; answer in plain English, '
+    'in at most three short sentences, most important first. '
     'End each sentence with the number of the source you used, like [1]. '
     'If the sources do not answer the question, reply only: "$noSourceTextEn". '
     'Do not add facts, numbers or steps that are not in the sources.';
@@ -147,9 +150,12 @@ class GroundedAnswerer {
         .toList();
     retriever.userRegion = userRegion;
     hybrid?.userRegion = userRegion;
-    answer.hits = hybrid != null
-        ? await hybrid!.search(search, limit: topK)
-        : retriever.search(search, limit: topK);
+    answer.hits = sameAnimal(
+      [q, search],
+      hybrid != null
+          ? await hybrid!.search(search, limit: topK)
+          : retriever.search(search, limit: topK),
+    );
     onUpdate();
     if (answer.hits.isEmpty) {
       // Nothing relevant in the package: do not let the model guess.
