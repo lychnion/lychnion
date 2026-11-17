@@ -13,6 +13,7 @@ import 'inundation_tiles.dart';
 import 'map_state.dart';
 import 'route_graph.dart';
 import 'offline_theme.dart';
+import '../ui/breathing_light.dart';
 
 /// Offline map: base map from a local PMTiles file, emergency evacuation
 /// sites for the chosen hazard, and the nearest ones from the current position.
@@ -237,7 +238,7 @@ class _MapScreenState extends State<MapScreen> {
       return Center(
         child: e != null && e.length > 20
             ? Text(e)
-            : const CircularProgressIndicator(),
+            : const BreathingLight(size: 56),
       );
     }
     final from = s.from!;

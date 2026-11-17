@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app/brand.dart';
+import 'breathing_light.dart';
 
 /// Where the Ask screen stands: shown as a small status pill.
 enum AskPhase { noModel, loading, ready, shelter, serving, failed }
@@ -356,14 +357,7 @@ class _StatusPill extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (phase == AskPhase.loading)
-                  SizedBox(
-                    width: 10,
-                    height: 10,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: dot,
-                    ),
-                  )
+                  const BreathingLight(size: 16)
                 else
                   Container(
                     width: 8,

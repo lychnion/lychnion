@@ -9,6 +9,7 @@ import '../map/map_screen.dart' show formatDistance, noSiteWarning;
 import '../map/map_state.dart';
 import 'source_link.dart';
 import '../app/brand.dart';
+import 'breathing_light.dart';
 
 /// One question with its safety lines, answer and the sources it cites.
 class AnswerCard extends StatelessWidget {
@@ -120,11 +121,7 @@ class AnswerCard extends StatelessWidget {
                 if (thinking)
                   Row(
                     children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
+                      const BreathingLight(size: 24),
                       const SizedBox(width: 10),
                       Text(
                         en ? 'Looking in the guides…' : '資料を確認しています…',
