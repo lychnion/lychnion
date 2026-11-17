@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../download/download_manager.dart';
 import '../download/downloads_screen.dart';
 import 'settings.dart';
+import 'brand.dart';
 
 /// Four groups: language, shelter, offline data, about (with developer
 /// options one level down).
@@ -90,7 +91,7 @@ class SettingsScreen extends StatelessWidget {
             children: [
               _NavTile(
                 icon: Icons.info_outline_rounded,
-                title: _t('fieldkit について', 'About fieldkit'),
+                title: _t('${Brand.nameJa}について', 'About ${Brand.name}'),
                 subtitle: _t('しくみ・ご注意・開発者向け', 'How it works, notes, developer'),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -187,12 +188,43 @@ class _AboutPage extends StatelessWidget {
       subtitle: Text(text),
     );
     return Scaffold(
-      appBar: AppBar(title: Text(_t('fieldkit について', 'About fieldkit'))),
+      appBar: AppBar(
+        title: Text(_t('${Brand.nameJa}について', 'About ${Brand.name}')),
+      ),
       body: ListenableBuilder(
         listenable: settings,
         builder: (context, _) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 16),
+              child: Row(
+                children: [
+                  const LychnionMark(size: 56),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${Brand.name} · ${Brand.nameJa}',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                        Text(
+                          _t(
+                            'ギリシャ語で「小さな灯り」。ネットが止まっても使えるガイドです。',
+                            'Greek for "small lamp": a guide that keeps working when the network is down.',
+                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             _Group(
               title: _t('しくみ', 'How it works'),
               children: [

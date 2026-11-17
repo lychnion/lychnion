@@ -1,11 +1,18 @@
-# fieldkit
+# Lychnion (リクニオン)
 
 Proof of concept for an offline AI helper for disaster preparedness and the
 outdoors in Japan. One Flutter codebase for iOS, Android, macOS and Windows.
 Everything runs on the device; the network is only needed to download models.
 
-"fieldkit" is a code name. The public name is still open (see
-[docs/poc-plan.md](docs/poc-plan.md), section 0).
+Lychnion (Greek λυχνίον, "small lamp") is the public name. The brand
+(logo, colours, icons) follows the Lychnion brand canvas. "fieldkit" is the
+old code name and is still used for the repository, the Dart package, the
+bundle IDs and the `fieldkit://` shelter link. App icons are drawn by
+`tool/build_icons.py`.
+
+<p>
+  <img src="docs/images/phone-lychnion.png" width="230" alt="Home screen with the Lychnion logo and colours">
+</p>
 
 <p>
   <img src="docs/images/phone-ask.png" width="230" alt="Home: warning, nearest open site, suggested questions">

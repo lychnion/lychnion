@@ -8,6 +8,7 @@ import '../map/hazard_detect.dart';
 import '../map/map_screen.dart' show formatDistance, noSiteWarning;
 import '../map/map_state.dart';
 import 'source_link.dart';
+import '../app/brand.dart';
 
 /// One question with its safety lines, answer and the sources it cites.
 class AnswerCard extends StatelessWidget {
@@ -91,7 +92,7 @@ class AnswerCard extends StatelessWidget {
                             ? (en
                                   ? 'Shelter computer · ${answer.answeredBy}'
                                   : '避難所のコンピューター · ${answer.answeredBy}')
-                            : 'fieldkit',
+                            : Brand.name,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
@@ -294,8 +295,8 @@ class AnswerCard extends StatelessWidget {
             ),
             Text(
               en
-                  ? 'Excerpt shown by fieldkit.'
-                  : '※ fieldkit が一部を抜き出して表示しています。',
+                  ? 'Excerpt shown by ${Brand.name}.'
+                  : '※ ${Brand.nameJa}が一部を抜き出して表示しています。',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -514,7 +515,10 @@ class _SafetyLineState extends State<SafetyLine> {
           ),
           if (_open && translated) ...[
             const SizedBox(height: 8),
-            Text('Official text (translated above by fieldkit):', style: small),
+            Text(
+              'Official text (translated above by ${Brand.name}):',
+              style: small,
+            ),
             const SizedBox(height: 2),
             Text(
               a.text,

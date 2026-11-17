@@ -1,15 +1,86 @@
 import 'package:flutter/material.dart';
 
-/// Calm blue for trust, warm orange for "act now"; large radii, flat surfaces.
-const _brand = Color(0xFF1565A8);
-const _accent = Color(0xFFE8833A);
+import 'brand.dart';
+
+/// Lychnion palette as explicit tokens (brand canvas, board 4): Paper and
+/// Ink by day, Night and Moonlight by night, Harbor Blue (Sky on dark) for
+/// actions, the amber Glow as accent. Error red is kept only for official
+/// warnings and destructive actions. Large radii, flat surfaces.
+const _light = ColorScheme(
+  brightness: Brightness.light,
+  primary: Brand.harborBlue,
+  onPrimary: Colors.white,
+  primaryContainer: Color(0xFFD7E3F4),
+  onPrimaryContainer: Color(0xFF163A5F),
+  secondary: Brand.night,
+  onSecondary: Brand.moonlight,
+  secondaryContainer: Color(0xFFE3E7EF),
+  onSecondaryContainer: Brand.night,
+  // Glow is never text on Paper (1.7:1): Glow Deep is the accent colour
+  // for text and icons, Glow fills the container.
+  tertiary: Brand.glowDeep,
+  onTertiary: Colors.white,
+  tertiaryContainer: Brand.glow,
+  onTertiaryContainer: Brand.night,
+  error: Color(0xFFB3261E),
+  onError: Colors.white,
+  errorContainer: Color(0xFFF9DEDC),
+  onErrorContainer: Color(0xFF410E0B),
+  surface: Brand.paper,
+  onSurface: Brand.ink,
+  onSurfaceVariant: Brand.stone,
+  surfaceContainerLowest: Colors.white,
+  surfaceContainerLow: Color(0xFFF5F2EA),
+  surfaceContainer: Color(0xFFF0EDE5),
+  surfaceContainerHigh: Brand.moonlight,
+  surfaceContainerHighest: Brand.mist,
+  // Line, not Mist, for borders that must be seen (Mist is 1.2:1).
+  outline: Brand.line,
+  outlineVariant: Brand.mist,
+  inverseSurface: Brand.night,
+  onInverseSurface: Brand.moonlight,
+  inversePrimary: Brand.sky,
+  shadow: Colors.black,
+  scrim: Colors.black,
+);
+
+const _dark = ColorScheme(
+  brightness: Brightness.dark,
+  primary: Brand.sky,
+  onPrimary: Brand.night,
+  primaryContainer: Brand.harborBlue,
+  onPrimaryContainer: Color(0xFFD7E3F4),
+  secondary: Brand.moonlight,
+  onSecondary: Brand.night,
+  secondaryContainer: Color(0xFF2E3D5C),
+  onSecondaryContainer: Brand.moonlight,
+  tertiary: Brand.glow,
+  onTertiary: Brand.night,
+  tertiaryContainer: Color(0xFF5C4310),
+  onTertiaryContainer: Color(0xFFFCE3AE),
+  error: Color(0xFFF2B8B5),
+  onError: Color(0xFF601410),
+  errorContainer: Color(0xFF8C1D18),
+  onErrorContainer: Color(0xFFF9DEDC),
+  surface: Brand.night,
+  onSurface: Brand.moonlight,
+  onSurfaceVariant: Brand.haze,
+  surfaceContainerLowest: Color(0xFF101A30),
+  surfaceContainerLow: Color(0xFF1B2946),
+  surfaceContainer: Brand.night2,
+  surfaceContainerHigh: Color(0xFF2A3A5A),
+  surfaceContainerHighest: Color(0xFF334466),
+  outline: Color(0xFF6B7894),
+  outlineVariant: Color(0xFF34435F),
+  inverseSurface: Brand.moonlight,
+  onInverseSurface: Brand.night,
+  inversePrimary: Brand.harborBlue,
+  shadow: Colors.black,
+  scrim: Colors.black,
+);
 
 ThemeData buildTheme(Brightness brightness) {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: _brand,
-    brightness: brightness,
-    tertiary: _accent,
-  );
+  final scheme = brightness == Brightness.dark ? _dark : _light;
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
@@ -18,6 +89,7 @@ ThemeData buildTheme(Brightness brightness) {
     textTheme: _typeScale(scheme),
   );
   final radius = BorderRadius.circular(20);
+  final light = brightness == Brightness.light;
   return base.copyWith(
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.surface,
@@ -32,10 +104,14 @@ ThemeData buildTheme(Brightness brightness) {
         color: scheme.onSurface,
       ),
     ),
+    // White cards with a visible edge on Paper; Night 2 cards on Night.
     cardTheme: CardThemeData(
       elevation: 0,
-      color: scheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: radius),
+      color: light ? scheme.surfaceContainerLowest : scheme.surfaceContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: light ? BorderSide(color: scheme.outline) : BorderSide.none,
+      ),
       margin: EdgeInsets.zero,
     ),
     chipTheme: base.chipTheme.copyWith(
@@ -44,15 +120,27 @@ ThemeData buildTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surfaceContainerHigh,
+      fillColor: light
+          ? scheme.surfaceContainerLowest
+          : scheme.surfaceContainerHigh,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide.none,
+        borderSide: BorderSide(color: scheme.outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: BorderSide(color: scheme.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: BorderSide(color: scheme.primary, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: scheme.surfaceContainer,
+      backgroundColor: light
+          ? scheme.surfaceContainerLowest
+          : scheme.surfaceContainerLow,
       indicatorColor: scheme.primaryContainer,
       elevation: 0,
       height: 68,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../app/brand.dart';
 
 /// Where the Ask screen stands: shown as a small status pill.
 enum AskPhase { noModel, loading, ready, shelter, serving, failed }
@@ -91,27 +92,21 @@ class _AskViewState extends State<AskView> {
         titleSpacing: 20,
         title: Row(
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [scheme.primary, scheme.tertiary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.health_and_safety_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
+            const LychnionMark(size: 34),
+            const SizedBox(width: 8),
             // Gives way to the status label on narrow phones.
-            const Flexible(
-              child: Text('fieldkit', overflow: TextOverflow.ellipsis),
+            Flexible(
+              child: Text(
+                Brand.name,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                  color: theme.brightness == Brightness.dark
+                      ? scheme.onSurface
+                      : Brand.night,
+                ),
+              ),
             ),
           ],
         ),

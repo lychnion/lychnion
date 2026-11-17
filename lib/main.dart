@@ -45,6 +45,7 @@ import 'ui/thread_list.dart';
 import 'ui/threads.dart';
 import 'ui/nearest_card.dart';
 import 'util/paths.dart';
+import 'app/brand.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
 ///
@@ -93,7 +94,7 @@ const _topK = int.fromEnvironment('TOP_K', defaultValue: 4);
 const _shelterServer = bool.fromEnvironment('SHELTER_SERVER');
 const _shelterName = String.fromEnvironment(
   'SHELTER_NAME',
-  defaultValue: 'fieldkit shelter',
+  defaultValue: 'Lychnion shelter',
 );
 const _shelterUrl = String.fromEnvironment('SHELTER_URL');
 const _demoFactsFlag = bool.fromEnvironment('DEMO_FACTS');
@@ -104,13 +105,13 @@ Future<void> main() async {
   await LocalLlm.init();
   final settings = AppSettings();
   await settings.load();
-  runApp(FieldkitApp(settings: settings));
+  runApp(LychnionApp(settings: settings));
 }
 
 final _appShotKey = GlobalKey();
 
-class FieldkitApp extends StatelessWidget {
-  const FieldkitApp({super.key, required this.settings});
+class LychnionApp extends StatelessWidget {
+  const LychnionApp({super.key, required this.settings});
 
   final AppSettings settings;
 
@@ -118,7 +119,7 @@ class FieldkitApp extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: settings,
     builder: (context, _) => MaterialApp(
-      title: 'fieldkit',
+      title: Brand.name,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),

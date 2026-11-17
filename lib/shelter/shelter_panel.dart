@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app/settings.dart';
 import 'shelter_link.dart';
+import '../app/brand.dart';
 
 /// Shelter computer: a QR code phones scan to connect.
 class ShelterQrCard extends StatelessWidget {
@@ -70,8 +71,8 @@ class ShelterQrCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     en
-                        ? 'On the shelter Wi-Fi, scan this code with the phone camera. fieldkit opens and connects to "$name".'
-                        : '施設のWi-Fiに接続したスマートフォンのカメラで読み取ると、fieldkit が開き「$name」に接続します。',
+                        ? 'On the shelter Wi-Fi, scan this code with the phone camera. ${Brand.name} opens and connects to "$name".'
+                        : '施設のWi-Fiに接続したスマートフォンのカメラで読み取ると、${Brand.nameJa}が開き「$name」に接続します。',
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 10),
