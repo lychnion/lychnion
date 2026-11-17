@@ -123,6 +123,7 @@ flutter run -d macos --dart-define=DOWNLOAD_BASE_URL=http://127.0.0.1:8765/
 - `lib/download/`: catalog, downloader (resume, SHA-256), Downloads tab.
 - `lib/spike/`: test questions for comparing models and devices.
 - `docs/poc-plan.md`: plan, competitor review, licences, naming notes.
+- `docs/distribution.md`: how apps and data packages reach people, also without internet (design note).
 
 ## Licence
 
