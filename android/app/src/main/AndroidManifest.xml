@@ -7,7 +7,7 @@
     <!-- usesCleartextTraffic: phones ask the shelter computer over plain http on the local Wi-Fi (PoC). -->
     <application
         android:usesCleartextTraffic="true"
-        android:label="Lychnion"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
