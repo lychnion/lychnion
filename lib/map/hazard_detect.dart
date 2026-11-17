@@ -15,6 +15,20 @@ Hazard? hazardFor(String question, List<Alert> alerts) {
   return null;
 }
 
+/// The hazard of the current warnings (relayed or typed by shelter staff),
+/// most urgent first: a tsunami warning wins over an earthquake one, in the
+/// same order as [hazardFor]. Lifted warnings (解除, "lifted") are left out.
+/// Null without a warning that names a hazard.
+Hazard? hazardForWarnings(Iterable<String> warnings) {
+  final active = [
+    for (final w in warnings)
+      if (!_lifted.any(w.toLowerCase().contains)) w,
+  ];
+  return active.isEmpty ? null : hazardFor(active.join('\n'), const []);
+}
+
+const _lifted = ['解除', 'lifted', 'cancelled', 'canceled'];
+
 const _keywords = <(Hazard, List<String>)>[
   (Hazard.tsunami, ['津波', 'tsunami']),
   (Hazard.volcano, ['噴火', '火山', 'eruption', 'volcan']),

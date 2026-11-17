@@ -301,5 +301,13 @@ not high. In Nishinomiya there is no hill to reach.
 
 Open:
 - Kushimoto is not in the download catalog (needs a new release).
-- The home screen card shows the nearest site for any hazard, even while a
-  tsunami warning is active; it should use the hazard of the warning.
+
+Fixed (2026-11-17): during a warning, the home screen card shows the
+nearest site for the warning's hazard (`hazardForWarnings`: tsunami before
+earthquake, lifted warnings ignored), labelled e.g. 「近くの指定緊急避難場所
+（津波）」. In Kushimoto town centre with a test tsunami warning it now shows
+幼稚園横高台 (235 m walk, 13 m above sea level) instead of the kindergarten
+98 m away, and opens the map in tsunami mode with the route. Without a
+warning, or without a site for that hazard in the area, it shows the nearest
+site for any hazard as before. The test facts (`DEMO_FACTS`) now also work
+outside Nishinomiya: shelter facts for sites the area lacks are left out.

@@ -9,6 +9,7 @@ import '../facts/fact.dart';
 import '../facts/fact_store.dart';
 import '../util/paths.dart';
 import 'evac_sites.dart';
+import 'hazard_detect.dart';
 import 'inundation_tiles.dart';
 import 'route_graph.dart';
 
@@ -46,6 +47,13 @@ class MapState extends ChangeNotifier {
 
   /// The current status fact of a site, if any.
   Fact? statusOf(EvacSite site) => facts?.shelterStatus(site.uid);
+
+  /// The hazard named by the current warnings, e.g. tsunami during a
+  /// tsunami warning; null without one.
+  Hazard? get warningHazard => hazardForWarnings([
+    for (final f in facts?.currentOf({FactKind.warning}) ?? const <Fact>[])
+      '${f.value} ${f.subject}',
+  ]);
 
   /// Whether to steer people away from a site (full or closed).
   bool avoid(EvacSite site) => statusOf(site)?.shelterStatus?.avoid ?? false;

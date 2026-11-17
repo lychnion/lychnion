@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../facts/fact.dart';
 import '../facts/fact_view.dart';
+import '../map/evac_sites.dart';
 import '../map/map_state.dart';
 
 /// Home screen: active warnings and the nearest evacuation site that can
@@ -25,7 +26,18 @@ class NearestSiteCard extends StatelessWidget {
       if (!map.ready) return const SizedBox.shrink();
       final theme = Theme.of(context);
       final scheme = theme.colorScheme;
-      final near = map.nearest(null, limit: 1, skipAvoided: true);
+      // During a warning, the nearest site for its hazard (a tsunami
+      // warning: the nearest tsunami site, often a hill rather than the
+      // nearest building). Without a warning, or without a site for that
+      // hazard here, the nearest site for any hazard.
+      var hazard = map.warningHazard;
+      var near = hazard == null
+          ? const <SiteDistance>[]
+          : map.nearest(hazard, limit: 1, skipAvoided: true);
+      if (near.isEmpty) {
+        hazard = null;
+        near = map.nearest(null, limit: 1, skipAvoided: true);
+      }
       final facts = map.facts;
       final warnings = facts?.currentOf({FactKind.warning}) ?? const <Fact>[];
       return Column(
@@ -72,7 +84,7 @@ class NearestSiteCard extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
                 onTap: () {
-                  map.showOnMap(map.hazard, near.first.site.point);
+                  map.showOnMap(hazard ?? map.hazard, near.first.site.point);
                   onShowOnMap?.call();
                 },
                 child: Padding(
@@ -93,9 +105,14 @@ class NearestSiteCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              en
-                                  ? 'Nearest emergency evacuation site'
-                                  : '近くの指定緊急避難場所',
+                              switch ((hazard, en)) {
+                                (null, true) =>
+                                  'Nearest emergency evacuation site',
+                                (null, false) => '近くの指定緊急避難場所',
+                                (final h?, true) =>
+                                  'Nearest evacuation site for ${h.en.toLowerCase()}',
+                                (final h?, false) => '近くの指定緊急避難場所（${h.ja}）',
+                              },
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: scheme.onSecondaryContainer,
                               ),

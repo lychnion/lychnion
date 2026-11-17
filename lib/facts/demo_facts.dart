@@ -2,11 +2,13 @@ import '../map/evac_sites.dart';
 import 'fact.dart';
 
 /// Made-up facts around 西宮市役所 for demos and tests (dev flag DEMO_FACTS).
-/// Clearly marked as test data in their source name.
+/// Clearly marked as test data in their source name. In another area (no
+/// such sites) the shelter facts are left out; the warning still shows.
 List<Fact> demoFacts(EvacSites sites, DateTime now) {
-  String site(String name, Hazard h) => sites.sites
-      .firstWhere((s) => s.emergency && s.name == name && s.hazards.contains(h))
-      .uid;
+  String? site(String name, Hazard h) => sites.sites
+      .where((s) => s.emergency && s.name == name && s.hazards.contains(h))
+      .firstOrNull
+      ?.uid;
   Fact f(
     FactKind kind,
     String subject,
@@ -29,31 +31,34 @@ List<Fact> demoFacts(EvacSites sites, DateTime now) {
   final cityHall = site('市役所', Hazard.tsunami);
   final hall = site('市民会館', Hazard.tsunami);
   return [
-    f(
-      FactKind.shelterStatus,
-      cityHall,
-      'open',
-      SourceType.official,
-      '西宮市（テスト）',
-      minutesAgo: 95,
-    ),
-    f(
-      FactKind.shelterStatus,
-      cityHall,
-      'full',
-      SourceType.official,
-      '西宮市（テスト）',
-      minutesAgo: 20,
-      note: '受け入れ停止',
-    ),
-    f(
-      FactKind.shelterStatus,
-      hall,
-      'crowded',
-      SourceType.citizen,
-      '住民（テスト）',
-      minutesAgo: 8,
-    ),
+    if (cityHall != null) ...[
+      f(
+        FactKind.shelterStatus,
+        cityHall,
+        'open',
+        SourceType.official,
+        '西宮市（テスト）',
+        minutesAgo: 95,
+      ),
+      f(
+        FactKind.shelterStatus,
+        cityHall,
+        'full',
+        SourceType.official,
+        '西宮市（テスト）',
+        minutesAgo: 20,
+        note: '受け入れ停止',
+      ),
+    ],
+    if (hall != null)
+      f(
+        FactKind.shelterStatus,
+        hall,
+        'crowded',
+        SourceType.citizen,
+        '住民（テスト）',
+        minutesAgo: 8,
+      ),
     f(
       FactKind.roadBlocked,
       '34.7349,135.3420',
