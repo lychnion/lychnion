@@ -52,6 +52,12 @@ class Alert {
   }
 }
 
+class PackageInfo {
+  const PackageInfo(this.id, this.title, this.version, this.passages);
+  final String id, title, version;
+  final int passages;
+}
+
 /// A knowledge package: one SQLite file built by tool/build_package.py.
 ///
 /// Small enough to keep in memory; SQLite is the file format.
@@ -64,10 +70,14 @@ class KnowledgePackage {
     this.passages,
     this.alerts,
     this.synonyms,
-    this.vectors,
-  );
+    this.vectors, {
+    List<PackageInfo>? parts,
+  }) : parts = parts ?? [PackageInfo(id, title, version, passages.length)];
 
   final String id, title, version;
+
+  /// The packages this one was made of (itself, unless merged).
+  final List<PackageInfo> parts;
   final Map<String, Source> sources;
   final List<Passage> passages;
   final List<Alert> alerts;
@@ -78,6 +88,49 @@ class KnowledgePackage {
   /// Precomputed passage vectors per embedding model file name, in passage
   /// order (tool/add_vectors.py). Saves phones from indexing the package.
   final Map<String, List<List<double>>> vectors;
+
+  /// One package searched as a whole: all passages, sources, safety lines
+  /// and synonyms together. Passage ids are renumbered so they stay unique.
+  /// Shipped vectors are kept for a model only when every package has them
+  /// (otherwise the app embeds the passages once and caches them).
+  static KnowledgePackage merge(List<KnowledgePackage> packages) {
+    if (packages.isEmpty) throw ArgumentError('no packages');
+    if (packages.length == 1) return packages.first;
+    final sources = <String, Source>{};
+    final passages = <Passage>[];
+    final synonyms = <String, List<String>>{};
+    for (final pkg in packages) {
+      sources.addAll(pkg.sources);
+      for (final p in pkg.passages) {
+        passages.add(Passage(passages.length + 1, p.source, p.heading, p.text));
+      }
+      pkg.synonyms.forEach((word, alts) {
+        final all = synonyms[word] ??= [];
+        for (final a in alts) {
+          if (!all.contains(a)) all.add(a);
+        }
+      });
+    }
+    final vectors = <String, List<List<double>>>{};
+    for (final model in packages.first.vectors.keys) {
+      if (packages.every(
+        (p) => p.vectors[model]?.length == p.passages.length,
+      )) {
+        vectors[model] = [for (final p in packages) ...p.vectors[model]!];
+      }
+    }
+    return KnowledgePackage._(
+      [for (final p in packages) p.id].join('+'),
+      [for (final p in packages) p.title].join('・'),
+      [for (final p in packages) p.version].join('+'),
+      sources,
+      passages,
+      [for (final p in packages) ...p.alerts],
+      synonyms,
+      vectors,
+      parts: [for (final p in packages) ...p.parts],
+    );
+  }
 
   /// Copies a bundled package out of the assets (SQLite needs a real file) and loads it.
   static Future<KnowledgePackage> fromAsset(String name) async {

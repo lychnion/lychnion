@@ -244,7 +244,7 @@ as is.
 
 | Package | Sources | Status |
 |---|---|---|
-| Hiking (`jp.outdoor.hiking`) | 環境省 / 林野庁 guidance, 警察庁 山岳遭難 stats, 環境省 クマ出没対応 manuals, OSM trails | ✅ gov terms / ODbL. ⚠️ 日本山岳ガイド協会 and mountain-hut info need permission |
+| Hiking (`jp.outdoor.hiking`) | 警察庁 山岳遭難の概況 (prevention part), 気象庁 lightning / thunderstorm / volcano pages, 環境省 熱中症, 厚労省 SFTS Q&A, 林野庁 ticks and hornets | ✅ First version built in the app (2026-11-18): 10 sources, 50 passages, PDL1.0. Gaps: hypothermia, マムシ (no national page with reuse terms); 夏山登山の警告文 waits for licence check. ⚠️ 日本山岳ガイド協会 and mountain-hut info need permission |
 | Backcountry ski / snowboard (`jp.outdoor.backcountry`) | 気象庁 snow and weather explanations, 防災科研 (NIED) avalanche material | ⚠️ NIED terms per item. 日本雪崩ネットワーク (JAN) bulletins are copyright, ask them, they are the key source |
 | Hunting (`jp.outdoor.hunting`) | 環境省 鳥獣保護管理 pages, hunting law (e-Gov 法令, free to use), 熊/猪 safety | ✅ law and ministry pages. ❌ 狩猟読本 (大日本猟友会) is copyright |
 

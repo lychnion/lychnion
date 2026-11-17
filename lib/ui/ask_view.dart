@@ -47,10 +47,14 @@ class AskView extends StatefulWidget {
     this.devActions = const [],
     this.detailExtra,
     this.home,
+    this.packages,
   });
 
   /// Shown on the empty screen above the suggestions (nearest site, warnings).
   final Widget? home;
+
+  /// Below the suggestions: the knowledge packages (see PackageRow).
+  final Widget? packages;
 
   /// Shown under the status details, e.g. the shelter QR code.
   final Widget? detailExtra;
@@ -158,8 +162,9 @@ class _AskViewState extends State<AskView> {
       const SizedBox(height: 10),
       Text(
         _t(
-          '防災と応急手当の公的な資料をもとに、インターネットなしで答えます。出典もいっしょに表示します。',
-          'Answers from official safety guides, without internet, '
+          '防災やアウトドアの公的な資料をもとに、インターネットなしで答えます。出典もいっしょに表示します。',
+          'Answers from official safety guides for disasters and the '
+              'outdoors, without internet, '
               'with the source for every answer.',
         ),
         style: theme.textTheme.bodyMedium?.copyWith(
@@ -248,6 +253,8 @@ class _AskViewState extends State<AskView> {
             ),
           ),
       ],
+      if (widget.packages case final p?) ...[const SizedBox(height: 14), p],
+      const SizedBox(height: 8),
     ];
   }
 

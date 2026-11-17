@@ -21,6 +21,7 @@ import 'ui/ask_view.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
+import 'ui/package_row.dart';
 import 'llm/local_embedder.dart';
 import 'map/map_screen.dart';
 import 'facts/compact_codec.dart';
@@ -80,8 +81,10 @@ const _modelUrl = String.fromEnvironment(
 );
 const _autoBench = bool.fromEnvironment('AUTO_BENCH');
 const _bare = bool.fromEnvironment('BARE');
-const _packageAsset = 'jp.bousai.core.sqlite';
-const _packageId = 'jp.bousai.core';
+
+/// Knowledge packages built into the app (`assets/packages/<id>.sqlite`).
+/// A newer download from the catalog replaces the built-in copy.
+const _bundledPackages = ['jp.bousai.core', 'jp.outdoor.hiking'];
 const _embedPath = String.fromEnvironment('EMBED_MODEL_PATH');
 const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0.70');
 const _mapPmtiles = String.fromEnvironment('MAP_PMTILES_PATH');
@@ -520,6 +523,9 @@ class _SpikePageState extends State<SpikePage> {
 
   /// What the last load used from Downloads (model, embedder, package).
   String? _loadedDownloads;
+
+  /// The knowledge packages answers come from (shown on the home screen).
+  List<PackageInfo> _packages = const [];
   bool _busy = false;
 
   /// Phone side: the shelter computer to ask first (SHELTER_URL, or the
@@ -595,7 +601,8 @@ class _SpikePageState extends State<SpikePage> {
     final sig = [
       chat,
       store.embedModelPath(),
-      store.installed(ItemKind.package, _packageId)?.version,
+      for (final i in store.allInstalled(ItemKind.package))
+        '${i.id}@${i.version}',
     ].join('|');
     if (sig == _loadedDownloads) return;
     _loadedDownloads = sig;
@@ -616,9 +623,16 @@ class _SpikePageState extends State<SpikePage> {
       await _llm.newChat(systemInstruction: benchSystemInstruction);
       if (!_bare) {
         final store = await DownloadStore.instance();
-        final pkg = KnowledgePackage.open(
-          await store.packagePath(_packageId, _packageAsset),
-        );
+        // The built-in packages (or newer downloads of them) plus every
+        // other package installed from Downloads, searched together.
+        final pkg = KnowledgePackage.merge([
+          for (final id in _bundledPackages)
+            KnowledgePackage.open(await store.packagePath(id, '$id.sqlite')),
+          for (final i in store.allInstalled(ItemKind.package))
+            if (!_bundledPackages.contains(i.id) &&
+                i.fileEnding('.sqlite') != null)
+              KnowledgePackage.open(store.path(i, i.fileEnding('.sqlite')!)),
+        ]);
         HybridRetriever? hybrid;
         final embedPath = _embedPath.isNotEmpty
             ? await resolvePath(_embedPath)
@@ -651,6 +665,7 @@ class _SpikePageState extends State<SpikePage> {
           'version': pkg.version,
           'passages': pkg.passages.length,
         });
+        _packages = pkg.parts;
       }
       _log({
         'event': 'loaded',
@@ -963,6 +978,13 @@ class _SpikePageState extends State<SpikePage> {
               map: widget.map!,
               en: en,
               onShowOnMap: widget.onShowOnMap,
+            ),
+      packages: _packages.isEmpty
+          ? null
+          : PackageRow(
+              packages: _packages,
+              en: en,
+              onAdd: widget.onOpenDownloads,
             ),
       detailExtra: _server == null
           ? null

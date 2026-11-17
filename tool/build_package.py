@@ -8,6 +8,11 @@ snapshot, for sites that refuse scripted downloads), extracts the text
 (HTML, Word .doc via macOS textutil, PDF via tool/pdf2txt.swift), splits it
 into short passages and writes assets/packages/<id>.sqlite.
 
+Per source, optional: skip_headings, skip_heading_prefixes,
+drop_lines_containing, end_marker (drop the menu or footer after the
+content), min_japanese_ratio (drop tables of numbers). Per manifest:
+skip_headings_all, drop_lines_containing, drop_lines (exact lines).
+
 Every fixed safety line ("alert") must appear word for word in its source,
 otherwise the build fails.
 """
@@ -61,7 +66,9 @@ def fetch(src, manifest_dir):
     if src.get("snapshot"):
         # Text saved from a browser for sites that refuse scripted downloads.
         return manifest_dir / src["snapshot"]
-    ext = Path(src["url"].split("?")[0]).suffix or ".html"
+    ext = Path(src["url"].split("?")[0]).suffix
+    if ext not in (".pdf", ".doc", ".txt"):
+        ext = ".html"  # .php, .aspx and pages without an extension
     path = CACHE / f"{src['id']}{ext}"
     if not path.exists():
         req = urllib.request.Request(src["url"], headers={"User-Agent": "lychnion-package-builder"})
@@ -149,10 +156,26 @@ def main(manifest_path, max_chars=MAX_CHARS):
         text = extract(fetch(src, Path(manifest_path).parent))
         texts[src["id"]] = squash(text)
         # e.g. cover, contents and link-list sections, and video captions
-        skip = set(src.get("skip_headings", [])) | set(manifest.get("skip_headings_all", []))
-        drop = manifest.get("drop_lines_containing", [])
-        lines = [l for l in clean_lines(text) if not any(d in l for d in drop)]
-        ps = [(h, t) for h, t in passages(lines, max_chars) if h not in skip]
+        skip = set(src.get("skip_headings", []))
+        if not src.get("own_skip_headings_only"):
+            skip |= set(manifest.get("skip_headings_all", []))
+        drop = manifest.get("drop_lines_containing", []) + src.get("drop_lines_containing", [])
+        exact = set(manifest.get("drop_lines", []))
+        lines = clean_lines(text)
+        if src.get("end_marker"):
+            # Page footer or site menu after the content.
+            end = next((i for i, l in enumerate(lines) if src["end_marker"] in l), None)
+            if end is None:
+                sys.exit(f"{src['id']}: end_marker not found: {src['end_marker']}")
+            lines = lines[:end]
+        lines = [l for l in lines if l not in exact and not any(d in l for d in drop)]
+        prefixes = tuple(src.get("skip_heading_prefixes", []))
+        # Tables of numbers (statistics) carry no guidance: optional cut-off
+        # for the share of Japanese letters in a passage.
+        min_ja = src.get("min_japanese_ratio", manifest.get("min_japanese_ratio", 0))
+        ps = [(h, t) for h, t in passages(lines, max_chars)
+              if h not in skip and not (prefixes and h.startswith(prefixes))
+              and _japanese_ratio(t) >= min_ja]
         if not ps:
             sys.exit(f"no text extracted from {src['id']}")
         rows += [(src["id"], h, t) for h, t in ps]
