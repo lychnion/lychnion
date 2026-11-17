@@ -100,8 +100,9 @@ class _AskViewState extends State<AskView> {
                 Brand.name,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2,
+                  fontFamily: Brand.wordmarkFont,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.3,
                   color: theme.brightness == Brightness.dark
                       ? scheme.onSurface
                       : Brand.night,

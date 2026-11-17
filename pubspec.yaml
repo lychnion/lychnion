@@ -50,3 +50,18 @@ flutter:
     - assets/packages/
     - assets/maps/
     - assets/downloads/
+    - assets/fonts/OFL-BIZUDPGothic.txt
+    - assets/fonts/OFL-Lexend.txt
+  # Brand fonts (SIL OFL 1.1), made by tool/build_fonts.py.
+  fonts:
+    - family: BIZUDPGothic
+      fonts:
+        - asset: assets/fonts/BIZUDPGothic-Regular.ttf
+        - asset: assets/fonts/BIZUDPGothic-Bold.ttf
+          weight: 700
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Lexend-SemiBold.ttf
+          weight: 600

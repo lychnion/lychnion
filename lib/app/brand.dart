@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Lychnion brand colours (brand canvas, board 4). No red: red and orange
 /// stay reserved for official warnings the app relays.
@@ -22,6 +24,26 @@ abstract final class Brand {
   static const ink = Color(0xFF1A1C22);
   static const moonlight = Color(0xFFEDEBE4);
   static const haze = Color(0xFFA9B0BF);
+
+  /// App text, Japanese and English (a universal-design font).
+  static const textFont = 'BIZUDPGothic';
+
+  /// The wordmark and English headings.
+  static const wordmarkFont = 'Lexend';
+}
+
+/// Shows the fonts' licences on the app's licence page.
+void addFontLicenses() {
+  for (final (family, file) in const [
+    ('BIZ UDPGothic', 'assets/fonts/OFL-BIZUDPGothic.txt'),
+    ('Lexend', 'assets/fonts/OFL-Lexend.txt'),
+  ]) {
+    LicenseRegistry.addLicense(() async* {
+      yield LicenseEntryWithLineBreaks([
+        family,
+      ], await rootBundle.loadString(file));
+    });
+  }
 }
 
 /// The Lychnion mark: an open roof (shelter), the amber light (you on the

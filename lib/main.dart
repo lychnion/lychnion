@@ -102,6 +102,7 @@ const _factsEdit = bool.fromEnvironment('FACTS_EDIT');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  addFontLicenses();
   await LocalLlm.init();
   final settings = AppSettings();
   await settings.load();

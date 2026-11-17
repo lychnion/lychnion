@@ -7,7 +7,9 @@ Everything runs on the device; the network is only needed to download models.
 Lychnion (Greek λυχνίον, "small lamp") is the public name. The brand
 (logo, colours, icons) follows the Lychnion brand canvas. "fieldkit" is the
 old code name; shelter QR codes made with it (`fieldkit://`) still work. App icons are drawn by
-`tool/build_icons.py`.
+`tool/build_icons.py`. Fonts (SIL OFL 1.1): BIZ UDPGothic for app text, cut
+down to the common Japanese characters, and Lexend for the wordmark, made
+by `tool/build_fonts.py`.
 
 <p>
   <img src="docs/images/phone-lychnion.png" width="230" alt="Home screen with the Lychnion logo and colours">

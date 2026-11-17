@@ -86,6 +86,7 @@ ThemeData buildTheme(Brightness brightness) {
     colorScheme: scheme,
     brightness: brightness,
     scaffoldBackgroundColor: scheme.surface,
+    fontFamily: Brand.textFont,
     textTheme: _typeScale(scheme),
   );
   final radius = BorderRadius.circular(20);
@@ -98,6 +99,7 @@ ThemeData buildTheme(Brightness brightness) {
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
+        fontFamily: Brand.textFont,
         fontSize: 22,
         fontWeight: FontWeight.w800,
         letterSpacing: 0,
