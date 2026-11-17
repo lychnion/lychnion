@@ -46,6 +46,7 @@ import 'ui/threads.dart';
 import 'ui/nearest_card.dart';
 import 'util/paths.dart';
 import 'app/brand.dart';
+import 'app/splash.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
 ///
@@ -134,9 +135,12 @@ class LychnionApp extends StatelessWidget {
       builder: (context, child) {
         final en = Localizations.localeOf(context).languageCode != 'ja';
         final shot = RepaintBoundary(key: _appShotKey, child: child);
-        return en
-            ? Theme(data: withEnglishHeadings(Theme.of(context)), child: shot)
-            : shot;
+        // The splash stays at the top, so a language change keeps its state.
+        return SplashOverlay(
+          child: en
+              ? Theme(data: withEnglishHeadings(Theme.of(context)), child: shot)
+              : shot,
+        );
       },
     ),
   );
