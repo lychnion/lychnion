@@ -27,6 +27,9 @@ class Retriever {
   }
 
   final KnowledgePackage package;
+
+  /// Where the user is (ISO 3166); more local sources get a small nudge.
+  String userRegion = 'JP';
   final _docs = <Map<String, int>>[];
   final _df = <String, int>{};
   late final double _avgLen;
@@ -53,7 +56,9 @@ class Retriever {
         score +=
             idf * tf * (_k1 + 1) / (tf + _k1 * (1 - _b + _b * len / _avgLen));
       }
-      if (score >= minScore) hits.add(Hit(package.passages[i], score));
+      if (score < minScore) continue;
+      final p = package.passages[i];
+      hits.add(Hit(p, score * localityBoost(p.source.region, userRegion)));
     }
     hits.sort((a, b) => b.score.compareTo(a.score));
     return hits.take(limit).toList();

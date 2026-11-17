@@ -193,7 +193,8 @@ def main(manifest_path, max_chars=MAX_CHARS):
     db.executescript("""
         CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE sources(id TEXT PRIMARY KEY, title TEXT, publisher TEXT, url TEXT,
-                             licence TEXT, licence_url TEXT, attribution TEXT);
+                             licence TEXT, licence_url TEXT, attribution TEXT,
+                             region TEXT NOT NULL DEFAULT 'JP');
         CREATE TABLE passages(id INTEGER PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
                               heading TEXT, text TEXT NOT NULL);
         CREATE VIRTUAL TABLE passages_fts USING fts5(heading, text, content='passages',
@@ -207,8 +208,12 @@ def main(manifest_path, max_chars=MAX_CHARS):
     db.execute("INSERT INTO meta VALUES('gaps',?)", (json.dumps(manifest.get("gaps", []), ensure_ascii=False),))
     # Query expansion for keyword search, until vector search is added.
     db.execute("INSERT INTO meta VALUES('synonyms',?)", (json.dumps(manifest.get("synonyms", {}), ensure_ascii=False),))
-    db.executemany("INSERT INTO sources VALUES(:id,:title,:publisher,:url,:licence,:licence_url,:attribution)",
-                   [{k: s.get(k) for k in ("id", "title", "publisher", "url", "licence", "licence_url", "attribution")}
+    # Where the advice applies (ISO 3166: JP, JP-13, GB, US); the app ranks
+    # local sources a little higher and labels foreign ones.
+    region = manifest.get("region", "JP")
+    db.executemany("INSERT INTO sources VALUES(:id,:title,:publisher,:url,:licence,:licence_url,:attribution,:region)",
+                   [{**{k: s.get(k) for k in ("id", "title", "publisher", "url", "licence", "licence_url", "attribution")},
+                     "region": s.get("region", region)}
                     for s in manifest["sources"]])
     db.executemany("INSERT INTO passages(source_id,heading,text) VALUES(?,?,?)", rows)
     db.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')")

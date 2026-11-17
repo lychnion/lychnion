@@ -16,6 +16,7 @@ Map<String, Object?> sourceToWire(Source s) => {
   'url': s.url,
   'licence': s.licence,
   'attribution': s.attribution,
+  'region': s.region,
 };
 
 Source sourceFromWire(Map<String, dynamic> j) => Source(
@@ -25,6 +26,7 @@ Source sourceFromWire(Map<String, dynamic> j) => Source(
   j['url'] as String,
   j['licence'] as String,
   j['attribution'] as String,
+  region: j['region'] as String? ?? 'JP',
 );
 
 Map<String, Object?> answerToWire(GroundedAnswer a) => {

@@ -35,6 +35,9 @@ class HybridRetriever {
   final LocalEmbedder embedder;
   final Retriever keywords;
   double minCosine;
+
+  /// Where the user is (ISO 3166); more local sources get a small nudge.
+  String userRegion = 'JP';
   late List<List<double>> _vectors;
 
   /// Uses the vectors shipped in the package if they match the embedding
@@ -100,7 +103,7 @@ class HybridRetriever {
       for (var i = 0; i < n; i++)
         RankedHit(
           package.passages[i],
-          rrf[i],
+          rrf[i] * localityBoost(package.passages[i].source.region, userRegion),
           cosine: cos[i],
           keyword: kw[package.passages[i].id] ?? 0,
         ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../facts/fact.dart';
 import '../facts/fact_view.dart';
 import '../knowledge/grounded_answer.dart';
-import '../knowledge/knowledge_package.dart' show Alert;
+import '../knowledge/knowledge_package.dart' show Alert, foreignLabel;
 import '../map/hazard_detect.dart';
 import '../map/map_screen.dart' show formatDistance, noSiteWarning;
 import '../map/map_state.dart';
@@ -279,6 +279,15 @@ class AnswerCard extends StatelessWidget {
                     style: theme.textTheme.titleSmall,
                   ),
                 ),
+                if (foreignLabel(p.source, 'JP', en: en) case final l?)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Chip(
+                      label: Text(l),
+                      visualDensity: VisualDensity.compact,
+                      labelStyle: theme.textTheme.labelSmall,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 10),

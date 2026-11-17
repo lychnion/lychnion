@@ -131,6 +131,10 @@ class GroundedAnswerer {
   /// Vector + keyword search; falls back to keywords only when null.
   final HybridRetriever? hybrid;
 
+  /// Where the user is (ISO 3166, e.g. 'JP' or 'JP-13'): more local
+  /// sources rank a little higher, foreign ones are labelled.
+  String userRegion = 'JP';
+
   /// Fills [answer] step by step; [onUpdate] is called as tokens arrive.
   Future<void> answer(GroundedAnswer answer, void Function() onUpdate) async {
     final q = answer.question;
@@ -141,6 +145,8 @@ class GroundedAnswerer {
     answer.alerts = package.alerts
         .where((a) => a.matches(q) || a.matches(search))
         .toList();
+    retriever.userRegion = userRegion;
+    hybrid?.userRegion = userRegion;
     answer.hits = hybrid != null
         ? await hybrid!.search(search, limit: topK)
         : retriever.search(search, limit: topK);
@@ -166,7 +172,7 @@ class GroundedAnswerer {
           : groundedSystemInstruction,
     );
     await for (final t in llm.ask(
-      _prompt(q, answer.hits, en),
+      _prompt(q, answer.hits, en, userRegion: userRegion),
       onDone: (s) => answer.stats = s,
     )) {
       answer.text += t;
@@ -183,16 +189,17 @@ class GroundedAnswerer {
           '「はい」か「いいえ」だけで答えてください。',
       maxOutputTokens: 8,
     );
-    final b = StringBuffer(_prompt(question, hits, false))
-      ..writeln()
-      ..writeln(
-        'この資料を使って、この質問に答えられますか？'
-        '資料が質問と違う状況について書いている場合'
-        '（例：出会わないための予防策しかなく、出会ったときの対処がない。'
-        '別の災害や別の場所の話。）は「いいえ」です。'
-        '一部でも質問に答えられる場合は「はい」です。'
-        '「はい」か「いいえ」だけで答えてください。',
-      );
+    final b =
+        StringBuffer(_prompt(question, hits, false, userRegion: userRegion))
+          ..writeln()
+          ..writeln(
+            'この資料を使って、この質問に答えられますか？'
+            '資料が質問と違う状況について書いている場合'
+            '（例：出会わないための予防策しかなく、出会ったときの対処がない。'
+            '別の災害や別の場所の話。）は「いいえ」です。'
+            '一部でも質問に答えられる場合は「はい」です。'
+            '「はい」か「いいえ」だけで答えてください。',
+          );
     final reply = StringBuffer();
     await for (final t in llm.ask(b.toString())) {
       reply.write(t);
@@ -217,14 +224,38 @@ class GroundedAnswerer {
     return ja.isEmpty ? question : ja;
   }
 
-  static String _prompt(String question, List<Hit> hits, bool en) {
+  static String _prompt(
+    String question,
+    List<Hit> hits,
+    bool en, {
+    String userRegion = 'JP',
+  }) {
     final b = StringBuffer(en ? 'Sources:\n' : '資料:\n');
+    var foreign = false;
     for (var i = 0; i < hits.length; i++) {
       final p = hits[i].passage;
+      final label = foreignLabel(p.source, userRegion, en: en);
+      foreign |= label != null;
       b.writeln(
-        '[${i + 1}] ${p.source.publisher}「${p.source.title}」${p.heading.isEmpty ? '' : ' / ${p.heading}'}',
+        '[${i + 1}] ${p.source.publisher}「${p.source.title}」'
+        '${p.heading.isEmpty ? '' : ' / ${p.heading}'}'
+        '${label == null ? '' : ' [$label]'}',
       );
       b.writeln(p.text);
+      b.writeln();
+    }
+    if (foreign) {
+      // Combine both; only where they disagree does the local one win.
+      b.writeln(
+        en
+            ? 'Some sources are from abroad. Combine all sources. Where a '
+                  'Japanese source and a foreign one disagree, follow the '
+                  'Japanese one. Do not take phone numbers, laws or services '
+                  'from foreign sources.'
+            : '海外の資料も含まれています。すべての資料を組み合わせて答えてください。'
+                  '日本の資料と海外の資料の内容が違う場合は、日本の資料に従ってください。'
+                  '電話番号、法律、窓口などは海外の資料から使わないでください。',
+      );
       b.writeln();
     }
     b.writeln(en ? 'Question: $question' : '質問: $question');

@@ -12,9 +12,54 @@ class Source {
     this.publisher,
     this.url,
     this.licence,
-    this.attribution,
-  );
+    this.attribution, {
+    this.region = 'JP',
+  });
   final String id, title, publisher, url, licence, attribution;
+
+  /// Where the source's advice applies, as an ISO 3166 code: 'JP' (Japan),
+  /// 'JP-13' (Tokyo), 'GB', 'US'. More local sources rank a little higher;
+  /// foreign ones are labelled (see [localityLevel]).
+  final String region;
+}
+
+/// How local a source is for someone in [user] (an ISO 3166 code such as
+/// 'JP' or 'JP-13'): 0 another country, 1 the same country (or another
+/// region in it), 2 and more for each further level that matches.
+int localityLevel(String region, String user) {
+  final r = region.split('-'), u = user.split('-');
+  if (r.first != u.first) return 0;
+  var level = 1;
+  for (var i = 1; i < r.length && i < u.length && r[i] == u[i]; i++) {
+    level++;
+  }
+  return level;
+}
+
+/// A small nudge, never a filter: relevance decides, and between passages
+/// that are about equally relevant the more local one goes first. In RRF
+/// terms 3 % moves a passage up about two places per level.
+double localityBoost(String region, String user) =>
+    1 + 0.03 * localityLevel(region, user);
+
+/// Names for foreign source labels, e.g. 「海外の資料（英国）」.
+const _countries = <String, (String, String)>{
+  'GB': ('英国', 'UK'),
+  'US': ('米国', 'US'),
+  'CA': ('カナダ', 'Canada'),
+  'AU': ('オーストラリア', 'Australia'),
+  'NZ': ('ニュージーランド', 'New Zealand'),
+  'CH': ('スイス', 'Switzerland'),
+  'AT': ('オーストリア', 'Austria'),
+  'DE': ('ドイツ', 'Germany'),
+};
+
+/// "海外の資料（英国）" / "Source from the UK", or null for a local source.
+String? foreignLabel(Source s, String user, {required bool en}) {
+  if (localityLevel(s.region, user) > 0) return null;
+  final code = s.region.split('-').first;
+  final name = _countries[code];
+  return en ? 'Source from ${name?.$2 ?? code}' : '海外の資料（${name?.$1 ?? code}）';
 }
 
 class Passage {
@@ -145,8 +190,11 @@ class KnowledgePackage {
         for (final r in db.select('SELECT key, value FROM meta'))
           r['key'] as String: r['value'] as String,
       };
+      final rows = db.select('SELECT * FROM sources');
+      // Packages built before regions existed are Japanese.
+      final hasRegion = rows.columnNames.contains('region');
       final sources = {
-        for (final r in db.select('SELECT * FROM sources'))
+        for (final r in rows)
           r['id'] as String: Source(
             r['id'],
             r['title'],
@@ -154,6 +202,7 @@ class KnowledgePackage {
             r['url'],
             r['licence'],
             r['attribution'],
+            region: (hasRegion ? r['region'] as String? : null) ?? 'JP',
           ),
       };
       final passages = [

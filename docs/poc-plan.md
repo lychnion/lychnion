@@ -251,6 +251,33 @@ as is.
 Rule for every package: no source goes in without a licence entry in the
 manifest. The app shows it under each citation.
 
+### Sources from abroad
+
+Agreed 2026-11-18. Much survival knowledge is the same everywhere
+(hypothermia, frostbite, wound care, avalanche rescue basics), so foreign
+sources may fill gaps where Japan has no usable source.
+
+- **Universal topics only:** the body, first aid, physics (lightning,
+  snow). Not species (マムシ, ツキノワグマ), laws, services or emergency
+  numbers; such lines are dropped when the package is built.
+- **Every source has a region** (ISO 3166: `JP`, `JP-13`, `GB`, `US`), in
+  the manifest (`"region"` per source, or for the whole package; default
+  `JP`).
+- **Local first, nothing dropped.** All packages are searched together and
+  relevance decides; a more local source only gets a small nudge (3 % per
+  level) when passages are about equally relevant. A small local package
+  adds to the general ones, it never hides them.
+- **The model combines them.** When a foreign passage is among the
+  sources, the prompt says: combine all sources, follow the Japanese one
+  where they disagree, take no phone numbers, laws or services from
+  foreign sources.
+- **Labelled:** 「海外の資料（英国）」 next to the source.
+- **Licences:** the data licence is independent of the app's (AGPL). For
+  the general packages, sources that allow any reuse with credit: PDL1.0,
+  CC BY, UK Open Government Licence, US federal public domain. Sources
+  with NC (non-commercial) or SA (share-alike) terms only in a package of
+  their own, so the others stay free to pass on.
+
 ## 5. PoC scope
 
 **In (about 4 to 6 weeks of part-time work):**
