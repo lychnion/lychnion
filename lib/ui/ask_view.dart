@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app/brand.dart';
 import 'breathing_light.dart';
+import 'suggestions.dart';
 
 /// Where the Ask screen stands: shown as a small status pill.
 enum AskPhase { noModel, loading, ready, shelter, serving, failed }
@@ -11,20 +12,6 @@ class DevAction {
   final String label;
   final VoidCallback? onTap;
 }
-
-/// Suggested first questions, covered by the core knowledge package.
-const _suggestionsJa = [
-  (Icons.waves_rounded, '海の近くで強い揺れを感じたら？'),
-  (Icons.healing_rounded, 'けがをして出血しているときは？'),
-  (Icons.water_drop_outlined, '非常用の水はどれくらい必要？'),
-  (Icons.forest_outlined, '山でクマに出会ったら？'),
-];
-const _suggestionsEn = [
-  (Icons.waves_rounded, 'Strong shaking near the sea: what should I do?'),
-  (Icons.healing_rounded, 'How do I stop heavy bleeding?'),
-  (Icons.water_drop_outlined, 'How much emergency water do I need?'),
-  (Icons.forest_outlined, 'What if I meet a bear in the mountains?'),
-];
 
 /// Home screen: status, warnings and nearest site, suggested questions,
 /// recent conversations, and the question bar.
@@ -48,10 +35,14 @@ class AskView extends StatefulWidget {
     this.detailExtra,
     this.home,
     this.packages,
+    this.packageIds = const [],
   });
 
   /// Shown on the empty screen above the suggestions (nearest site, warnings).
   final Widget? home;
+
+  /// Ids of the loaded knowledge packages: picks the suggested questions.
+  final List<String> packageIds;
 
   /// Below the suggestions: the knowledge packages (see PackageRow).
   final Widget? packages;
@@ -152,7 +143,7 @@ class _AskViewState extends State<AskView> {
 
   List<Widget> _home(ThemeData theme) {
     final scheme = theme.colorScheme;
-    final suggestions = en ? _suggestionsEn : _suggestionsJa;
+    final suggestions = suggestionsFor(widget.packageIds, en: en);
     final needsData = widget.phase == AskPhase.noModel;
     return [
       Text(

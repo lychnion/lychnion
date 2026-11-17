@@ -28,7 +28,10 @@
         "※",
         "写真提供"
       ],
-      "note": "Lines marked ※ are from a 日本大気電気学会 booklet (third party): dropped."
+      "note": "Lines marked ※ are from a 日本大気電気学会 booklet (third party): dropped.",
+      "skip_headings": [
+        "落雷による災害例"
+      ]
     },
     {
       "id": "jma-sekiranun-sign",

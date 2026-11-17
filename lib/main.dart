@@ -979,6 +979,7 @@ class _SpikePageState extends State<SpikePage> {
               en: en,
               onShowOnMap: widget.onShowOnMap,
             ),
+      packageIds: [for (final p in _packages) p.id],
       packages: _packages.isEmpty
           ? null
           : PackageRow(
