@@ -104,7 +104,7 @@ class LocalLlm {
     int maxOutputTokens = 512,
   }) async {
     await _chat?.close();
-    _chat = await _model!.createChat(
+    _chat = await _model!.openChat(
       systemInstruction: systemInstruction,
       modelType: edge.ModelType.general,
       temperature: .3,
@@ -125,7 +125,7 @@ class LocalLlm {
     Duration? first;
     var tokens = 0;
     await chat.addQueryChunk(edge.Message.text(text: prompt, isUser: true));
-    // Thinking is off (createChat default), but some models (Qwen3) may still
+    // Thinking is off (openChat default), but some models (Qwen3) may still
     // emit a <think>…</think> block; drop it from the answer.
     var thinking = false;
     await for (final r in chat.generateChatResponseAsync()) {
