@@ -46,6 +46,12 @@ record lists any more are removed. `--kind` limits it to `package`,
 `map` or `model` (models are gigabytes). Run it from cron to keep the
 node current, for example every hour.
 
+Key statements in a catalog's `keys` (a publisher replaced or revoked
+its key) count when they are made by a key `pull` trusts: records of a
+new key are taken, a record whose key was revoked is set aside (its
+files kept). `catalog.json` lists the statements again, so the node
+passes them on to phones and other nodes.
+
 `pull` also reads a folder instead of an address, for example a USB
 stick written by the desktop app ("Copy to a USB stick") or another
 node's folder: `lychnion_node pull --into /srv/lychnion /media/stick`.

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart' as crypto;
@@ -87,6 +86,9 @@ Future<PullResult> _pull(
   void Function(String line)? log,
 ) async {
   final result = PullResult();
+  // Key statements kept here and learned from the sources (replaced and
+  // revoked publisher keys) count for the records, and are passed on.
+  var keys = trust.withStatements(await folder.keys(trust));
   // Records here: the served catalog, and those set aside earlier because
   // their publisher was not given (kept, with their files, until it is).
   final before = [...await folder.allRecords(), ...await folder.keptRecords()];
@@ -96,7 +98,7 @@ Future<PullResult> _pull(
   final untrusted = <String>{};
   final kept = <String, PackageRecord>{};
   for (final r in before) {
-    if (await trust.verify(r)) {
+    if (await keys.verify(r)) {
       if (have[r.id] case final o? when !isOlder(o.version, r.version)) {
         continue;
       }
@@ -134,8 +136,9 @@ Future<PullResult> _pull(
       continue;
     }
     final sourcePrivate = local != null || await private.isPrivate(source.host);
+    keys = keys.withStatements(await relevantStatements(keys, cat.keys));
     for (final raw in cat.records) {
-      final r = await trust.check(raw);
+      final r = await keys.check(raw);
       if (r == null) {
         result.notTrusted++;
         continue;
@@ -187,14 +190,39 @@ Future<PullResult> _pull(
   }
 
   // Listed only when complete; an older complete version stays listed.
-  final listed = [
+  // A record whose key a source revoked meanwhile is set aside, files
+  // kept, like one whose publisher was not given.
+  final listed = <PackageRecord>[];
+  for (final r in [
     for (final r in next.values)
       if (await _complete(folder, r))
         r
       else if (have[r.id] case final old? when await _complete(folder, old))
         old,
-  ];
-  await folder.writeCatalog(listed);
+  ]) {
+    if (await keys.verify(r)) {
+      listed.add(r);
+      continue;
+    }
+    if (kept[r.id] == null || isOlder(kept[r.id]!.version, r.version)) {
+      kept[r.id] = r;
+    }
+    untrusted.addAll(r.files.map((f) => f.sha256));
+    // The version before, when its key is still trusted, stays listed.
+    if (have[r.id] case final old?
+        when old != r &&
+            await keys.verify(old) &&
+            await _complete(folder, old)) {
+      listed.add(old);
+    }
+  }
+  try {
+    await folder.writeCatalog(listed, keys: keys.statements);
+  } on CatalogTooLarge catch (e) {
+    // The catalog served stays as it was, and so do the files it lists.
+    result.failed.add('catalog.json: $e');
+    return result;
+  }
   await folder.writeKept([
     for (final r in kept.values)
       if (!listed.any((l) => l.id == r.id)) r,
@@ -427,40 +455,27 @@ Future<String> _sha256(File f) async =>
 /// The parts of a catalog (format 2) a node needs: its records as given,
 /// and where their files are.
 class _Catalog {
-  _Catalog(this.records, this.base, this.urls, this.mirrors);
+  _Catalog(this.records, this.base, this.urls, this.mirrors, this.keys);
 
   final List<Object?> records;
+  final List<Object?> keys;
   final Uri base;
   final Map<String, String> urls;
   final List<Uri> mirrors;
 
   factory _Catalog.parse(String text, Uri from) {
-    final j = jsonDecode(text);
-    if (j is! Map || j['format'] != 2 || j['records'] is! List) {
-      throw const FormatException('not a format 2 catalog');
-    }
-    if ((j['urls'] != null && j['urls'] is! Map) ||
-        (j['mirrors'] != null && j['mirrors'] is! List) ||
-        (j['base'] != null && j['base'] is! String)) {
-      throw const FormatException('urls, mirrors or base of the wrong type');
-    }
-    final base = j['base'] is String
-        ? (Uri.tryParse(j['base'] as String) ?? from)
-        : from;
+    final doc = CatalogDocument.parse(text);
+    final base = doc.base != null ? (Uri.tryParse(doc.base!) ?? from) : from;
     return _Catalog(
-      j['records'] as List,
+      doc.records,
       from.resolveUri(base),
-      {
-        for (final e in ((j['urls'] as Map?) ?? const {}).entries)
-          if (e.key is String && e.value is String)
-            e.key as String: e.value as String,
-      },
+      doc.urls,
       [
-        for (final m in (j['mirrors'] as List?) ?? const [])
-          if (m is String)
-            if (Uri.tryParse(m.endsWith('/') ? m : '$m/') case final u?)
-              if (_web(from.resolveUri(u))) from.resolveUri(u),
+        for (final m in doc.mirrors)
+          if (Uri.tryParse(m.endsWith('/') ? m : '$m/') case final u?)
+            if (_web(from.resolveUri(u))) from.resolveUri(u),
       ].take(10).toList(),
+      doc.keys,
     );
   }
 

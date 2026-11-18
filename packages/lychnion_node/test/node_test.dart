@@ -123,6 +123,103 @@ void main() {
       expect(await checkFolder(folder, trust), isEmpty);
     });
 
+    test('key statements count for records and are passed on', () async {
+      final next = await Ed25519().newKeyPair();
+      final ab = await KeyStatement.replace(
+        publisher: 'jp.city.test',
+        oldKey: city,
+        newKey: next,
+        signed: '2026-11-19',
+      );
+      // Junk about a key of its own is not kept.
+      final junk = await KeyStatement.revoke(
+        publisher: 'jp.city.test',
+        key: stranger,
+        signed: '2026-11-19',
+      );
+      final a = await offer('jp.a', '1', 'aaa', key: next);
+      publish([a]);
+      src.catalog['keys'] = [junk.json, ab.json];
+      final r = await go();
+      expect(r.changed, ['jp.a 1']);
+      final j = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+      expect(j['keys'], [ab.json]);
+      expect(await checkFolder(folder, trust), isEmpty);
+      // Served again: still trusted from the folder's own statements.
+      expect((await folder.records(trust)).single.id, 'jp.a');
+
+      // A revocation of the new key, learned later, drops the record.
+      final revoke = await KeyStatement.revoke(
+        publisher: 'jp.city.test',
+        key: next,
+        signed: '2026-11-20',
+      );
+      src.catalog['keys'] = [revoke.json];
+      await go();
+      expect(await folder.allRecords(), isEmpty);
+      expect((await folder.keptRecords()).single.id, 'jp.a');
+      expect(folder.blob(a.files.single.sha256)!.existsSync(), isTrue);
+    });
+
+    test('a key revoked mid-pull: the version before stays', () async {
+      final next = await Ed25519().newKeyPair();
+      final ab = await KeyStatement.replace(
+        publisher: 'jp.city.test',
+        oldKey: city,
+        newKey: next,
+        signed: '2026-11-19',
+      );
+      final v1 = await offer('jp.a', '1', 'one');
+      publish([v1]);
+      await go();
+      final v2 = await offer('jp.a', '2', 'two', key: next);
+      final revoke = await KeyStatement.revoke(
+        publisher: 'jp.city.test',
+        key: next,
+        signed: '2026-11-20',
+      );
+      publish([v2]);
+      src.catalog['keys'] = [ab.json, revoke.json];
+      await go();
+      expect((await folder.allRecords()).single.version, '1');
+    });
+
+    test('a catalog over 2 MB: reported, nothing pruned', () async {
+      final a = await offer('jp.a', '1', 'aaa');
+      publish([a]);
+      await go();
+      // Two catalogs under the fetch limit, together over it.
+      Future<PackageRecord> large(String id, String content) async {
+        final r = await offer(id, '1', content);
+        return PackageRecord.sign(
+          {
+            ...r.json,
+            'title': {'en': 'x' * (1200 * 1024)},
+          }..remove('signature'),
+          city,
+        );
+      }
+
+      final b = await large('jp.b', 'bbb');
+      publish([a, b]);
+      final other = Source();
+      await other.start();
+      try {
+        final c = await large('jp.c', 'ccc');
+        other.files['jp.c.sqlite'] = src.files.remove('jp.c.sqlite')!;
+        other.catalog = {
+          'format': 2,
+          'records': [c.json],
+        };
+        final r = await pull([src.url, other.url], folder, trust);
+        expect(r.failed.any((f) => f.startsWith('catalog.json')), isTrue);
+        expect((await folder.allRecords()).single.id, 'jp.a');
+        expect(folder.blob(a.files.single.sha256)!.existsSync(), isTrue);
+      } finally {
+        await other.server.close(force: true);
+      }
+    });
+
     test('again: nothing fetched twice', () async {
       publish([await offer('jp.a', '1', 'aaa')]);
       await go();

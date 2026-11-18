@@ -179,8 +179,10 @@ key), whose `keys` the publisher puts into its catalog.
 **How phones learn of them**, often offline: statements check themselves,
 so any carrier will do. A catalog (Lychnion's, a followed one, and its
 last copy), a USB stick (the desktop app writes the statements it knows
-to the stick and reads them from it) and a device nearby that sends them
-in its catalog. A phone keeps statements made by a key it trusts at that
+to the stick and reads them from it), a base and a phone nearby (their
+catalog carries the statements the computer knows), and the headless
+node (`pull` keeps the statements made by keys it trusts and serves
+them; a record whose key was revoked is set aside, its files kept). A phone keeps statements made by a key it trusts at that
 moment for that publisher (anyone can sign a statement about a key of
 their own; those are not kept), at most 1000, in `publishers.json`
 (format 2). Statements are taken in rounds, so their order in a list
@@ -190,8 +192,12 @@ verified (another catalog still counts). At most 50 replacements are
 kept per publisher, so a thief cannot fill the list with a chain of keys
 of its own, and revocations are kept even when the list is full. It
 checks a catalog's records after applying that catalog's statements, so
-records of a new key count at once. Not yet: a base and the headless
-node passing statements on in their own catalogs (follow-up).
+records of a new key count at once.
+
+All of them read and write catalog.json through one class,
+`CatalogDocument` in `packages/lychnion_format` (the app, the base, USB
+sticks, the node, and lychnion-data's tools), and `keys.json` through
+`KeysFile`, so a new catalog field is added in one place.
 
 **Older apps** ignore `keys`: they keep trusting only the old key, show
 records of the new key as having a bad signature, and do not honour a
