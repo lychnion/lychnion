@@ -52,6 +52,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadsErrorOlder => 'インストール済みより古い版のため、インストールしませんでした。';
 
   @override
+  String get downloadsErrorTaken =>
+      'この ID かファイル名がほかの発行元からインストール済みのため、インストールしませんでした。';
+
+  @override
   String downloadsLargeWarning(String size) {
     return '$size をダウンロードします。Wi-Fi で行ってください。空き容量が $size 以上必要です。途中で止まっても、続きから再開できます。';
   }
@@ -1136,6 +1140,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String publishersKnown(String name) {
     return '$name は追加済みです。';
   }
+
+  @override
+  String get publishersSaveFailed => '発行元の一覧を保存できませんでした。変更はありません。';
 
   @override
   String get publishersNone =>

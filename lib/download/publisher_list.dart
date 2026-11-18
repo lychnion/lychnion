@@ -30,6 +30,26 @@ class PublisherLink {
 
   static const scheme = 'lychnion';
 
+  /// A title as shown: no control or direction-changing characters (they
+  /// could make one name look like another), at most 60 characters, and
+  /// never the app's own name (`Lychnion`, `リクニオン`), so a publisher
+  /// cannot pass itself off as the built-in one.
+  static String? cleanTitle(String? t) {
+    if (t == null) return null;
+    var s = t
+        .replaceAll(
+          RegExp(
+            r'[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]',
+          ),
+          '',
+        )
+        .trim();
+    if (s.runes.length > 60) s = String.fromCharCodes(s.runes.take(60));
+    final plain = s.toLowerCase().replaceAll(' ', '');
+    if (s.isEmpty || plain == 'lychnion' || plain == 'リクニオン') return null;
+    return s;
+  }
+
   Uri toUri() => Uri(
     scheme: scheme,
     host: 'publisher',
@@ -42,12 +62,7 @@ class PublisherLink {
     final q = uri.queryParameters;
     final name = q['name'] ?? '', key = q['key'] ?? '';
     if (name.isEmpty || key.isEmpty) return null;
-    final title = q['title']?.trim();
-    return PublisherLink(
-      name: name,
-      key: key,
-      title: title == null || title.isEmpty ? null : title,
-    );
+    return PublisherLink(name: name, key: key, title: cleanTitle(q['title']));
   }
 
   /// Short id of the key, as records name it (8 characters), or null when
@@ -120,23 +135,44 @@ class PublisherList extends ChangeNotifier {
   List<Publisher> get added =>
       [..._added.values]..sort((a, b) => a.name.compareTo(b.name));
 
-  /// Built-in publishers plus the added ones.
-  TrustedKeys get trust => builtIn.plus({
+  TrustedKeys? _trust;
+
+  /// Built-in publishers plus the added ones (built once per change).
+  TrustedKeys get trust => _trust ??= builtIn.plus({
     for (final p in _added.values) p.name: [p.key],
   });
 
+  void _changed() {
+    _trust = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _added.clear();
+    Object? raw;
     try {
-      final j = jsonDecode(await file.readAsString()) as Map;
-      for (final raw in (j['publishers'] as List?) ?? const []) {
-        final m = raw as Map;
+      if (!await file.exists()) return _changed();
+      raw = (jsonDecode(await file.readAsString()) as Map)['publishers'];
+    } on Object {
+      // Unreadable: keep a copy (a later save would overwrite it), and
+      // start with no added publishers.
+      try {
+        await file.copy('${file.path}.broken');
+      } on Object {
+        // Nothing more to keep.
+      }
+      return _changed();
+    }
+    // Each entry on its own: one bad entry does not drop the others. A
+    // file edited by hand is checked like a link.
+    for (final e in raw is List ? raw : const []) {
+      try {
+        final m = e as Map;
         final link = PublisherLink(
           name: m['name'] as String,
           key: m['key'] as String,
-          title: m['title'] as String?,
+          title: PublisherLink.cleanTitle(m['title'] as String?),
         );
-        // A file edited by hand is checked like a link.
         if (problemWith(link) != null) continue;
         _added[link.name] = Publisher(
           name: link.name,
@@ -145,11 +181,11 @@ class PublisherList extends ChangeNotifier {
           added:
               DateTime.tryParse(m['added'] as String? ?? '') ?? DateTime.now(),
         );
+      } on Object {
+        continue;
       }
-    } on Object {
-      // No file yet, or a broken one: no added publishers.
     }
-    notifyListeners();
+    _changed();
   }
 
   /// True when [name] can be a publisher's name in records.
@@ -161,7 +197,8 @@ class PublisherList extends ChangeNotifier {
     if (builtIn.publishers.contains(l.name)) return PublisherProblem.builtIn;
     final have = _added[l.name];
     if (have != null) {
-      return have.key == l.key
+      // The same key may be written with or without base64 padding.
+      return have.key.replaceAll('=', '') == l.key.replaceAll('=', '')
           ? PublisherProblem.known
           : PublisherProblem.otherKey;
     }
@@ -169,33 +206,50 @@ class PublisherList extends ChangeNotifier {
   }
 
   /// Adds [l] (after the user agreed). Throws [ArgumentError] when
-  /// [problemWith] finds a problem.
+  /// [problemWith] finds a problem, and the save's error when it cannot be
+  /// saved (then nothing changed: not trusted, not in the list).
   Future<void> add(PublisherLink l) async {
     if (problemWith(l) case final p?) throw ArgumentError(p.name);
-    _added[l.name] = Publisher(
-      name: l.name,
-      key: l.key,
-      title: l.title,
-      added: DateTime.now(),
-    );
-    await _save();
-    notifyListeners();
+    final next = {
+      ..._added,
+      l.name: Publisher(
+        name: l.name,
+        key: l.key,
+        title: PublisherLink.cleanTitle(l.title),
+        added: DateTime.now(),
+      ),
+    };
+    await _save(next.values);
+    _added
+      ..clear()
+      ..addAll(next);
+    _changed();
   }
 
+  /// Removes [name]; throws the save's error when it cannot be saved (then
+  /// it stays).
   Future<void> remove(String name) async {
-    if (_added.remove(name) == null) return;
-    await _save();
-    notifyListeners();
+    if (!_added.containsKey(name)) return;
+    await _save([
+      for (final p in _added.values)
+        if (p.name != name) p,
+    ]);
+    _added.remove(name);
+    _changed();
   }
 
-  Future<void> _save() async {
+  Future<void> _save(Iterable<Publisher> list) async {
     await file.parent.create(recursive: true);
     // Written next to the file, then renamed: a cut write leaves the old list.
     final tmp = File('${file.path}.tmp');
     await tmp.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
-        'publishers': [for (final p in added) p.toJson()],
+        'publishers': [
+          for (final p in [...list]..sort((a, b) => a.name.compareTo(b.name)))
+            p.toJson(),
+        ],
       }),
+      flush: true,
     );
     await tmp.rename(file.path);
   }

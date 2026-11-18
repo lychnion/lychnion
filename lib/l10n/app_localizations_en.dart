@@ -57,6 +57,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This is an older version than the one installed, so it was not installed.';
 
   @override
+  String get downloadsErrorTaken =>
+      'This ID or one of its files is already installed from another publisher, so it was not installed.';
+
+  @override
   String downloadsLargeWarning(String size) {
     return 'This downloads $size. Please use Wi-Fi. You need at least $size of free space. If it stops, you can resume where it left off.';
   }
@@ -1190,6 +1194,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String publishersKnown(String name) {
     return '$name is already added.';
   }
+
+  @override
+  String get publishersSaveFailed =>
+      'Could not save the list of publishers. Nothing was changed.';
 
   @override
   String get publishersNone =>
