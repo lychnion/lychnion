@@ -8,7 +8,7 @@ lines. Raw results: [spike-results/](spike-results/) (`*-grounded*.json`).
 ## How it works
 
 1. `lychnion-data/tool/build_package.py` turns a manifest
-   ([lychnion-data/packages/jp.bousai.core.json](../tool/packages/jp.bousai.core.json))
+   ([lychnion-data/packages/jp.bousai.core.json](https://github.com/lychnion/lychnion-data/blob/main/packages/jp.bousai.core.json))
    into one SQLite file: 109 passages from 7 government sources, 356 KB.
    All sources use PDL1.0 (CC BY 4.0 compatible). PDFs with a broken text
    layer go through macOS OCR.

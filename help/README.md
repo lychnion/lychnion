@@ -1,12 +1,12 @@
 # Help texts
 
-The app's own help, in Japanese and English (lychnion#9). Drafts,
-2026-11-18: not yet in the app.
+The app's own help, in Japanese and English (lychnion#9). Drafts.
 
-The plan: these files become a small knowledge package (`app.help`) that
-ships with the app, so people can ask "How do I share with other
-phones?" without internet and get an answer with "Lychnion help" as the
-source. The same texts can later become the online docs.
+`tool/build_help.py` turns these files into a small knowledge package
+(`assets/help/app.help.sqlite`) that ships with the app. People can read
+it on the Help screen, or ask "How do I share with other phones?"
+without internet and get an answer with "Lychnion help" as the source.
+The same texts can later become the online docs.
 
 ## Layout
 

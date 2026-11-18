@@ -28,5 +28,6 @@ code from others: the app store exception cannot cover it.
 
 Knowledge packages and maps keep the licence of their sources (for example
 PDL1.0, CC BY 4.0, ODbL). Every source needs a licence entry in its
-package manifest (`tool/packages/*.json`); the app shows it with each
+package manifest (`packages/*.json` in
+[lychnion-data](https://github.com/lychnion/lychnion-data)); the app shows it with each
 answer.

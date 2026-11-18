@@ -78,7 +78,7 @@ README lists sources and licences, including the GSI notes). Apps from
 before format 2 cannot read the new catalog and keep their old one.
 
 To publish a new package or map version: build it, raise its `version`
-in [lychnion-data/items.json](../tool/items.json) (packages: the same as in the
+in [lychnion-data/items.json](https://github.com/lychnion/lychnion-data/blob/main/items.json) (packages: the same as in the
 package's meta), then sign and assemble with the key from 1Password:
 
 ```bash
