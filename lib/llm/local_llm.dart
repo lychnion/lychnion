@@ -41,8 +41,9 @@ class AnswerStats {
 ///
 /// Kept small on purpose so the engine can be swapped without touching the
 /// UI. The file decides the engine: a `.gguf` runs on llama.cpp (the
-/// default), a `.litertlm` on Google's LiteRT-LM (spike: GPU on Android
-/// phones without Vulkan 1.2, see docs/device-results.md).
+/// default), a `.litertlm` on Google's LiteRT-LM (spike: about twice as
+/// fast on an Android phone's CPU, needs Android 11; see
+/// docs/device-results.md).
 /// Developer flag `--dart-define=LLM_BACKEND=cpu|gpu`: which processor
 /// runs the answer model. Unset: the engine decides (as before). A GPU the
 /// device lacks falls back to the CPU; `backend` says what was used.
@@ -56,7 +57,7 @@ final _preferredBackend = switch (_llmBackend) {
 /// Developer flag `--dart-define=LLM_CONTEXT=2048`: the model's context in
 /// tokens (prompt plus answer; default 4096). On the GPU, LiteRT-LM runs
 /// Gemma 4 with 32-bit numbers above 2048 and with faster 16-bit ones at
-/// 2048 or less.
+/// 2048 or less. Overrides the context a caller passes.
 const _llmContext = int.fromEnvironment('LLM_CONTEXT');
 
 class LocalLlm {

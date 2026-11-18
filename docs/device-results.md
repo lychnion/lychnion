@@ -240,7 +240,7 @@ Raw results: `spike-results/pixel5a-e2b-litertlm-2026-11-19.jsonl`.
 | | llama.cpp CPU | LiteRT-LM CPU | LiteRT-LM GPU, context 2048 | LiteRT-LM GPU, context 4096 |
 |---|---|---|---|---|
 | Model load (again) | 12.5 s | **2 s** | 11.5 s | 12.3 s |
-| Model load (first time) | | 11.5 s | 25 s | |
+| Model load (first time) | not measured | 11.5 s | 25 s | not measured |
 | Reading (tokens/s) | about 16–20 | **about 45–60** | about 45–70 | about 40–60 |
 | Writing (tokens/s) | about 5 | **about 5.8** | about 3.6 | about 2.5 |
 | Earthquake (ja), first word / whole | 37.8 s / 50.5 s | **14.3 s / 24.8 s** | 17.4 s / 31.3 s | 19.7 s / 45.9 s |
