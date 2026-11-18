@@ -397,6 +397,50 @@ void main() {
       expect(trust.withStatements([...got, ...more]).publishers, isEmpty);
     });
 
+    test('past the cap, a second successor still proves a theft', () async {
+      final root = await _key();
+      final trust = TrustedKeys({
+        'jp.test': [root.pub],
+      });
+      var prev = root.pair;
+      final chain = <KeyStatement>[];
+      for (var i = 0; i < KeyStatement.maxReplacesPerPublisher; i++) {
+        final next = (await _key()).pair;
+        chain.add(
+          await KeyStatement.replace(
+            publisher: 'jp.test',
+            oldKey: prev,
+            newKey: next,
+            signed: '2026-11-19',
+          ),
+        );
+        prev = next;
+      }
+      final t = trust.withStatements(
+        await relevantStatements(trust, [for (final s in chain) s.json]),
+      );
+      final owner = await KeyStatement.replace(
+        publisher: 'jp.test',
+        oldKey: root.pair,
+        newKey: (await _key()).pair,
+        signed: '2026-11-21',
+      );
+      final more = await relevantStatements(t, [owner.json]);
+      expect(more, [owner]);
+      expect(t.withStatements(more).publishers, isEmpty);
+    });
+
+    test('unknown fields and long values are refused', () async {
+      final a = await _key();
+      final r = await KeyStatement.revoke(
+        publisher: 'jp.test',
+        key: a.pair,
+        signed: '2026-11-19',
+      );
+      expect(await KeyStatement.check({...r.json, 'junk': 'x'}), isNull);
+      expect(await KeyStatement.check({...r.json, 'signed': 'x' * 65}), isNull);
+    });
+
     test(
       'forged entries stop being verified; one list cannot block another',
       () async {

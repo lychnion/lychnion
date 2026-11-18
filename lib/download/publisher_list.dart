@@ -306,7 +306,12 @@ class PublisherList extends ChangeNotifier {
         var left = room;
         final fresh = [
           for (final s in candidates)
-            if (s.type == KeyStatementType.revoke || left-- > 0) s,
+            // Like a revocation: a second successor of a key proves a
+            // theft, and losing it would trust the thief's chain.
+            if (s.type == KeyStatementType.revoke ||
+                provesTheft(s, _statements) ||
+                left-- > 0)
+              s,
         ];
         final next = [..._statements, ...fresh];
         if (next.length == _statements.length) return false;
