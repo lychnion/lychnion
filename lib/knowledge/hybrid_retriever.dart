@@ -127,10 +127,17 @@ class HybridRetriever {
     String query, {
     int limit = 4,
     String? original,
-  }) async => (await rankAll(
-    query,
-    original: original,
-  )).where((h) => h.cosine >= minCosine).take(limit).toList();
+  }) async {
+    // Across languages (an English question, Japanese passages) the same
+    // match scores about 0.02 lower: "What should I pack for a day hike?"
+    // 0.69 in English, 0.71 as its Japanese translation (test questions,
+    // 2026-11-18).
+    final cut = _japanese.hasMatch(query) ? minCosine : minCosine - 0.02;
+    return (await rankAll(
+      query,
+      original: original,
+    )).where((h) => h.cosine >= cut).take(limit).toList();
+  }
 
   static double _dot(List<double> a, List<double> b) {
     var s = 0.0;

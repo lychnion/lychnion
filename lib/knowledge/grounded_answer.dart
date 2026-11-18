@@ -147,9 +147,12 @@ class GroundedAnswerer {
   Future<void> answer(GroundedAnswer answer, void Function() onUpdate) async {
     final q = answer.question;
     final en = answer.lang == 'en';
-    // The package is Japanese: search with a Japanese version of the question.
-    final search = en ? await _toJapanese(q) : q;
-    if (en) answer.searchQuery = search;
+    // Vector search is multilingual: an English question finds Japanese
+    // passages as it is. Translating first cost 6-10 s on a Pixel 5a and
+    // went wrong at times ("avalanche" became 「あらわせ」). Keyword search
+    // alone (no search model installed) still needs a Japanese question.
+    final search = en && hybrid == null ? await _toJapanese(q) : q;
+    if (search != q) answer.searchQuery = search;
     answer.alerts = package.alerts
         .where((a) => a.matches(q) || a.matches(search))
         .toList();
