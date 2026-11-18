@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'catalog.dart';
 import 'download_store.dart';
 import 'downloader.dart';
+import 'followed_catalogs.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
 /// Dev flags: where the catalog and relative file URLs come from.
@@ -75,6 +76,108 @@ class DownloadManager extends ChangeNotifier {
     return c;
   }
 
+  /// Lychnion's catalog (bundled, or the one fetched last).
+  Catalog _main = Catalog(const []);
+
+  /// Followed catalogs as last read (step 4c), and what they sent.
+  final _followed = <Uri, Catalog>{};
+  final _followedBodies = <Uri, String>{};
+
+  /// What Downloads shows: Lychnion's catalog, then the followed ones
+  /// (they add items and newer versions; Lychnion's keeps the rest), then
+  /// connected bases (first, as on the local Wi-Fi).
+  Catalog _compose() {
+    var c = _main;
+    for (final f in store.followed.all) {
+      if (_followed[f.url] case final other?) {
+        c = c.mergedWith(other, preferOther: false);
+      }
+    }
+    return _withShelters(c);
+  }
+
+  Future<void> _readFollowed(Uri url, String body, DateTime fetched) async {
+    final c = await _parse(body, url);
+    _followed[url] = c;
+    _followedBodies[url] = body;
+    store.followed.setStatus(
+      url,
+      CatalogStatus(
+        shown: c.items.length,
+        notShown: c.rejected.length,
+        fetched: fetched,
+      ),
+    );
+  }
+
+  /// The followed catalogs from their last copies (offline is fine).
+  Future<void> _loadFollowed() async {
+    for (final f in store.followed.all) {
+      final copy = await store.followed.cached(f.url);
+      if (copy != null) await _readFollowed(f.url, copy.body, copy.fetched);
+    }
+  }
+
+  /// Fetches one followed catalog; on failure its last copy stays in use.
+  Future<void> _fetchFollowed(Uri url) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10);
+    try {
+      final req = await client.getUrl(url);
+      final res = await req.close().timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) {
+        await res.drain<void>();
+        throw HttpException('HTTP ${res.statusCode}');
+      }
+      final body = await res
+          .transform(utf8.decoder)
+          .join()
+          .timeout(const Duration(seconds: 30));
+      if (body.length > _maxCatalogChars) throw HttpException('too large');
+      await store.followed.keep(url, body);
+      await _readFollowed(url, body, DateTime.now());
+    } catch (e) {
+      final old = store.followed.status[url];
+      store.followed.setStatus(
+        url,
+        CatalogStatus(
+          shown: old?.shown ?? 0,
+          notShown: old?.notShown ?? 0,
+          fetched: old?.fetched,
+          error: e is HttpException && e.message.startsWith('HTTP ')
+              ? e.message
+              : 'offline',
+        ),
+      );
+      _log({'event': 'followed_catalog_failed', 'url': '$url', 'error': '$e'});
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// A catalog this large is not one (5 million characters).
+  static const _maxCatalogChars = 5 << 20;
+
+  /// Follows a catalog (after the user agreed): saves it, fetches it and
+  /// shows its items. Returns its status, or null when it was followed
+  /// already or the list is full. Throws when the list cannot be saved.
+  Future<CatalogStatus?> follow(CatalogLink link) async {
+    if (!await store.followed.add(link)) return null;
+    await _fetchFollowed(link.url);
+    catalog = _compose();
+    _refreshStates();
+    return store.followed.status[link.url];
+  }
+
+  /// Stops following [url]. What was installed from it stays.
+  Future<void> unfollow(Uri url) async {
+    await store.followed.remove(url);
+    _followed.remove(url);
+    _followedBodies.remove(url);
+    catalog = _compose();
+    _refreshStates();
+  }
+
   ItemState stateOf(CatalogItem i) => _states[i.id] ??= ItemState();
 
   /// Installed items with a newer version in the catalog (for badges).
@@ -117,7 +220,9 @@ class DownloadManager extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    catalog = await _localCatalog();
+    _main = await _localCatalog();
+    await _loadFollowed();
+    catalog = _compose();
     _refreshStates();
     if (_autoDownload.isNotEmpty) {
       unawaited(_runAuto());
@@ -190,13 +295,20 @@ class DownloadManager extends ChangeNotifier {
   /// (or go). Shelter catalogs are read from what they sent, no network.
   Future<void> publishersChanged() async {
     await store.reverify();
-    var c = await _localCatalog();
-    for (final e in _shelterBodies.entries) {
-      final other = await _parse(e.value, e.key);
-      _shelterCatalogs[e.key] = other;
-      c = c.mergedWith(other);
+    _main = await _localCatalog();
+    for (final f in store.followed.all) {
+      if (_followedBodies[f.url] case final body?) {
+        await _readFollowed(
+          f.url,
+          body,
+          store.followed.status[f.url]?.fetched ?? DateTime.now(),
+        );
+      }
     }
-    catalog = c;
+    for (final e in _shelterBodies.entries) {
+      _shelterCatalogs[e.key] = await _parse(e.value, e.key);
+    }
+    catalog = _compose();
     changes.value++;
     _refreshStates();
   }
@@ -221,7 +333,7 @@ class DownloadManager extends ChangeNotifier {
     final url = _catalogUrl.isNotEmpty
         ? Uri.parse(_catalogUrl)
         : catalog.refreshUrl;
-    if (url == null || refreshing) return;
+    if (refreshing) return;
     refreshing = true;
     catalogError = null;
     // Not during a build (Downloads starts a refresh in initState).
@@ -229,11 +341,12 @@ class DownloadManager extends ChangeNotifier {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     try {
+      if (url == null) throw StateError('no catalog address');
       final req = await client.getUrl(url);
       final res = await req.close().timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
       final body = await res.transform(utf8.decoder).join();
-      catalog = _withShelters(await _parse(body, url));
+      _main = await _parse(body, url);
       await store.cachedCatalog.parent.create(recursive: true);
       await store.cachedCatalog.writeAsString(
         jsonEncode({'url': '$url', 'body': body}),
@@ -242,6 +355,12 @@ class DownloadManager extends ChangeNotifier {
       catalogError = 'offline';
     } finally {
       client.close(force: true);
+      // Followed catalogs too, one after another; each keeps its last
+      // copy when it cannot be reached.
+      for (final f in store.followed.all) {
+        await _fetchFollowed(f.url);
+      }
+      catalog = _compose();
       refreshing = false;
       _refreshStates();
     }

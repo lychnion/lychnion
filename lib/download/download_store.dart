@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../util/paths.dart';
 import 'catalog.dart';
 import 'downloader.dart';
+import 'followed_catalogs.dart';
 import 'publisher_list.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
@@ -75,12 +76,15 @@ class DownloadStore {
     this.root, {
     TrustedKeys? trust,
     PublisherList? publishers,
+    FollowedCatalogs? followed,
   }) // A named parameter cannot be private, so no initializing formal.
     // ignore: prefer_initializing_formals
     : _trust = trust,
        publishers =
            publishers ??
-           PublisherList(File('${root.path}/downloads/publishers.json'));
+           PublisherList(File('${root.path}/downloads/publishers.json')),
+       followed =
+           followed ?? FollowedCatalogs(Directory('${root.path}/downloads'));
 
   final Directory root;
 
@@ -89,6 +93,9 @@ class DownloadStore {
 
   /// Publishers the user added (a city, a club), next to Lychnion.
   final PublisherList publishers;
+
+  /// Catalogs the user follows, next to Lychnion's.
+  final FollowedCatalogs followed;
 
   /// Publishers whose records are accepted: built in, plus the added ones.
   TrustedKeys get trust => _trust ?? publishers.trust;
@@ -103,6 +110,7 @@ class DownloadStore {
   static Future<DownloadStore> instance() => _instance ??= () async {
     final s = DownloadStore(await appSupportDirectory());
     await s.publishers.load();
+    await s.followed.load();
     await s.verifyInstalled();
     return s;
   }();

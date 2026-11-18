@@ -2203,6 +2203,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The key file could not be made private, so no key was made.'**
   String get publishKeyPrivateFailed;
+
+  /// No description provided for @catalogsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalogs'**
+  String get catalogsTitle;
+
+  /// No description provided for @catalogsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Lists of guides and maps from cities and clubs, next to {app}\'s'**
+  String catalogsHint(String app);
+
+  /// No description provided for @catalogsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No other catalogs yet. A city or club that offers its own guides gives you a link or QR code.'**
+  String get catalogsNone;
+
+  /// No description provided for @catalogsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow a catalog'**
+  String get catalogsAdd;
+
+  /// No description provided for @catalogsUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog address or link'**
+  String get catalogsUrlLabel;
+
+  /// No description provided for @catalogsNotALink.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a catalog address.'**
+  String get catalogsNotALink;
+
+  /// No description provided for @catalogsAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow this catalog?'**
+  String get catalogsAddTitle;
+
+  /// No description provided for @catalogsAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its guides and maps appear in Downloads. {app} only shows those signed by itself or by a publisher you added.'**
+  String catalogsAddBody(String app);
+
+  /// No description provided for @catalogsFollow.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow'**
+  String get catalogsFollow;
+
+  /// No description provided for @catalogsStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} shown · {notShown} not shown'**
+  String catalogsStatus(String shown, String notShown);
+
+  /// No description provided for @catalogsNotShownHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Not shown: from a publisher you have not added, or not validly signed.'**
+  String get catalogsNotShownHint;
+
+  /// No description provided for @catalogsFetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {date}'**
+  String catalogsFetched(String date);
+
+  /// No description provided for @catalogsNeverFetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Not loaded yet'**
+  String get catalogsNeverFetched;
+
+  /// No description provided for @catalogsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load ({error}); the last copy is used.'**
+  String catalogsError(String error);
+
+  /// No description provided for @catalogsRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop following'**
+  String get catalogsRemove;
+
+  /// No description provided for @catalogsRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop following {name}?'**
+  String catalogsRemoveTitle(String name);
+
+  /// No description provided for @catalogsRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its items no longer appear in Downloads. What you installed from it stays.'**
+  String get catalogsRemoveBody;
+
+  /// No description provided for @catalogsKnown.
+  ///
+  /// In en, this message translates to:
+  /// **'This catalog is followed already, or the list is full.'**
+  String get catalogsKnown;
+
+  /// No description provided for @catalogsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the list of catalogs. Nothing was changed.'**
+  String get catalogsSaveFailed;
+
+  /// No description provided for @catalogsRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get catalogsRefresh;
+
+  /// No description provided for @catalogsOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect; the last copy is used.'**
+  String get catalogsOffline;
 }
 
 class _AppLocalizationsDelegate

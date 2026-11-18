@@ -1268,4 +1268,81 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishKeyPrivateFailed => '鍵ファイルを非公開にできなかったため、鍵を作成しませんでした。';
+
+  @override
+  String get catalogsTitle => 'カタログ';
+
+  @override
+  String catalogsHint(String app) {
+    return '市や団体のガイドと地図の一覧（$appのものに加えて）';
+  }
+
+  @override
+  String get catalogsNone =>
+      'ほかのカタログはまだありません。独自のガイドを提供する市や団体から、リンクか QR コードを受け取れます。';
+
+  @override
+  String get catalogsAdd => 'カタログを追加';
+
+  @override
+  String get catalogsUrlLabel => 'カタログのアドレスかリンク';
+
+  @override
+  String get catalogsNotALink => 'カタログのアドレスではありません。';
+
+  @override
+  String get catalogsAddTitle => 'このカタログを追加しますか？';
+
+  @override
+  String catalogsAddBody(String app) {
+    return 'このカタログのガイドと地図が「ダウンロード」に表示されます。表示されるのは、$appか、追加した発行元が署名したものだけです。';
+  }
+
+  @override
+  String get catalogsFollow => '追加';
+
+  @override
+  String catalogsStatus(String shown, String notShown) {
+    return '表示 $shown 件・非表示 $notShown 件';
+  }
+
+  @override
+  String get catalogsNotShownHint => '非表示：追加していない発行元のものか、署名が正しくないもの。';
+
+  @override
+  String catalogsFetched(String date) {
+    return '$date に更新';
+  }
+
+  @override
+  String get catalogsNeverFetched => 'まだ読み込んでいません';
+
+  @override
+  String catalogsError(String error) {
+    return '読み込めませんでした（$error）。前回のものを使っています。';
+  }
+
+  @override
+  String get catalogsRemove => '削除';
+
+  @override
+  String catalogsRemoveTitle(String name) {
+    return '$name を削除しますか？';
+  }
+
+  @override
+  String get catalogsRemoveBody =>
+      'このカタログの項目は「ダウンロード」に表示されなくなります。インストール済みのものは残ります。';
+
+  @override
+  String get catalogsKnown => 'このカタログは追加済みか、一覧がいっぱいです。';
+
+  @override
+  String get catalogsSaveFailed => 'カタログの一覧を保存できませんでした。変更はありません。';
+
+  @override
+  String get catalogsRefresh => '更新';
+
+  @override
+  String get catalogsOffline => '接続できませんでした。前回のものを使っています。';
 }
