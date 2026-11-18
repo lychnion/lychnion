@@ -64,7 +64,7 @@ class MapState extends ChangeNotifier {
   /// A downloaded sites file; wins over [sitesAsset].
   final String? sitesPath;
 
-  /// Walking graph (tool/build_routes.py). Default: next to the PMTiles
+  /// Walking graph (lychnion-data/tool/build_routes.py). Default: next to the PMTiles
   /// file, `<id>.routes.bin`. Without it, distances are straight lines.
   final String? routesPath;
 
@@ -74,7 +74,7 @@ class MapState extends ChangeNotifier {
   /// `<id>.inundation.mbtiles`.
   final String? inundationPath;
 
-  /// Tsunami inundation areas as map tiles (tool/build_inundation_tiles.py),
+  /// Tsunami inundation areas as map tiles (lychnion-data/tool/build_inundation_tiles.py),
   /// next to the PMTiles file as `<id>.inundation.mbtiles`.
   InundationTiles? inundationTiles;
 

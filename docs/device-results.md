@@ -131,7 +131,7 @@ Raw results: `spike-results/macos-read-*.json`.
   versions include Vulkan on Android, not yet tested) or the shelter desktop
   answering phones over local Wi-Fi.
 
-**Vectors in the package:** `tool/add_vectors.py` adds the passage vectors
+**Vectors in the package:** `lychnion-data/tool/add_vectors.py` adds the passage vectors
 to the package (108 × 768 floats, package 376 → 816 KB). The app uses them
 when they match its embedding model, so indexing drops from 133 s on the
 Pixel (3 s on the Mac) to nothing.

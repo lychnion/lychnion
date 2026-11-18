@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:latlong2/latlong.dart';
 
-/// Offline walking graph for one map area, built by tool/build_routes.py
+/// Offline walking graph for one map area, built by lychnion-data/tool/build_routes.py
 /// from OpenStreetMap. Nodes are points on roads and paths; every edge can be
 /// walked both ways. Version 2 files also carry the ground height of every
 /// node (GSI elevation tiles), version 3 the expected tsunami inundation
@@ -38,7 +38,7 @@ class RouteGraph {
   final Int16List? _height;
   static const noHeight = -32768;
 
-  /// Tsunami inundation per node (see tool/build_routes.py), or null.
+  /// Tsunami inundation per node (see lychnion-data/tool/build_routes.py), or null.
   final Uint8List? _flood;
   final _cellStart = <int, int>{};
   final _cellEnd = <int, int>{};
@@ -91,7 +91,7 @@ class RouteGraph {
     return h == null || h == noHeight ? null : h / 10;
   }
 
-  /// Parses a routes.bin file (see tool/build_routes.py for the format).
+  /// Parses a routes.bin file (see lychnion-data/tool/build_routes.py for the format).
   factory RouteGraph.parse(Uint8List bytes) {
     final b = ByteData.sublistView(bytes);
     if (bytes.length < 16 ||
@@ -449,7 +449,7 @@ class _Heap {
   }
 }
 
-/// Depth bounds in metres, as in tool/build_routes.py.
+/// Depth bounds in metres, as in lychnion-data/tool/build_routes.py.
 const depthBounds = [0.0, 0.3, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
 
 /// Expected inundation depth between depthBounds[lo] and depthBounds[hi]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Makes the app's brand fonts from the Google Fonts originals.
 
-    build/route-venv/bin/python -I tool/build_fonts.py <download dir>
+    build/route-venv/bin/python -I tool/build_fonts.py <download dir> [<lychnion-data dir>]
 
 The download dir holds, from github.com/google/fonts (all SIL OFL 1.1):
     bizudpgothic_BIZUDPGothic-Regular.ttf, bizudpgothic_BIZUDPGothic-Bold.ttf
@@ -12,7 +12,8 @@ Writes assets/fonts/ (in git):
 - BIZUDPGothic-{Regular,Bold}.ttf: app text. Cut down to ASCII, Latin-1,
   common punctuation and symbols, kana, and the JIS X 0208 kanji (levels 1
   and 2, about 6,400), plus every character in the app's own strings and
-  package sources. Rarer characters (some place names) fall back to the
+  the package and map manifests of lychnion-data (default: a checkout next
+  to this repository). Rarer characters (some place names) fall back to the
   system font.
 - Lexend-{Medium,SemiBold}.ttf: the wordmark and English headings. Fixed
   weights cut from the variable font, Latin only.
@@ -47,11 +48,14 @@ def jis_chars():
     return chars
 
 
-def own_chars():
+def own_chars(data):
     """Characters in the app's strings and the package sources."""
+    if not (data / "packages").is_dir():
+        sys.exit(f"no lychnion-data checkout at {data}")
     chars = set()
-    for pattern in ("lib/**/*.dart", "tool/packages/*.json", "tool/maps/*.json", "assets/downloads/*.json"):
-        for f in ROOT.glob(pattern):
+    for root, pattern in ((ROOT, "lib/**/*.dart"), (ROOT, "assets/downloads/*.json"),
+                          (data, "packages/*.json"), (data, "maps/*.json")):
+        for f in root.glob(pattern):
             chars.update(ord(c) for c in f.read_text(encoding="utf-8"))
     return {c for c in chars if c >= 0x20}
 
@@ -74,11 +78,11 @@ def subset_font(src, dst, unicodes):
     font.save(dst)
 
 
-def main(dl):
+def main(dl, data):
     dl = Path(dl)
     OUT.mkdir(parents=True, exist_ok=True)
     latin = ranges((0x20, 0x7E), (0xA0, 0x17F), (0x2000, 0x206F), (0x20AC, 0x20AC), (0x2190, 0x21FF), (0x2460, 0x24FF), (0x25A0, 0x25FF), (0x2600, 0x26FF))
-    ja = latin | jis_chars() | own_chars() | ranges((0x3000, 0x30FF), (0xFF00, 0xFFEF))
+    ja = latin | jis_chars() | own_chars(data) | ranges((0x3000, 0x30FF), (0xFF00, 0xFFEF))
     for w in ("Regular", "Bold"):
         dst = OUT / f"BIZUDPGothic-{w}.ttf"
         subset_font(dl / f"bizudpgothic_BIZUDPGothic-{w}.ttf", dst, ja)
@@ -100,4 +104,4 @@ def main(dl):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT.parent / "lychnion-data")

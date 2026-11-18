@@ -264,7 +264,7 @@ void main() {
     );
   });
 
-  // The real area graph, when it has been built (tool/build_routes.py).
+  // The real area graph, when it has been built (lychnion-data/tool/build_routes.py).
   final real = File('build/maps/jp.map.nishinomiya.routes.bin');
   test(
     'Nishinomiya graph: city hall to a site 1 km away',

@@ -25,7 +25,7 @@ Date: 2026-11-04. macOS (M4 Max), release build.
 
 ```bash
 brew install pmtiles
-python3 -I tool/build_map.py tool/maps/nishinomiya.json
+python3 -I lychnion-data/tool/build_map.py lychnion-data/maps/nishinomiya.json
 ```
 
 Writes `assets/maps/jp.map.nishinomiya.sites.sqlite` and
@@ -126,7 +126,7 @@ How to build:
 
 ```bash
 python3 -m venv build/route-venv && build/route-venv/bin/pip install osmium
-build/route-venv/bin/python -I tool/build_routes.py tool/maps/nishinomiya.json
+build/route-venv/bin/python -I lychnion-data/tool/build_routes.py lychnion-data/maps/nishinomiya.json
 ```
 
 Tested: 6 unit tests (shortest path, detour round a blocked point, snapping
@@ -223,7 +223,7 @@ Open:
 
 ![Tsunami mode: inundation areas coloured by expected depth, with legend](images/phone-inundation-map.png)
 
-- `tool/build_inundation_tiles.py` draws the same A40 polygons into
+- `lychnion-data/tool/build_inundation_tiles.py` draws the same A40 polygons into
   transparent map tiles, coloured by expected depth (light yellow below
   0.3 m to purple at 5 m or more, after the hazard map portal's colours),
   zoom 10 to 16. Tiles without inundation are left out. **818 tiles,
@@ -237,7 +237,7 @@ Open:
 How to build:
 
 ```bash
-build/route-venv/bin/python -I tool/build_inundation_tiles.py tool/maps/nishinomiya.json
+build/route-venv/bin/python -I lychnion-data/tool/build_inundation_tiles.py lychnion-data/maps/nishinomiya.json
 ```
 
 Open:
@@ -265,7 +265,7 @@ the map gets routes, heights and the tsunami layer without a cable.
 
 串本町 (Wakayama) on the Kii peninsula: the highest Nankai Trough tsunami
 estimate in Japan, a narrow town between the sea and steep hills. Built
-from the same sources with `tool/maps/kushimoto.json` (Wakayama A40 file
+from the same sources with `lychnion-data/maps/kushimoto.json` (Wakayama A40 file
 2016, GSI prefecture 30000, the Kansai OSM extract):
 
 | File | Size |

@@ -6,7 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 /// Tsunami inundation areas as map tiles, from the MBTiles file written by
-/// tool/build_inundation_tiles.py. Tiles with no inundation are not in the
+/// lychnion-data/tool/build_inundation_tiles.py. Tiles with no inundation are not in the
 /// file and draw nothing.
 class InundationTiles extends TileProvider {
   InundationTiles._(this._db);
@@ -45,7 +45,7 @@ class InundationTiles extends TileProvider {
   );
 
   /// Legend colours by lower depth bound (index into depthBounds), as in
-  /// tool/build_inundation_tiles.py.
+  /// lychnion-data/tool/build_inundation_tiles.py.
   static const colours = {
     0: Color(0xFFFFF5A0),
     1: Color(0xFFFFDC82),

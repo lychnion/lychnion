@@ -171,11 +171,11 @@ How it works (built 2026-11-18, step 3):
   At most 10 mirrors are used, and only http(s) addresses. A shelter's
   catalog adds its addresses in front; the internet ones stay as
   fallback.
-- **Static node.** `dart run tool/records.dart export CATALOG --out DIR
+- **Static node.** `dart run lychnion-data/tool/records.dart export CATALOG --out DIR
   FOLDER…` writes `catalog.json` and every file it finds (checked against
   the signed records) as `blobs/sha256/<hash>`, for a USB stick or any
   web host. Files it does not have keep their address from the source
-  catalog. `tool/records.dart catalog --mirror URL` adds mirrors to a
+  catalog. `lychnion-data/tool/records.dart catalog --mirror URL` adds mirrors to a
   catalog.
 - The shelter computer serves the same layout
   (`/blobs/sha256/<hash>`, see step 2).
@@ -222,8 +222,8 @@ Cities and others need two things:
   package. The city owns that content, so it decides itself what may be
   published, with no licence questions; nothing is published without its
   review and signature. Built from the tools we already have
-  (`tool/build_package.py`, `tool/add_translations.py`,
-  `tool/pdf_sections.py`).
+  (`lychnion-data/tool/build_package.py`, `lychnion-data/tool/add_translations.py`,
+  `lychnion-data/tool/pdf_sections.py`).
 
 ### Open: whom to trust
 

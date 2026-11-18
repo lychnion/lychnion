@@ -101,7 +101,7 @@ class SiteDistance {
   }
 }
 
-/// Evacuation sites for one map area, built by tool/build_map.py.
+/// Evacuation sites for one map area, built by lychnion-data/tool/build_map.py.
 class EvacSites {
   EvacSites._(this.meta, this.sites);
 

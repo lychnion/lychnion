@@ -121,7 +121,7 @@ class Catalog {
   /// trusted, are left out and listed here (id or position, and why).
   final List<String> rejected = [];
 
-  /// Parses a catalog (format 2: signed records, see tool/records.dart).
+  /// Parses a catalog (format 2: signed records, see lychnion-data/tool/records.dart).
   ///
   /// `urls` maps a file's SHA-256 to one address (a string: older apps
   /// read only that). `mirrors` lists nodes with the `blobs/sha256/`

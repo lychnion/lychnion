@@ -275,14 +275,14 @@ sources may fill gaps where Japan has no usable source.
 - **Translated when the package is built, never on the phone.** The phone
   model turned "snug but not too tight" (snakebite bandage) into
   「しっかりと縛って」. So foreign passages get a translation once, stored in
-  `tool/packages/translations/<id>.<lang>.json` (reviewed by a person
+  `lychnion-data/packages/translations/<id>.<lang>.json` (reviewed by a person
   before release), and the package keeps the original next to it: Japanese
   questions use the translation, English ones the original, and the
   sources sheet shows 「Lychnionによる翻訳（公式の訳ではありません）」 with the
   original one tap away.
 - **Every package in more languages, made at build time** (decided
   2026-11-18): each passage can carry its text per language
-  (`tool/add_translations.py`, table `passage_texts`), so the phone model
+  (`lychnion-data/tool/add_translations.py`, table `passage_texts`), so the phone model
   reads passages in the question's language and never translates. Japanese
   and English first; publishers could add more (Spanish, Chinese, …) later.
   For that the app also needs language detection beyond ja/en, its own

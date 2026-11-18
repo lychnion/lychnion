@@ -209,7 +209,7 @@ Map<String, List<String>> parseNotice(String? json, {String? id}) {
   return n.isEmpty ? (_noticesOfOlderPackages[id] ?? const {}) : n;
 }
 
-/// Copied from `tool/packages/<id>.json` ("notice").
+/// Copied from `lychnion-data/packages/<id>.json` ("notice").
 const _noticesOfOlderPackages = <String, Map<String, List<String>>>{
   'jp.bousai.core': {
     'ja': ['避難するかどうかは、自治体の避難情報と気象庁の警報・注意報を優先して判断してください。'],
@@ -220,7 +220,7 @@ const _noticesOfOlderPackages = <String, Map<String, List<String>>>{
   },
 };
 
-/// A knowledge package: one SQLite file built by tool/build_package.py.
+/// A knowledge package: one SQLite file built by lychnion-data/tool/build_package.py.
 ///
 /// Small enough to keep in memory; SQLite is the file format.
 class KnowledgePackage {
@@ -263,7 +263,7 @@ class KnowledgePackage {
   final Map<String, List<String>> synonyms;
 
   /// Precomputed passage vectors per embedding model file name, in passage
-  /// order (tool/add_vectors.py). Saves phones from indexing the package.
+  /// order (lychnion-data/tool/add_vectors.py). Saves phones from indexing the package.
   final Map<String, List<List<double>>> vectors;
 
   /// One package searched as a whole: all passages, sources, safety lines
@@ -373,7 +373,7 @@ class KnowledgePackage {
       final passageRows = db.select('SELECT * FROM passages ORDER BY id');
       // Packages built before translations existed have no such columns.
       final hasOriginal = passageRows.columnNames.contains('original');
-      // Texts in other languages (tool/add_translations.py), and for a
+      // Texts in other languages (lychnion-data/tool/add_translations.py), and for a
       // translated foreign source its original, in the package language.
       final texts = <int, Map<String, (String, String)>>{};
       if (db

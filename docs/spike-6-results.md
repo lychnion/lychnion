@@ -14,7 +14,7 @@ plain web text, no OCR:
 | 「山の事故を防ごう！登山を楽しむために知っておきたい安全対策」 (updated 2025-10-28) | 警察庁 | Planning, equipment, getting lost (go back, wait at an open place or ridge), calling for help |
 
 The site refuses scripted downloads, so the article text was read in a
-browser and saved as a snapshot in `tool/packages/snapshots/` (article text
+browser and saved as a snapshot in `lychnion-data/packages/snapshots/` (article text
 only, no graphs, photos or link lists). The builder reads snapshots for
 sources that set `"snapshot"`. Attribution follows the site's rule:
 「出典：政府広報オンライン「…」（URL）を加工して作成」.

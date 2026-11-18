@@ -4,7 +4,7 @@ import 'package:cryptography/cryptography.dart';
 
 // Signed package records (docs/distribution.md, step 1).
 //
-// Pure Dart (no Flutter), so the signing tool (tool/records.dart) and a
+// Pure Dart (no Flutter), so the signing tool (lychnion-data/tool/records.dart) and a
 // later headless node use the same code as the app.
 
 final _ed25519 = Ed25519();

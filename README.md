@@ -126,14 +126,12 @@ More: [shelter results](docs/shelter-results.md),
 
 ## Knowledge packages
 
-```bash
-python3 -I tool/build_package.py tool/packages/jp.bousai.core.json
-# after one app run has embedded the package (vectors cache on the Mac):
-python3 -I tool/add_vectors.py assets/packages/jp.bousai.core.sqlite <cache>.vectors.json embeddinggemma-2-Q8_0.gguf
-```
-
-Builds `assets/packages/jp.bousai.core.sqlite` (macOS: uses `textutil` and
-Swift for .doc and PDF/OCR). Add `--dart-define=BARE=true` to `flutter run`
+Packages and map areas are built, signed and published in
+[lychnion/lychnion-data](https://github.com/lychnion/lychnion-data) (see
+"How packages are made" there). The app bundles a few of them in
+`assets/packages/` and `assets/maps/`, with its own copy of the catalog in
+`assets/downloads/`. To refresh them, copy the built files from a
+`lychnion-data` checkout. Add `--dart-define=BARE=true` to `flutter run`
 to compare with the model alone.
 
 ## Run
@@ -209,7 +207,7 @@ Data and models keep their own licences:
 
 | What | Licence |
 |---|---|
-| Knowledge packages (official pages) | Mostly PDL1.0 (compatible with CC BY 4.0); each source is listed in `tool/packages/*.json` and shown with every answer |
+| Knowledge packages (official pages) | Mostly PDL1.0 (compatible with CC BY 4.0); each source is listed in `lychnion-data/packages/*.json` and shown with every answer |
 | Maps: OpenStreetMap data | ODbL (share-alike) |
 | Maps: 国土地理院 and 国土数値情報 layers | GSI terms, CC BY 4.0 |
 | Region boundaries (`assets/regions/`, Natural Earth admin-1) | Public domain |

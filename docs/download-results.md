@@ -78,15 +78,15 @@ README lists sources and licences, including the GSI notes). Apps from
 before format 2 cannot read the new catalog and keep their old one.
 
 To publish a new package or map version: build it, raise its `version`
-in [tool/items.json](../tool/items.json) (packages: the same as in the
+in [lychnion-data/items.json](../tool/items.json) (packages: the same as in the
 package's meta), then sign and assemble with the key from 1Password:
 
 ```bash
-op read op://Private/lychnion-package-signing-key/credential | dart run tool/records.dart sign --key - --items tool/items.json --records ../lychnion-data/records jp.bousai.core
+op read op://Private/lychnion-package-signing-key/credential | dart run lychnion-data/tool/records.dart sign --key - --items lychnion-data/items.json --records ../lychnion-data/records jp.bousai.core
 ```
 
 ```bash
-dart run tool/records.dart catalog --items tool/items.json --records ../lychnion-data/records --base https://github.com/lychnion/lychnion-data/releases/download/<tag>/ --out assets/downloads/catalog.json
+dart run lychnion-data/tool/records.dart catalog --items lychnion-data/items.json --records ../lychnion-data/records --base https://github.com/lychnion/lychnion-data/releases/download/<tag>/ --out assets/downloads/catalog.json
 ```
 
 ```bash
@@ -95,7 +95,7 @@ gh release create <tag> -R lychnion/lychnion-data assets/downloads/catalog.json 
 
 The signing tool refuses a version that is lower than one already signed,
 and the same version with other content. Files that did not change stay
-in their old release: give them a `url` in `tool/items.json`. Commit the
+in their old release: give them a `url` in `lychnion-data/items.json`. Commit the
 new records to lychnion-data.
 
 ## Test on macOS
