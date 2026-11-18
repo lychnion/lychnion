@@ -1087,4 +1087,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shareNearbyHint =>
       'Pass on your downloaded guides, maps and models to phones nearby';
+
+  @override
+  String get settingsRegion => 'Region';
+
+  @override
+  String get regionAuto => 'Automatic (from your location)';
+
+  @override
+  String regionAutoIs(String name) {
+    return 'Automatic: $name';
+  }
+
+  @override
+  String get regionUnknown => 'Location unknown (treated as Japan)';
+
+  @override
+  String regionManual(String name) {
+    return '$name (set by hand)';
+  }
+
+  @override
+  String get regionHint =>
+      'Sources for this region rank a little higher. Your location never leaves this device.';
+
+  @override
+  String get regionJapan => 'Japan (no prefecture)';
 }

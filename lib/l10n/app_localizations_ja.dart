@@ -1034,4 +1034,29 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareNearbyHint => 'ダウンロードした資料・地図・モデルを、近くのスマートフォンに渡します';
+
+  @override
+  String get settingsRegion => '地域';
+
+  @override
+  String get regionAuto => '自動（現在地から）';
+
+  @override
+  String regionAutoIs(String name) {
+    return '自動：$name';
+  }
+
+  @override
+  String get regionUnknown => '現在地がわかりません（日本として扱います）';
+
+  @override
+  String regionManual(String name) {
+    return '$name（手動で選択）';
+  }
+
+  @override
+  String get regionHint => 'その地域の資料を少し優先します。位置情報はこの端末の外に出ません。';
+
+  @override
+  String get regionJapan => '日本（都道府県を指定しない）';
 }

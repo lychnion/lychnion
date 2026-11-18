@@ -1807,6 +1807,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pass on your downloaded guides, maps and models to phones nearby'**
   String get shareNearbyHint;
+
+  /// No description provided for @settingsRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Region'**
+  String get settingsRegion;
+
+  /// No description provided for @regionAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic (from your location)'**
+  String get regionAuto;
+
+  /// No description provided for @regionAutoIs.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic: {name}'**
+  String regionAutoIs(String name);
+
+  /// No description provided for @regionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unknown (treated as Japan)'**
+  String get regionUnknown;
+
+  /// No description provided for @regionManual.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (set by hand)'**
+  String regionManual(String name);
+
+  /// No description provided for @regionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources for this region rank a little higher. Your location never leaves this device.'**
+  String get regionHint;
+
+  /// No description provided for @regionJapan.
+  ///
+  /// In en, this message translates to:
+  /// **'Japan (no prefecture)'**
+  String get regionJapan;
 }
 
 class _AppLocalizationsDelegate

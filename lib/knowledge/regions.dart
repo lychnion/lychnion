@@ -72,6 +72,12 @@ class RegionLookup {
     return nearest?.code;
   }
 
+  /// Codes of [country]'s regions in code order (JP-01 … JP-47).
+  List<String> regionsOf(String country) => [
+    for (final r in _regions)
+      if (r.country == country && !r.code.endsWith('~')) r.code,
+  ]..sort();
+
   /// The region's name in [lang] (English when there is none), e.g. 兵庫県.
   String? nameOf(String code, String lang) {
     for (final r in _regions) {

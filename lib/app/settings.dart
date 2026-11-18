@@ -27,6 +27,9 @@ class AppSettings extends ChangeNotifier {
   bool sharing = false;
   String? sharingName;
 
+  /// Region chosen by hand ('JP-30', 'JP'), or null: from the position.
+  String? region;
+
   /// Notices the user has acknowledged (`app:1`, `pkg:<id>:<hash>`).
   Set<String> acknowledged = {};
 
@@ -55,6 +58,7 @@ class AppSettings extends ChangeNotifier {
       shelterName = j['shelter_name'] as String?;
       shelterKey = j['shelter_key'] as String?;
       sharing = j['sharing'] == true;
+      region = j['region'] as String?;
       sharingName = j['sharing_name'] as String?;
       acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
     } on Object {
@@ -94,6 +98,13 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
+  /// [code] null: from the position again.
+  Future<void> setRegion(String? code) async {
+    region = code;
+    notifyListeners();
+    await _save();
+  }
+
   Future<void> _save() async => _file?.writeAsString(
     jsonEncode({
       'language': ?language,
@@ -103,6 +114,7 @@ class AppSettings extends ChangeNotifier {
       'shelter_key': ?shelterKey,
       'sharing': sharing,
       'sharing_name': ?sharingName,
+      'region': ?region,
       'acknowledged': acknowledged.toList()..sort(),
     }),
   );

@@ -20,6 +20,7 @@ class SettingsScreen extends StatelessWidget {
     required this.downloads,
     this.shelter,
     this.onShareNearby,
+    this.region,
   });
 
   final AppSettings settings;
@@ -30,6 +31,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// Phones: pass on downloads to phones nearby.
   final VoidCallback? onShareNearby;
+
+  /// The region local sources are ranked for (RegionTile).
+  final Widget? region;
 
   /// Segment value for "follow the device".
   static const _device = '';
@@ -76,6 +80,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
             ),
+            if (region != null)
+              _Group(title: l.settingsRegion, children: [region!]),
             if (shelter != null)
               _Group(title: l.settingsShelter, children: [shelter!]),
             _Group(

@@ -312,5 +312,26 @@
   },
   "shareReceiveNothingNew": "新しいものはありません。このスマートフォンにはすべてそろっています。",
   "answerBaseUnreachable": "ベースにつながらず、この端末にも回答モデルがありません。ベースと同じWi-Fiにつないでから、もう一度お試しください。",
-  "shareNearbyHint": "ダウンロードした資料・地図・モデルを、近くのスマートフォンに渡します"
+  "shareNearbyHint": "ダウンロードした資料・地図・モデルを、近くのスマートフォンに渡します",
+  "settingsRegion": "地域",
+  "regionAuto": "自動（現在地から）",
+  "regionAutoIs": "自動：{name}",
+  "@regionAutoIs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionUnknown": "現在地がわかりません（日本として扱います）",
+  "regionManual": "{name}（手動で選択）",
+  "@regionManual": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionHint": "その地域の資料を少し優先します。位置情報はこの端末の外に出ません。",
+  "regionJapan": "日本（都道府県を指定しない）"
 }

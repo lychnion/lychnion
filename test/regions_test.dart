@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/app/region.dart';
+import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/knowledge/regions.dart';
 
@@ -23,7 +25,22 @@ void main() {
 
   test('a source for the prefecture ranks above a national one', () {
     final user = regions.codeAt(34.7376, 135.3416)!;
-    expect(localityBoost('JP-28', user), greaterThan(localityBoost('JP', user)));
+    expect(
+      localityBoost('JP-28', user),
+      greaterThan(localityBoost('JP', user)),
+    );
     expect(localityBoost('JP-13', user), localityBoost('JP', user));
+  });
+
+  test('the picker lists all 47 prefectures in order', () {
+    final jp = regions.regionsOf('JP');
+    expect(jp, hasLength(47));
+    expect(jp.first, 'JP-01');
+    expect(jp.last, 'JP-47');
+  });
+
+  test('a region set by hand wins over the position', () async {
+    final settings = AppSettings()..region = 'JP-13';
+    expect(await UserRegion.current(settings, null), 'JP-13');
   });
 }

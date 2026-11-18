@@ -698,5 +698,26 @@
   },
   "shareReceiveNothingNew": "Nothing new: this phone already has everything offered.",
   "answerBaseUnreachable": "Can't reach the base, and this phone has no answer model of its own. Join the base's Wi-Fi and try again.",
-  "shareNearbyHint": "Pass on your downloaded guides, maps and models to phones nearby"
+  "shareNearbyHint": "Pass on your downloaded guides, maps and models to phones nearby",
+  "settingsRegion": "Region",
+  "regionAuto": "Automatic (from your location)",
+  "regionAutoIs": "Automatic: {name}",
+  "@regionAutoIs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionUnknown": "Location unknown (treated as Japan)",
+  "regionManual": "{name} (set by hand)",
+  "@regionManual": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regionHint": "Sources for this region rank a little higher. Your location never leaves this device.",
+  "regionJapan": "Japan (no prefecture)"
 }
