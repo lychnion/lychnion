@@ -28,6 +28,7 @@ import '../llm/local_llm.dart';
 import '../map/map_state.dart';
 import '../base/base_discovery.dart';
 import '../base/share_nearby.dart';
+import '../base/base_checks.dart';
 import '../base/base_client.dart';
 import '../base/base_library.dart';
 import '../base/base_panel.dart';
@@ -287,10 +288,13 @@ class _AskPageState extends _AskPageBase
         _answering = true;
         thread.entries.add(placeholder);
       });
-      try {
-        final remote = await base.ask(question)
-          ..answeredBy = base.name
-          ..baseUnchecked = unchecked;
+      final remote = await answerFromBase(
+        base,
+        question,
+        unchecked: unchecked,
+        onError: (e) => _log({'event': 'base_failed', 'error': '$e'}),
+      );
+      if (remote != null) {
         setState(
           () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
         );
@@ -300,8 +304,7 @@ class _AskPageState extends _AskPageBase
         setState(() => _answering = false);
         _answerWaiting();
         return;
-      } catch (e) {
-        _log({'event': 'base_failed', 'error': '$e'});
+      } else {
         setState(() {
           thread.entries.remove(placeholder);
           _answering = false;

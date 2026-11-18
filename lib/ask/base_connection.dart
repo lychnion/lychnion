@@ -52,27 +52,26 @@ mixin _BaseConnection on _AskPageBase {
   /// the Wi-Fi gives answers and downloads (checked by signature anyway),
   /// but its facts stay unverified until its QR code is scanned.
   Future<bool> _trustBaseKey(Map<String, dynamic> info) async {
-    final key = info['key'] as String?;
-    final expected = widget.settings?.baseKey;
-    final trust = widget.facts?.trust;
-    if (expected == null) {
-      _log({'event': 'base_key_not_pinned'});
-      return true;
+    final check = await checkBaseKey(
+      info,
+      pinned: widget.settings?.baseKey,
+      facts: widget.facts,
+      name: _base?.name ?? 'base',
+    );
+    switch (check) {
+      case BaseKeyCheck.notPinned:
+        _log({'event': 'base_key_not_pinned'});
+        return true;
+      case BaseKeyCheck.mismatch:
+        _log({'event': 'base_key_mismatch'});
+        setState(() {
+          _status = 'Base key does not match the QR code: not connected.';
+          _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
+        });
+        return false;
+      case BaseKeyCheck.trusted:
+        return true;
     }
-    if (key != expected) {
-      _log({'event': 'base_key_mismatch'});
-      setState(() {
-        _status = 'Base key does not match the QR code: not connected.';
-        _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
-      });
-      return false;
-    }
-    if (trust != null) {
-      await trust.add(expected, _base?.name ?? 'base');
-      // Facts pulled before the QR code was scanned.
-      await widget.facts?.reverify();
-    }
-    return true;
   }
 
   Future<void> _connectBase() async {

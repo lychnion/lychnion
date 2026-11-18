@@ -49,9 +49,8 @@ class _FailOnceLlm extends FakeLlm {
   }
 }
 
-/// A port that was free a moment ago (BaseServer cannot bind port 0
-/// and tell us the port yet: lychnion/lychnion#24).
-Future<int> _freePort() async {
+/// A port where nothing listens (a base that is gone).
+Future<int> _deadPort() async {
   final s = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
   final port = s.port;
   await s.close();
@@ -89,9 +88,8 @@ void main() {
       codec: codec,
       maxQuestionsPerPhone: perPhone,
     );
-    final port = await _freePort();
-    await s.start(port: port);
-    base = 'http://127.0.0.1:$port';
+    await s.start(port: 0, address: InternetAddress.loopbackIPv4);
+    base = 'http://127.0.0.1:${s.port}';
     return s;
   }
 
@@ -255,7 +253,7 @@ void main() {
     });
 
     test('a base that is gone throws', () async {
-      final c = BaseClient('http://127.0.0.1:${await _freePort()}');
+      final c = BaseClient('http://127.0.0.1:${await _deadPort()}');
       addTearDown(c.close);
       await expectLater(c.info(), throwsA(isA<Exception>()));
     });
