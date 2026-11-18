@@ -1410,4 +1410,66 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get readyOffline => 'オフラインで使えます';
+
+  @override
+  String tourStep(int n, int total) {
+    return '使い方 $n / $total';
+  }
+
+  @override
+  String get tourSkip => 'スキップ';
+
+  @override
+  String get tourBack => '戻る';
+
+  @override
+  String get tourNext => '次へ';
+
+  @override
+  String get tourDone => 'はじめる';
+
+  @override
+  String get menuTour => '使い方ツアー';
+
+  @override
+  String get tourStatus => '準備の状態';
+
+  @override
+  String get tourStatusText => 'オフラインで使えるか、何が足りないかがここに出ます。';
+
+  @override
+  String get tourSite => '近くの避難場所';
+
+  @override
+  String get tourSiteText => 'いる場所から一番近い避難場所です。タップすると地図で道順を表示します。';
+
+  @override
+  String get tourPackages => '入っているパッケージ';
+
+  @override
+  String get tourPackagesText => '答えのもとになる資料です。地域や用途に合わせて追加できます。';
+
+  @override
+  String get tourBar => '質問する';
+
+  @override
+  String get tourBarText => '知りたいことを、ふだんの言葉で。インターネットがなくても答え、出典もいっしょに表示します。';
+
+  @override
+  String get tourAsk => '質問';
+
+  @override
+  String get tourAskText => '質問の例と、これまでの質問と答え。この端末の中だけに保存されます。';
+
+  @override
+  String get tourMap => '地図';
+
+  @override
+  String get tourMapText => '避難場所、津波の浸水想定、歩いて行ける道。オフラインで使えます。';
+
+  @override
+  String get tourMenu => 'メニュー';
+
+  @override
+  String get tourMenuText => '設定、近くの人と共有、そしてこのツアーはここから。';
 }

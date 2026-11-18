@@ -2449,6 +2449,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ready offline'**
   String get readyOffline;
+
+  /// No description provided for @tourStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Tour {n} / {total}'**
+  String tourStep(int n, int total);
+
+  /// No description provided for @tourSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get tourSkip;
+
+  /// No description provided for @tourBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get tourBack;
+
+  /// No description provided for @tourNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tourNext;
+
+  /// No description provided for @tourDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get tourDone;
+
+  /// No description provided for @menuTour.
+  ///
+  /// In en, this message translates to:
+  /// **'Guided tour'**
+  String get menuTour;
+
+  /// No description provided for @tourStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get tourStatus;
+
+  /// No description provided for @tourStatusText.
+  ///
+  /// In en, this message translates to:
+  /// **'Whether the app works offline, or what is still missing.'**
+  String get tourStatusText;
+
+  /// No description provided for @tourSite.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest evacuation site'**
+  String get tourSite;
+
+  /// No description provided for @tourSiteText.
+  ///
+  /// In en, this message translates to:
+  /// **'The closest site to where you are. Tap it for the way there on the map.'**
+  String get tourSiteText;
+
+  /// No description provided for @tourPackages.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed packages'**
+  String get tourPackages;
+
+  /// No description provided for @tourPackagesText.
+  ///
+  /// In en, this message translates to:
+  /// **'The sources answers come from. Add more for your area or activity.'**
+  String get tourPackagesText;
+
+  /// No description provided for @tourBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get tourBar;
+
+  /// No description provided for @tourBarText.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask in your own words. Answers work without internet and show their sources.'**
+  String get tourBarText;
+
+  /// No description provided for @tourAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions'**
+  String get tourAsk;
+
+  /// No description provided for @tourAskText.
+  ///
+  /// In en, this message translates to:
+  /// **'Example questions, and your past questions and answers. Kept only on this device.'**
+  String get tourAskText;
+
+  /// No description provided for @tourMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get tourMap;
+
+  /// No description provided for @tourMapText.
+  ///
+  /// In en, this message translates to:
+  /// **'Evacuation sites, expected tsunami areas and walking routes, offline.'**
+  String get tourMapText;
+
+  /// No description provided for @tourMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get tourMenu;
+
+  /// No description provided for @tourMenuText.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings, sharing with people nearby, and this tour.'**
+  String get tourMenuText;
 }
 
 class _AppLocalizationsDelegate

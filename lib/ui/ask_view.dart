@@ -4,6 +4,7 @@ import '../app/brand.dart';
 import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
 import 'breathing_light.dart';
+import 'guided_tour.dart';
 import '../knowledge/knowledge_package.dart' show PackageInfo;
 
 /// Where the Ask screen stands: shown as a small status pill.
@@ -45,7 +46,15 @@ class AskView extends StatefulWidget {
     this.packageInfos = const [],
     this.firstSteps,
     this.status,
+    this.tourKeys,
+    this.onTour,
   });
+
+  /// Marks the parts the guided tour points at.
+  final TourKeys? tourKeys;
+
+  /// Starts the guided tour (⋮ menu).
+  final VoidCallback? onTour;
 
   /// The first-steps checklist (FirstStepsCard) while steps are open;
   /// replaces the plain "download first" card.
@@ -140,6 +149,8 @@ class _AskViewState extends State<AskView> {
               onTap: () => _showDetail(context),
             ),
           AppMenu(
+            key: widget.tourKeys?.menu,
+            onTour: widget.onTour,
             onOpenSettings: widget.onOpenSettings,
             onShowNotice: widget.onShowNotice,
             onShareNearby: widget.onShareNearby,
@@ -160,6 +171,7 @@ class _AskViewState extends State<AskView> {
         children: [
           Expanded(child: _emptyState(theme)),
           QuestionBar(
+            key: widget.tourKeys?.bar,
             input: widget.input,
             ready: widget.ready,
             loading: widget.phase == AskPhase.loading,
@@ -181,7 +193,10 @@ class _AskViewState extends State<AskView> {
     final scheme = theme.colorScheme;
     final needsData = widget.phase == AskPhase.noModel;
     return [
-      if (widget.status case final s?) ...[s, const SizedBox(height: 12)],
+      if (widget.status case final s?) ...[
+        KeyedSubtree(key: widget.tourKeys?.status, child: s),
+        const SizedBox(height: 12),
+      ],
       Text(l.askHeadline, style: theme.textTheme.headlineMedium),
       const SizedBox(height: 10),
       Text(
@@ -192,7 +207,10 @@ class _AskViewState extends State<AskView> {
       ),
       const SizedBox(height: 24),
       if (widget.firstSteps case final f?) ...[f, const SizedBox(height: 24)],
-      if (widget.home case final h?) ...[h, const SizedBox(height: 24)],
+      if (widget.home case final h?) ...[
+        KeyedSubtree(key: widget.tourKeys?.site, child: h),
+        const SizedBox(height: 24),
+      ],
       if (widget.phase == AskPhase.failed) ...[
         Card(
           color: scheme.errorContainer,
@@ -252,7 +270,10 @@ class _AskViewState extends State<AskView> {
         ),
         const SizedBox(height: 10),
       ],
-      if (widget.packages case final p?) ...[const SizedBox(height: 14), p],
+      if (widget.packages case final p?) ...[
+        const SizedBox(height: 14),
+        KeyedSubtree(key: widget.tourKeys?.packages, child: p),
+      ],
       const SizedBox(height: 8),
     ];
   }
@@ -511,9 +532,13 @@ class AppMenu extends StatelessWidget {
     this.onOpenSettings,
     this.onShareNearby,
     this.onShowNotice,
+    this.onTour,
     this.updates,
     this.devActions = const [],
   });
+
+  /// The guided tour of the screen again.
+  final VoidCallback? onTour;
 
   /// New versions of installed downloads: a badge on the menu and on
   /// Settings.
@@ -555,6 +580,14 @@ class AppMenu extends StatelessWidget {
             title: Text(context.l10n.shareNearby),
           ),
         ),
+      if (onTour != null)
+        PopupMenuItem(
+          value: -4,
+          child: ListTile(
+            leading: const Icon(Icons.tour_outlined),
+            title: Text(context.l10n.menuTour),
+          ),
+        ),
       if (onShowNotice != null)
         PopupMenuItem(
           value: -2,
@@ -587,6 +620,7 @@ class AppMenu extends StatelessWidget {
       -1 => onOpenSettings?.call(),
       -2 => onShowNotice?.call(),
       -3 => onShareNearby?.call(),
+      -4 => onTour?.call(),
       _ => devActions[i].onTap?.call(),
     },
   );

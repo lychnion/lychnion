@@ -23,6 +23,7 @@ import 'download/publisher_list.dart';
 import 'download/publishers_screen.dart';
 import 'ui/ask_view.dart';
 import 'ui/first_steps.dart';
+import 'ui/guided_tour.dart';
 import 'ui/suggestions.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
@@ -209,6 +210,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _tab = _startTab;
+
+  /// Shared by Home and the bottom bar: the parts the guided tour shows.
+  final _tourKeys = TourKeys();
 
   /// Current facts (shelter status, blocked roads, warnings), kept apart
   /// from the model and the knowledge packages.
@@ -559,6 +563,7 @@ class _HomePageState extends State<HomePage> {
           index: _tab == 2 ? 1 : 0,
           children: [
             SpikePage(
+              tourKeys: _tourKeys,
               onShelterCatalog: _addShelterCatalog,
               view: _tab == 1 ? AskPageView.conversations : AskPageView.home,
               onOpenSettings: _openSettings,
@@ -610,11 +615,13 @@ class _HomePageState extends State<HomePage> {
               label: l.navHome,
             ),
             NavigationDestination(
+              key: _tourKeys.ask,
               icon: const Icon(Icons.chat_bubble_outline_rounded),
               selectedIcon: const Icon(Icons.chat_bubble_rounded),
               label: l.navAsk,
             ),
             NavigationDestination(
+              key: _tourKeys.map,
               icon: const Icon(Icons.map_outlined),
               selectedIcon: const Icon(Icons.map_rounded),
               label: l.navMap,
@@ -644,7 +651,11 @@ class SpikePage extends StatefulWidget {
     this.view = AskPageView.home,
     this.onOpenSettings,
     this.onShowAsk,
+    this.tourKeys,
   });
+
+  /// The parts of the screen the guided tour points at.
+  final TourKeys? tourKeys;
 
   /// Home screen or the list of conversations (Ask tab).
   final AskPageView view;
@@ -682,6 +693,21 @@ class _SpikePageState extends State<SpikePage> {
   final _threadInput = TextEditingController();
   final _url = TextEditingController(text: _modelUrl);
   final _threads = ThreadStore();
+
+  /// The guided tour starts by itself once, after the first steps.
+  bool _tourStarted = false;
+
+  void _startTour() {
+    final keys = widget.tourKeys;
+    final settings = widget.settings;
+    if (keys == null || !mounted) return;
+    _tourStarted = true;
+    showGuidedTour(
+      context,
+      tourStops(context, keys),
+      onEnd: () => unawaited(settings?.markFirstStep('tour')),
+    );
+  }
 
   /// The open conversation; new questions go here.
   Thread? _current;
@@ -1347,7 +1373,17 @@ class _SpikePageState extends State<SpikePage> {
     final steps = _firstSteps(settings);
     final hidden = settings?.firstSteps.contains('hidden') ?? false;
     final showSteps = settings != null && !steps.allDone && !hidden;
+    // Once the first steps are done, the tour shows the screen once.
+    if (steps.allDone &&
+        settings != null &&
+        !settings.firstSteps.contains('tour') &&
+        !_tourStarted) {
+      _tourStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startTour());
+    }
     return AskView(
+      tourKeys: widget.tourKeys,
+      onTour: widget.tourKeys == null ? null : _startTour,
       firstSteps: showSteps
           ? FirstStepsCard(
               steps: steps,

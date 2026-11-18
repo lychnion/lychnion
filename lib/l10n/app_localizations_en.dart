@@ -1479,4 +1479,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readyOffline => 'Ready offline';
+
+  @override
+  String tourStep(int n, int total) {
+    return 'Tour $n / $total';
+  }
+
+  @override
+  String get tourSkip => 'Skip';
+
+  @override
+  String get tourBack => 'Back';
+
+  @override
+  String get tourNext => 'Next';
+
+  @override
+  String get tourDone => 'Start';
+
+  @override
+  String get menuTour => 'Guided tour';
+
+  @override
+  String get tourStatus => 'Status';
+
+  @override
+  String get tourStatusText =>
+      'Whether the app works offline, or what is still missing.';
+
+  @override
+  String get tourSite => 'Nearest evacuation site';
+
+  @override
+  String get tourSiteText =>
+      'The closest site to where you are. Tap it for the way there on the map.';
+
+  @override
+  String get tourPackages => 'Installed packages';
+
+  @override
+  String get tourPackagesText =>
+      'The sources answers come from. Add more for your area or activity.';
+
+  @override
+  String get tourBar => 'Ask';
+
+  @override
+  String get tourBarText =>
+      'Ask in your own words. Answers work without internet and show their sources.';
+
+  @override
+  String get tourAsk => 'Questions';
+
+  @override
+  String get tourAskText =>
+      'Example questions, and your past questions and answers. Kept only on this device.';
+
+  @override
+  String get tourMap => 'Map';
+
+  @override
+  String get tourMapText =>
+      'Evacuation sites, expected tsunami areas and walking routes, offline.';
+
+  @override
+  String get tourMenu => 'Menu';
+
+  @override
+  String get tourMenuText =>
+      'Settings, sharing with people nearby, and this tour.';
 }
