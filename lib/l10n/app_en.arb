@@ -38,8 +38,7 @@
   },
   "delete": "Delete",
   "downloadsTitle": "Downloads",
-  "downloadsWifiOnly": "Download on Wi-Fi only",
-  "downloadsWifiOnlyHint": "When off, mobile data is used too (can be several GB).",
+  "downloadsWifiOnlyHint": "Models and maps can be several GB. \"Ask first\" asks before each download over mobile data.",
   "downloadsFooter": "Everything downloaded works offline. Files are checked (SHA-256) before the app uses them.",
   "downloadsKindModels": "Models",
   "downloadsKindPackages": "Knowledge packages",
@@ -609,5 +608,18 @@
   "conversationMoveBack": "Move back",
   "conversationArchive": "Archive",
   "conversationDeleteTitle": "Delete this conversation?",
-  "conversationDeleteBody": "It is removed from this device."
+  "conversationDeleteBody": "It is removed from this device.",
+  "downloadsMobileTitle": "{size} over mobile data?",
+  "downloadsMobileBody": "Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A shelter computer, if there is one nearby, also has the downloads on its Wi-Fi.",
+  "@downloadsMobileTitle": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsMobileData": "Mobile data",
+  "downloadsMobileNever": "Wi-Fi only",
+  "downloadsMobileAsk": "Ask first",
+  "downloadsMobileAlways": "Always"
 }

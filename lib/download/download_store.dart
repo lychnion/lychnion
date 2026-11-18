@@ -46,6 +46,18 @@ class Installed {
 ///   downloads/ settings and the cached catalog
 /// Bundled assets are copied to `bundled/` instead, so they never overwrite
 /// a download.
+/// Whether downloads may use mobile data.
+enum MobileData {
+  /// Only on Wi-Fi or a cable (default).
+  never,
+
+  /// Ask before a large download over mobile data.
+  ask,
+
+  /// Download over any connection.
+  always,
+}
+
 class DownloadStore {
   DownloadStore(this.root, {TrustedKeys? trust})
     : trust = trust ?? builtInPublishers;
@@ -209,9 +221,17 @@ class DownloadStore {
     await _settingsFile.writeAsString(jsonEncode(s));
   }
 
-  /// Large files only over Wi-Fi (or a cable). Default on.
-  bool get wifiOnly => _settings()['wifi_only'] as bool? ?? true;
-  Future<void> setWifiOnly(bool v) => _set('wifi_only', v);
+  /// Downloads over mobile data: never (default), ask first for large
+  /// ones, or always. Settings from before kept "wifi_only" true/false.
+  MobileData get mobileData {
+    final s = _settings();
+    if (s['mobile_data'] case final String v) {
+      return MobileData.values.asNameMap()[v] ?? MobileData.never;
+    }
+    return s['wifi_only'] == false ? MobileData.always : MobileData.never;
+  }
+
+  Future<void> setMobileData(MobileData v) => _set('mobile_data', v.name);
 
   /// The chat model the user picked, if any.
   String? get chatModelId => _settings()['chat_model'] as String?;

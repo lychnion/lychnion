@@ -77,10 +77,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadsTitle => 'ダウンロード';
 
   @override
-  String get downloadsWifiOnly => 'Wi-Fi のときだけダウンロード';
-
-  @override
-  String get downloadsWifiOnlyHint => 'オフにするとモバイルデータも使います（数 GB になることがあります）。';
+  String get downloadsWifiOnlyHint =>
+      'モデルや地図は数 GB になることがあります。「確認する」では、モバイルデータでダウンロードする前に毎回確認します。';
 
   @override
   String get downloadsFooter =>
@@ -871,4 +869,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get conversationDeleteBody => 'この端末から削除されます。';
+
+  @override
+  String downloadsMobileTitle(String size) {
+    return 'モバイルデータで $size をダウンロードしますか？';
+  }
+
+  @override
+  String get downloadsMobileBody =>
+      'Wi-Fi につながっていません。データ通信量を使います。多くの料金プランでは Wi-Fi のほうが安くすみます。近くに避難所のコンピューターがあれば、その Wi-Fi からもダウンロードできます。';
+
+  @override
+  String get downloadsMobileData => 'モバイルデータ';
+
+  @override
+  String get downloadsMobileNever => 'Wi-Fi のみ';
+
+  @override
+  String get downloadsMobileAsk => '確認する';
+
+  @override
+  String get downloadsMobileAlways => '常に使う';
 }

@@ -36,6 +36,7 @@ import 'shelter/shelter_client.dart';
 import 'shelter/shelter_link.dart';
 import 'shelter/shelter_panel.dart';
 import 'shelter/shelter_server.dart';
+import 'shelter/shelter_library.dart';
 import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
@@ -235,6 +236,18 @@ class _HomePageState extends State<HomePage> {
   /// Bumped when a download is installed or deleted.
   final _downloadChanges = ValueNotifier<int>(0);
 
+  /// A shelter's catalog that arrived before Downloads was ready.
+  Uri? _pendingShelterCatalog;
+
+  void _addShelterCatalog(Uri url) {
+    final dm = _downloads;
+    if (dm == null) {
+      _pendingShelterCatalog = url;
+    } else {
+      unawaited(dm.addCatalogFrom(url));
+    }
+  }
+
   Future<void> _initDownloads() async {
     final dm = await DownloadManager.create();
     dm.changes.addListener(() {
@@ -243,6 +256,10 @@ class _HomePageState extends State<HomePage> {
     });
     setState(() => _downloads = dm);
     _useDownloadedMap();
+    if (_pendingShelterCatalog case final u?) {
+      _pendingShelterCatalog = null;
+      unawaited(dm.addCatalogFrom(u));
+    }
   }
 
   /// (Re)opens the downloaded map area unless MAP_PMTILES_PATH is set.
@@ -382,6 +399,7 @@ class _HomePageState extends State<HomePage> {
           index: _tab == 2 ? 1 : 0,
           children: [
             SpikePage(
+              onShelterCatalog: _addShelterCatalog,
               view: _tab == 1 ? AskPageView.conversations : AskPageView.home,
               onOpenSettings: _openSettings,
               onShowAsk: () => setState(() => _tab = 1),
@@ -450,6 +468,7 @@ class SpikePage extends StatefulWidget {
     this.map,
     this.onShowOnMap,
     this.onDemoDone,
+    this.onShelterCatalog,
     this.downloadChanges,
     this.facts,
     this.settings,
@@ -479,6 +498,9 @@ class SpikePage extends StatefulWidget {
   final Listenable? downloadChanges;
   final void Function()? onShowOnMap;
   final Future<void> Function(List<GroundedAnswer>)? onDemoDone;
+
+  /// Connected to a shelter: its catalog address, for Downloads.
+  final void Function(Uri catalog)? onShelterCatalog;
 
   @override
   State<SpikePage> createState() => _SpikePageState();
@@ -577,6 +599,15 @@ class _SpikePageState extends State<SpikePage> {
   void initState() {
     super.initState();
     unawaited(_threads.load());
+    // Until packages load here (or when a shelter answers instead), show
+    // the built-in packages' names and suggestions.
+    unawaited(
+      _builtInPackageInfo()
+          .then((p) {
+            if (mounted && _packages.isEmpty) setState(() => _packages = p);
+          })
+          .catchError((Object _) {}),
+    );
     widget.settings?.addListener(_shelterChanged);
     _shelterChanged();
     if (_modelPath.isNotEmpty) {
@@ -697,6 +728,9 @@ class _SpikePageState extends State<SpikePage> {
           codec: widget.map?.sites == null
               ? null
               : CompactCodec(widget.map!.sites!.siteIds),
+          // Pass on what this computer has installed (packages, maps,
+          // models), so phones can update here without internet.
+          library: ShelterLibrary(await DownloadStore.instance()),
         );
         await _server!.start();
         final addrs = await ShelterServer.localAddresses();
@@ -813,6 +847,10 @@ class _SpikePageState extends State<SpikePage> {
       if (!await _trustShelterKey(info)) return;
       _log({'event': 'shelter_connected', ...info});
       await _pullFacts();
+      // Packages, maps and models the shelter can pass on (signed records).
+      widget.onShelterCatalog?.call(
+        Uri.parse(shelter.baseUrl).resolve('/catalog.json'),
+      );
       // Keep current facts in step with the shelter while connected.
       _factsTimer = Timer.periodic(
         const Duration(minutes: 1),

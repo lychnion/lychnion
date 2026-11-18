@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 
 import 'catalog.dart';
 import 'download_manager.dart';
+import 'download_store.dart' show MobileData;
 import 'downloader.dart';
 
 /// Lists models, knowledge packages and map areas: size, progress,
@@ -52,7 +53,29 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   };
 
   Future<void> _download(CatalogItem item) async {
-    if (item.size >= largeDownloadBytes) {
+    // "Wi-Fi only" is off and this is mobile data: say how much it uses.
+    if (m.mobileData == MobileData.ask && await m.asksBeforeMobile(item)) {
+      if (!mounted) return;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(l.downloadsMobileTitle(formatBytes(item.size))),
+          content: Text(l.downloadsMobileBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(l.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(l.downloadsDownload),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    } else if (item.size >= largeDownloadBytes) {
+      if (!mounted) return;
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
@@ -108,11 +131,31 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         return ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
-            SwitchListTile(
-              title: Text(l.downloadsWifiOnly),
+            ListTile(
+              title: Text(l.downloadsMobileData),
               subtitle: Text(l.downloadsWifiOnlyHint),
-              value: m.wifiOnly,
-              onChanged: m.setWifiOnly,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SegmentedButton<MobileData>(
+                segments: [
+                  ButtonSegment(
+                    value: MobileData.never,
+                    label: Text(l.downloadsMobileNever),
+                  ),
+                  ButtonSegment(
+                    value: MobileData.ask,
+                    label: Text(l.downloadsMobileAsk),
+                  ),
+                  ButtonSegment(
+                    value: MobileData.always,
+                    label: Text(l.downloadsMobileAlways),
+                  ),
+                ],
+                selected: {m.mobileData},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) => m.setMobileData(s.first),
+              ),
             ),
             if (m.refreshing) const LinearProgressIndicator(),
             for (final kind in ItemKind.values) ...[

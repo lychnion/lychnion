@@ -81,7 +81,14 @@ class TrustList extends ChangeNotifier {
     _file = file;
     final f = file;
     if (!await f.exists()) return;
-    final j = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+    // An empty or broken file (a write cut short) means no trusted keys,
+    // not a crash at start: keys are added again from the shelter QR.
+    final Map<String, dynamic> j;
+    try {
+      j = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+    } on FormatException {
+      return;
+    }
     for (final e in j.entries) {
       final v = e.value as Map<String, dynamic>;
       _keys[e.key] = (

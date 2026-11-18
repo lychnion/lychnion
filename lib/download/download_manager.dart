@@ -60,6 +60,18 @@ class DownloadManager extends ChangeNotifier {
   int _lastPct = -1;
   String? catalogError;
 
+  /// Catalogs of shelter computers this phone is connected to, merged into
+  /// every catalog the app reads (a refresh from the internet must not drop
+  /// the shelter's addresses).
+  final _shelterCatalogs = <Uri, Catalog>{};
+
+  Catalog _withShelters(Catalog c) {
+    for (final s in _shelterCatalogs.values) {
+      c = c.mergedWith(s);
+    }
+    return c;
+  }
+
   ItemState stateOf(CatalogItem i) => _states[i.id] ??= ItemState();
 
   Future<void> _init() async {
@@ -145,7 +157,7 @@ class DownloadManager extends ChangeNotifier {
       final res = await req.close().timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
       final body = await res.transform(utf8.decoder).join();
-      catalog = await _parse(body, url);
+      catalog = _withShelters(await _parse(body, url));
       await store.cachedCatalog.parent.create(recursive: true);
       await store.cachedCatalog.writeAsString(
         jsonEncode({'url': '$url', 'body': body}),
@@ -156,6 +168,37 @@ class DownloadManager extends ChangeNotifier {
       client.close(force: true);
       refreshing = false;
       _refreshStates();
+    }
+  }
+
+  /// Adds the catalog of a shelter computer (its `/catalog.json`), so
+  /// packages, maps and models can come from it over the local Wi-Fi,
+  /// without internet. Signatures and hashes are checked as for any
+  /// download. Returns how many items the shelter offers, or null when it
+  /// could not be read.
+  Future<int?> addCatalogFrom(Uri url) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10);
+    try {
+      final req = await client.getUrl(url);
+      final res = await req.close().timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final body = await res.transform(utf8.decoder).join();
+      final other = await _parse(body, url);
+      _shelterCatalogs[url] = other;
+      catalog = catalog.mergedWith(other);
+      _log({
+        'event': 'shelter_catalog',
+        'from': '$url',
+        'items': other.items.length,
+      });
+      _refreshStates();
+      return other.items.length;
+    } catch (e) {
+      _log({'event': 'shelter_catalog_failed', 'from': '$url', 'error': '$e'});
+      return null;
+    } finally {
+      client.close(force: true);
     }
   }
 
@@ -184,9 +227,9 @@ class DownloadManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get wifiOnly => store.wifiOnly;
-  Future<void> setWifiOnly(bool v) async {
-    await store.setWifiOnly(v);
+  MobileData get mobileData => store.mobileData;
+  Future<void> setMobileData(MobileData v) async {
+    await store.setMobileData(v);
     notifyListeners();
   }
 
@@ -198,6 +241,17 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Null if downloading is allowed now, else `offline` or `wifi-only`.
+  /// True when this download would go over mobile data (no Wi-Fi or
+  /// cable): with "Ask first" the app then asks, whatever the size. Files
+  /// from a shelter on the local Wi-Fi never get here: that is Wi-Fi.
+  Future<bool> asksBeforeMobile(CatalogItem item) async {
+    final now = await Connectivity().checkConnectivity();
+    final wifi = now.any(
+      (c) => c == ConnectivityResult.wifi || c == ConnectivityResult.ethernet,
+    );
+    return now.contains(ConnectivityResult.mobile) && !wifi;
+  }
+
   Future<String?> networkProblem() async {
     final now = await Connectivity().checkConnectivity();
     if (now.isEmpty || now.every((c) => c == ConnectivityResult.none)) {
@@ -208,7 +262,7 @@ class DownloadManager extends ChangeNotifier {
     );
     // Desktops report "other" for some links; only phones have mobile data.
     final mobile = now.contains(ConnectivityResult.mobile);
-    if (wifiOnly && mobile && !ok) return 'wifi-only';
+    if (mobileData == MobileData.never && mobile && !ok) return 'wifi-only';
     return null;
   }
 

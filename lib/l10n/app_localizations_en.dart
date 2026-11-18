@@ -82,11 +82,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadsTitle => 'Downloads';
 
   @override
-  String get downloadsWifiOnly => 'Download on Wi-Fi only';
-
-  @override
   String get downloadsWifiOnlyHint =>
-      'When off, mobile data is used too (can be several GB).';
+      'Models and maps can be several GB. \"Ask first\" asks before each download over mobile data.';
 
   @override
   String get downloadsFooter =>
@@ -904,4 +901,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get conversationDeleteBody => 'It is removed from this device.';
+
+  @override
+  String downloadsMobileTitle(String size) {
+    return '$size over mobile data?';
+  }
+
+  @override
+  String get downloadsMobileBody =>
+      'Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A shelter computer, if there is one nearby, also has the downloads on its Wi-Fi.';
+
+  @override
+  String get downloadsMobileData => 'Mobile data';
+
+  @override
+  String get downloadsMobileNever => 'Wi-Fi only';
+
+  @override
+  String get downloadsMobileAsk => 'Ask first';
+
+  @override
+  String get downloadsMobileAlways => 'Always';
 }

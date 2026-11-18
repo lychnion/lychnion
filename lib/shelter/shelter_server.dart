@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
 import '../facts/signing.dart';
 import '../knowledge/grounded_answer.dart';
+import 'shelter_library.dart';
 import 'shelter_protocol.dart';
 
 /// Answers questions from phones on the shelter's local network.
@@ -13,6 +16,8 @@ import 'shelter_protocol.dart';
 /// GET /info  → {name, model, package, version}
 /// GET /facts → current facts (JSON, or ?compact=1 for radio-sized messages)
 /// POST /ask  {"question": "…"} → an answer (shelter_protocol.dart)
+/// GET /catalog.json        → signed records of what this shelter has
+/// GET `/blobs/sha256/<hash>` → one of those files (resumable with Range)
 ///
 /// No login: anyone on the shelter Wi-Fi may ask. One model, so questions
 /// are answered one after another.
@@ -23,7 +28,11 @@ class ShelterServer {
     required this.modelName,
     this.facts,
     this.codec,
+    this.library,
   });
+
+  /// Packages, maps and models passed on to phones (null: none).
+  final ShelterLibrary? library;
 
   /// Current facts the shelter shares with phones (GET /facts).
   final FactStore? facts;
@@ -86,6 +95,14 @@ class ShelterServer {
             'facts': [for (final f in all) f.toJson()],
           });
         }
+      } else if (req.method == 'GET' &&
+          req.uri.path == '/catalog.json' &&
+          library != null) {
+        _send(res, 200, library!.catalog());
+      } else if (req.method == 'GET' &&
+          _blob.matchAsPrefix(req.uri.path)?.end == req.uri.path.length &&
+          library != null) {
+        await _sendBlob(req, library!.blob(req.uri.pathSegments.last));
       } else if (req.method == 'POST' && req.uri.path == '/ask') {
         final body = await utf8.decodeStream(req.take(8 * 1024));
         final q = (jsonDecode(body) as Map)['question'];
@@ -108,6 +125,45 @@ class ShelterServer {
     } catch (e) {
       _send(res, 500, {'error': '$e'});
     }
+  }
+
+  static final _blob = RegExp(r'/blobs/sha256/[0-9a-f]{64}');
+
+  /// Streams a file, from a byte offset when the phone resumes
+  /// (`Range: bytes=N-`): models are gigabytes, Wi-Fi drops.
+  Future<void> _sendBlob(HttpRequest req, File? file) async {
+    final res = req.response;
+    if (file == null || !file.existsSync()) {
+      _send(res, 404, {'error': 'not found'});
+      return;
+    }
+    final size = file.lengthSync();
+    final range = RegExp(
+      r'^bytes=(\d+)-$',
+    ).firstMatch(req.headers.value(HttpHeaders.rangeHeader) ?? '');
+    final from = range == null ? 0 : int.parse(range[1]!);
+    if (from > size) {
+      res.statusCode = HttpStatus.requestedRangeNotSatisfiable;
+      await res.close();
+      return;
+    }
+    res.headers
+      ..contentType = ContentType.binary
+      ..contentLength = size - from
+      ..set(HttpHeaders.acceptRangesHeader, 'bytes');
+    if (range != null) {
+      res.statusCode = HttpStatus.partialContent;
+      res.headers.set(
+        HttpHeaders.contentRangeHeader,
+        'bytes $from-${size - 1}/$size',
+      );
+    }
+    await res.addStream(file.openRead(from));
+    await res.close();
+    // For whoever runs the shelter: what was passed on, to whom.
+    debugPrint(
+      'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': req.connectionInfo?.remoteAddress.address})}',
+    );
   }
 
   void _send(HttpResponse res, int status, Map<String, Object?> body) {

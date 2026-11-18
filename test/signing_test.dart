@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'dart:convert';
 
 import 'package:lychnion/facts/compact_codec.dart';
@@ -118,5 +120,14 @@ void main() {
     final tampered = msgs.first.replaceFirst('|c|', '|o|');
     final bad = await trust.unpackSigned(codec, tampered);
     expect(bad.any((f) => f.verified), isFalse);
+  });
+
+  test('an empty trust list file does not stop the app', () async {
+    final dir = await Directory.systemTemp.createTemp('trust');
+    final f = File('${dir.path}/trusted_keys.json')..writeAsStringSync('');
+    final t = TrustList();
+    await t.load(f);
+    expect(t.names, isEmpty);
+    await dir.delete(recursive: true);
   });
 }

@@ -146,6 +146,29 @@ class Catalog {
     return base?.resolveUri(u);
   }
 
+  /// This catalog plus the items of [other] (for example a shelter's), with
+  /// [other]'s file addresses made absolute. An item of [other] wins when
+  /// its version is the same or newer: a shelter on the local Wi-Fi is
+  /// faster and works without internet. Records are checked as before.
+  Catalog mergedWith(Catalog other) {
+    final byId = {for (final i in items) i.id: i};
+    for (final o in other.items) {
+      final mine = byId[o.id];
+      if (mine != null && isOlder(o.version, mine.version)) continue;
+      final files = [
+        for (final f in o.files)
+          if (other.urlOf(f) case final u?)
+            CatalogFile(f.name, f.size, f.sha256, '$u'),
+      ];
+      if (files.length != o.files.length || o.record == null) continue;
+      byId[o.id] = CatalogItem.fromRecord(o.record!, {
+        for (final f in files) f.sha256: f.url,
+      });
+    }
+    return Catalog([...byId.values], base: base, refreshUrl: refreshUrl)
+      ..rejected.addAll([...rejected, ...other.rejected]);
+  }
+
   bool canDownload(CatalogItem item) =>
       item.files.every((f) => urlOf(f) != null);
 

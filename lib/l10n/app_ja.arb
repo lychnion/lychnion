@@ -21,8 +21,7 @@
   "downloadsDeleteBody": "{title}（{size}）を端末から削除します。オフラインでは再取得できません。",
   "delete": "削除",
   "downloadsTitle": "ダウンロード",
-  "downloadsWifiOnly": "Wi-Fi のときだけダウンロード",
-  "downloadsWifiOnlyHint": "オフにするとモバイルデータも使います（数 GB になることがあります）。",
+  "downloadsWifiOnlyHint": "モデルや地図は数 GB になることがあります。「確認する」では、モバイルデータでダウンロードする前に毎回確認します。",
   "downloadsFooter": "ダウンロードしたものはすべてオフラインで使えます。ファイルはチェックサム（SHA-256）で確認してから使います。",
   "downloadsKindModels": "モデル",
   "downloadsKindPackages": "知識パッケージ",
@@ -237,5 +236,11 @@
   "conversationMoveBack": "元に戻す",
   "conversationArchive": "アーカイブ",
   "conversationDeleteTitle": "この会話を削除しますか？",
-  "conversationDeleteBody": "この端末から削除されます。"
+  "conversationDeleteBody": "この端末から削除されます。",
+  "downloadsMobileTitle": "モバイルデータで {size} をダウンロードしますか？",
+  "downloadsMobileBody": "Wi-Fi につながっていません。データ通信量を使います。多くの料金プランでは Wi-Fi のほうが安くすみます。近くに避難所のコンピューターがあれば、その Wi-Fi からもダウンロードできます。",
+  "downloadsMobileData": "モバイルデータ",
+  "downloadsMobileNever": "Wi-Fi のみ",
+  "downloadsMobileAsk": "確認する",
+  "downloadsMobileAlways": "常に使う"
 }

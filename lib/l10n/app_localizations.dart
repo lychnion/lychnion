@@ -224,16 +224,10 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloadsTitle;
 
-  /// No description provided for @downloadsWifiOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Download on Wi-Fi only'**
-  String get downloadsWifiOnly;
-
   /// No description provided for @downloadsWifiOnlyHint.
   ///
   /// In en, this message translates to:
-  /// **'When off, mobile data is used too (can be several GB).'**
+  /// **'Models and maps can be several GB. \"Ask first\" asks before each download over mobile data.'**
   String get downloadsWifiOnlyHint;
 
   /// No description provided for @downloadsFooter.
@@ -1525,6 +1519,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'It is removed from this device.'**
   String get conversationDeleteBody;
+
+  /// No description provided for @downloadsMobileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} over mobile data?'**
+  String downloadsMobileTitle(String size);
+
+  /// No description provided for @downloadsMobileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A shelter computer, if there is one nearby, also has the downloads on its Wi-Fi.'**
+  String get downloadsMobileBody;
+
+  /// No description provided for @downloadsMobileData.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile data'**
+  String get downloadsMobileData;
+
+  /// No description provided for @downloadsMobileNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi only'**
+  String get downloadsMobileNever;
+
+  /// No description provided for @downloadsMobileAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask first'**
+  String get downloadsMobileAsk;
+
+  /// No description provided for @downloadsMobileAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get downloadsMobileAlways;
 }
 
 class _AppLocalizationsDelegate

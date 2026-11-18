@@ -508,11 +508,21 @@ void main() {
       expect(again.installed(ItemKind.package, 'q'), isNull);
     });
 
-    test('Wi-Fi only is on by default', () async {
+    test('mobile data: Wi-Fi only by default, three choices', () async {
       final s = DownloadStore(tmp, trust: trust);
-      expect(s.wifiOnly, isTrue);
-      await s.setWifiOnly(false);
-      expect(s.wifiOnly, isFalse);
+      expect(s.mobileData, MobileData.never);
+      await s.setMobileData(MobileData.ask);
+      expect(s.mobileData, MobileData.ask);
+      await s.setMobileData(MobileData.always);
+      expect(s.mobileData, MobileData.always);
+    });
+
+    test('the old Wi-Fi-only switch is read as before', () async {
+      final s = DownloadStore(tmp, trust: trust);
+      await File('${tmp.path}/downloads/settings.json')
+          .create(recursive: true)
+          .then((f) => f.writeAsString('{"wifi_only": false}'));
+      expect(s.mobileData, MobileData.always);
     });
   });
 }
