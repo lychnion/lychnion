@@ -192,6 +192,7 @@ map area (downloaded, or `MAP_PMTILES_PATH`).
 - `lib/spike/`: test questions for comparing models and devices.
 - `docs/poc-plan.md`: plan, competitor review, licences, naming notes.
 - `docs/distribution.md`: how apps and data packages reach people, also without internet (design note).
+- `docs/versioning.md`: app versions (semver, `v0.1.0`), data versions (`2026.11.3`) and format numbers.
 
 ## Licence
 
