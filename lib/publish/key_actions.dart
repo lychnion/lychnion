@@ -280,6 +280,9 @@ Future<void> revokeFromBackup(
   try {
     await LocalPublisher.writeKeysFile(dir, [s]);
     await manager.store.publishers.learn([s], any: true);
+    if (!manager.store.publishers.statements.contains(s)) {
+      throw StateError('the revocation was not kept');
+    }
     await manager.publishersChanged();
     if (context.mounted) {
       _tell(

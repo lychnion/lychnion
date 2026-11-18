@@ -52,9 +52,9 @@ class KeyBackupKdf {
   /// What a file may ask for: more would let a file stall the app.
   bool get withinLimits =>
       memory >= 8 &&
-      memory <= 262144 &&
+      memory <= 131072 &&
       iterations >= 1 &&
-      iterations <= 6 &&
+      iterations <= 4 &&
       parallelism >= 1 &&
       parallelism <= 4 &&
       memory >= 8 * parallelism;

@@ -56,6 +56,10 @@ class StickResult {
   /// Loading learned key statements that changed which keys are trusted:
   /// install records and catalogs must be checked again.
   var keysChanged = false;
+
+  /// Key statements from the stick could not be saved: records of a new
+  /// key may not be trusted after a restart.
+  var keysNotSaved = false;
 }
 
 /// A stick whose catalog.json cannot be read (broken, too large, or from a
@@ -97,12 +101,11 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   // This device's own first, so statements on the stick cannot crowd
   // them out; of those on the stick, only ones made by keys trusted here.
   final oldStatements = await relevantStatements(store.trust, old?.keys);
-  final statements = <KeyStatement>[];
   final seen = <String>{};
-  for (final s in [...store.publishers.statements, ...oldStatements]) {
-    if (statements.length >= KeyStatement.maxPerSource) break;
-    if (seen.add(s.id)) statements.add(s);
-  }
+  final statements = KeyStatement.capped([
+    for (final s in [...store.publishers.statements, ...oldStatements])
+      if (seen.add(s.id)) s,
+  ]);
   final trust = store.trust.withStatements(oldStatements);
 
   // What the stick has, by id (signatures are kept as they are: the
@@ -302,7 +305,9 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
   try {
     result.keysChanged = await store.publishers.learn(statements);
   } on Object {
-    // Not saved: they still apply to the records on this stick.
+    // Not saved: they still apply to the records on this stick, but not
+    // after a restart.
+    result.keysNotSaved = true;
   }
   final trust = store.trust.withStatements(statements);
   for (final raw in cat.records) {

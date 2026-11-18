@@ -292,17 +292,22 @@ class PublisherList extends ChangeNotifier {
       _serial(() async {
         final before = _keySummary();
         final room = maxStatements - _statements.length;
-        if (room <= 0) return false;
         final seen = {for (final s in _statements) s.id};
         // Only statements made by a key trusted here (see
         // relevantStatements): statements anyone can make about keys of
-        // their own never fill the list.
-        final fresh = any
+        // their own never fill the list. Revocations are kept even when
+        // it is full: losing one would trust a stolen key again.
+        final candidates = any
             ? [
                 for (final s in learned)
                   if (seen.add(s.id)) s,
-              ].take(room)
-            : await relevantStatements(trust, learned.toList(), max: room);
+              ]
+            : await relevantStatements(trust, learned.toList());
+        var left = room;
+        final fresh = [
+          for (final s in candidates)
+            if (s.type == KeyStatementType.revoke || left-- > 0) s,
+        ];
         final next = [..._statements, ...fresh];
         if (next.length == _statements.length) return false;
         await _save(_added.values, next);
