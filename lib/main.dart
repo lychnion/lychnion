@@ -663,6 +663,7 @@ class _SpikePageState extends State<SpikePage> {
       // models), so phones can update here without internet.
       library: ShelterLibrary(await DownloadStore.instance()),
       page: await rootBundle.loadString('assets/web/shelter.html'),
+      placeName: (id) => widget.map?.sites?.byUid(id)?.name,
     );
     try {
       await server.start();

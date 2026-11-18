@@ -24,8 +24,15 @@ Map<String, Object?> webInfo({
   required String name,
   required List<Fact> facts,
   required DateTime now,
+  String? Function(String id)? placeName,
 }) {
   final l = webTexts(lang);
+  // What a fact is about, for people: a shelter by its name, a warning's
+  // area as it is. IDs and coordinates are not shown.
+  String? about(Fact f) => switch (f.kind) {
+    FactKind.warning => f.subject,
+    _ => placeName?.call(f.subject),
+  };
   return {
     'lang': l.localeName,
     'name': name,
@@ -61,9 +68,11 @@ Map<String, Object?> webInfo({
       for (final f in facts)
         {
           'kind': f.kind.name,
-          'subject': f.subject,
+          'subject': about(f),
           'line': factLine(l, f, now),
-          'avoid': f.shelterStatus?.avoid ?? false,
+          // Shown in red, as in the app: warnings, full or closed shelters.
+          'avoid':
+              f.kind == FactKind.warning || (f.shelterStatus?.avoid ?? false),
         },
     ],
   };

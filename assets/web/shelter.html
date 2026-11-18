@@ -137,6 +137,8 @@
     const q = $('q').value.trim();
     if (!q) return;
     $('q').value = '';
+    // Close the phone's keyboard so the answer is not hidden behind it.
+    $('q').blur();
     $('send').disabled = true;
     const thread = $('thread');
     const qd = el('div', 'q'); qd.append(el('span', null, q)); thread.append(qd);

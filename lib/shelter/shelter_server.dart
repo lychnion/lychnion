@@ -33,7 +33,12 @@ class ShelterServer {
     this.codec,
     this.library,
     this.page,
+    this.placeName,
   });
+
+  /// A shelter's name from its ID (the map's evacuation sites), for the
+  /// browser page. Null when there is no map.
+  final String? Function(String id)? placeName;
 
   /// The page for phones without the app (HTML), or null for none.
   final String? page;
@@ -89,6 +94,7 @@ class ShelterServer {
             name: name,
             facts: facts?.current ?? const [],
             now: facts?.now ?? DateTime.now(),
+            placeName: placeName,
           ),
         );
       } else if (req.method == 'GET' && req.uri.path == '/info') {
