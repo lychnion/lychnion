@@ -12,6 +12,10 @@ updates:
     cooldown:
       default-days: 14
     open-pull-requests-limit: 5
+    ignore:
+      # The Flutter SDK pins intl (flutter_localizations); it moves with
+      # the Flutter upgrade, not on its own (see #34, #11).
+      - dependency-name: intl
     groups:
       pub-minor-patch:
         update-types: [minor, patch]
