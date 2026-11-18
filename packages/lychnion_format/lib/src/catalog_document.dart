@@ -54,28 +54,29 @@ class CatalogDocument {
 
   final String? base, refresh;
 
-  /// Reads [text]. Throws [FormatException] when it is not a format 2
-  /// catalog, or when a field has the wrong type. Entries of `urls` and
-  /// `mirrors` that are not strings are left out.
+  /// Reads [text]. Throws [CatalogFormatException] when it is not JSON,
+  /// not a format 2 catalog, or `urls` is not an object (its addresses
+  /// matter). Optional fields only advise (`mirrors`, `keys`, `base`,
+  /// `refresh`): of the wrong type they are ignored, as older readers did.
+  /// Entries of `urls` and `mirrors` that are not strings are left out.
   factory CatalogDocument.parse(String text) {
     final Object? j;
     try {
       j = jsonDecode(text);
     } on FormatException {
-      throw const FormatException('Catalog: not JSON');
+      throw const CatalogFormatException('not JSON', notJson: true);
     }
-    if (j is! Map) throw const FormatException('Catalog: not an object');
+    if (j is! Map) throw const CatalogFormatException('not an object');
     final Map<Object?, Object?> m = j;
     if (m['format'] != format) {
-      throw const FormatException('Catalog: unknown format');
+      throw const CatalogFormatException('unknown format');
     }
     final records = m['records'];
-    if (records is! List) throw const FormatException('Catalog: no records');
-    T? opt<T>(String k) {
-      final v = m[k];
-      if (v == null || v is T) return v as T?;
-      throw FormatException('Catalog: $k of the wrong type');
+    if (records is! List) throw const CatalogFormatException('no records');
+    if (m['urls'] != null && m['urls'] is! Map) {
+      throw const CatalogFormatException('urls is not an object');
     }
+    T? opt<T>(String k) => m[k] is T ? m[k] as T : null;
 
     return CatalogDocument(
       records: records,
@@ -97,13 +98,17 @@ class CatalogDocument {
 
   /// A catalog of [records] whose files are served by hash next to it
   /// (`blobs/sha256/<hash>`), as a base, a USB stick and a node lay them
-  /// out. Sorted by id, so the same records give the same text.
+  /// out. Sorted by id ([sort]), so the same records give the same text;
+  /// a base keeps the order it shows. At most [KeyStatement.maxPerSource]
+  /// of [keys], revocations first ([KeyStatement.capped]).
   factory CatalogDocument.byHash(
     Iterable<PackageRecord> records, {
     Iterable<KeyStatement> keys = const [],
     List<String> mirrors = const [],
+    bool sort = true,
   }) {
-    final sorted = [...records]..sort((a, b) => a.id.compareTo(b.id));
+    final sorted = [...records];
+    if (sort) sorted.sort((a, b) => a.id.compareTo(b.id));
     final seen = <String>{};
     return CatalogDocument(
       records: [for (final r in sorted) r.json],
@@ -113,20 +118,25 @@ class CatalogDocument {
       },
       mirrors: mirrors,
       keys: [
-        for (final s in keys)
-          if (seen.add(s.id)) s.json,
+        for (final s in KeyStatement.capped([
+          for (final s in keys)
+            if (seen.add(s.id)) s,
+        ]))
+          s.json,
       ],
     );
   }
 
+  /// Fields in the order the tools always wrote them; `urls` always
+  /// there (older apps read it).
   Map<String, Object?> toJson() => {
     'format': format,
-    'records': records,
-    if (urls.isNotEmpty) 'urls': urls,
-    if (mirrors.isNotEmpty) 'mirrors': mirrors,
-    if (keys.isNotEmpty) 'keys': keys,
     'base': ?base,
     'refresh': ?refresh,
+    'records': records,
+    'urls': urls,
+    if (mirrors.isNotEmpty) 'mirrors': mirrors,
+    if (keys.isNotEmpty) 'keys': keys,
   };
 
   /// The file text (indented, ending in a newline). Throws
@@ -137,6 +147,14 @@ class CatalogDocument {
     if (utf8.encode(text).length > maxBytes) throw const CatalogTooLarge();
     return text;
   }
+}
+
+/// A catalog.json that cannot be read; [notJson] when it is not JSON at
+/// all.
+class CatalogFormatException extends FormatException {
+  const CatalogFormatException(String message, {this.notJson = false})
+    : super('Catalog: $message');
+  final bool notJson;
 }
 
 class CatalogTooLarge implements Exception {
@@ -152,7 +170,10 @@ class KeysFile {
   /// The valid statements in [text]; empty when it cannot be read.
   static Future<List<KeyStatement>> parse(String text) async {
     try {
-      return await KeyStatement.checkAll((jsonDecode(text) as Map)['keys']);
+      return await KeyStatement.checkAll(
+        (jsonDecode(text) as Map)['keys'],
+        max: 1000,
+      );
     } on Object {
       return const [];
     }

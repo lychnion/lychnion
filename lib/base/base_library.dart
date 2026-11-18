@@ -31,7 +31,9 @@ class BaseLibrary {
     _remember(all);
     return CatalogDocument.byHash(
       [for (final i in all) i.record],
-      keys: store.publishers.statements.take(KeyStatement.maxPerSource),
+      keys: store.publishers.statements,
+      // The order phones show, as before.
+      sort: false,
     ).toJson();
   }
 

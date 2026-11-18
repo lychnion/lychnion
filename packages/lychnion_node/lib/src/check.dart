@@ -14,10 +14,10 @@ Future<List<String>> checkFolder(NodeFolder folder, TrustedKeys trust) async {
   final CatalogDocument doc;
   try {
     doc = CatalogDocument.parse(await folder.catalogFile.readAsString());
-  } on FormatException catch (e) {
+  } on CatalogFormatException catch (e) {
     return [
       '${folder.catalogFile.path}: '
-          '${e.message.endsWith('not JSON') ? 'not JSON' : 'not a format 2 catalog'}',
+          '${e.notJson ? 'not JSON' : 'not a format 2 catalog'}',
     ];
   }
   // Records of a successor key count when the catalog says so.

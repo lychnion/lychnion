@@ -97,12 +97,7 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   // This device's own first, so statements on the stick cannot crowd
   // them out; of those on the stick, only ones made by keys trusted here.
   final oldStatements = await relevantStatements(store.trust, old?.keys);
-  final statements = <KeyStatement>[];
-  final seen = <String>{};
-  for (final s in [...store.publishers.statements, ...oldStatements]) {
-    if (statements.length >= KeyStatement.maxPerSource) break;
-    if (seen.add(s.id)) statements.add(s);
-  }
+  final statements = [...store.publishers.statements, ...oldStatements];
   final trust = store.trust.withStatements(oldStatements);
 
   // What the stick has, by id (signatures are kept as they are: the
@@ -437,10 +432,8 @@ Future<CatalogDocument?> _readCatalog(Directory folder) async {
   }
   try {
     return CatalogDocument.parse(await file.readAsString());
-  } on FormatException catch (e) {
-    throw UnreadableStick(
-      e.message.endsWith('not JSON') ? 'not JSON' : 'not a format 2 catalog',
-    );
+  } on CatalogFormatException catch (e) {
+    throw UnreadableStick(e.notJson ? 'not JSON' : 'not a format 2 catalog');
   }
 }
 

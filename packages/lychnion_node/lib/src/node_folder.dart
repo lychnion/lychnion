@@ -113,7 +113,7 @@ class NodeFolder {
     await dir.create(recursive: true);
     final text = CatalogDocument.byHash(
       records,
-      keys: keys.take(KeyStatement.maxPerSource),
+      keys: keys,
       mirrors: mirrors,
     ).encode();
     final tmp = File('${catalogFile.path}.$pid.tmp');

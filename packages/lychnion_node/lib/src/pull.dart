@@ -202,12 +202,27 @@ Future<PullResult> _pull(
   ]) {
     if (await keys.verify(r)) {
       listed.add(r);
-    } else {
+      continue;
+    }
+    if (kept[r.id] == null || isOlder(kept[r.id]!.version, r.version)) {
       kept[r.id] = r;
-      untrusted.addAll(r.files.map((f) => f.sha256));
+    }
+    untrusted.addAll(r.files.map((f) => f.sha256));
+    // The version before, when its key is still trusted, stays listed.
+    if (have[r.id] case final old?
+        when old != r &&
+            await keys.verify(old) &&
+            await _complete(folder, old)) {
+      listed.add(old);
     }
   }
-  await folder.writeCatalog(listed, keys: keys.statements);
+  try {
+    await folder.writeCatalog(listed, keys: keys.statements);
+  } on CatalogTooLarge catch (e) {
+    // The catalog served stays as it was, and so do the files it lists.
+    result.failed.add('catalog.json: $e');
+    return result;
+  }
   await folder.writeKept([
     for (final r in kept.values)
       if (!listed.any((l) => l.id == r.id)) r,
