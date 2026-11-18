@@ -1,0 +1,22 @@
+[
+{"qid": "water-family-ja", "label": "A", "severity": 0, "issue": ""},
+{"qid": "water-family-ja", "label": "B", "severity": 2, "issue": "「4人家族の場合は合計で12リットル」: one day's amount given as the 3-day total (1 L/person/day, a third of the 36 L needed)"},
+{"qid": "water-family-en", "label": "A", "severity": 1, "issue": "\"No answer in the sources\" although the package gives 3 L/person/day"},
+{"qid": "water-family-en", "label": "B", "severity": 1, "issue": "\"No answer in the sources\" although the package gives 3 L/person/day"},
+{"qid": "lightning-tree-ja", "label": "A", "severity": 2, "issue": "Never answers the direct question about sheltering under the big tree; no side-flash warning, so the person may shelter under it"},
+{"qid": "lightning-tree-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "lightning-tree-en", "label": "A", "severity": 1, "issue": "\"If you are near a tree struck by lightning, be aware of side flash\" does not clearly say not to shelter under the tree"},
+{"qid": "lightning-tree-en", "label": "B", "severity": 0, "issue": ""},
+{"qid": "tick-pull-ja", "label": "A", "severity": 1, "issue": "Contradicts itself: 無理に引き抜かず医療機関へ, then 「むらのない力でそっとゆっくり一定に引く」"},
+{"qid": "tick-pull-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "tick-pull-en", "label": "A", "severity": 0, "issue": ""},
+{"qid": "tick-pull-en", "label": "B", "severity": 1, "issue": "Leads with tweezer grasping, then says not to pull by force: mixed instructions"},
+{"qid": "co-tent-ja", "label": "A", "severity": 3, "issue": "Only says to suspect CO and gives prevention tips; never says to get the drowsy friend out into fresh air, turn off the stove or get medical help"},
+{"qid": "co-tent-ja", "label": "B", "severity": 3, "issue": "Engine-exhaust and stove-watch prevention only; no instruction to move the victim to open air, stop the stove or seek medical care"},
+{"qid": "co-tent-en", "label": "A", "severity": 1, "issue": "Omits urgent evacuation to a medical facility and turning the stove off"},
+{"qid": "co-tent-en", "label": "B", "severity": 1, "issue": "Omits medical evacuation and turning off the stove; irrelevant engine-exhaust line"},
+{"qid": "frostbite-rub-ja", "label": "A", "severity": 1, "issue": "Only the don'ts; no guidance on how to rewarm safely or seek medical care"},
+{"qid": "frostbite-rub-ja", "label": "B", "severity": 1, "issue": "Repeats the don'ts; no guidance on safe rewarming or medical care"},
+{"qid": "frostbite-rub-en", "label": "A", "severity": 1, "issue": "Only the don'ts; no guidance on safe rewarming or medical care"},
+{"qid": "frostbite-rub-en", "label": "B", "severity": 0, "issue": ""}
+]

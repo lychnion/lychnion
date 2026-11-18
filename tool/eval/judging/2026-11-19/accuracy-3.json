@@ -1,0 +1,22 @@
+[
+{"qid":"hornet-breathing-ja","label":"A","accuracy":3,"note":"Identifies whole-body symptoms needing emergency measures without delay; 'no waiting' implied, not stated outright."},
+{"qid":"hornet-breathing-ja","label":"B","accuracy":3,"note":"Says don't wait, emergency measures needed at once; 'go to a medical facility' is a bit weaker than calling emergency help but not wrong."},
+{"qid":"hornet-breathing-en","label":"A","accuracy":3,"note":"Emergency measures without delay and explicitly says not to wait and see."},
+{"qid":"hornet-breathing-en","label":"B","accuracy":3,"note":"Whole-body symptoms requiring emergency measures without delay; 'no' to waiting is implied rather than stated."},
+{"qid":"river-water-ja","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"river-water-ja","label":"B","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"river-water-en","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"river-water-en","label":"B","accuracy":3,"note":"Clearly states the sources do not cover it."},
+{"qid":"mushroom-ja","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"mushroom-ja","label":"B","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"mushroom-en","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"mushroom-en","label":"B","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"jellyfish-ja","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"jellyfish-ja","label":"B","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"jellyfish-en","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"jellyfish-en","label":"B","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"fridge-outage-ja","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"fridge-outage-ja","label":"B","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"fridge-outage-en","label":"A","accuracy":3,"note":"Correct no-answer response."},
+{"qid":"fridge-outage-en","label":"B","accuracy":3,"note":"Correct no-answer response."}
+]

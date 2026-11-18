@@ -1,0 +1,22 @@
+[
+{"qid":"tsunami-wait-ja","label":"A","accuracy":3,"note":"Says evacuate at once without waiting for a warning; safety line adds leave coast to highest place."},
+{"qid":"tsunami-wait-ja","label":"B","accuracy":3,"note":"Strong or long shaking: leave coast at once to highest place; implies no waiting."},
+{"qid":"tsunami-wait-en","label":"A","accuracy":3,"note":"Leave coast at once to highest place; do not return until warning lifted."},
+{"qid":"tsunami-wait-en","label":"B","accuracy":3,"note":"Leave coast at once to highest place; names high ground, towers, buildings."},
+{"qid":"snakebite-tie-ja","label":"A","accuracy":2,"note":"No tourniquet, keep still, snug bandage; omits calling for medical help."},
+{"qid":"snakebite-tie-ja","label":"B","accuracy":2,"note":"No ice or tourniquet, snug bandage, limb below heart; omits calling help and keeping still."},
+{"qid":"snakebite-tie-en","label":"A","accuracy":0,"note":"Says no answer though the package covers snakebite first aid."},
+{"qid":"snakebite-tie-en","label":"B","accuracy":2,"note":"No tourniquet, snug bandage, keep still; omits calling for medical help."},
+{"qid":"avalanche-buried-ja","label":"A","accuracy":1,"note":"Gives self-escape and climbing-plan advice; misses searching immediately."},
+{"qid":"avalanche-buried-ja","label":"B","accuracy":3,"note":"Watch, remember points, search at once with beacons, dig out and give first aid."},
+{"qid":"avalanche-buried-en","label":"A","accuracy":3,"note":"Watch, lookout, mark points, search immediately with beacons."},
+{"qid":"avalanche-buried-en","label":"B","accuracy":1,"note":"Self-escape and call 110/119 for rescue; misses immediate companion search."},
+{"qid":"heat-stroke-ja","label":"A","accuracy":2,"note":"Recognises possible heat stroke and rapid cooling plus vitals; omits calling emergency help, starts with heat exhaustion."},
+{"qid":"heat-stroke-ja","label":"B","accuracy":1,"note":"Treats it as heat exhaustion and prevention; misses emergency and cooling."},
+{"qid":"heat-stroke-en","label":"A","accuracy":1,"note":"Gives heat-exhaustion care (lie down, sip water) for heat stroke signs; no rapid cooling."},
+{"qid":"heat-stroke-en","label":"B","accuracy":1,"note":"Mentions seeking medical help but treatment is for heat exhaustion; no rapid cooling."},
+{"qid":"hypothermia-ja","label":"A","accuracy":1,"note":"Frostbite framing; no massage but misses warm dry shelter and dry clothes."},
+{"qid":"hypothermia-ja","label":"B","accuracy":2,"note":"No massaging and move to warm shelter; frostbite framing, omits dry clothes and medical care."},
+{"qid":"hypothermia-en","label":"A","accuracy":1,"note":"Frostbite answer; recommends exercise; misses warm dry change of environment."},
+{"qid":"hypothermia-en","label":"B","accuracy":2,"note":"Warm shelter and no massaging; omits replacing wet clothing and medical care."}
+]
