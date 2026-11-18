@@ -989,11 +989,15 @@
   "tourMap": "Map",
   "tourMapText": "Evacuation sites, expected tsunami areas and walking routes, offline.",
   "tourMenu": "Menu",
-  "tourMenuText": "Settings, sharing with people nearby, and this tour.",
+  "tourMenuText": "Settings, help, sharing with people nearby, and this tour.",
   "downloadsKeepAll": "Keep everything for phones",
   "downloadsKeepAllHint": "This computer downloads every guide and map from the catalogs and keeps them current, so phones nearby get them here. To remove items for good, turn this off.",
   "downloadsKeepModels": "Also the AI models (several GB)",
   "downloadsKeepAllMissing": "Still to fetch: {count} items, {size}",
   "@downloadsKeepAllMissing": {"placeholders": {"count": {"type": "String"}, "size": {"type": "String"}}},
-  "downloadsKeepAllDone": "Everything is here."
+  "downloadsKeepAllDone": "Everything is here.",
+  "helpTitle": "Help",
+  "helpSearch": "Search help",
+  "helpNoResults": "Nothing found. Try other words, or ask in the question field.",
+  "helpAllTopics": "All help"
 }

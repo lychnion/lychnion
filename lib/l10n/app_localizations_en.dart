@@ -1547,7 +1547,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tourMenuText =>
-      'Settings, sharing with people nearby, and this tour.';
+      'Settings, help, sharing with people nearby, and this tour.';
 
   @override
   String get downloadsKeepAll => 'Keep everything for phones';
@@ -1566,4 +1566,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadsKeepAllDone => 'Everything is here.';
+
+  @override
+  String get helpTitle => 'Help';
+
+  @override
+  String get helpSearch => 'Search help';
+
+  @override
+  String get helpNoResults =>
+      'Nothing found. Try other words, or ask in the question field.';
+
+  @override
+  String get helpAllTopics => 'All help';
 }

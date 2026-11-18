@@ -92,12 +92,14 @@ def main(src, out):
     }
     db.executemany("INSERT INTO meta VALUES(?,?)", meta.items())
     pid = 0
+    topics = []
     for ja_path in ja_files:
         ja_title, ja = read_topic(ja_path)
         en_title, en = read_topic(src / "en" / ja_path.name)
         if len(ja) != len(en):
             sys.exit(f"{ja_path.name}: {len(ja)} sections in ja, {len(en)} in en")
         sid = "help-" + ja_path.stem
+        topics.append({"id": sid, "ja": ja_title, "en": en_title})
         db.execute(
             "INSERT INTO sources VALUES(?,?,?,?,?,?,?,?)",
             (sid, f"ヘルプ：{ja_title} / Help: {en_title}", "Lychnion",
@@ -108,6 +110,8 @@ def main(src, out):
             pid += 1
             db.execute("INSERT INTO passages VALUES(?,?,?,?,NULL,NULL)", (pid, sid, jh, jt))
             db.execute("INSERT INTO passage_texts VALUES(?,?,?,?,1)", (pid, "en", eh, et))
+    # The help screen lists topics in this order, with these titles.
+    db.execute("INSERT INTO meta VALUES('topics',?)", (json.dumps(topics, ensure_ascii=False),))
     db.commit()
     db.execute("VACUUM")
     db.close()

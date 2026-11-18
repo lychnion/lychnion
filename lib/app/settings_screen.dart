@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../ui/help_screen.dart';
 
 import '../download/download_manager.dart';
 import '../download/download_store.dart' show MobileData, UpdateMode;
@@ -48,7 +49,16 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
+      appBar: AppBar(
+        title: Text(l.settings),
+        actions: [
+          IconButton(
+            tooltip: l.helpTitle,
+            icon: const Icon(Icons.help_outline_rounded),
+            onPressed: () => HelpScreen.open(context),
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: settings,
         builder: (context, _) => ListView(
