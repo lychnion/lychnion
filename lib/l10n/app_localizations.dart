@@ -2341,6 +2341,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This is not a valid catalog, or it is too large; the last copy is used.'**
   String get catalogsInvalid;
+
+  /// No description provided for @firstStepsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'First steps'**
+  String get firstStepsTitle;
+
+  /// No description provided for @firstStepsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {total}'**
+  String firstStepsCount(int done, int total);
+
+  /// No description provided for @firstStepsLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get firstStepsLater;
+
+  /// No description provided for @firstStepsResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue first steps ({done} / {total})'**
+  String firstStepsResume(int done, int total);
+
+  /// No description provided for @firstStepDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get firstStepDone;
+
+  /// No description provided for @firstStepAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the answer AI'**
+  String get firstStepAi;
+
+  /// No description provided for @firstStepAiText.
+  ///
+  /// In en, this message translates to:
+  /// **'Once, on Wi-Fi. Then it answers without a signal.'**
+  String get firstStepAiText;
+
+  /// No description provided for @firstStepAiAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to downloads'**
+  String get firstStepAiAction;
+
+  /// No description provided for @firstStepMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Download a map of your area'**
+  String get firstStepMap;
+
+  /// No description provided for @firstStepMapText.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby evacuation sites and walking routes, offline.'**
+  String get firstStepMapText;
+
+  /// No description provided for @firstStepMapAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a map'**
+  String get firstStepMapAction;
+
+  /// No description provided for @firstStepSite.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your nearest evacuation site on the map'**
+  String get firstStepSite;
+
+  /// No description provided for @firstStepSiteText.
+  ///
+  /// In en, this message translates to:
+  /// **'See how far it is on foot, while you can.'**
+  String get firstStepSiteText;
+
+  /// No description provided for @firstStepSiteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the map'**
+  String get firstStepSiteAction;
+
+  /// No description provided for @firstStepAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a first question'**
+  String get firstStepAsk;
+
+  /// No description provided for @firstStepAskText.
+  ///
+  /// In en, this message translates to:
+  /// **'Every answer shows its sources.'**
+  String get firstStepAskText;
+
+  /// No description provided for @firstStepAskAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a question'**
+  String get firstStepAskAction;
+
+  /// No description provided for @readyOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready offline'**
+  String get readyOffline;
 }
 
 class _AppLocalizationsDelegate

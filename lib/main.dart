@@ -22,6 +22,8 @@ import 'download/followed_catalogs.dart';
 import 'download/publisher_list.dart';
 import 'download/publishers_screen.dart';
 import 'ui/ask_view.dart';
+import 'ui/first_steps.dart';
+import 'ui/suggestions.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
@@ -539,6 +541,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Opening the map with an area counts as the first step "look at the
+  /// nearest site".
+  void _selectTab(int i) {
+    setState(() => _tab = i);
+    if (i == 2 && _map != null) {
+      unawaited(widget.settings.markFirstStep('site'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
@@ -560,7 +571,7 @@ class _HomePageState extends State<HomePage> {
               downloadChanges: _downloadChanges,
               onShowOnMap: () {
                 Navigator.of(context).popUntil((r) => r.isFirst);
-                setState(() => _tab = 2);
+                _selectTab(2);
               },
               onOpenDownloads: _openDownloads,
               onDemoDone: _demoDone,
@@ -591,7 +602,7 @@ class _HomePageState extends State<HomePage> {
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
+          onDestinationSelected: _selectTab,
           destinations: [
             NavigationDestination(
               icon: const Icon(Icons.home_outlined),
@@ -1293,6 +1304,15 @@ class _SpikePageState extends State<SpikePage> {
         store: _threads,
         onOpen: _openThread,
         onOpenSettings: widget.onOpenSettings,
+        suggestions: SuggestionGroups(
+          packages: _packages,
+          onAsk: ready
+              ? (q) {
+                  _startThread();
+                  unawaited(_ask(q));
+                }
+              : null,
+        ),
         bar: QuestionBar(
           input: _input,
           ready: ready,
@@ -1303,7 +1323,51 @@ class _SpikePageState extends State<SpikePage> {
         ),
       );
     }
+    final settings = widget.settings;
+    return ListenableBuilder(
+      listenable: Listenable.merge([?settings, _threads]),
+      builder: (context, _) => _home(context, ready, settings),
+    );
+  }
+
+  /// Where the user stands on the first steps (lychnion#7).
+  FirstSteps _firstSteps(AppSettings? settings) => FirstSteps(
+    aiReady: const {
+      AskPhase.loading,
+      AskPhase.ready,
+      AskPhase.shelter,
+      AskPhase.serving,
+    }.contains(_phase),
+    mapReady: widget.map != null,
+    siteSeen: settings?.firstSteps.contains('site') ?? false,
+    asked: _threads.recent.isNotEmpty,
+  );
+
+  Widget _home(BuildContext context, bool ready, AppSettings? settings) {
+    final steps = _firstSteps(settings);
+    final hidden = settings?.firstSteps.contains('hidden') ?? false;
+    final showSteps = settings != null && !steps.allDone && !hidden;
     return AskView(
+      firstSteps: showSteps
+          ? FirstStepsCard(
+              steps: steps,
+              onDownloads: widget.onOpenDownloads,
+              onMap: widget.onShowOnMap,
+              onAsk: widget.onShowAsk,
+              onHide: () => unawaited(settings.markFirstStep('hidden')),
+            )
+          : null,
+      status: showSteps
+          ? null
+          : !steps.allDone && settings != null
+          ? ResumeStepsChip(
+              steps: steps,
+              onTap: () =>
+                  unawaited(settings.markFirstStep('hidden', on: false)),
+            )
+          : steps.readyOffline
+          ? ReadyOfflineChip(onTap: widget.onOpenDownloads)
+          : null,
       onOpenSettings: widget.onOpenSettings,
       phase: _phase,
       detail: _status,

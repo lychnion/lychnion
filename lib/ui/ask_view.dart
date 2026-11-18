@@ -4,7 +4,6 @@ import '../app/brand.dart';
 import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
 import 'breathing_light.dart';
-import 'suggestions.dart';
 import '../knowledge/knowledge_package.dart' show PackageInfo;
 
 /// Where the Ask screen stands: shown as a small status pill.
@@ -18,8 +17,9 @@ class DevAction {
   final IconData icon;
 }
 
-/// Home screen: status, warnings and nearest site, suggested questions,
-/// recent conversations, and the question bar.
+/// Home screen: status, first steps, nearest site and warnings, the
+/// installed packages, recent conversations, and the question bar.
+/// Suggested questions are in the question screen, by package.
 class AskView extends StatefulWidget {
   const AskView({
     super.key,
@@ -43,15 +43,25 @@ class AskView extends StatefulWidget {
     this.home,
     this.packages,
     this.packageInfos = const [],
+    this.firstSteps,
+    this.status,
   });
+
+  /// The first-steps checklist (FirstStepsCard) while steps are open;
+  /// replaces the plain "download first" card.
+  final Widget? firstSteps;
+
+  /// A quiet line above the headline: ready offline, or back to the
+  /// first steps.
+  final Widget? status;
 
   /// Shown on the empty screen above the suggestions (nearest site, warnings).
   final Widget? home;
 
-  /// The loaded knowledge packages: they bring the suggested questions.
+  /// The loaded knowledge packages.
   final List<PackageInfo> packageInfos;
 
-  /// Below the suggestions: the knowledge packages (see PackageRow).
+  /// The knowledge packages (see PackageRow).
   final Widget? packages;
 
   /// Shown under the status details, e.g. the shelter QR code.
@@ -169,9 +179,9 @@ class _AskViewState extends State<AskView> {
 
   List<Widget> _home(ThemeData theme) {
     final scheme = theme.colorScheme;
-    final suggestions = suggestionsFor(widget.packageInfos, lang: context.lang);
     final needsData = widget.phase == AskPhase.noModel;
     return [
+      if (widget.status case final s?) ...[s, const SizedBox(height: 12)],
       Text(l.askHeadline, style: theme.textTheme.headlineMedium),
       const SizedBox(height: 10),
       Text(
@@ -181,6 +191,7 @@ class _AskViewState extends State<AskView> {
         ),
       ),
       const SizedBox(height: 24),
+      if (widget.firstSteps case final f?) ...[f, const SizedBox(height: 24)],
       if (widget.home case final h?) ...[h, const SizedBox(height: 24)],
       if (widget.phase == AskPhase.failed) ...[
         Card(
@@ -204,7 +215,7 @@ class _AskViewState extends State<AskView> {
         ),
         const SizedBox(height: 24),
       ],
-      if (needsData)
+      if (needsData && widget.firstSteps == null) ...[
         Card(
           color: scheme.primaryContainer,
           child: Padding(
@@ -238,48 +249,8 @@ class _AskViewState extends State<AskView> {
               ],
             ),
           ),
-        )
-      else ...[
-        Text(
-          l.askTryAsking,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: scheme.primary,
-            fontWeight: FontWeight.w700,
-          ),
         ),
         const SizedBox(height: 10),
-        for (final (icon, q) in suggestions)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Material(
-              color: scheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: widget.ready ? () => widget.onAsk(q) : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(icon, color: scheme.primary),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(q, style: theme.textTheme.bodyMedium),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 18,
-                        color: scheme.outline,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
       if (widget.packages case final p?) ...[const SizedBox(height: 14), p],
       const SizedBox(height: 8),

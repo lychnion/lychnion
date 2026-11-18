@@ -218,12 +218,16 @@ class ConversationsView extends StatelessWidget {
     required this.onOpen,
     required this.bar,
     this.onOpenSettings,
+    this.suggestions,
   });
 
   final ThreadStore store;
   final void Function(Thread) onOpen;
   final Widget bar;
   final VoidCallback? onOpenSettings;
+
+  /// Suggested questions by package, above the conversations.
+  final Widget? suggestions;
 
   @override
   Widget build(BuildContext context) {
@@ -251,6 +255,10 @@ class ConversationsView extends StatelessWidget {
               builder: (context, _) => ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [
+                  if (suggestions case final s?) ...[
+                    s,
+                    const SizedBox(height: 16),
+                  ],
                   if (store.recent.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 48),

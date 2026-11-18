@@ -1419,4 +1419,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get catalogsInvalid =>
       'This is not a valid catalog, or it is too large; the last copy is used.';
+
+  @override
+  String get firstStepsTitle => 'First steps';
+
+  @override
+  String firstStepsCount(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String get firstStepsLater => 'Later';
+
+  @override
+  String firstStepsResume(int done, int total) {
+    return 'Continue first steps ($done / $total)';
+  }
+
+  @override
+  String get firstStepDone => 'Done';
+
+  @override
+  String get firstStepAi => 'Download the answer AI';
+
+  @override
+  String get firstStepAiText =>
+      'Once, on Wi-Fi. Then it answers without a signal.';
+
+  @override
+  String get firstStepAiAction => 'Go to downloads';
+
+  @override
+  String get firstStepMap => 'Download a map of your area';
+
+  @override
+  String get firstStepMapText =>
+      'Nearby evacuation sites and walking routes, offline.';
+
+  @override
+  String get firstStepMapAction => 'Choose a map';
+
+  @override
+  String get firstStepSite => 'Find your nearest evacuation site on the map';
+
+  @override
+  String get firstStepSiteText => 'See how far it is on foot, while you can.';
+
+  @override
+  String get firstStepSiteAction => 'Open the map';
+
+  @override
+  String get firstStepAsk => 'Ask a first question';
+
+  @override
+  String get firstStepAskText => 'Every answer shows its sources.';
+
+  @override
+  String get firstStepAskAction => 'Pick a question';
+
+  @override
+  String get readyOffline => 'Ready offline';
 }
