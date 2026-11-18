@@ -2,7 +2,7 @@
   "id": "jp.outdoor.hiking",
   "title": "登山（基本）",
   "language": "ja",
-  "version": "2026.11.1",
+  "version": "2026.11.2",
   "note": "First outdoor package: getting lost, lightning, heat, ticks, hornets and volcanoes, from national government pages under PDL1.0. Bears and the 政府広報 mountain article stay in jp.bousai.core.",
   "sources": [
     {
@@ -14,7 +14,9 @@
       "licence_url": "https://www.npa.go.jp/rules/index.html",
       "attribution": "出典：警察庁ウェブサイト（https://www.npa.go.jp/publications/statistics/safetylife/r07_sangakusounan_gaikyou.pdf）",
       "own_skip_headings_only": true,
-      "min_japanese_ratio": 0.6
+      "min_japanese_ratio": 0.6,
+      "end_marker": "注：％は、小数点以下",
+      "note": " Only the prevention text: everything from the first statistics note on is left out."
     },
     {
       "id": "jma-kaminari-higai",
@@ -194,7 +196,8 @@
     "Hypothermia (低体温症) and マムシ: no national-government page with reuse terms found (2026-11-17).",
     "夏山登山の警告文 (山岳遭難対策中央協議会, on mext.go.jp): good content, licence to be confirmed (council has private members).",
     "気象庁「雷から身を守るには」: main text quoted from 日本大気電気学会, not used.",
-    "Getting lost: no own safety line; jp.bousai.core's lost-go-back (政府広報) already says the same."
+    "Getting lost: no own safety line; jp.bousai.core's lost-go-back (政府広報) already says the same.",
+    "2026-11-18 clean-up: statistics table fragment, image captions, web-only links, the ministry phone number and an image licence note dropped."
   ],
   "synonyms": {
     "迷": [
@@ -261,7 +264,12 @@
     "ダイヤルイン",
     "公式SNS",
     "受付電話",
-    "Adobe Reader"
+    "Adobe Reader",
+    "注：％は",
+    "合計の数字と内訳",
+    "こちらのページ",
+    "Yahoo!ニュース制作図解",
+    "林政部経営課"
   ],
   "drop_lines": [
     "急な大雨や雷・竜巻から身を守るために",
@@ -278,7 +286,18 @@
     "積乱雲が近づいてきたら･･･",
     "参考リンク集",
     "雷について",
-    "落雷のようす"
+    "落雷のようす",
+    "成長しつつある積乱雲",
+    "発達した積乱雲",
+    "積乱雲の底",
+    "関連リンク集",
+    "お問合せ先",
+    "構成比",
+    "発生件 数（ 件）",
+    "- 3 -",
+    "表１ 概要",
+    "遭難者数 (人）",
+    "農林水産省"
   ],
   "notice": {
     "ja": [
@@ -324,5 +343,10 @@
         "text": "What should I do after an eruption alert?"
       }
     ]
-  }
+  },
+  "drop_lines_matching": [
+    "(令和|平成)[\\d０-９元]+年(\\s*(令和|平成)[\\d０-９元]+年)*\\s*",
+    "担当者：.*",
+    "代表：03-.*"
+  ]
 }

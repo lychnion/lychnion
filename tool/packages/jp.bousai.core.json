@@ -2,7 +2,7 @@
   "id": "jp.bousai.core",
   "title": "防災（基本）",
   "language": "ja",
-  "version": "2026.11.2",
+  "version": "2026.11.3",
   "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
   "sources": [
     {
@@ -215,7 +215,8 @@
     }
   ],
   "gaps": [
-    "Bears: 環境省 PDF still disabled (OCR); covered by the 政府広報オンライン article instead."
+    "Bears: 環境省 PDF still disabled (OCR); covered by the 政府広報オンライン article instead.",
+    "2026-11-18 clean-up: tsunami warning table cells, a broken avalanche line and the call-taker flowchart lines of the 消防庁 bleeding page dropped. Two typos in the official 政府広報 text kept as quoted (山岳避難 for 山岳遭難, 避難場所 for 遭難場所); the English text reads correctly."
   ],
   "synonyms": {
     "飲み水": [
@@ -268,7 +269,10 @@
   ],
   "drop_lines_containing": [
     "をYouTubeで再生",
-    "別タブで開きます"
+    "別タブで開きます",
+    "知らせるよう指示する",
+    "口頭指導を中止する",
+    "救急業務のあり方に関する検討会報告書"
   ],
   "notice": {
     "ja": [
@@ -320,5 +324,37 @@
         "text": "What if I meet a bear in the mountains?"
       }
     ]
-  }
+  },
+  "drop_lines": [
+    "津波警報・注意報の種類",
+    "予想される津波の高さ",
+    "想定される被害と取るべき行動",
+    "避難のポイント",
+    "数値での発表",
+    "(発表基準)",
+    "巨大地震の",
+    "場合の表現",
+    "大津波警報",
+    "津波警報",
+    "津波注意報",
+    "最大波の高さ",
+    "巨大",
+    "高い",
+    "(表記しない)",
+    "津波の最大波の高さ",
+    "「落石注意」の標識が設置など",
+    "止血法",
+    "参考１－３",
+    "出血（外傷）に関する内容の聴取",
+    "いいえ",
+    "はい",
+    "出血状態の確認",
+    "「出血は止まっていますか？」",
+    "意識・出血状態の継続観察",
+    "≦1m最大波の高さ"
+  ],
+  "drop_lines_matching": [
+    "\\d+(m|cm)\\S*[<≦].*",
+    "10m 超.*"
+  ]
 }
