@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 
+import '../app/lang.dart' show appTextLang;
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
 import '../facts/signing.dart';
@@ -25,6 +27,14 @@ import 'shelter_web.dart';
 /// No login: anyone on the shelter Wi-Fi may ask. One model, so questions
 /// are answered one after another.
 ///
+/// Anyone on the Wi-Fi can also send anything, so every request has
+/// limits: at most [maxConnections] connections, idle ones close after
+/// [idleTimeout], a question is at most [maxBodyBytes] and must arrive
+/// within [bodyTimeout], at most [maxQuestions] wait for the model and
+/// [maxQuestionsPerPhone] per address, and a question that waited longer
+/// than the phone waits ([maxWait]) is dropped. Errors say what was wrong
+/// in a few words, never the exception (paths, internals).
+///
 /// Without an [answerer] it only passes on files: a phone sharing its
 /// downloads with phones nearby (`sharePort`, no /ask, no page).
 class ShelterServer {
@@ -37,6 +47,13 @@ class ShelterServer {
     this.library,
     this.page,
     this.placeName,
+    this.maxConnections = 100,
+    this.idleTimeout = const Duration(seconds: 30),
+    this.maxBodyBytes = 8 * 1024,
+    this.bodyTimeout = const Duration(seconds: 10),
+    this.maxQuestions = 8,
+    this.maxQuestionsPerPhone = 1,
+    this.maxWait = const Duration(seconds: 100),
   });
 
   /// A shelter's name from its ID (the map's evacuation sites), for the
@@ -57,6 +74,30 @@ class ShelterServer {
   final String name;
   final String modelName;
 
+  /// Open connections at most; more are closed at once. A Mac app may
+  /// have only 256 files and sockets open, and the model needs some.
+  final int maxConnections;
+
+  /// A connection without a request (or with half a request) closes
+  /// after this, at most twice this.
+  final Duration idleTimeout;
+
+  /// A question's request body, in bytes.
+  final int maxBodyBytes;
+
+  /// The whole body of a question must arrive within this.
+  final Duration bodyTimeout;
+
+  /// Questions waiting for the model or being answered; more get 503.
+  final int maxQuestions;
+
+  /// Questions from one address at a time; more get 429.
+  final int maxQuestionsPerPhone;
+
+  /// The phone gives up after 2 minutes (ShelterClient.ask): a question
+  /// that waited this long for the model is not answered any more.
+  final Duration maxWait;
+
   static const defaultPort = 8642;
 
   /// A phone sharing its downloads: another port, so it never clashes with
@@ -68,15 +109,49 @@ class ShelterServer {
   static const _maxQuestionChars = 500;
 
   HttpServer? _server;
+  ServerSocket? _socket;
   Future<void> _queue = Future.value();
   int answered = 0;
 
-  Future<void> start({int port = defaultPort}) async {
-    _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
-    _server!.listen(_handle);
+  /// Questions waiting or being answered, in all and by address.
+  int _questions = 0;
+  final _byPhone = <String, int>{};
+
+  /// The port actually bound (useful with port 0 in tests).
+  int get port => _server!.port;
+
+  Future<void> start({int port = defaultPort, InternetAddress? address}) async {
+    final socket = await ServerSocket.bind(
+      address ?? InternetAddress.anyIPv4,
+      port,
+    );
+    _socket = socket;
+    late final HttpServer server;
+    // HttpServer has no limit of its own: connections over the limit are
+    // closed before it sees them.
+    final limited = _LimitedSocket(
+      socket,
+      socket.where((s) {
+        if (server.connectionsInfo().total < maxConnections) return true;
+        s.destroy();
+        return false;
+      }),
+    );
+    server = HttpServer.listenOn(limited)
+      ..idleTimeout = idleTimeout
+      ..serverHeader = null;
+    _server = server;
+    server.listen(
+      (req) => unawaited(_handle(req)),
+      onError: (Object e) => _log('base_error', e),
+    );
   }
 
-  Future<void> stop() async => _server?.close(force: true);
+  /// Closes every connection and frees the port.
+  Future<void> stop() async {
+    await _server?.close(force: true);
+    await _socket?.close();
+  }
 
   /// IPv4 addresses phones can use, e.g. 192.168.1.20: Wi-Fi and hotspot
   /// first, never mobile data (other phones cannot reach it).
@@ -109,14 +184,14 @@ class ShelterServer {
         res.headers.contentType = ContentType.html;
         res.headers.set('Cache-Control', 'no-cache');
         res.write(page);
-        unawaited(res.close());
+        await _close(res);
       } else if (req.method == 'GET' && req.uri.path == '/web.json') {
         final lang = req.uri.queryParameters['lang'] ?? 'en';
         _send(
           res,
           200,
           webInfo(
-            lang: lang,
+            lang: appTextLang(lang),
             name: name,
             facts: facts?.current ?? const [],
             now: facts?.now ?? DateTime.now(),
@@ -160,40 +235,117 @@ class ShelterServer {
           library != null) {
         _send(res, 200, library!.catalog());
       } else if (req.method == 'GET' &&
-          _blob.matchAsPrefix(req.uri.path)?.end == req.uri.path.length &&
+          _blob.hasMatch(req.uri.path) &&
           library != null) {
         await _sendBlob(req, library!.blob(req.uri.pathSegments.last));
       } else if (req.method == 'POST' &&
           req.uri.path == '/ask' &&
           answerer != null) {
-        final body = await utf8.decodeStream(req.take(8 * 1024));
-        final j = jsonDecode(body) as Map;
-        final q = j['question'];
-        // The browser page sends its language: it decides between
-        // Latin-script languages (an English or Spanish question).
-        final appLang = j['lang'] is String ? j['lang'] as String : 'en';
-        if (q is! String || q.trim().isEmpty || q.length > _maxQuestionChars) {
-          _send(res, 400, {
-            'error': 'question must be 1 to $_maxQuestionChars characters',
-          });
-          return;
-        }
-        final answer = GroundedAnswer(q.trim(), appLang: appLang);
-        // One model: run questions one after another.
-        final done = _queue.then((_) => answerer!.answer(answer, () {}));
-        _queue = done.catchError((_) {});
-        await done;
-        answered++;
-        _send(res, 200, {...answerToWire(answer), 'web': webAnswer(answer)});
+        await _ask(req);
       } else {
         _send(res, 404, {'error': 'not found'});
       }
-    } catch (e) {
-      _send(res, 500, {'error': '$e'});
+    } on Object catch (e) {
+      // The details stay in this computer's log.
+      _log('base_error', e, req);
+      _send(res, 500, {'error': 'something went wrong'});
     }
   }
 
-  static final _blob = RegExp(r'/blobs/sha256/[0-9a-f]{64}');
+  Future<void> _ask(HttpRequest req) async {
+    final res = req.response;
+    final phone = req.connectionInfo?.remoteAddress.address ?? '?';
+    // Refused before the body is read: the connection closes after the
+    // answer, so the rest of the body does not matter.
+    if (_questions >= maxQuestions) {
+      res.headers.set(HttpHeaders.retryAfterHeader, '30');
+      return _refuse(res, 503, 'busy, try again soon');
+    }
+    if ((_byPhone[phone] ?? 0) >= maxQuestionsPerPhone) {
+      return _refuse(res, 429, 'one question at a time');
+    }
+    // The place is taken before the body arrives, so questions sent at
+    // the same moment cannot all pass the limits.
+    _questions++;
+    _byPhone[phone] = (_byPhone[phone] ?? 0) + 1;
+    try {
+      await _answer(req);
+    } finally {
+      _questions--;
+      final n = _byPhone[phone]! - 1;
+      if (n == 0) {
+        _byPhone.remove(phone);
+      } else {
+        _byPhone[phone] = n;
+      }
+    }
+  }
+
+  Future<void> _answer(HttpRequest req) async {
+    final res = req.response;
+    final Object? j;
+    try {
+      final body = await _readBody(req).timeout(bodyTimeout);
+      if (body == null) return _refuse(res, 413, 'question too large');
+      j = jsonDecode(utf8.decode(body));
+    } on TimeoutException {
+      return _refuse(res, 408, 'question took too long to arrive');
+    } on FormatException {
+      return _send(res, 400, {'error': 'not a question'});
+    }
+    final q = j is Map ? j['question'] : null;
+    if (q is! String || q.trim().isEmpty || q.length > _maxQuestionChars) {
+      return _send(res, 400, {
+        'error': 'question must be 1 to $_maxQuestionChars characters',
+      });
+    }
+    // The browser page sends its language: it decides between
+    // Latin-script languages (an English or Spanish question).
+    final lang = (j as Map)['lang'];
+    final answer = GroundedAnswer(
+      q.trim(),
+      appLang: appTextLang(lang is String ? lang : 'en'),
+    );
+    final waiting = Stopwatch()..start();
+    var expired = false;
+    // One model: run questions one after another.
+    final done = _queue.then((_) async {
+      // The phone has given up: do not keep the others waiting for it.
+      if (waiting.elapsed > maxWait) {
+        expired = true;
+        return;
+      }
+      await answerer!.answer(answer, () {});
+    });
+    _queue = done.catchError((Object _) {});
+    await done;
+    if (expired) {
+      res.headers.set(HttpHeaders.retryAfterHeader, '30');
+      return _send(res, 503, {'error': 'busy, try again soon'});
+    }
+    answered++;
+    _send(res, 200, {...answerToWire(answer), 'web': webAnswer(answer)});
+  }
+
+  /// The body, or null when it is larger than [maxBodyBytes].
+  Future<List<int>?> _readBody(HttpRequest req) async {
+    if (req.contentLength > maxBodyBytes) return null;
+    final out = BytesBuilder(copy: false);
+    await for (final chunk in req) {
+      if (out.length + chunk.length > maxBodyBytes) return null;
+      out.add(chunk);
+    }
+    return out.takeBytes();
+  }
+
+  /// An error for a request whose body was not read to the end: the
+  /// connection closes after it.
+  void _refuse(HttpResponse res, int status, String error) {
+    res.persistentConnection = false;
+    _send(res, status, {'error': error});
+  }
+
+  static final _blob = RegExp(r'^/blobs/sha256/[0-9a-f]{64}$');
 
   /// Streams a file, from a byte offset when the phone resumes
   /// (`Range: bytes=N-`): models are gigabytes, Wi-Fi drops.
@@ -204,13 +356,17 @@ class ShelterServer {
       return;
     }
     final size = file.lengthSync();
+    // Only `bytes=N-` (what the app sends); anything else gets the whole
+    // file. At most 18 digits, so the number always fits.
     final range = RegExp(
-      r'^bytes=(\d+)-$',
-    ).firstMatch(req.headers.value(HttpHeaders.rangeHeader) ?? '');
+      r'^bytes=(\d{1,18})-$',
+    ).firstMatch(req.headers.value(HttpHeaders.rangeHeader)?.trim() ?? '');
     final from = range == null ? 0 : int.parse(range[1]!);
     if (from > size) {
-      res.statusCode = HttpStatus.requestedRangeNotSatisfiable;
-      await res.close();
+      res
+        ..statusCode = HttpStatus.requestedRangeNotSatisfiable
+        ..headers.set(HttpHeaders.contentRangeHeader, 'bytes */$size');
+      await _close(res);
       return;
     }
     res.headers
@@ -224,8 +380,20 @@ class ShelterServer {
         'bytes $from-${size - 1}/$size',
       );
     }
-    await res.addStream(file.openRead(from));
-    await res.close();
+    try {
+      await res.addStream(file.openRead(from));
+      await res.close();
+    } on Object catch (e) {
+      // The phone went away, or the file could not be read half-way. The
+      // headers are sent, so the connection just ends; the phone resumes.
+      _log('blob_failed', e, req);
+      try {
+        (await res.detachSocket(writeHeaders: false)).destroy();
+      } on Object {
+        // Already closed.
+      }
+      return;
+    }
     onBlobServed?.call(file.uri.pathSegments.last);
     // For whoever runs the shelter: what was passed on, to whom.
     debugPrint(
@@ -234,9 +402,46 @@ class ShelterServer {
   }
 
   void _send(HttpResponse res, int status, Map<String, Object?> body) {
-    res
-      ..statusCode = status
-      ..write(jsonEncode(body));
-    unawaited(res.close());
+    try {
+      res
+        ..statusCode = status
+        ..write(jsonEncode(body));
+    } on StateError {
+      // Headers already sent: nothing more can be said.
+    }
+    unawaited(_close(res));
   }
+
+  /// Closes [res]; a phone that went away is not an error.
+  static Future<void> _close(HttpResponse res) async {
+    try {
+      await res.close();
+    } on Object {
+      // The other side went away.
+    }
+  }
+
+  /// For whoever runs the base: what went wrong, on this computer only.
+  static void _log(String event, Object error, [HttpRequest? req]) {
+    debugPrint(
+      'LYCHNION ${jsonEncode({'event': event, 'path': ?req?.uri.path, 'error': '$error'})}',
+    );
+  }
+}
+
+/// A server socket that passes on only the connections its stream lets
+/// through.
+class _LimitedSocket extends StreamView<Socket> implements ServerSocket {
+  _LimitedSocket(this._socket, super.stream);
+
+  final ServerSocket _socket;
+
+  @override
+  InternetAddress get address => _socket.address;
+
+  @override
+  int get port => _socket.port;
+
+  @override
+  Future<ServerSocket> close() => _socket.close();
 }

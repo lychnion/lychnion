@@ -1,39 +1,73 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import '../download/publisher_list.dart' show cleanShownText;
 import '../facts/fact.dart';
 import '../knowledge/grounded_answer.dart';
 import 'shelter_protocol.dart';
 
 /// Asks a shelter computer on the local network (see ShelterServer).
+///
+/// Anything on the Wi-Fi can claim to be a base, so nothing it sends is
+/// trusted: every answer is size and time limited, and what does not look
+/// like the protocol throws ([FormatException], [HttpException],
+/// [TimeoutException]), so the phone answers itself instead.
 class ShelterClient {
   ShelterClient(this.baseUrl);
 
   /// For example http://192.168.1.20:8642
   final String baseUrl;
+
+  /// The base's name, cleaned for showing (at most 60 characters).
   String? name;
 
-  final _http = HttpClient()..connectionTimeout = const Duration(seconds: 3);
+  /// /info is a few hundred bytes.
+  static const maxInfoBytes = 16 * 1024;
+
+  /// An answer, or a base's facts: a few kilobytes, rarely more.
+  static const maxBodyBytes = 1 << 20;
+
+  /// Facts taken from one pull; a base never has this many.
+  static const maxFacts = 500;
+
+  final _http = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 3)
+    ..idleTimeout = const Duration(seconds: 5);
 
   /// Checks that the shelter is reachable and remembers its name.
   Future<Map<String, dynamic>> info() async {
-    final j = await _json('GET', '/info', timeout: const Duration(seconds: 5));
-    name = j['name'] as String?;
+    final j = await _json(
+      'GET',
+      '/info',
+      timeout: const Duration(seconds: 5),
+      maxBytes: maxInfoBytes,
+    );
+    final n = j['name'];
+    name = cleanShownText(n is String ? n : null);
     return j;
   }
 
   /// The shelter's current facts (shelter status, blocked roads, warnings).
+  /// Facts that are not well formed are left out.
   Future<List<Fact>> facts() async {
     final j = await _json(
       'GET',
       '/facts',
       timeout: const Duration(seconds: 10),
     );
-    return [
-      for (final f in (j['facts'] as List).cast<Map<String, dynamic>>())
-        Fact.fromJson(f),
-    ];
+    final raw = j['facts'];
+    if (raw is! List) throw const FormatException('base: no facts');
+    final out = <Fact>[];
+    for (final f in raw.take(maxFacts)) {
+      try {
+        out.add(Fact.fromJson((f as Map).cast<String, dynamic>()));
+      } on Object {
+        // Not a fact (TypeError, FormatException, ArgumentError).
+      }
+    }
+    return out;
   }
 
   /// The shelter's answer. Throws on network errors or timeouts, so the
@@ -48,24 +82,63 @@ class ShelterClient {
     return answerFromWire(j);
   }
 
+  /// One request; [timeout] covers all of it, [maxBytes] the body.
   Future<Map<String, dynamic>> _json(
     String method,
     String path, {
     Map<String, Object?>? body,
     required Duration timeout,
+    int maxBytes = maxBodyBytes,
   }) async {
+    final (status, bytes) = await _fetch(
+      method,
+      path,
+      body,
+      maxBytes,
+    ).timeout(timeout);
+    final Object? j;
+    try {
+      j = jsonDecode(utf8.decode(bytes));
+    } on FormatException {
+      throw HttpException('base: $status, not an answer');
+    }
+    if (j is! Map<String, dynamic>) {
+      throw HttpException('base: $status, not an answer');
+    }
+    if (status != 200) {
+      // The base's own words, cleaned: they are shown and logged.
+      final e = j['error'];
+      throw HttpException(
+        'base: $status ${cleanShownText(e is String ? e : null) ?? ''}'.trim(),
+      );
+    }
+    return j;
+  }
+
+  Future<(int, Uint8List)> _fetch(
+    String method,
+    String path,
+    Map<String, Object?>? body,
+    int maxBytes,
+  ) async {
     final req = await _http.openUrl(method, Uri.parse('$baseUrl$path'));
+    req.followRedirects = false;
     if (body != null) {
       req.headers.contentType = ContentType.json;
       req.write(jsonEncode(body));
     }
-    final res = await req.close().timeout(timeout);
-    final text = await utf8.decodeStream(res).timeout(timeout);
-    final j = jsonDecode(text) as Map<String, dynamic>;
-    if (res.statusCode != 200) {
-      throw HttpException('shelter: ${res.statusCode} ${j['error']}');
+    final res = await req.close();
+    if (res.contentLength > maxBytes) {
+      throw HttpException('base: answer too large');
     }
-    return j;
+    final out = BytesBuilder(copy: false);
+    await for (final chunk in res) {
+      if (out.length + chunk.length > maxBytes) {
+        throw HttpException('base: answer too large');
+      }
+      out.add(chunk);
+    }
+    return (res.statusCode, out.takeBytes());
   }
 
   void close() => _http.close(force: true);

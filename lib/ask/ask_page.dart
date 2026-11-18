@@ -27,6 +27,7 @@ import '../llm/local_llm.dart';
 import '../map/map_state.dart';
 import '../shelter/base_discovery.dart';
 import '../shelter/share_nearby.dart';
+import '../download/publisher_list.dart' show cleanShownText;
 import '../shelter/shelter_client.dart';
 import '../shelter/shelter_library.dart';
 import '../shelter/shelter_panel.dart';

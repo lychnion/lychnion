@@ -69,7 +69,7 @@ mixin _ShelterConnection on _AskPageBase {
       return false;
     }
     if (trust != null) {
-      await trust.add(expected, info['name'] as String? ?? 'shelter');
+      await trust.add(expected, _shelter?.name ?? 'base');
       // Facts pulled before the QR code was scanned.
       await widget.facts?.reverify();
     }
@@ -83,7 +83,15 @@ mixin _ShelterConnection on _AskPageBase {
       final info = await shelter.info();
       if (!identical(shelter, _shelter)) return; // switched meanwhile
       if (!await _trustShelterKey(info)) return;
-      _log({'event': 'shelter_connected', ...info});
+      // Only what the app knows, cleaned: the rest of /info is the base's.
+      final model = info['model'];
+      final shownModel = cleanShownText(model is String ? model : null);
+      _log({
+        'event': 'shelter_connected',
+        'name': shelter.name,
+        'model': shownModel,
+        'answers': info['answers'] == true,
+      });
       await _pullFacts();
       // Packages, maps and models the shelter can pass on (signed records).
       widget.onShelterCatalog?.call(
@@ -96,7 +104,7 @@ mixin _ShelterConnection on _AskPageBase {
       );
       setState(() {
         _shelterReady = true;
-        _status = 'Connected to shelter: ${info['name']} (${info['model']})';
+        _status = 'Connected to base: ${shelter.name} ($shownModel)';
         _phase = AskPhase.shelter;
       });
       _answerWaiting();

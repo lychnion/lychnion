@@ -78,7 +78,7 @@ void main() {
   late ShelterServer server;
   late String base;
 
-  Future<ShelterServer> startServer(LocalLlm llm) async {
+  Future<ShelterServer> startServer(LocalLlm llm, {int perPhone = 1}) async {
     final store = FactStore(clock: () => now, signer: signer);
     await store.addOwn([full()]);
     final s = ShelterServer(
@@ -87,6 +87,7 @@ void main() {
       modelName: 'fake',
       facts: store,
       codec: codec,
+      maxQuestionsPerPhone: perPhone,
     );
     final port = await _freePort();
     await s.start(port: port);
@@ -205,7 +206,8 @@ void main() {
 
   test('questions are answered one after another', () async {
     final llm = _SlowLlm();
-    server = await startServer(llm);
+    // All three come from 127.0.0.1: as from three phones.
+    server = await startServer(llm, perPhone: 3);
     final results = await Future.wait([
       for (var i = 0; i < 3; i++) ask('津波は一回だけですか？'),
     ]);

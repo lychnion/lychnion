@@ -19,15 +19,31 @@ Map<String, Object?> sourceToWire(Source s) => {
   'region': s.region,
 };
 
+/// A source as a base sent it. Its link is kept only when it is a web
+/// address (http or https): the phone opens it when tapped.
 Source sourceFromWire(Map<String, dynamic> j) => Source(
   j['id'] as String,
   j['title'] as String,
   j['publisher'] as String,
-  j['url'] as String,
+  _webUrl(j['url'] as String),
   j['licence'] as String,
   j['attribution'] as String,
   region: j['region'] as String? ?? 'JP',
 );
+
+String _webUrl(String s) {
+  final u = Uri.tryParse(s.trim());
+  return u != null &&
+          (u.isScheme('http') || u.isScheme('https')) &&
+          u.host.isNotEmpty
+      ? s.trim()
+      : '';
+}
+
+/// An answer cites a few passages and shows a few safety lines; a base
+/// that sends more than this is not answering.
+const maxWireHits = 30;
+const maxWireAlerts = 30;
 
 Map<String, Object?> answerToWire(GroundedAnswer a) => {
   'v': shelterProtocolVersion,
@@ -71,11 +87,29 @@ Map<String, Object?> answerToWire(GroundedAnswer a) => {
 };
 
 /// Rebuilds an answer received from a shelter. Throws [FormatException] on
-/// anything that does not look like this protocol.
+/// anything that does not look like this protocol (also a wrong type, a
+/// missing field or too many hits).
 GroundedAnswer answerFromWire(Map<String, dynamic> j) {
   if (j['v'] != shelterProtocolVersion) {
-    throw FormatException('unsupported shelter protocol: ${j['v']}');
+    throw const FormatException('unsupported base protocol');
   }
+  if (j['alerts'] case final List<Object?> l when l.length > maxWireAlerts) {
+    throw const FormatException('base answer: too many alerts');
+  }
+  if (j['hits'] case final List<Object?> l when l.length > maxWireHits) {
+    throw const FormatException('base answer: too many hits');
+  }
+  try {
+    return _answerFromWire(j);
+  } on FormatException {
+    rethrow;
+  } on Object {
+    // TypeError, a cast that failed: not this protocol.
+    throw const FormatException('base answer: not well formed');
+  }
+}
+
+GroundedAnswer _answerFromWire(Map<String, dynamic> j) {
   final a = GroundedAnswer(j['question'] as String, lang: j['lang'] as String?)
     ..searchQuery = j['search_query'] as String?
     ..judgedRelevant = j['judged_relevant'] as bool?
