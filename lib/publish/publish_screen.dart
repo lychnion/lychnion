@@ -8,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../app/lang.dart';
 import '../download/catalog.dart';
 import '../download/download_manager.dart';
+import '../download/publisher_list.dart';
 import '../l10n/app_localizations.dart';
 import '../util/paths.dart';
 import 'local_publisher.dart';
@@ -31,6 +32,9 @@ class PublishScreen extends StatefulWidget {
 class _PublishScreenState extends State<PublishScreen> {
   Directory? _dir;
   LocalPublisher? _me;
+
+  /// A key file is there but cannot be read: never offer a new key then.
+  bool _unreadable = false;
   bool _loading = true, _busy = false;
   final _name = TextEditingController();
   final _title = TextEditingController();
@@ -58,23 +62,45 @@ class _PublishScreenState extends State<PublishScreen> {
     setState(() {
       _dir = dir;
       _me = me;
+      _unreadable = me == null && LocalPublisher.existsIn(dir);
       _loading = false;
     });
   }
 
   Future<void> _create() async {
+    if (_busy) return;
     final l = context.l10n;
-    setState(() => _nameError = null);
-    try {
-      final me = await LocalPublisher.create(
-        _dir!,
-        name: _name.text.trim(),
-        title: _title.text,
-      );
-      if (mounted) setState(() => _me = me);
-    } on ArgumentError {
-      setState(() => _nameError = l.publishBadName);
+    final name = _name.text.trim();
+    // A name already added on this computer with another key would never
+    // be trusted for this key.
+    final probe = PublisherLink(name: name, key: 'x' * 43);
+    if (widget.manager.store.publishers.problemWith(probe) ==
+        PublisherProblem.otherKey) {
+      setState(() => _nameError = l.publishErrorKey);
+      return;
     }
+    setState(() {
+      _nameError = null;
+      _busy = true;
+    });
+    String? error;
+    LocalPublisher? me;
+    try {
+      me = await LocalPublisher.create(_dir!, name: name, title: _title.text);
+    } on ArgumentError catch (e) {
+      error = e.message == 'exists' ? l.publishKeyExists : l.publishBadName;
+    } on StateError {
+      error = l.publishKeyPrivateFailed;
+    } on Object catch (e) {
+      error = l.publishFailed('$e');
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _me = me;
+      _nameError = error;
+      _unreadable = me == null && LocalPublisher.existsIn(_dir!);
+    });
   }
 
   Future<void> _pick() async {
@@ -123,6 +149,12 @@ class _PublishScreenState extends State<PublishScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(publishErrorText(l, e))));
+    } on Object catch (e) {
+      // Disk full, a file in use, a key list that cannot be saved, …
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.publishFailed('$e'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -171,7 +203,17 @@ class _PublishScreenState extends State<PublishScreen> {
               children: [
                 Text(l.publishIntro),
                 const SizedBox(height: 16),
-                if (me == null) ..._createForm(l) else ..._publisher(l, me),
+                if (me != null)
+                  ..._publisher(l, me)
+                else if (_unreadable)
+                  Text(
+                    l.publishKeyUnreadable(LocalPublisher.fileIn(_dir!).path),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  )
+                else
+                  ..._createForm(l),
               ],
             ),
     );
@@ -198,7 +240,7 @@ class _PublishScreenState extends State<PublishScreen> {
     Align(
       alignment: Alignment.centerLeft,
       child: FilledButton.icon(
-        onPressed: _create,
+        onPressed: _busy ? null : _create,
         icon: const Icon(Icons.key_rounded),
         label: Text(l.publishCreate),
       ),

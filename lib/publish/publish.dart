@@ -135,31 +135,37 @@ Future<PackageRecord> publish(
   required DownloadStore store,
   required Directory publisherDir,
 }) async {
-  final probe = {
-    'format': 1,
-    'id': req.id,
-    'kind': req.kind.name,
-    'version': req.version,
-    'publisher': publisher.name,
-    'key': 'x',
-    'signed': 'x',
-    'signature': 'x',
-    'files': [
-      {'name': 'x', 'size': 1, 'sha256': '0' * 64},
-    ],
-  };
+  // The record's shape, with the real file names: ids and names end up in
+  // file paths.
   try {
-    PackageRecord.fromJson(probe);
+    PackageRecord.fromJson({
+      'format': 1,
+      'id': req.id,
+      'kind': req.kind.name,
+      'version': req.version,
+      'publisher': publisher.name,
+      'key': 'x',
+      'signed': 'x',
+      'signature': 'x',
+      'files': [
+        for (final f in req.files)
+          {'name': f.uri.pathSegments.last, 'size': 1, 'sha256': '0' * 64},
+      ],
+    });
   } on FormatException catch (e) {
+    final m = e.message;
     throw PublishError(
-      e.message.contains('version') ? 'version' : 'id',
-      e.message,
+      m.contains('version')
+          ? 'version'
+          : m.contains('file') || m.contains('files')
+          ? 'files'
+          : 'id',
+      m,
     );
   }
   if (req.titles.values.every((t) => t.trim().isEmpty)) {
     throw PublishError('title');
   }
-  if (req.files.isEmpty) throw PublishError('files');
   for (final f in req.files) {
     final name = f.uri.pathSegments.last;
     if (!name.startsWith('${req.id}.') || !f.existsSync()) {
@@ -175,13 +181,16 @@ Future<PackageRecord> publish(
       throw PublishError('meta', '${meta?['id']} ${meta?['version']}');
     }
   }
+  // This computer must trust its own publisher to install what it signs.
+  // A name already added with another key is refused.
+  final trusted = store.publishers.problemWith(publisher.link);
+  if (trusted != null && trusted != PublisherProblem.known) {
+    throw PublishError('key', trusted.name);
+  }
 
   // Versions only go up: past this publisher's own records and what is
   // installed here.
   final installed = store.installed(req.kind, req.id);
-  if (installed != null && installed.record.publisher != publisher.name) {
-    throw PublishError('taken', installed.record.publisher);
-  }
   for (final have in [
     lastPublished(publisherDir, req.id),
     installed?.version,
@@ -191,71 +200,87 @@ Future<PackageRecord> publish(
     }
   }
 
-  // This computer trusts its own publisher, so it installs and serves the
-  // records it signs. A name already added with another key is refused.
-  switch (store.publishers.problemWith(publisher.link)) {
-    case null:
-      await store.publishers.add(publisher.link);
-    case PublisherProblem.known:
-      break;
-    case final p:
-      throw PublishError('key', p.name);
-  }
-
-  final files = <Map<String, Object?>>[];
-  for (final f in req.files) {
-    files.add({
-      'name': f.uri.pathSegments.last,
-      'size': await f.length(),
-      'sha256': await sha256OfFile(f),
-    });
-  }
-  final record = await PackageRecord.sign({
-    'format': 1,
-    'id': req.id,
-    'kind': req.kind.name,
-    'version': req.version,
-    'publisher': publisher.name,
-    'title': {
-      for (final e in req.titles.entries)
-        if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
-    },
-    if (req.notes.values.any((n) => n.trim().isNotEmpty))
-      'note': {
-        for (final e in req.notes.entries)
-          if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
-      },
-    'licence': req.licence.trim(),
-    if (req.notice.isNotEmpty) 'notice': req.notice,
-    'files': files,
-    'signed': _now(),
-  }, await publisher.keyPair());
-
-  // Copy in (each file next to its target, then renamed), then record it.
+  // 1. Copy each file next to its target and hash the copy: the record
+  //    describes exactly what gets installed.
   final dir = store.dirFor(req.kind);
   await dir.create(recursive: true);
-  for (final f in req.files) {
-    final target = File('${dir.path}/${f.uri.pathSegments.last}');
-    if (f.absolute.path == target.absolute.path) continue;
-    final part = File('${target.path}.publishing');
-    await f.copy(part.path);
-    try {
-      await part.rename(target.path); // replaces the old version (POSIX)
-    } on FileSystemException {
-      // Windows does not replace on rename.
-      if (!await target.exists()) rethrow;
-      await target.delete();
-      await part.rename(target.path);
+  final copies = <(File copy, File target)>[];
+  try {
+    final files = <Map<String, Object?>>[];
+    for (final f in req.files) {
+      final name = f.uri.pathSegments.last;
+      final target = File('${dir.path}/$name');
+      var copy = f;
+      if (f.absolute.path != target.absolute.path) {
+        copy = await f.copy('${target.path}.publishing');
+        copies.add((copy, target));
+      }
+      files.add({
+        'name': name,
+        'size': await copy.length(),
+        'sha256': await sha256OfFile(copy),
+      });
+    }
+
+    // 2. Sign.
+    final record = await PackageRecord.sign({
+      'format': 1,
+      'id': req.id,
+      'kind': req.kind.name,
+      'version': req.version,
+      'publisher': publisher.name,
+      'title': {
+        for (final e in req.titles.entries)
+          if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+      },
+      if (req.notes.values.any((n) => n.trim().isNotEmpty))
+        'note': {
+          for (final e in req.notes.entries)
+            if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+        },
+      'licence': req.licence.trim(),
+      if (req.notice.isNotEmpty) 'notice': req.notice,
+      'files': files,
+      'signed': _now(),
+    }, await publisher.keyPair());
+    final item = CatalogItem.fromRecord(record);
+
+    // The id and every file name must not belong to another publisher's
+    // item here (files of a kind share one folder).
+    if (store.isTaken(item)) throw PublishError('taken', req.id);
+
+    // 3. Keep the signed record first (atomically): it remembers that this
+    //    version is used, even if the install below fails.
+    final out = recordFile(publisherDir, req.id, req.version);
+    await out.parent.create(recursive: true);
+    final tmp = File('${out.path}.tmp');
+    await tmp.writeAsString(
+      '${const JsonEncoder.withIndent('  ').convert(record.json)}\n',
+      flush: true,
+    );
+    await tmp.rename(out.path);
+
+    // 4. Trust the own publisher, put the files in place, record the install.
+    if (trusted == null) await store.publishers.add(publisher.link);
+    for (final (copy, target) in copies) {
+      try {
+        await copy.rename(target.path); // replaces the old version (POSIX)
+      } on FileSystemException {
+        // Windows may not replace on rename.
+        if (!await target.exists()) rethrow;
+        await target.delete();
+        await copy.rename(target.path);
+      }
+    }
+    copies.clear();
+    await store.markInstalled(item);
+    return record;
+  } finally {
+    // Copies not moved into place (an error on the way) are removed.
+    for (final (copy, _) in copies) {
+      if (await copy.exists()) await copy.delete();
     }
   }
-  await store.markInstalled(CatalogItem.fromRecord(record));
-
-  final out = recordFile(publisherDir, req.id, req.version);
-  await out.parent.create(recursive: true);
-  await out.writeAsString(
-    '${const JsonEncoder.withIndent('  ').convert(record.json)}\n',
-  );
-  return record;
 }
 
 /// `2026-11-18T09:00:00+09:00`

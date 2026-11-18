@@ -1245,4 +1245,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishErrorKey => 'この発行元名には別の鍵が追加されています。先に「発行元」で削除してください。';
+
+  @override
+  String publishFailed(String detail) {
+    return '発行できませんでした：$detail';
+  }
+
+  @override
+  String publishKeyUnreadable(String path) {
+    return '鍵ファイル $path を読み込めません。控えから戻してください。新しい鍵にすると、スマートフォンで発行元を追加し直す必要があります。';
+  }
+
+  @override
+  String get publishKeyExists => '鍵ファイルがすでにあります。置き換えることはありません。';
+
+  @override
+  String get publishKeyPrivateFailed => '鍵ファイルを非公開にできなかったため、鍵を作成しませんでした。';
 }

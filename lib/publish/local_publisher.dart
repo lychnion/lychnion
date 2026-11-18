@@ -30,17 +30,22 @@ class LocalPublisher {
 
   static File fileIn(Directory dir) => File('${dir.path}/publisher.json');
 
-  /// The publisher saved in [dir], or null when there is none (or the file
-  /// is broken).
+  /// Whether a key file is there (also when it cannot be read).
+  static bool existsIn(Directory dir) => fileIn(dir).existsSync();
+
+  /// The publisher saved in [dir], or null when there is none or the file
+  /// cannot be read (see [existsIn]).
   static Future<LocalPublisher?> load(Directory dir) async {
     try {
       final j =
           jsonDecode(await fileIn(dir).readAsString()) as Map<String, Object?>;
+      final name = j['name']! as String;
+      if (!_usable(name)) return null;
       final seed = j['seed']! as String;
       final pair = await keyPairFromSeed(seed);
       return LocalPublisher._(
-        j['name']! as String,
-        j['title'] as String?,
+        name,
+        PublisherLink.cleanTitle(j['title'] as String?),
         seed,
         await publicKeyOf(pair),
       );
@@ -49,54 +54,71 @@ class LocalPublisher {
     }
   }
 
-  /// Makes a new key for [name] and saves it in [dir]. Throws
-  /// [ArgumentError] when the name is not a valid publisher name or a
-  /// publisher is already saved there (a key is never replaced silently).
+  static bool _usable(String name) =>
+      PublisherList.isValidName(name) &&
+      !builtInPublishers.publishers.contains(name);
+
+  /// Makes a new key for [name] and saves it in [dir], readable by this
+  /// user only. Throws [ArgumentError] (`name`) for a name that is not a
+  /// valid publisher name, (`exists`) when a key file is already there (a
+  /// key is never replaced silently), and [StateError] when the file could
+  /// not be made private (then no key is saved).
   static Future<LocalPublisher> create(
     Directory dir, {
     required String name,
     String? title,
   }) async {
+    if (!_usable(name)) throw ArgumentError('name');
+    final f = fileIn(dir);
+    if (await f.exists()) throw ArgumentError('exists');
     final k = await newKeyPair();
     final p = LocalPublisher._(
       name,
-      title == null || title.trim().isEmpty ? null : title.trim(),
+      PublisherLink.cleanTitle(title),
       k.seed,
       k.publicKey,
     );
-    if (!PublisherList.isValidName(name) ||
-        builtInPublishers.publishers.contains(name)) {
-      throw ArgumentError('name');
-    }
-    final f = fileIn(dir);
-    if (await f.exists()) throw ArgumentError('exists');
     await dir.create(recursive: true);
+    // Folder and file are made private before the key is written into it.
     final tmp = File('${f.path}.tmp');
-    await tmp.writeAsString(
-      const JsonEncoder.withIndent('  ').convert({
-        'name': p.name,
-        'title': ?p.title,
-        'public_key': p.publicKey,
-        'seed': p._seed,
-        'note':
-            'Private signing key of this publisher. Keep a copy offline; '
-            'never put it on a server, a stick or in a repository.',
-      }),
-    );
-    await _ownerOnly(tmp);
-    await tmp.rename(f.path);
+    try {
+      await _private(dir.path, '700');
+      await tmp.writeAsString('');
+      await _private(tmp.path, '600');
+      await tmp.writeAsString(
+        const JsonEncoder.withIndent('  ').convert({
+          'name': p.name,
+          'title': ?p.title,
+          'public_key': p.publicKey,
+          'seed': p._seed,
+          'note':
+              'Private signing key of this publisher. Keep a copy offline; '
+              'never put it on a server, a stick or in a repository.',
+        }),
+        flush: true,
+      );
+      await tmp.rename(f.path);
+    } on Object {
+      if (await tmp.exists()) await tmp.delete();
+      rethrow;
+    }
     return p;
   }
 
-  /// Readable by this user only. Needed on Linux; the macOS app folder
-  /// (sandbox container) and Windows' per-user app data are private to
-  /// the user already, so a refused chmod there changes nothing.
-  static Future<void> _ownerOnly(File f) async {
+  /// chmod. Linux needs it (app data folders are usually readable by
+  /// everyone): there a failure stops [create]. The macOS app folder
+  /// (sandbox container) and Windows' per-user app data are private
+  /// already, so a refused chmod there changes nothing.
+  static Future<void> _private(String path, String mode) async {
     if (Platform.isWindows) return;
+    ProcessResult? r;
     try {
-      await Process.run('chmod', ['600', f.path]);
+      r = await Process.run('chmod', [mode, path]);
     } on Object {
-      // The file still works; it is only less protected.
+      r = null;
+    }
+    if ((r == null || r.exitCode != 0) && Platform.isLinux) {
+      throw StateError('chmod $mode failed');
     }
   }
 }

@@ -386,5 +386,9 @@
   "publishErrorMeta": "ID と版はパッケージファイルと一致させてください。",
   "publishErrorTaken": "この ID は {publisher} からインストール済みです。別の ID にしてください。",
   "publishErrorTitle": "タイトルを入力してください。",
-  "publishErrorKey": "この発行元名には別の鍵が追加されています。先に「発行元」で削除してください。"
+  "publishErrorKey": "この発行元名には別の鍵が追加されています。先に「発行元」で削除してください。",
+  "publishFailed": "発行できませんでした：{detail}",
+  "publishKeyUnreadable": "鍵ファイル {path} を読み込めません。控えから戻してください。新しい鍵にすると、スマートフォンで発行元を追加し直す必要があります。",
+  "publishKeyExists": "鍵ファイルがすでにあります。置き換えることはありません。",
+  "publishKeyPrivateFailed": "鍵ファイルを非公開にできなかったため、鍵を作成しませんでした。"
 }

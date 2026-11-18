@@ -859,5 +859,11 @@
     }
   },
   "publishErrorTitle": "Give a title.",
-  "publishErrorKey": "Another key is added under this publisher name. Remove it in Publishers first."
+  "publishErrorKey": "Another key is added under this publisher name. Remove it in Publishers first.",
+  "publishFailed": "Could not publish: {detail}",
+  "@publishFailed": {"placeholders": {"detail": {"type": "String"}}},
+  "publishKeyUnreadable": "The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.",
+  "@publishKeyUnreadable": {"placeholders": {"path": {"type": "String"}}},
+  "publishKeyExists": "A key file is already there. It is never replaced.",
+  "publishKeyPrivateFailed": "The key file could not be made private, so no key was made."
 }

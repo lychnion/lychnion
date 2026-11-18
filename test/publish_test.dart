@@ -213,4 +213,110 @@ void main() {
       expect(store.installed(ItemKind.map, 'jp.map.kobe'), isNotNull);
     });
   });
+
+  group('review fixes', () {
+    test('a refused publish leaves no copies behind', () async {
+      final other = Directory('${tmp.path}/other');
+      final them = await LocalPublisher.create(other, name: 'jp.club.x');
+      await publish(
+        form(packageFile(tmp, 'jp.kobe.bousai', '2026.11.1')),
+        publisher: them,
+        store: store,
+        publisherDir: other,
+      );
+      await expectLater(
+        go(form(packageFile(tmp, 'jp.kobe.bousai', '2026.11.5'))),
+        throwsA(isA<PublishError>().having((e) => e.code, 'code', 'taken')),
+      );
+      final left = store
+          .dirFor(ItemKind.package)
+          .listSync()
+          .where((f) => f.path.endsWith('.publishing'));
+      expect(left, isEmpty);
+      // Nothing of the refused version was kept as signed.
+      expect(lastPublished(pubDir, 'jp.kobe.bousai'), isNull);
+    });
+
+    test(
+      "a file name of another publisher's item is not overwritten",
+      () async {
+        final other = Directory('${tmp.path}/other');
+        final them = await LocalPublisher.create(other, name: 'jp.club.x');
+        final theirs = File('${tmp.path}/src/jp.a.b.sqlite')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('theirs');
+        await publish(
+          PublishRequest(
+            kind: ItemKind.map,
+            id: 'jp.a.b',
+            version: '1',
+            titles: const {'en': 'Theirs'},
+            files: [theirs],
+          ),
+          publisher: them,
+          store: store,
+          publisherDir: other,
+        );
+        final mine = File('${tmp.path}/src2/jp.a.b.sqlite')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('mine!!');
+        await expectLater(
+          go(
+            PublishRequest(
+              kind: ItemKind.map,
+              id: 'jp.a',
+              version: '1',
+              titles: const {'en': 'Mine'},
+              files: [mine],
+            ),
+          ),
+          throwsA(isA<PublishError>().having((e) => e.code, 'code', 'taken')),
+        );
+        expect(
+          File(
+            '${store.dirFor(ItemKind.map).path}/jp.a.b.sqlite',
+          ).readAsStringSync(),
+          'theirs',
+        );
+      },
+    );
+
+    test('a file name with a space is refused as a file problem', () async {
+      final f = File('${tmp.path}/src/jp.map.x y.pmtiles')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('x');
+      await expectLater(
+        go(
+          PublishRequest(
+            kind: ItemKind.map,
+            id: 'jp.map.x',
+            version: '1',
+            titles: const {'en': 'X'},
+            files: [f],
+          ),
+        ),
+        throwsA(isA<PublishError>().having((e) => e.code, 'code', 'files')),
+      );
+    });
+
+    test('the key file is private and no temporary copy is left', () {
+      expect(
+        File('${LocalPublisher.fileIn(pubDir).path}.tmp').existsSync(),
+        isFalse,
+      );
+      if (!Platform.isWindows) {
+        expect(pubDir.statSync().modeString(), 'rwx------');
+      }
+    });
+
+    test('an unreadable key file is never replaced', () async {
+      LocalPublisher.fileIn(pubDir).writeAsStringSync('{broken');
+      expect(await LocalPublisher.load(pubDir), isNull);
+      expect(LocalPublisher.existsIn(pubDir), isTrue);
+      expect(
+        () => LocalPublisher.create(pubDir, name: 'jp.city.kobe'),
+        throwsA(isA<ArgumentError>().having((e) => e.message, 'm', 'exists')),
+      );
+    });
+  });
 }

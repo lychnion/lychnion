@@ -1306,4 +1306,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publishErrorKey =>
       'Another key is added under this publisher name. Remove it in Publishers first.';
+
+  @override
+  String publishFailed(String detail) {
+    return 'Could not publish: $detail';
+  }
+
+  @override
+  String publishKeyUnreadable(String path) {
+    return 'The key file $path cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.';
+  }
+
+  @override
+  String get publishKeyExists =>
+      'A key file is already there. It is never replaced.';
+
+  @override
+  String get publishKeyPrivateFailed =>
+      'The key file could not be made private, so no key was made.';
 }

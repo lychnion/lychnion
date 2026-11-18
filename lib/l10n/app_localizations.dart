@@ -2167,6 +2167,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another key is added under this publisher name. Remove it in Publishers first.'**
   String get publishErrorKey;
+
+  /// No description provided for @publishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not publish: {detail}'**
+  String publishFailed(String detail);
+
+  /// No description provided for @publishKeyUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.'**
+  String publishKeyUnreadable(String path);
+
+  /// No description provided for @publishKeyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A key file is already there. It is never replaced.'**
+  String get publishKeyExists;
+
+  /// No description provided for @publishKeyPrivateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The key file could not be made private, so no key was made.'**
+  String get publishKeyPrivateFailed;
 }
 
 class _AppLocalizationsDelegate
