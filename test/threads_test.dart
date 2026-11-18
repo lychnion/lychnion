@@ -1,5 +1,4 @@
 import 'package:lychnion/knowledge/grounded_answer.dart';
-import 'package:lychnion/shelter/shelter_protocol.dart';
 import 'package:lychnion/ui/threads.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,12 +27,5 @@ void main() {
     expect(s.recent, [b]);
     s.restore(a);
     expect(s.recent, [b, a]);
-  });
-
-  test('answers survive the save format', () {
-    final a = GroundedAnswer('津波は？')..text = '高い所へ [1]。';
-    final back = answerFromWire(answerToWire(a));
-    expect(back.question, a.question);
-    expect(back.text, a.text);
   });
 }

@@ -11,18 +11,6 @@ void main() {
     for (final h in retriever.search(q)) h.passage.source.id,
   ];
 
-  test('prints what each test question retrieves', () {
-    for (final q in benchPrompts) {
-      final hits = retriever.search(q);
-      // ignore: avoid_print
-      print(
-        '$q\n  ${[for (final h in hits) '${h.passage.source.id}#${h.passage.id} ${h.score.toStringAsFixed(1)}'].join(', ')}'
-        '\n  alerts: ${[for (final a in pkg.alerts)
-          if (a.matches(q)) a.id]}',
-      );
-    }
-  });
-
   test('finds the right source for questions the package covers', () {
     expect(topSources(benchPrompts[0]), contains('kantei-jishin'));
     expect(topSources(benchPrompts[1]).first, 'kantei-tsunami');

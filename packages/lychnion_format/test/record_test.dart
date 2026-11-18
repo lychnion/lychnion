@@ -49,6 +49,36 @@ void main() {
     expect(await builtInPublishers.check(record.json), isNull);
   });
 
+  test("a publisher's key cannot sign for another publisher", () async {
+    final lychnion = await newKeyPair();
+    final city = await newKeyPair();
+    final cityKey = await keyPairFromSeed(city.seed);
+    final trusted = TrustedKeys({
+      'lychnion': [lychnion.publicKey],
+      'jp.city.test': [city.publicKey],
+    });
+    // Signed by the city, but says it is from Lychnion.
+    final posing = await PackageRecord.sign(
+      _unsigned()..['publisher'] = 'lychnion',
+      cityKey,
+    );
+    expect(posing.publisher, 'lychnion');
+    expect(await trusted.verify(posing), isFalse);
+    expect(await trusted.check(posing.json), isNull);
+    // The same record under the city's own name is fine.
+    final own = await PackageRecord.sign(
+      _unsigned()..['publisher'] = 'jp.city.test',
+      cityKey,
+    );
+    expect(await trusted.verify(own), isTrue);
+    // A publisher nobody added.
+    final unknown = await PackageRecord.sign(
+      _unsigned()..['publisher'] = 'jp.city.other',
+      cityKey,
+    );
+    expect(await trusted.verify(unknown), isFalse);
+  });
+
   test('records with unsafe names are refused', () async {
     final key = await keyPairFromSeed((await newKeyPair()).seed);
     final bad = _unsigned()
