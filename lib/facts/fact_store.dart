@@ -40,6 +40,9 @@ class FactStore extends ChangeNotifier {
         _facts.add(Fact.fromJson(j)..verified = j['v_ok'] as bool? ?? true);
       }
     }
+    // Keys trusted since the facts were saved (a base's QR code scanned
+    // after its facts came): checked again at every start.
+    await reverify();
     notifyListeners();
   }
 
@@ -77,7 +80,8 @@ class FactStore extends ChangeNotifier {
     final t = trust;
     if (t == null) return 0;
     var n = 0;
-    for (final f in _facts) {
+    // A copy: facts may arrive while this waits.
+    for (final f in List.of(_facts)) {
       if (f.verified || f.sourceType == SourceType.citizen) continue;
       if (await t.verify(f)) {
         f.verified = true;

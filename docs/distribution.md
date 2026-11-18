@@ -347,9 +347,8 @@ its signed facts (shelter status and other notices) show as unverified
 until its QR code is scanned: only the QR code, checked in person, pins
 its key (a computer at that address with another key is then refused).
 Scanning the QR code of the base already connected pins the key and
-checks the earlier facts again. At most 20 bases are listed; a second
-device announcing a listed name is shown next to it, not in its place.
-Networks that block multicast (some guest Wi-Fi) hide the list; the
+checks the earlier facts again (also at every start). At most 20 bases
+are listed, one per announced name, at its latest address. Networks that block multicast (some guest Wi-Fi) hide the list; the
 address and the QR code still work. Not yet: a phone following its base
 to a new address by itself, and the headless node announcing itself.
 

@@ -140,9 +140,9 @@ class BaseFinder {
   /// The bases found so far, by the order they were found.
   final found = ValueNotifier<List<ShelterLink>>(const []);
 
-  /// By service name and address: a second device announcing the same
-  /// name is listed next to the first, never in its place.
-  final _entries = <(String, String), ShelterLink>{};
+  /// By service name (unique on a network: mDNS renames a second one), so
+  /// a base that moves to a new address is listed once, at the new one.
+  final _entries = <String, ShelterLink>{};
   BonsoirDiscovery? _discovery;
   StreamSubscription<BonsoirDiscoveryEvent>? _events;
   var _started = false;
@@ -181,15 +181,15 @@ class BaseFinder {
           attributes: service.attributes,
           serviceName: service.name,
         );
-        if (link != null) {
-          final k = (service.name, link.url);
-          if (_entries.containsKey(k) || _entries.length < maxFoundBases) {
-            _entries[k] = link;
-          }
+        if (link == null) {
+          _entries.remove(service.name);
+        } else if (_entries.containsKey(service.name) ||
+            _entries.length < maxFoundBases) {
+          _entries[service.name] = link;
         }
         _publish();
       case BonsoirDiscoveryServiceLostEvent(:final service):
-        _entries.removeWhere((k, _) => k.$1 == service.name);
+        _entries.remove(service.name);
         _publish();
       default:
         break;
