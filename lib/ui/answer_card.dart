@@ -1,10 +1,14 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
 import '../facts/fact.dart';
 import '../facts/fact_view.dart';
 import '../knowledge/grounded_answer.dart';
-import '../knowledge/knowledge_package.dart' show Alert, foreignLabel;
+import '../knowledge/knowledge_package.dart' show Alert, Source, foreignLabel;
 import '../l10n/app_localizations.dart';
 import '../map/hazard_detect.dart';
 import '../map/map_labels.dart';
@@ -14,6 +18,7 @@ import 'answer_text.dart';
 import 'source_link.dart';
 import '../app/brand.dart';
 import 'breathing_light.dart';
+import 'help_screen.dart';
 
 /// One question with its safety lines, answer and the sources it cites.
 /// Its texts follow the question's language, not the app's.
@@ -115,18 +120,7 @@ class AnswerCard extends StatelessWidget {
                   SafetyLine(alert: a, lang: answer.lang),
                 const SizedBox(height: 12),
                 if (thinking)
-                  Row(
-                    children: [
-                      const BreathingLight(size: 24),
-                      const SizedBox(width: 10),
-                      Text(
-                        l.answerLooking,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  )
+                  AnswerWaiting(answer: answer)
                 else if (_shownText case final t when t.isNotEmpty)
                   SelectableText(t, style: theme.textTheme.bodyLarge),
                 if (grounded && done) ..._notes(theme, l),
@@ -609,6 +603,137 @@ class _SafetyLineSource extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Before the first word: what is being read, and roughly how long it
+/// takes on this device. On slow phones the model reads the sources for
+/// half a minute or more (Pixel 5a, docs/device-results.md).
+class AnswerWaiting extends StatefulWidget {
+  const AnswerWaiting({super.key, required this.answer, this.expected});
+
+  final GroundedAnswer answer;
+
+  /// Expected reading time; [lastReadingTime] otherwise.
+  final Duration? expected;
+
+  /// From this long on, a base is worth mentioning.
+  static const slow = Duration(seconds: 20);
+
+  @override
+  State<AnswerWaiting> createState() => _AnswerWaitingState();
+}
+
+class _AnswerWaitingState extends State<AnswerWaiting> {
+  final _started = Stopwatch()..start();
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final hits = widget.answer.hits;
+    final fromBase = widget.answer.answeredBy != null;
+    // Each source once, in the order found (several passages may come
+    // from one page).
+    final sources = <String, Source>{};
+    for (final h in hits) {
+      sources.putIfAbsent(h.passage.source.id, () => h.passage.source);
+    }
+    final line = Row(
+      children: [
+        const BreathingLight(size: 24),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            hits.isEmpty ? l.answerLooking : l.answerReading(sources.length),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+    if (hits.isEmpty || fromBase) return line;
+
+    final elapsed = _started.elapsed;
+    final expected = widget.expected ?? lastReadingTime.value;
+    final phone =
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    final slow =
+        phone &&
+        ((expected ?? Duration.zero) > AnswerWaiting.slow ||
+            elapsed > AnswerWaiting.slow);
+    final double? progress = expected == null || expected.inMilliseconds == 0
+        ? null
+        : math.min(0.95, elapsed.inMilliseconds / expected.inMilliseconds);
+    final left = expected == null
+        ? null
+        : math.max(1, (expected - elapsed).inSeconds);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        line,
+        const SizedBox(height: 8),
+        for (final s in sources.values)
+          Padding(
+            padding: const EdgeInsets.only(left: 34, bottom: 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.menu_book_outlined, size: 14, color: scheme.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text('${s.publisher}「${s.title}」', style: muted),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            semanticsLabel: l.answerReading(sources.length),
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (left != null)
+          Text(l.answerTimeLeft(left), style: muted)
+        else if (elapsed.inSeconds >= 10)
+          Text(l.answerSlowPhone, style: muted),
+        if (slow)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              icon: const Icon(Icons.cell_tower_rounded, size: 18),
+              label: Text(l.answerBaseHint),
+              onPressed: () => HelpScreen.open(context, topic: 'help-05-base'),
+            ),
+          ),
+      ],
     );
   }
 }

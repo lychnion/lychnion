@@ -1035,5 +1035,11 @@
   "shelterFoundTitle": "Bases on this Wi-Fi",
   "shelterFoundLooking": "Looking…",
   "shelterFoundNone": "No base found yet. Enter its address below, or scan its QR code.",
-  "shelterScanToTrust": "Scan the base's QR code to trust its notices."
+  "shelterScanToTrust": "Scan the base's QR code to trust its notices.",
+  "answerReading": "Reading {count, plural, =1{1 source} other{{count} sources}}…",
+  "@answerReading": {"placeholders": {"count": {"type": "int"}}},
+  "answerTimeLeft": "About {seconds} s left",
+  "@answerTimeLeft": {"placeholders": {"seconds": {"type": "int"}}},
+  "answerSlowPhone": "On this device an answer can take about a minute.",
+  "answerBaseHint": "With a base, answers take seconds"
 }

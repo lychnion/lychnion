@@ -1683,4 +1683,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shelterScanToTrust =>
       'Scan the base\'s QR code to trust its notices.';
+
+  @override
+  String answerReading(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sources',
+      one: '1 source',
+    );
+    return 'Reading $_temp0…';
+  }
+
+  @override
+  String answerTimeLeft(int seconds) {
+    return 'About $seconds s left';
+  }
+
+  @override
+  String get answerSlowPhone =>
+      'On this device an answer can take about a minute.';
+
+  @override
+  String get answerBaseHint => 'With a base, answers take seconds';
 }

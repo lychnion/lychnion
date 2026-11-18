@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show ValueNotifier;
+
 import '../llm/local_llm.dart';
 import 'app_help.dart';
 import 'hybrid_retriever.dart';
@@ -38,6 +40,10 @@ class AnswerTexts {
   static Iterable<String> get allNoSource =>
       _texts.values.map((t) => t.noSource);
 }
+
+/// How long this device took to read the sources before the last answer's
+/// first word: the answer card's estimate for the next one.
+final lastReadingTime = ValueNotifier<Duration?>(null);
 
 const _texts = <String, AnswerTexts>{
   'ja': AnswerTexts(
@@ -267,7 +273,10 @@ class GroundedAnswerer {
     await llm.newChat(systemInstruction: say.instruction);
     await for (final t in llm.ask(
       _prompt(answer.question, answer.hits, lang, userRegion: userRegion),
-      onDone: (s) => answer.stats = s,
+      onDone: (s) {
+        answer.stats = s;
+        lastReadingTime.value = s.timeToFirstToken;
+      },
     )) {
       answer.text += t;
       onUpdate();

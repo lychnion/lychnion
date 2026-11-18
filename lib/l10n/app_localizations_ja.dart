@@ -1602,4 +1602,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shelterScanToTrust => 'お知らせを信頼するには、ベースの QR コードを読み取ってください。';
+
+  @override
+  String answerReading(int count) {
+    return '資料$count件を読んでいます…';
+  }
+
+  @override
+  String answerTimeLeft(int seconds) {
+    return 'あと約$seconds秒';
+  }
+
+  @override
+  String get answerSlowPhone => 'この端末では、答えまで1分ほどかかることがあります。';
+
+  @override
+  String get answerBaseHint => 'ベースにつなぐと、数秒で答えます';
 }

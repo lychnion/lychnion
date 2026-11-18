@@ -2785,6 +2785,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan the base\'s QR code to trust its notices.'**
   String get shelterScanToTrust;
+
+  /// No description provided for @answerReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading {count, plural, =1{1 source} other{{count} sources}}…'**
+  String answerReading(int count);
+
+  /// No description provided for @answerTimeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'About {seconds} s left'**
+  String answerTimeLeft(int seconds);
+
+  /// No description provided for @answerSlowPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device an answer can take about a minute.'**
+  String get answerSlowPhone;
+
+  /// No description provided for @answerBaseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'With a base, answers take seconds'**
+  String get answerBaseHint;
 }
 
 class _AppLocalizationsDelegate
