@@ -621,5 +621,10 @@
   "downloadsMobileData": "Mobile data",
   "downloadsMobileNever": "Wi-Fi only",
   "downloadsMobileAsk": "Ask first",
-  "downloadsMobileAlways": "Always"
+  "downloadsMobileAlways": "Always",
+  "downloadsFilterAll": "All",
+  "downloadsFilterInstalled": "On this device",
+  "downloadsFilterPackages": "Guides",
+  "downloadsFilterMaps": "Maps",
+  "downloadsNothingHere": "Nothing here yet."
 }

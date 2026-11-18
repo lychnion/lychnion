@@ -1555,6 +1555,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Always'**
   String get downloadsMobileAlways;
+
+  /// No description provided for @downloadsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get downloadsFilterAll;
+
+  /// No description provided for @downloadsFilterInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device'**
+  String get downloadsFilterInstalled;
+
+  /// No description provided for @downloadsFilterPackages.
+  ///
+  /// In en, this message translates to:
+  /// **'Guides'**
+  String get downloadsFilterPackages;
+
+  /// No description provided for @downloadsFilterMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Maps'**
+  String get downloadsFilterMaps;
+
+  /// No description provided for @downloadsNothingHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet.'**
+  String get downloadsNothingHere;
 }
 
 class _AppLocalizationsDelegate

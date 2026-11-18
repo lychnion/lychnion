@@ -242,5 +242,10 @@
   "downloadsMobileData": "モバイルデータ",
   "downloadsMobileNever": "Wi-Fi のみ",
   "downloadsMobileAsk": "確認する",
-  "downloadsMobileAlways": "常に使う"
+  "downloadsMobileAlways": "常に使う",
+  "downloadsFilterAll": "すべて",
+  "downloadsFilterInstalled": "この端末",
+  "downloadsFilterPackages": "資料",
+  "downloadsFilterMaps": "地図",
+  "downloadsNothingHere": "まだありません。"
 }

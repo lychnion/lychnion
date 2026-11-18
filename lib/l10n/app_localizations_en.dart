@@ -922,4 +922,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadsMobileAlways => 'Always';
+
+  @override
+  String get downloadsFilterAll => 'All';
+
+  @override
+  String get downloadsFilterInstalled => 'On this device';
+
+  @override
+  String get downloadsFilterPackages => 'Guides';
+
+  @override
+  String get downloadsFilterMaps => 'Maps';
+
+  @override
+  String get downloadsNothingHere => 'Nothing here yet.';
 }

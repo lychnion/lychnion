@@ -890,4 +890,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadsMobileAlways => '常に使う';
+
+  @override
+  String get downloadsFilterAll => 'すべて';
+
+  @override
+  String get downloadsFilterInstalled => 'この端末';
+
+  @override
+  String get downloadsFilterPackages => '資料';
+
+  @override
+  String get downloadsFilterMaps => '地図';
+
+  @override
+  String get downloadsNothingHere => 'まだありません。';
 }

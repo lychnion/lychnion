@@ -11,8 +11,65 @@ import 'download_manager.dart';
 import 'download_store.dart' show MobileData;
 import 'downloader.dart';
 
+enum _Filter { all, installed, models, packages, maps }
+
+/// Whether downloads may use mobile data: a small sheet, opened from
+/// Downloads and from Settings.
+Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) {
+        final l = c.l10n;
+        return ListenableBuilder(
+          listenable: m,
+          builder: (c, _) => Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l.downloadsMobileData,
+                  style: Theme.of(c).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l.downloadsWifiOnlyHint,
+                  style: Theme.of(c).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<MobileData>(
+                    segments: [
+                      ButtonSegment(
+                        value: MobileData.never,
+                        label: Text(l.downloadsMobileNever),
+                      ),
+                      ButtonSegment(
+                        value: MobileData.ask,
+                        label: Text(l.downloadsMobileAsk),
+                      ),
+                      ButtonSegment(
+                        value: MobileData.always,
+                        label: Text(l.downloadsMobileAlways),
+                      ),
+                    ],
+                    selected: {m.mobileData},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (s) => m.setMobileData(s.first),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
 /// Lists models, knowledge packages and map areas: size, progress,
-/// resume, checksum, delete.
+/// resume, checksum, delete. Filters keep the list short.
 class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key, required this.manager});
 
@@ -36,6 +93,32 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 
   AppLocalizations get l => context.l10n;
+
+  /// Which items the list shows (a long list otherwise: models, every
+  /// package and every map area).
+  _Filter _filter = _Filter.all;
+
+  String _filterName(_Filter f) => switch (f) {
+    _Filter.all => l.downloadsFilterAll,
+    _Filter.installed => l.downloadsFilterInstalled,
+    _Filter.models => l.downloadsKindModels,
+    _Filter.packages => l.downloadsFilterPackages,
+    _Filter.maps => l.downloadsFilterMaps,
+  };
+
+  bool _shows(CatalogItem i) => switch (_filter) {
+    _Filter.all => true,
+    _Filter.installed => switch (m.stateOf(i).status) {
+      ItemStatus.installed ||
+      ItemStatus.update ||
+      ItemStatus.running ||
+      ItemStatus.partial => true,
+      _ => false,
+    },
+    _Filter.models => i.kind == ItemKind.model,
+    _Filter.packages => i.kind == ItemKind.package,
+    _Filter.maps => i.kind == ItemKind.map,
+  };
   String get lang => context.lang;
 
   String _errorText(String e) => switch (e) {
@@ -123,7 +206,16 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(l.downloadsTitle)),
+    appBar: AppBar(
+      title: Text(l.downloadsTitle),
+      actions: [
+        IconButton(
+          tooltip: l.downloadsMobileData,
+          icon: const Icon(Icons.tune_rounded),
+          onPressed: () => showMobileDataSheet(context, m),
+        ),
+      ],
+    ),
     body: ListenableBuilder(
       listenable: m,
       builder: (context, _) {
@@ -131,38 +223,40 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         return ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
-            ListTile(
-              title: Text(l.downloadsMobileData),
-              subtitle: Text(l.downloadsWifiOnlyHint),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: SegmentedButton<MobileData>(
-                segments: [
-                  ButtonSegment(
-                    value: MobileData.never,
-                    label: Text(l.downloadsMobileNever),
-                  ),
-                  ButtonSegment(
-                    value: MobileData.ask,
-                    label: Text(l.downloadsMobileAsk),
-                  ),
-                  ButtonSegment(
-                    value: MobileData.always,
-                    label: Text(l.downloadsMobileAlways),
-                  ),
+            // One row, scrolling sideways when it does not fit.
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: Row(
+                children: [
+                  for (final f in _Filter.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(_filterName(f)),
+                        selected: _filter == f,
+                        showCheckmark: false,
+                        onSelected: (_) => setState(() => _filter = f),
+                      ),
+                    ),
                 ],
-                selected: {m.mobileData},
-                showSelectedIcon: false,
-                onSelectionChanged: (s) => m.setMobileData(s.first),
               ),
             ),
             if (m.refreshing) const LinearProgressIndicator(),
-            for (final kind in ItemKind.values) ...[
-              _header(kind),
-              for (final i in items)
-                if (i.kind == kind) _tile(i),
-            ],
+            for (final kind in ItemKind.values)
+              if ([
+                    for (final i in items)
+                      if (i.kind == kind && _shows(i)) i,
+                  ]
+                  case final shown when shown.isNotEmpty) ...[
+                _header(kind),
+                for (final i in shown) _tile(i),
+              ],
+            if (!items.any(_shows))
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(l.downloadsNothingHere),
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(

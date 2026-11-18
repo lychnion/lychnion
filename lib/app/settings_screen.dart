@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../download/download_manager.dart';
+import '../download/download_store.dart' show MobileData;
 import '../download/downloads_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'settings.dart';
@@ -88,6 +89,20 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ),
                 ),
+                if (downloads != null)
+                  ListenableBuilder(
+                    listenable: downloads!,
+                    builder: (context, _) => _NavTile(
+                      icon: Icons.signal_cellular_alt_rounded,
+                      title: l.downloadsMobileData,
+                      subtitle: switch (downloads!.mobileData) {
+                        MobileData.never => l.downloadsMobileNever,
+                        MobileData.ask => l.downloadsMobileAsk,
+                        MobileData.always => l.downloadsMobileAlways,
+                      },
+                      onTap: () => showMobileDataSheet(context, downloads!),
+                    ),
+                  ),
               ],
             ),
             _Group(
