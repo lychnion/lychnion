@@ -218,6 +218,34 @@ void main() {
       expect(f.readAsBytesSync(), data);
     }, timeout: const Timeout(Duration(seconds: 10)));
 
+    test('a Content-Range with a huge number moves on to the next '
+        'address', () async {
+      final odd = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => odd.close(force: true));
+      odd.listen((req) async {
+        req.response
+          ..statusCode = HttpStatus.partialContent
+          ..headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes 999999999999999999999999999999-1/2',
+          );
+        await req.response.close();
+      });
+      final flaky = await serve(data)
+        ..cutAfter = 1000
+        ..cuts = 1;
+      final good = await serve(data);
+      final f = await Downloader().fetch(
+        spec([
+          flaky.url,
+          Uri.parse('http://127.0.0.1:${odd.port}/file'),
+          good.url,
+        ]),
+        tmp,
+      );
+      expect(f.readAsBytesSync(), data);
+    });
+
     test('logs show no credentials or tokens', () {
       final u = Uri.parse(
         'https://user:secret@cdn.example.org:8443/f.bin?sig=abc#x',

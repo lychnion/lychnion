@@ -389,10 +389,20 @@ Future<void> _export(_Args args) async {
       : sourceUrl == null
       ? null
       : Uri.parse(sourceUrl);
-  final hasMirrors = [
+  // Mirrors as absolute addresses: relative ones are resolved against
+  // where the source catalog came from (--source-url, else its base), as
+  // the app does; without either they are left out.
+  final origin = sourceUrl != null ? Uri.parse(sourceUrl) : base;
+  final mirrors = <String>[
     for (final m in (j['mirrors'] as List?) ?? const [])
-      if (m is String && (Uri.tryParse(m)?.hasScheme ?? false)) m,
-  ].isNotEmpty;
+      if (m is String)
+        if (Uri.tryParse(m) case final u?)
+          if (u.hasScheme)
+            '$u'
+          else if (origin != null)
+            '${origin.resolveUri(u)}',
+  ];
+  final hasMirrors = mirrors.isNotEmpty;
   final from = ((j['urls'] as Map?) ?? const {}).cast<String, Object?>();
   String? elsewhere(RecordFile f) {
     final listed = from[f.sha256];
@@ -455,14 +465,7 @@ Future<void> _export(_Args args) async {
     if (j['refresh'] != null) 'refresh': j['refresh'],
     'records': records,
     'urls': urls,
-    // Relative mirrors meant the source catalog's place: not kept.
-    if (j['mirrors'] case final List m)
-      if ([
-            for (final x in m)
-              if (x is String && (Uri.tryParse(x)?.hasScheme ?? false)) x,
-          ]
-          case final abs when abs.isNotEmpty)
-        'mirrors': abs,
+    if (mirrors.isNotEmpty) 'mirrors': mirrors,
   };
   await File(
     '${out.path}/catalog.json',

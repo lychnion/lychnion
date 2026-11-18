@@ -334,10 +334,11 @@ class Downloader {
     }
     final range = res.headers.value(HttpHeaders.contentRangeHeader);
     final m = RegExp(r'^bytes (\d+)-(\d+)/(\d+)$').firstMatch(range ?? '');
+    // tryParse: a number too large for an int is a mismatch, not a crash.
     if (m == null ||
-        int.parse(m[1]!) != from ||
-        int.parse(m[2]!) != size - 1 ||
-        int.parse(m[3]!) != size) {
+        int.tryParse(m[1]!) != from ||
+        int.tryParse(m[2]!) != size - 1 ||
+        int.tryParse(m[3]!) != size) {
       return 'Wrong range: $range, expected bytes $from-${size - 1}/$size';
     }
     return null;
