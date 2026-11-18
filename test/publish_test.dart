@@ -242,24 +242,25 @@ void main() {
       () async {
         final other = Directory('${tmp.path}/other');
         final them = await LocalPublisher.create(other, name: 'jp.club.x');
-        final theirs = File('${tmp.path}/src/jp.a.b.sqlite')
-          ..createSync(recursive: true)
-          ..writeAsStringSync('theirs');
+        List<File> mapFiles(String dir, String id, String text) => [
+          for (final ext in ['pmtiles', 'sites.sqlite'])
+            File('${tmp.path}/$dir/$id.$ext')
+              ..createSync(recursive: true)
+              ..writeAsStringSync(text),
+        ];
         await publish(
           PublishRequest(
             kind: ItemKind.map,
             id: 'jp.a.b',
             version: '1',
             titles: const {'en': 'Theirs'},
-            files: [theirs],
+            files: mapFiles('src', 'jp.a.b', 'theirs'),
           ),
           publisher: them,
           store: store,
           publisherDir: other,
         );
-        final mine = File('${tmp.path}/src2/jp.a.b.sqlite')
-          ..createSync(recursive: true)
-          ..writeAsStringSync('mine!!');
+        // Mine is jp.a, but one of its files is named like theirs.
         await expectLater(
           go(
             PublishRequest(
@@ -267,14 +268,18 @@ void main() {
               id: 'jp.a',
               version: '1',
               titles: const {'en': 'Mine'},
-              files: [mine],
+              files: [
+                ...mapFiles('src2', 'jp.a', 'mine'),
+                File('${tmp.path}/src2/jp.a.b.pmtiles')
+                  ..writeAsStringSync('mine!!'),
+              ],
             ),
           ),
           throwsA(isA<PublishError>().having((e) => e.code, 'code', 'taken')),
         );
         expect(
           File(
-            '${store.dirFor(ItemKind.map).path}/jp.a.b.sqlite',
+            '${store.dirFor(ItemKind.map).path}/jp.a.b.pmtiles',
           ).readAsStringSync(),
           'theirs',
         );
@@ -316,6 +321,113 @@ void main() {
       expect(
         () => LocalPublisher.create(pubDir, name: 'jp.city.kobe'),
         throwsA(isA<ArgumentError>().having((e) => e.message, 'm', 'exists')),
+      );
+    });
+  });
+
+  group('Copilot review fixes', () {
+    PublishRequest map(String id, List<String> exts, {String version = '1'}) =>
+        PublishRequest(
+          kind: ItemKind.map,
+          id: id,
+          version: version,
+          titles: const {'en': 'Map'},
+          files: [
+            for (final e in exts)
+              File('${tmp.path}/src/$id.$e')
+                ..createSync(recursive: true)
+                ..writeAsStringSync('x'),
+          ],
+        );
+    Matcher code(String c) =>
+        throwsA(isA<PublishError>().having((e) => e.code, 'code', c));
+
+    test('a map needs its tiles and sites, a guide its .sqlite', () async {
+      await expectLater(go(map('jp.map.k', ['pmtiles'])), code('files'));
+      final db = File('${tmp.path}/src/jp.g.db')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('x');
+      await expectLater(
+        go(
+          PublishRequest(
+            kind: ItemKind.package,
+            id: 'jp.g',
+            version: '1',
+            titles: const {'en': 'G'},
+            files: [db],
+          ),
+        ),
+        code('files'),
+      );
+    });
+
+    test('files named like the app\'s own records are refused', () async {
+      await expectLater(
+        go(map('jp.map.k', ['pmtiles', 'sites.sqlite', 'x.installed.json'])),
+        code('files'),
+      );
+    });
+
+    test('the version on disk counts, also when no longer trusted', () async {
+      await go(map('jp.map.k', ['pmtiles', 'sites.sqlite'], version: '3'));
+      // This computer forgets its records and stops trusting itself.
+      Directory('${pubDir.path}/records').deleteSync(recursive: true);
+      await store.publishers.remove('jp.city.kobe');
+      await store.reverify();
+      await store.publishers.add(me.link);
+      await expectLater(
+        go(map('jp.map.k', ['pmtiles', 'sites.sqlite'], version: '2')),
+        code('older'),
+      );
+      expect(
+        File(
+          '${store.dirFor(ItemKind.map).path}/jp.map.k.pmtiles',
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('package meta that is not a JSON object is read as empty', () {
+      final f = File('${tmp.path}/src/jp.odd.sqlite')
+        ..parent.createSync(recursive: true);
+      if (f.existsSync()) f.deleteSync();
+      final db = sqlite3.open(f.path);
+      db.execute(
+        'CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)',
+      );
+      for (final e in {
+        'id': 'jp.odd',
+        'version': '1',
+        'name': 'null',
+        'notice': '[]',
+      }.entries) {
+        db.execute('INSERT INTO meta VALUES(?, ?)', [e.key, e.value]);
+      }
+      db.close();
+      final r = requestFromPackage(f)!;
+      expect(r.id, 'jp.odd');
+      expect(r.notice, isEmpty);
+    });
+
+    test('two creators at once: one key, the other gets exists', () async {
+      final d = Directory('${tmp.path}/race');
+      final results = await Future.wait([
+        for (var i = 0; i < 2; i++)
+          LocalPublisher.create(
+            d,
+            name: 'jp.city.race',
+          ).then<Object>((p) => p).catchError((Object e) => e),
+      ]);
+      expect(results.whereType<LocalPublisher>(), hasLength(1));
+      expect(results.whereType<ArgumentError>().single.message, 'exists');
+      final saved = (await LocalPublisher.load(d))!;
+      expect(
+        saved.publicKey,
+        results.whereType<LocalPublisher>().single.publicKey,
+      );
+      expect(
+        File('${LocalPublisher.fileIn(d).path}.lock').existsSync(),
+        isFalse,
       );
     });
   });

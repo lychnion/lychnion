@@ -72,10 +72,13 @@ Map<String, String>? packageMeta(File f) {
 PublishRequest? requestFromPackage(File f) {
   final meta = packageMeta(f);
   if (meta == null || (meta['id'] ?? '').isEmpty) return null;
+  // Any JSON that is not an object (null, a list, broken text) counts as
+  // empty: the form is only prefilled from it.
   Map<String, Object?> json(String k) {
     try {
-      return (jsonDecode(meta[k] ?? '{}') as Map).cast();
-    } on FormatException {
+      final v = jsonDecode(meta[k] ?? '{}');
+      return v is Map ? v.cast<String, Object?>() : const {};
+    } on Object {
       return const {};
     }
   }
@@ -166,11 +169,27 @@ Future<PackageRecord> publish(
   if (req.titles.values.every((t) => t.trim().isEmpty)) {
     throw PublishError('title');
   }
-  for (final f in req.files) {
-    final name = f.uri.pathSegments.last;
-    if (!name.startsWith('${req.id}.') || !f.existsSync()) {
+  final names = [for (final f in req.files) f.uri.pathSegments.last];
+  for (final (i, f) in req.files.indexed) {
+    final name = names[i];
+    if (!name.startsWith('${req.id}.') ||
+        DownloadStore.isReservedName(name) ||
+        !f.existsSync()) {
       throw PublishError('files', name);
     }
+  }
+  if (names.map((n) => n.toLowerCase()).toSet().length != names.length) {
+    throw PublishError('files');
+  }
+  // What the app needs to use it: a guide is `<id>.sqlite`; a map area
+  // has at least its tiles and its evacuation sites.
+  final need = switch (req.kind) {
+    ItemKind.package => ['${req.id}.sqlite'],
+    ItemKind.map => ['${req.id}.pmtiles', '${req.id}.sites.sqlite'],
+    ItemKind.model => const <String>[],
+  };
+  for (final n in need) {
+    if (!names.contains(n)) throw PublishError('files', n);
   }
   if (req.kind == ItemKind.package) {
     if (req.files.length != 1) throw PublishError('files');
@@ -194,6 +213,9 @@ Future<PackageRecord> publish(
   for (final have in [
     lastPublished(publisherDir, req.id),
     installed?.version,
+    // Also an install no longer trusted or incomplete: files are replaced
+    // below, before the install is recorded.
+    store.recordedVersionOf(req.kind, req.id),
   ]) {
     if (have != null && compareVersions(req.version, have) <= 0) {
       throw PublishError('older', have);

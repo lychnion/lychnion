@@ -71,6 +71,33 @@ class LocalPublisher {
     if (!_usable(name)) throw ArgumentError('name');
     final f = fileIn(dir);
     if (await f.exists()) throw ArgumentError('exists');
+    await dir.create(recursive: true);
+    // One creator at a time, also across app windows: whoever makes the
+    // lock file first creates the key; the other gets `exists`. A lock
+    // left by a crash is taken over after a minute.
+    final lock = File('${f.path}.lock');
+    try {
+      await lock.create(exclusive: true);
+    } on FileSystemException {
+      final age = DateTime.now().difference((await lock.stat()).modified);
+      if (age < const Duration(minutes: 1)) throw ArgumentError('exists');
+      await lock.delete();
+      await lock.create(exclusive: true);
+    }
+    try {
+      if (await f.exists()) throw ArgumentError('exists');
+      return await _write(dir, f, name, title);
+    } finally {
+      if (await lock.exists()) await lock.delete();
+    }
+  }
+
+  static Future<LocalPublisher> _write(
+    Directory dir,
+    File f,
+    String name,
+    String? title,
+  ) async {
     final k = await newKeyPair();
     final p = LocalPublisher._(
       name,
@@ -78,9 +105,8 @@ class LocalPublisher {
       k.seed,
       k.publicKey,
     );
-    await dir.create(recursive: true);
     // Folder and file are made private before the key is written into it.
-    final tmp = File('${f.path}.tmp');
+    final tmp = File('${f.path}.$pid.tmp');
     try {
       await _private(dir.path, '700');
       await tmp.writeAsString('');
