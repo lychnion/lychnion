@@ -136,6 +136,28 @@ to the package (108 × 768 floats, package 376 → 816 KB). The app uses them
 when they match its embedding model, so indexing drops from 133 s on the
 Pixel (3 s on the Mac) to nothing.
 
+## Three passages instead of four (2026-11-18)
+
+Same 35 questions, Gemma 4 E2B (the phone model) on the Mac, packages of
+lychnion-data 2026.11.5. Raw results:
+`spike-results/macos-e2b-k4-2026-11-18.jsonl`, `…-k3-…`.
+
+| Passages per answer | Tokens read (mean) | First word (mean) | Grounded | Not covered, refused |
+|---|---|---|---|---|
+| 4 (default) | 790 | 330 ms | 29 / 35 | 5 |
+| 3 | 647 | 272 ms | 30 / 35 | 5 |
+
+- 18 % less to read, so the first word comes 18 % sooner. On the Pixel 5a
+  (about 18 tokens/s reading) that would be about 8 s sooner per answer.
+- Quality about the same: better for the tsunami question (adds that a
+  tsunami advisory is enough to leave the beach), getting lost, volcanic
+  ash and 噴火警戒レベル3 (answered instead of "not in the sources").
+  One real loss: for a snakebite the fourth passage ("limit movement")
+  falls away. One English earthquake answer read worse, but with the same
+  passages: sampling, not the cut.
+- **Decided 2026-11-18: keep 4 passages everywhere.** `TOP_K=3` stays
+  available for slow phones.
+
 ## iPhone simulator (2026-11-05)
 
 The app builds and runs on the iPhone 17 simulator (Xcode 27.2, Apple
