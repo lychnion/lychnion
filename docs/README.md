@@ -20,6 +20,15 @@ app, see the user help in [help/](../help/README.md).
   catalogs, nodes and sync.
 - [Base](base.md): a computer that serves phones on the same Wi-Fi.
 
+## Security
+
+- [Threat model](../threat-model.md): the security contract, with
+  `threat-model.yaml` and `threat-model.json` beside it.
+- [Threat-model questions](threat-model-questions.md): the questions asked
+  of the maintainers and their answers.
+- [Threat-model notes](threat-model-notes.md): how the model was made, and
+  candidate issues.
+
 ## Help texts
 
 - [help/README.md](../help/README.md): how the help is written, in

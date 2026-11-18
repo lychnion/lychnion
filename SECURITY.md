@@ -38,4 +38,6 @@ device.
 
 ## Threat model
 
-A full threat model is planned.
+The full contract is in [threat-model.md](threat-model.md): what Lychnion
+protects, what it leaves to you, and how a report is triaged. The lists
+above are a short summary; where they differ, the threat model wins.
