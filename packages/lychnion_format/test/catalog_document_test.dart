@@ -90,6 +90,18 @@ void main() {
     expect(await KeysFile.parse('broken'), isEmpty);
   });
 
+  test('statements are left out to fit, revocations last', () {
+    final rev = {'type': 'revoke', 'pad': 'r' * 1000};
+    final rep = {'type': 'replace', 'pad': 'p' * 1000};
+    final c = CatalogDocument(
+      records: ['x' * (CatalogDocument.maxBytes - 1600)],
+      keys: [rev, rep, rep, rev],
+    );
+    final f = c.fitted();
+    expect(f.keys, [rev]);
+    expect(CatalogDocument.parse(c.encode()).keys, [rev]);
+  });
+
   test('too large to encode', () {
     final c = CatalogDocument(records: ['x' * CatalogDocument.maxBytes]);
     expect(c.encode, throwsA(isA<CatalogTooLarge>()));

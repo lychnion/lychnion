@@ -139,13 +139,40 @@ class CatalogDocument {
     if (keys.isNotEmpty) 'keys': keys,
   };
 
-  /// The file text (indented, ending in a newline). Throws
-  /// [CatalogTooLarge] when it is over [maxBytes]: no reader would take
-  /// it.
-  String encode() {
-    final text = '${const JsonEncoder.withIndent('  ').convert(toJson())}\n';
-    if (utf8.encode(text).length > maxBytes) throw const CatalogTooLarge();
-    return text;
+  /// The file text (indented, ending in a newline). Records come first:
+  /// when the catalog would be over [maxBytes], key statements are left
+  /// out ([fitted]). Throws [CatalogTooLarge] when the records alone are
+  /// over it: no reader would take it.
+  String encode() => _text(fitted());
+
+  static String _text(CatalogDocument c) =>
+      '${const JsonEncoder.withIndent('  ').convert(c.toJson())}\n';
+
+  static int _size(CatalogDocument c) => utf8.encode(_text(c)).length;
+
+  /// This catalog, with key statements left out until it fits in
+  /// [maxBytes]: replacements from the end first, revocations last
+  /// (losing one would trust a stolen key again). Throws
+  /// [CatalogTooLarge] when even without statements it does not fit.
+  CatalogDocument fitted() {
+    if (_size(this) <= maxBytes) return this;
+    bool isRevoke(Object? k) => k is Map && k['type'] == 'revoke';
+    final kept = [...keys];
+    CatalogDocument with_(List<Object?> k) => CatalogDocument(
+      records: records,
+      urls: urls,
+      mirrors: mirrors,
+      keys: k,
+      base: base,
+      refresh: refresh,
+    );
+    while (kept.isNotEmpty) {
+      final i = kept.lastIndexWhere((k) => !isRevoke(k));
+      kept.removeAt(i >= 0 ? i : kept.length - 1);
+      final c = with_(kept);
+      if (_size(c) <= maxBytes) return c;
+    }
+    throw const CatalogTooLarge();
   }
 }
 

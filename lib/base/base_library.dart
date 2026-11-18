@@ -34,7 +34,7 @@ class BaseLibrary {
       keys: store.publishers.statements,
       // The order phones show, as before.
       sort: false,
-    ).toJson();
+    ).fitted().toJson();
   }
 
   /// The installed file with this SHA-256, or null. Only files listed in a
