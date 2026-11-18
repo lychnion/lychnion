@@ -937,4 +937,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadsNothingHere => 'Nothing here yet.';
+
+  @override
+  String get downloadsSettings => 'Download settings';
+
+  @override
+  String get downloadsUpdates => 'Updates';
+
+  @override
+  String get downloadsUpdatesHint =>
+      'New versions of guides, maps and models. \"Automatic\" downloads them by itself, on Wi-Fi only.';
+
+  @override
+  String get downloadsUpdatesAuto => 'Automatic';
+
+  @override
+  String get downloadsUpdatesNotify => 'Notify';
+
+  @override
+  String get downloadsUpdatesOff => 'Off';
+
+  @override
+  String downloadsFilterUpdates(int count) {
+    return 'Updates ($count)';
+  }
+
+  @override
+  String get downloadsSigned => 'Signed';
+
+  @override
+  String get downloadsPublisher => 'Publisher';
+
+  @override
+  String get downloadsSignedOn => 'Signed on';
+
+  @override
+  String get downloadsKey => 'Key';
 }

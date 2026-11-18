@@ -74,6 +74,45 @@ class DownloadManager extends ChangeNotifier {
 
   ItemState stateOf(CatalogItem i) => _states[i.id] ??= ItemState();
 
+  /// Installed items with a newer version in the catalog (for badges).
+  final updates = ValueNotifier<int>(0);
+
+  UpdateMode get updateMode => store.updateMode;
+  Future<void> setUpdateMode(UpdateMode v) async {
+    await store.setUpdateMode(v);
+    notifyListeners();
+    if (v != UpdateMode.off) unawaited(refreshCatalog());
+  }
+
+  bool _updating = false;
+
+  /// With automatic updates: downloads new versions of installed items,
+  /// one after another, only on Wi-Fi or a cable (never mobile data,
+  /// whatever the mobile data setting says).
+  Future<void> _autoUpdate() async {
+    if (updateMode != UpdateMode.auto || _updating) return;
+    final now = await Connectivity().checkConnectivity();
+    final wifi = now.any(
+      (c) => c == ConnectivityResult.wifi || c == ConnectivityResult.ethernet,
+    );
+    if (!wifi) return;
+    _updating = true;
+    try {
+      for (final item in [...catalog.items]) {
+        if (stateOf(item).status == ItemStatus.update) {
+          _log({
+            'event': 'auto_update',
+            'id': item.id,
+            'version': item.version,
+          });
+          await download(item);
+        }
+      }
+    } finally {
+      _updating = false;
+    }
+  }
+
   Future<void> _init() async {
     final bundled = await rootBundle.loadString(
       'assets/downloads/catalog.json',
@@ -91,7 +130,12 @@ class DownloadManager extends ChangeNotifier {
       }
     } catch (_) {}
     _refreshStates();
-    if (_autoDownload.isNotEmpty) unawaited(_runAuto());
+    if (_autoDownload.isNotEmpty) {
+      unawaited(_runAuto());
+    } else if (updateMode != UpdateMode.off) {
+      // New versions: look once at start (offline is fine).
+      unawaited(refreshCatalog());
+    }
   }
 
   Future<void> _runAuto() async {
@@ -149,7 +193,8 @@ class DownloadManager extends ChangeNotifier {
     if (url == null || refreshing) return;
     refreshing = true;
     catalogError = null;
-    notifyListeners();
+    // Not during a build (Downloads starts a refresh in initState).
+    scheduleMicrotask(notifyListeners);
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     try {
@@ -224,6 +269,11 @@ class DownloadManager extends ChangeNotifier {
         s.status = s.bytes > 0 ? ItemStatus.partial : ItemStatus.absent;
       }
     }
+    updates.value = [
+      for (final i in catalog.items)
+        if (stateOf(i).status == ItemStatus.update) i,
+    ].length;
+    if (updates.value > 0) unawaited(_autoUpdate());
     notifyListeners();
   }
 

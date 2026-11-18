@@ -517,6 +517,15 @@ void main() {
       expect(s.mobileData, MobileData.always);
     });
 
+    test('updates: notify by default, three choices', () async {
+      final s = DownloadStore(tmp, trust: trust);
+      expect(s.updateMode, UpdateMode.notify);
+      await s.setUpdateMode(UpdateMode.auto);
+      expect(s.updateMode, UpdateMode.auto);
+      await s.setUpdateMode(UpdateMode.off);
+      expect(s.updateMode, UpdateMode.off);
+    });
+
     test('the old Wi-Fi-only switch is read as before', () async {
       final s = DownloadStore(tmp, trust: trust);
       await File('${tmp.path}/downloads/settings.json')

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import '../app/brand.dart';
 import '../app/lang.dart';
@@ -11,9 +12,10 @@ enum AskPhase { noModel, loading, ready, shelter, serving, failed }
 
 /// A developer action in the ⋮ menu (load a model file, run test questions).
 class DevAction {
-  const DevAction(this.label, this.onTap);
+  const DevAction(this.label, this.onTap, {this.icon = Icons.build_outlined});
   final String label;
   final VoidCallback? onTap;
+  final IconData icon;
 }
 
 /// Home screen: status, warnings and nearest site, suggested questions,
@@ -33,6 +35,7 @@ class AskView extends StatefulWidget {
     this.recent,
     this.onOpenSettings,
     this.onShowNotice,
+    this.updates,
     this.onOpenDownloads,
     this.devActions = const [],
     this.detailExtra,
@@ -76,6 +79,9 @@ class AskView extends StatefulWidget {
   /// Second entry: the first-start notice again.
   final VoidCallback? onShowNotice;
 
+  /// New versions of installed downloads: a badge on the ⋮ menu.
+  final ValueListenable<int>? updates;
+
   @override
   State<AskView> createState() => _AskViewState();
 }
@@ -118,6 +124,7 @@ class _AskViewState extends State<AskView> {
           AppMenu(
             onOpenSettings: widget.onOpenSettings,
             onShowNotice: widget.onShowNotice,
+            updates: widget.updates,
             devActions: widget.devActions,
           ),
           const SizedBox(width: 8),
@@ -477,8 +484,13 @@ class AppMenu extends StatelessWidget {
     super.key,
     this.onOpenSettings,
     this.onShowNotice,
+    this.updates,
     this.devActions = const [],
   });
+
+  /// New versions of installed downloads: a badge on the menu and on
+  /// Settings.
+  final ValueListenable<int>? updates;
 
   final VoidCallback? onOpenSettings;
 
@@ -488,7 +500,14 @@ class AppMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PopupMenuButton<int>(
-    icon: const Icon(Icons.more_vert),
+    icon: ValueListenableBuilder(
+      valueListenable: updates ?? ValueNotifier(0),
+      builder: (context, n, _) => Badge(
+        isLabelVisible: n > 0,
+        smallSize: 9,
+        child: const Icon(Icons.more_vert),
+      ),
+    ),
     itemBuilder: (_) => [
       if (onOpenSettings != null)
         PopupMenuItem(
@@ -506,14 +525,22 @@ class AppMenu extends StatelessWidget {
             title: Text(context.l10n.beforeYouStart),
           ),
         ),
-      if (devActions.isNotEmpty) const PopupMenuDivider(),
+      if (devActions.isNotEmpty) ...[
+        const PopupMenuDivider(),
+        // Developer tools: labelled, so nobody mistakes them for features.
+        const PopupMenuItem(
+          enabled: false,
+          height: 28,
+          child: Text('Developer', style: TextStyle(fontSize: 12)),
+        ),
+      ],
       for (var i = 0; i < devActions.length; i++)
         PopupMenuItem(
           value: i,
           enabled: devActions[i].onTap != null,
           child: ListTile(
             dense: true,
-            leading: const Icon(Icons.code_rounded),
+            leading: Icon(devActions[i].icon),
             title: Text(devActions[i].label),
           ),
         ),

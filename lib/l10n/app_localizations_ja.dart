@@ -905,4 +905,40 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadsNothingHere => 'まだありません。';
+
+  @override
+  String get downloadsSettings => 'ダウンロードの設定';
+
+  @override
+  String get downloadsUpdates => '更新';
+
+  @override
+  String get downloadsUpdatesHint =>
+      '資料・地図・モデルの新しい版。「自動」では Wi-Fi のときだけ自動でダウンロードします。';
+
+  @override
+  String get downloadsUpdatesAuto => '自動';
+
+  @override
+  String get downloadsUpdatesNotify => 'お知らせ';
+
+  @override
+  String get downloadsUpdatesOff => 'オフ';
+
+  @override
+  String downloadsFilterUpdates(int count) {
+    return '更新（$count）';
+  }
+
+  @override
+  String get downloadsSigned => '署名済み';
+
+  @override
+  String get downloadsPublisher => '発行者';
+
+  @override
+  String get downloadsSignedOn => '署名日';
+
+  @override
+  String get downloadsKey => '鍵';
 }

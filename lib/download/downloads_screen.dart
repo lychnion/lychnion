@@ -8,12 +8,12 @@ import '../l10n/app_localizations.dart';
 
 import 'catalog.dart';
 import 'download_manager.dart';
-import 'download_store.dart' show MobileData;
+import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
 
-enum _Filter { all, installed, models, packages, maps }
+enum _Filter { all, updates, installed, models, packages, maps }
 
-/// Whether downloads may use mobile data: a small sheet, opened from
+/// Download settings: mobile data and updates. A small sheet, opened from
 /// Downloads and from Settings.
 Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
     showModalBottomSheet<void>(
@@ -61,6 +61,39 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
                     onSelectionChanged: (s) => m.setMobileData(s.first),
                   ),
                 ),
+                const SizedBox(height: 24),
+                Text(
+                  l.downloadsUpdates,
+                  style: Theme.of(c).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l.downloadsUpdatesHint,
+                  style: Theme.of(c).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<UpdateMode>(
+                    segments: [
+                      ButtonSegment(
+                        value: UpdateMode.auto,
+                        label: Text(l.downloadsUpdatesAuto),
+                      ),
+                      ButtonSegment(
+                        value: UpdateMode.notify,
+                        label: Text(l.downloadsUpdatesNotify),
+                      ),
+                      ButtonSegment(
+                        value: UpdateMode.off,
+                        label: Text(l.downloadsUpdatesOff),
+                      ),
+                    ],
+                    selected: {m.updateMode},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (s) => m.setUpdateMode(s.first),
+                  ),
+                ),
               ],
             ),
           ),
@@ -100,6 +133,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   String _filterName(_Filter f) => switch (f) {
     _Filter.all => l.downloadsFilterAll,
+    _Filter.updates => l.downloadsFilterUpdates(m.updates.value),
     _Filter.installed => l.downloadsFilterInstalled,
     _Filter.models => l.downloadsKindModels,
     _Filter.packages => l.downloadsFilterPackages,
@@ -108,6 +142,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   bool _shows(CatalogItem i) => switch (_filter) {
     _Filter.all => true,
+    _Filter.updates => m.stateOf(i).status == ItemStatus.update,
     _Filter.installed => switch (m.stateOf(i).status) {
       ItemStatus.installed ||
       ItemStatus.update ||
@@ -230,15 +265,17 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
               child: Row(
                 children: [
                   for (final f in _Filter.values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(_filterName(f)),
-                        selected: _filter == f,
-                        showCheckmark: false,
-                        onSelected: (_) => setState(() => _filter = f),
+                    // "Updates" only while there are some.
+                    if (f != _Filter.updates || m.updates.value > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(_filterName(f)),
+                          selected: _filter == f,
+                          showCheckmark: false,
+                          onSelected: (_) => setState(() => _filter = f),
+                        ),
                       ),
-                    ),
                 ],
               ),
             ),
@@ -312,90 +349,190 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ItemStatus.update => l.downloadsUpdateAvailable('${s.installedVersion}'),
     };
 
+    final open = _open.contains(item.id);
+    final r = item.record;
+    final small = theme.textTheme.bodySmall;
+    final muted = small?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
+    // Compact cards show state only, no buttons: a tap to open the card
+    // must never start a download. Actions are in the opened card.
+    final Widget? mark = switch (s.status) {
+      ItemStatus.installed => Icon(
+        Icons.check_circle,
+        color: theme.colorScheme.primary,
+      ),
+      ItemStatus.update => Badge(
+        smallSize: 9,
+        child: Icon(Icons.update_rounded, color: theme.colorScheme.primary),
+      ),
+      _ => null,
+    };
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.title(lang),
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                if (s.status == ItemStatus.installed)
-                  Icon(Icons.check_circle, color: theme.colorScheme.primary),
-              ],
-            ),
-            for (final l in lines) Text(l, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 6),
-            Text(status),
-            if (running || s.status == ItemStatus.partial) ...[
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: s.total > 0 ? s.bytes / s.total : null,
-              ),
-            ],
-            if (s.error != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                _errorText(s.error!),
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (running)
-                  OutlinedButton(
-                    onPressed: () => m.stop(item),
-                    child: Text(l.downloadsStop),
-                  ),
-                if (!running && canGet && s.status == ItemStatus.absent)
-                  FilledButton(
-                    onPressed: () => _download(item),
-                    child: Text(l.downloadsDownload),
-                  ),
-                if (!running && canGet && s.status == ItemStatus.partial)
-                  FilledButton(
-                    onPressed: () => _download(item),
-                    child: Text(l.downloadsResume),
-                  ),
-                if (!running && canGet && s.status == ItemStatus.update)
-                  FilledButton(
-                    onPressed: () => _download(item),
-                    child: Text(l.downloadsUpdate),
-                  ),
-                if (!running && s.status == ItemStatus.unverified)
-                  FilledButton(
-                    onPressed: () => m.verifyExisting(item),
-                    child: Text(l.downloadsCheckFile),
-                  ),
-                if (chatPick)
-                  usedChat
-                      ? Chip(label: Text(l.downloadsInUse))
-                      : OutlinedButton(
-                          onPressed: () => m.useChatModel(item),
-                          child: Text(l.downloadsUseModel),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () =>
+            setState(() => open ? _open.remove(item.id) : _open.add(item.id)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title(lang),
+                          style: theme.textTheme.titleSmall,
                         ),
-                if (!running && s.status != ItemStatus.absent)
-                  TextButton(
-                    onPressed: () => _delete(item),
-                    child: Text(l.delete),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            if (r != null) ...[
+                              Icon(
+                                Icons.verified_user_outlined,
+                                size: 14,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                l.downloadsSigned,
+                                style: small?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              Text(' · ', style: muted),
+                            ],
+                            Flexible(
+                              child: Text(
+                                '${formatBytes(item.size)} · $status',
+                                style: muted,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  ?mark,
+                  const SizedBox(width: 4),
+                  Icon(
+                    open ? Icons.expand_less : Icons.expand_more,
+                    color: theme.colorScheme.outline,
+                  ),
+                ],
+              ),
+              if (running || s.status == ItemStatus.partial) ...[
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: s.total > 0 ? s.bytes / s.total : null,
+                ),
               ],
+              if (s.error != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _errorText(s.error!),
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ],
+              if (open) ...[
+                const SizedBox(height: 8),
+                for (final line in lines) Text(line, style: small),
+                if (r != null) ...[
+                  const SizedBox(height: 8),
+                  _detail(l.downloadsPublisher, r.publisher),
+                  _detail(l.downloadsSignedOn, _date(r.signed)),
+                  _detail(l.downloadsKey, r.keyId),
+                  for (final f in r.files)
+                    _detail(
+                      f.name,
+                      '${formatBytes(f.size)} · SHA-256 ${f.sha256.substring(0, 12)}…',
+                    ),
+                ],
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    if (running)
+                      OutlinedButton(
+                        onPressed: () => m.stop(item),
+                        child: Text(l.downloadsStop),
+                      ),
+                    if (!running &&
+                        canGet &&
+                        (s.status == ItemStatus.absent ||
+                            s.status == ItemStatus.partial ||
+                            s.status == ItemStatus.update))
+                      FilledButton.icon(
+                        onPressed: () => _download(item),
+                        icon: Icon(
+                          s.status == ItemStatus.update
+                              ? Icons.update_rounded
+                              : Icons.download_rounded,
+                        ),
+                        label: Text(switch (s.status) {
+                          ItemStatus.partial => l.downloadsResume,
+                          ItemStatus.update => l.downloadsUpdate,
+                          _ => l.downloadsDownload,
+                        }),
+                      ),
+                    if (!running && s.status == ItemStatus.unverified)
+                      FilledButton(
+                        onPressed: () => m.verifyExisting(item),
+                        child: Text(l.downloadsCheckFile),
+                      ),
+                    if (chatPick)
+                      usedChat
+                          ? Chip(label: Text(l.downloadsInUse))
+                          : OutlinedButton(
+                              onPressed: () => m.useChatModel(item),
+                              child: Text(l.downloadsUseModel),
+                            ),
+                    if (!running && s.status != ItemStatus.absent)
+                      TextButton(
+                        onPressed: () => _delete(item),
+                        child: Text(l.delete),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Items shown expanded (tap a card to open or close it).
+  final _open = <String>{};
+
+  Widget _detail(String label, String value) {
+    final small = Theme.of(context).textTheme.bodySmall;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label  ',
+              style: small?.copyWith(fontWeight: FontWeight.w700),
             ),
+            TextSpan(text: value, style: small),
           ],
         ),
       ),
     );
   }
+
+  /// "2026-11-18" from the record's signing time.
+  static String _date(String iso) =>
+      iso.length >= 10 ? iso.substring(0, 10) : iso;
 
   bool _isActiveChat(CatalogItem item) => m.store.activeChat()?.id == item.id;
 

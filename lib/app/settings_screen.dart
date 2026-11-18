@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../download/download_manager.dart';
-import '../download/download_store.dart' show MobileData;
+import '../download/download_store.dart' show MobileData, UpdateMode;
 import '../download/downloads_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'settings.dart';
@@ -78,6 +79,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 _NavTile(
                   icon: Icons.download_for_offline_outlined,
+                  badge: downloads?.updates,
                   title: l.downloadsTitle,
                   subtitle: l.settingsDownloadsHint,
                   onTap: downloads == null
@@ -94,12 +96,17 @@ class SettingsScreen extends StatelessWidget {
                     listenable: downloads!,
                     builder: (context, _) => _NavTile(
                       icon: Icons.signal_cellular_alt_rounded,
-                      title: l.downloadsMobileData,
-                      subtitle: switch (downloads!.mobileData) {
-                        MobileData.never => l.downloadsMobileNever,
-                        MobileData.ask => l.downloadsMobileAsk,
-                        MobileData.always => l.downloadsMobileAlways,
-                      },
+                      title: l.downloadsSettings,
+                      subtitle:
+                          '${l.downloadsMobileData}: ${switch (downloads!.mobileData) {
+                            MobileData.never => l.downloadsMobileNever,
+                            MobileData.ask => l.downloadsMobileAsk,
+                            MobileData.always => l.downloadsMobileAlways,
+                          }} · ${l.downloadsUpdates}: ${switch (downloads!.updateMode) {
+                            UpdateMode.auto => l.downloadsUpdatesAuto,
+                            UpdateMode.notify => l.downloadsUpdatesNotify,
+                            UpdateMode.off => l.downloadsUpdatesOff,
+                          }}',
                       onTap: () => showMobileDataSheet(context, downloads!),
                     ),
                   ),
@@ -165,12 +172,16 @@ class _NavTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.onTap,
+    this.badge,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
+
+  /// A count shown on the icon while above zero (e.g. updates).
+  final ValueListenable<int>? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +191,14 @@ class _NavTile extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: scheme.secondaryContainer,
         foregroundColor: scheme.onSecondaryContainer,
-        child: Icon(icon, size: 20),
+        child: ValueListenableBuilder(
+          valueListenable: badge ?? ValueNotifier(0),
+          builder: (context, n, _) => Badge.count(
+            count: n,
+            isLabelVisible: n > 0,
+            child: Icon(icon, size: 20),
+          ),
+        ),
       ),
       title: Text(title),
       subtitle: Text(subtitle),

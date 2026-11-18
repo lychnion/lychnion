@@ -626,5 +626,23 @@
   "downloadsFilterInstalled": "On this device",
   "downloadsFilterPackages": "Guides",
   "downloadsFilterMaps": "Maps",
-  "downloadsNothingHere": "Nothing here yet."
+  "downloadsNothingHere": "Nothing here yet.",
+  "downloadsSettings": "Download settings",
+  "downloadsUpdates": "Updates",
+  "downloadsUpdatesHint": "New versions of guides, maps and models. \"Automatic\" downloads them by itself, on Wi-Fi only.",
+  "downloadsUpdatesAuto": "Automatic",
+  "downloadsUpdatesNotify": "Notify",
+  "downloadsUpdatesOff": "Off",
+  "downloadsFilterUpdates": "Updates ({count})",
+  "@downloadsFilterUpdates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadsSigned": "Signed",
+  "downloadsPublisher": "Publisher",
+  "downloadsSignedOn": "Signed on",
+  "downloadsKey": "Key"
 }

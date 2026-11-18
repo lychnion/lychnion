@@ -236,6 +236,9 @@ class _HomePageState extends State<HomePage> {
   /// Bumped when a download is installed or deleted.
   final _downloadChanges = ValueNotifier<int>(0);
 
+  /// New versions of installed downloads, for the ⋮ menu badge.
+  final _updates = ValueNotifier<int>(0);
+
   /// A shelter's catalog that arrived before Downloads was ready.
   Uri? _pendingShelterCatalog;
 
@@ -254,6 +257,7 @@ class _HomePageState extends State<HomePage> {
       _useDownloadedMap();
       _downloadChanges.value++;
     });
+    dm.updates.addListener(() => _updates.value = dm.updates.value);
     setState(() => _downloads = dm);
     _useDownloadedMap();
     if (_pendingShelterCatalog case final u?) {
@@ -407,6 +411,7 @@ class _HomePageState extends State<HomePage> {
               facts: _facts,
               settings: widget.settings,
               shelterUrls: _shelterUrls,
+              updates: _updates,
               downloadChanges: _downloadChanges,
               onShowOnMap: () {
                 Navigator.of(context).popUntil((r) => r.isFirst);
@@ -474,6 +479,7 @@ class SpikePage extends StatefulWidget {
     this.settings,
     this.onOpenDownloads,
     this.shelterUrls,
+    this.updates,
     this.view = AskPageView.home,
     this.onOpenSettings,
     this.onShowAsk,
@@ -488,6 +494,9 @@ class SpikePage extends StatefulWidget {
 
   /// Set by the shelter computer: its addresses, for the QR code.
   final ValueNotifier<List<String>>? shelterUrls;
+
+  /// New versions of installed downloads (badge on the ⋮ menu).
+  final ValueListenable<int>? updates;
 
   final MapState? map;
   final FactStore? facts;
@@ -1027,6 +1036,7 @@ class _SpikePageState extends State<SpikePage> {
           ? null
           : NearestSiteCard(map: widget.map!, onShowOnMap: widget.onShowOnMap),
       packageInfos: _packages,
+      updates: widget.updates,
       onShowNotice: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (c) => NoticeScreen(
@@ -1062,11 +1072,19 @@ class _SpikePageState extends State<SpikePage> {
       onStop: _llm.stop,
       onOpenDownloads: widget.onOpenDownloads,
       devActions: [
-        if (_usesDownload)
-          DevAction('Download model (URL)', _busy ? null : _download)
-        else
-          DevAction('Load GGUF file…', _busy ? null : _pickFile),
-        DevAction('Run test questions', ready ? _bench : null),
+        // Phones get models from Downloads (signed); computers can also
+        // open a model file from disk for testing.
+        if (!_usesDownload)
+          DevAction(
+            'Open a model file…',
+            _busy ? null : _pickFile,
+            icon: Icons.folder_open_rounded,
+          ),
+        DevAction(
+          'Run test questions',
+          ready ? _bench : null,
+          icon: Icons.fact_check_outlined,
+        ),
       ],
     );
   }

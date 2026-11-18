@@ -46,6 +46,18 @@ class Installed {
 ///   downloads/ settings and the cached catalog
 /// Bundled assets are copied to `bundled/` instead, so they never overwrite
 /// a download.
+/// What the app does with new versions of installed downloads.
+enum UpdateMode {
+  /// Download new versions by themselves, on Wi-Fi only.
+  auto,
+
+  /// Check at start and show a badge (default).
+  notify,
+
+  /// Do not check by itself.
+  off,
+}
+
 /// Whether downloads may use mobile data.
 enum MobileData {
   /// Only on Wi-Fi or a cable (default).
@@ -232,6 +244,11 @@ class DownloadStore {
   }
 
   Future<void> setMobileData(MobileData v) => _set('mobile_data', v.name);
+
+  UpdateMode get updateMode =>
+      UpdateMode.values.asNameMap()[_settings()['updates']] ??
+      UpdateMode.notify;
+  Future<void> setUpdateMode(UpdateMode v) => _set('updates', v.name);
 
   /// The chat model the user picked, if any.
   String? get chatModelId => _settings()['chat_model'] as String?;

@@ -1585,6 +1585,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing here yet.'**
   String get downloadsNothingHere;
+
+  /// No description provided for @downloadsSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Download settings'**
+  String get downloadsSettings;
+
+  /// No description provided for @downloadsUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get downloadsUpdates;
+
+  /// No description provided for @downloadsUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New versions of guides, maps and models. \"Automatic\" downloads them by itself, on Wi-Fi only.'**
+  String get downloadsUpdatesHint;
+
+  /// No description provided for @downloadsUpdatesAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get downloadsUpdatesAuto;
+
+  /// No description provided for @downloadsUpdatesNotify.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify'**
+  String get downloadsUpdatesNotify;
+
+  /// No description provided for @downloadsUpdatesOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get downloadsUpdatesOff;
+
+  /// No description provided for @downloadsFilterUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates ({count})'**
+  String downloadsFilterUpdates(int count);
+
+  /// No description provided for @downloadsSigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed'**
+  String get downloadsSigned;
+
+  /// No description provided for @downloadsPublisher.
+  ///
+  /// In en, this message translates to:
+  /// **'Publisher'**
+  String get downloadsPublisher;
+
+  /// No description provided for @downloadsSignedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed on'**
+  String get downloadsSignedOn;
+
+  /// No description provided for @downloadsKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get downloadsKey;
 }
 
 class _AppLocalizationsDelegate

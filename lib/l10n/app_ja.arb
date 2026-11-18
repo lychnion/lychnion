@@ -247,5 +247,16 @@
   "downloadsFilterInstalled": "この端末",
   "downloadsFilterPackages": "資料",
   "downloadsFilterMaps": "地図",
-  "downloadsNothingHere": "まだありません。"
+  "downloadsNothingHere": "まだありません。",
+  "downloadsSettings": "ダウンロードの設定",
+  "downloadsUpdates": "更新",
+  "downloadsUpdatesHint": "資料・地図・モデルの新しい版。「自動」では Wi-Fi のときだけ自動でダウンロードします。",
+  "downloadsUpdatesAuto": "自動",
+  "downloadsUpdatesNotify": "お知らせ",
+  "downloadsUpdatesOff": "オフ",
+  "downloadsFilterUpdates": "更新（{count}）",
+  "downloadsSigned": "署名済み",
+  "downloadsPublisher": "発行者",
+  "downloadsSignedOn": "署名日",
+  "downloadsKey": "鍵"
 }
