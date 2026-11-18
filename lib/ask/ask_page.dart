@@ -184,19 +184,21 @@ class _AskPageState extends _AskPageBase
 
   void _openThread(Thread t) {
     _current = t;
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute<void>(
-            builder: (context) => ValueListenableBuilder(
-              valueListenable: _tick,
-              builder: (context, _, _) => _conversation(context, t),
+    unawaited(
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute<void>(
+              builder: (context) => ValueListenableBuilder(
+                valueListenable: _tick,
+                builder: (context, _, _) => _conversation(context, t),
+              ),
             ),
-          ),
-        )
-        .then((_) {
-          if (identical(_current, t)) _current = null;
-          setState(() {});
-        });
+          )
+          .then((_) {
+            if (identical(_current, t)) _current = null;
+            setState(() {});
+          }),
+    );
   }
 
   /// Questions asked before anything could answer them, shown in their
