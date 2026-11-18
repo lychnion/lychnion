@@ -145,7 +145,10 @@ class Downloader {
       have = 0;
     }
     await meta.writeAsString(
-      jsonEncode({'url': spec.url.toString(), 'sha256': spec.sha256}),
+      // The part belongs to the file (its hash), not to one address: any
+      // address of the file may finish it. No address here, so no token
+      // of a signed link is written to disk either.
+      jsonEncode({'sha256': spec.sha256}),
     );
 
     // One writer per part file, also across app instances (desktop).
