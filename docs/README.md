@@ -9,6 +9,7 @@ app, see the user help in [help/](../help/README.md).
   layout, app assets.
 - [Dev flags](dev-flags.md): every `--dart-define` flag.
 - [Release builds](release-builds.md): Android builds and signing.
+- [Releasing](releasing.md): checklist for an app release.
 - [Versions](versioning.md): app, data and format numbers.
 
 ## Data and distribution
