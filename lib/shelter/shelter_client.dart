@@ -32,7 +32,9 @@ class ShelterClient {
   /// Facts taken from one pull; a base never has this many.
   static const maxFacts = 500;
 
-  final _http = HttpClient()
+  HttpClient _http = _newClient();
+
+  static HttpClient _newClient() => HttpClient()
     ..connectionTimeout = const Duration(seconds: 3)
     ..idleTimeout = const Duration(seconds: 5);
 
@@ -90,12 +92,17 @@ class ShelterClient {
     required Duration timeout,
     int maxBytes = maxBodyBytes,
   }) async {
-    final (status, bytes) = await _fetch(
-      method,
-      path,
-      body,
-      maxBytes,
-    ).timeout(timeout);
+    final (int, Uint8List) got;
+    try {
+      got = await _fetch(method, path, body, maxBytes).timeout(timeout);
+    } on TimeoutException {
+      // The request may still be open (a base that sends slowly or not
+      // at all): closing the client ends it, a new one is used next time.
+      _http.close(force: true);
+      _http = _newClient();
+      rethrow;
+    }
+    final (status, bytes) = got;
     final Object? j;
     try {
       j = jsonDecode(utf8.decode(bytes));
@@ -129,6 +136,8 @@ class ShelterClient {
     }
     final res = await req.close();
     if (res.contentLength > maxBytes) {
+      // Not read, not kept open: the connection is closed at once.
+      (await res.detachSocket()).destroy();
       throw HttpException('base: answer too large');
     }
     final out = BytesBuilder(copy: false);

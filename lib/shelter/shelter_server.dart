@@ -54,6 +54,7 @@ class ShelterServer {
     this.maxQuestions = 8,
     this.maxQuestionsPerPhone = 1,
     this.maxWait = const Duration(seconds: 100),
+    this.sendStall = const Duration(seconds: 30),
   });
 
   /// A shelter's name from its ID (the map's evacuation sites), for the
@@ -97,6 +98,11 @@ class ShelterServer {
   /// The phone gives up after 2 minutes (ShelterClient.ask): a question
   /// that waited this long for the model is not answered any more.
   final Duration maxWait;
+
+  /// A download that cannot send anything for this long (the phone
+  /// stopped reading) is closed. A slow download goes on as long as
+  /// data moves; [idleTimeout] does not cover a response being sent.
+  final Duration sendStall;
 
   static const defaultPort = 8642;
 
@@ -381,7 +387,15 @@ class ShelterServer {
       );
     }
     try {
-      await res.addStream(file.openRead(from));
+      // Chunk by chunk, each with a fresh deadline: when a chunk cannot
+      // be sent in time the connection is closed (flush then throws).
+      await for (final chunk in file.openRead(from)) {
+        res
+          ..deadline = sendStall
+          ..add(chunk);
+        await res.flush();
+      }
+      res.deadline = sendStall;
       await res.close();
     } on Object catch (e) {
       // The phone went away, or the file could not be read half-way. The

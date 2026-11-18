@@ -116,6 +116,7 @@ void main() {
     int maxQuestions = 8,
     int perPhone = 1,
     Duration maxWait = const Duration(seconds: 100),
+    Duration sendStall = const Duration(seconds: 30),
   }) async {
     final s = ShelterServer(
       answerer: GroundedAnswerer(llm ?? FakeLlm(['高い所へ [1]。']), pkg),
@@ -127,6 +128,7 @@ void main() {
       maxQuestions: maxQuestions,
       maxQuestionsPerPhone: perPhone,
       maxWait: maxWait,
+      sendStall: sendStall,
     );
     await s.start(port: 0, address: InternetAddress.loopbackIPv4);
     servers.add(s);
@@ -392,6 +394,32 @@ void main() {
       }
     });
 
+    test('a phone that stops reading loses its connection', () async {
+      // Larger than what the system buffers for one connection.
+      final big = File('${dir.path}/big.bin')
+        ..writeAsBytesSync(List.filled(64 << 20, 1));
+      final s = await start(
+        library: _OneFile(big, sha),
+        maxConnections: 1,
+        sendStall: const Duration(milliseconds: 300),
+      );
+      final sock = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
+      addTearDown(sock.destroy);
+      final first = Completer<void>();
+      final sub = sock.listen((_) {
+        if (!first.isCompleted) first.complete();
+      }, onError: (Object _) {});
+      sock.add(
+        utf8.encode('GET /blobs/sha256/$sha HTTP/1.1\r\nHost: x\r\n\r\n'),
+      );
+      await first.future;
+      sub.pause();
+      addTearDown(sub.cancel);
+      // It held the only place; once closed, the next phone gets in.
+      await Future<void>.delayed(const Duration(seconds: 2));
+      expect((await call(s, 'GET', '/info')).$1, 200);
+    });
+
     test('a phone that leaves half-way does not stop the base', () async {
       final big = File('${dir.path}/big.bin')
         ..writeAsBytesSync(List.filled(8 << 20, 1));
@@ -472,6 +500,23 @@ void main() {
   });
 
   group('a phone and a base that may not be one', () {
+    /// A base that sends [head] on every connection and then nothing;
+    /// [closed] completes when the phone closes a connection.
+    Future<(String, Future<void>)> rawBase(String head) async {
+      final srv = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(srv.close);
+      final closed = Completer<void>();
+      srv.listen((sock) {
+        addTearDown(sock.destroy);
+        sock.listen(
+          (_) => sock.add(utf8.encode(head)),
+          onDone: () => closed.isCompleted ? null : closed.complete(),
+          onError: (Object _) => closed.isCompleted ? null : closed.complete(),
+        );
+      });
+      return ('http://127.0.0.1:${srv.port}', closed.future);
+    }
+
     /// A fake base that answers every request with [handler].
     Future<String> fakeBase(
       Future<void> Function(HttpRequest req) handler,
@@ -506,30 +551,29 @@ void main() {
       );
     });
 
-    test('a too large Content-Length is refused before reading', () async {
-      final url = await fakeBase((req) async {
-        req.response
-          ..headers.contentType = ContentType.json
-          ..contentLength = 50 << 20
-          ..write('{}');
-        // Never sends the rest.
-      });
+    test('a too large Content-Length is refused and closed', () async {
+      final (url, closed) = await rawBase(
+        'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n'
+        'Content-Length: ${50 << 20}\r\n\r\n{}',
+      );
       final c = ShelterClient(url);
       addTearDown(c.close);
       await expectLater(c.facts(), throwsA(isA<HttpException>()));
+      // Not kept open waiting for the rest.
+      await closed.timeout(const Duration(seconds: 2));
     });
 
     test(
-      'a base that never answers times out',
+      'a base that never answers times out, and the connection closes',
       () async {
-        final url = await fakeBase((req) async {
-          req.response.headers.contentType = ContentType.json;
-          await req.response.flush();
-          // Headers, then nothing.
-        });
+        final (url, closed) = await rawBase(
+          'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n'
+          'Transfer-Encoding: chunked\r\n\r\n',
+        );
         final c = ShelterClient(url);
         addTearDown(c.close);
         await expectLater(c.info(), throwsA(isA<TimeoutException>()));
+        await closed.timeout(const Duration(seconds: 2));
       },
       timeout: const Timeout(Duration(seconds: 20)),
     );
