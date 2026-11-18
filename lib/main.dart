@@ -42,6 +42,7 @@ import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
 import 'package:app_links/app_links.dart';
 
+import 'shelter/base_discovery.dart';
 import 'shelter/share_nearby.dart';
 import 'shelter/shelter_client.dart';
 import 'shelter/shelter_link.dart';
@@ -281,7 +282,12 @@ class _HomePageState extends State<HomePage> {
     }
     final link = ShelterLink.fromUri(uri);
     if (link == null || !mounted || _asking) return;
-    if (link.url == widget.settings.shelterUrl) return; // already connected
+    // Already connected, and nothing new: a QR code with the key of a base
+    // connected by address or found on the Wi-Fi pins that key.
+    if (link.url == widget.settings.shelterUrl &&
+        (link.key == null || link.key == widget.settings.shelterKey)) {
+      return;
+    }
     _asking = true;
     try {
       if (await confirmShelter(context, link)) {
@@ -799,7 +805,10 @@ class _SpikePageState extends State<SpikePage> {
   /// Connects, switches or disconnects when the saved shelter changes.
   void _shelterChanged() {
     final want = _wantedShelter;
-    if (want == _shelter?.baseUrl) return;
+    final key = widget.settings?.shelterKey;
+    // A key pinned for the same address connects again, to check it.
+    if (want == _shelter?.baseUrl && key == _shelterKeyUsed) return;
+    _shelterKeyUsed = key;
     _factsTimer?.cancel();
     _retry?.cancel();
     _shelter?.close();
@@ -812,6 +821,9 @@ class _SpikePageState extends State<SpikePage> {
     });
     if (_shelter != null) unawaited(_connectShelter());
   }
+
+  /// The pinned key the current connection was checked against.
+  String? _shelterKeyUsed;
 
   /// Desktop side: answers phones on the local network.
   ShelterServer? _server;
@@ -848,6 +860,7 @@ class _SpikePageState extends State<SpikePage> {
     if (_server case final s?
         when !want || s.name != name || s.answerer != answerer) {
       await s.stop();
+      await _announcer.stop().catchError((Object _) {});
       _server = null;
       widget.shelterUrls?.value = const [];
       _log({'event': 'shelter_stopped'});
@@ -880,7 +893,20 @@ class _SpikePageState extends State<SpikePage> {
     ];
     widget.shelterUrls?.value = urls;
     _log({'event': 'shelter_started', 'name': name, 'urls': urls});
+    // Phones on this Wi-Fi find the base without its QR code (step 5e).
+    // Serving goes on if announcing is not possible here.
+    try {
+      await _announcer.start(
+        name: name,
+        port: ShelterServer.defaultPort,
+        key: widget.facts?.signer?.publicKeyText,
+      );
+    } on Object catch (e) {
+      _log({'event': 'shelter_announce_failed', 'error': '$e'});
+    }
   }
+
+  final _announcer = BaseAnnouncer();
 
   bool get _usesDownload =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -924,6 +950,7 @@ class _SpikePageState extends State<SpikePage> {
     widget.settings?.removeListener(_shelterChanged);
     widget.settings?.removeListener(_sharingChanged);
     unawaited(_server?.stop());
+    unawaited(_announcer.dispose().catchError((Object _) {}));
     _factsTimer?.cancel();
     _retry?.cancel();
     super.dispose();
@@ -1137,13 +1164,20 @@ class _SpikePageState extends State<SpikePage> {
     }
   }
 
-  /// Trusts the shelter's signing key. With a key from the QR code, a
-  /// computer with another key is refused (someone else at that address).
+  /// Trusts the shelter's signing key, only when it came from its QR code
+  /// (checked in person): a computer with another key is refused (someone
+  /// else at that address). A base connected by its address or found on
+  /// the Wi-Fi gives answers and downloads (checked by signature anyway),
+  /// but its facts stay unverified until its QR code is scanned.
   Future<bool> _trustShelterKey(Map<String, dynamic> info) async {
     final key = info['key'] as String?;
     final expected = widget.settings?.shelterKey;
     final trust = widget.facts?.trust;
-    if (expected != null && key != expected) {
+    if (expected == null) {
+      _log({'event': 'shelter_key_not_pinned'});
+      return true;
+    }
+    if (key != expected) {
       _log({'event': 'shelter_key_mismatch'});
       setState(() {
         _status = 'Base key does not match the QR code: not connected.';
@@ -1151,8 +1185,10 @@ class _SpikePageState extends State<SpikePage> {
       });
       return false;
     }
-    if (key != null && trust != null) {
-      await trust.add(key, info['name'] as String? ?? 'shelter');
+    if (trust != null) {
+      await trust.add(expected, info['name'] as String? ?? 'shelter');
+      // Facts pulled before the QR code was scanned.
+      await widget.facts?.reverify();
     }
     return true;
   }

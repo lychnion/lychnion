@@ -333,6 +333,25 @@ holds a normal node folder (`lychnion/catalog.json`,
 - Phones cannot read a stick yet (folder access differs on Android and
   iOS).
 
+**Finding bases on the local Wi-Fi** (step 5e, built 2026-11-18). While
+a base shares on the local network, the desktop app announces it with
+Bonjour (mDNS) as `_lychnion._tcp`, with its name and signing key.
+On a phone, Settings → "Connect to a base" lists the bases on the same
+Wi-Fi above the address field. Tapping one asks the same question as a
+scanned QR code; nothing connects by itself. An announcement is not
+trusted: only private addresses are listed (10/8, 172.16/12,
+192.168/16, 100.64/10), the address is only where to ask, and the
+announced key is not kept. A base found on the Wi-Fi or typed in by its
+address gives answers and downloads (checked by signature anyway), but
+its signed facts (shelter status and other notices) show as unverified
+until its QR code is scanned: only the QR code, checked in person, pins
+its key (a computer at that address with another key is then refused).
+Scanning the QR code of the base already connected pins the key and
+checks the earlier facts again (also at every start). At most 20 bases
+are listed, one per announced name, at its latest address. Networks that block multicast (some guest Wi-Fi) hide the list; the
+address and the QR code still work. Not yet: a phone following its base
+to a new address by itself, and the headless node announcing itself.
+
 ### Updates during a disaster
 
 A city signs a new version of its local package on its node (new shelter
@@ -376,6 +395,7 @@ list, so people do not have to judge keys themselves. To decide later.
 | Stolen node key | Each key signs only its publisher's packages; Lychnion's key is not on any node. Key rotation and revocation: a later step |
 | Bad or slow mirror | Mirrors are unsigned on purpose: a file from one must match the signed hash, or it is thrown away and the next address is tried. A bad mirror costs time, not safety |
 | Malicious file content | Packages are data; opened read-only, only after the checks; size limits |
+| Fake base announced on the Wi-Fi | Listed only (private addresses); the user picks it and answers a question. Its facts stay unverified until the base's QR code is scanned, so a fake cannot make its notices look official. Downloads from any base are checked by signature and hash. A device flooding the network with announcements can hide real bases from the list; the address and QR code still work |
 | Wrong publisher trusted | Keys are added only by an explicit action (QR at the shelter), shown with the publisher's name; the user can remove them |
 | Licence problems | Every source has a licence entry; each package carries its licences and attributions |
 
@@ -407,7 +427,7 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
    everything (both built 2026-11-18, see "Sync between nodes");
    (c) the headless node pulling by itself at an interval (built
    2026-11-18: `pull --every`, `serve --pull`); (d) a USB stick between
-   places (built 2026-11-18); (e) finding bases on the local Wi-Fi.
+   places (built 2026-11-18); (e) finding bases on the local Wi-Fi (built 2026-11-18).
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones
    without the app (all iPhones without it, since iOS installs apps only

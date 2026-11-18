@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "Lychnion";
 "CFBundleName" = "Lychnion";
+"NSLocalNetworkUsageDescription" = "Finds and connects to the base computer on this Wi-Fi, for answers and updates without internet.";

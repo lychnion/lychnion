@@ -1669,4 +1669,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String publishErrorPackage(String detail) {
     return 'This file is not a guide the app can use ($detail). Build it again with the lychnion-data tools.';
   }
+
+  @override
+  String get shelterFoundTitle => 'Bases on this Wi-Fi';
+
+  @override
+  String get shelterFoundLooking => 'Looking…';
+
+  @override
+  String get shelterFoundNone =>
+      'No base found yet. Enter its address below, or scan its QR code.';
+
+  @override
+  String get shelterScanToTrust =>
+      'Scan the base\'s QR code to trust its notices.';
 }
