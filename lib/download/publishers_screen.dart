@@ -114,12 +114,25 @@ class _PublishersScreenState extends State<PublishersScreen> {
                 ),
               for (final p in added)
                 ListTile(
-                  leading: const Icon(Icons.badge_outlined),
+                  leading: Icon(
+                    _list.keyStateOf(p.name) == PublisherKeyState.revoked
+                        ? Icons.gpp_bad_outlined
+                        : Icons.badge_outlined,
+                  ),
                   title: Text(p.title ?? p.name),
                   subtitle: Text(
                     [
                       if (p.title != null) p.name,
-                      l.publishersKey(p.keyId),
+                      switch (_list.keyStateOf(p.name)) {
+                        PublisherKeyState.added => l.publishersKey(p.keyId),
+                        PublisherKeyState.replaced => l.publishersKeyReplaced(
+                          ([
+                            for (final id in _list.trust.keyIdsOf(p.name))
+                              if (id != p.keyId) id,
+                          ]..sort()).join(', '),
+                        ),
+                        PublisherKeyState.revoked => l.publishersKeyRevoked,
+                      },
                       l.publishersAddedOn(
                         MaterialLocalizations.of(context)
                             .formatMediumDate(p.added.toLocal()),
@@ -148,6 +161,7 @@ String publisherProblemText(AppLocalizations l, PublisherProblem p, String n) =>
       PublisherProblem.builtIn => l.publishersBuiltInName(n),
       PublisherProblem.otherKey => l.publishersOtherKey(n),
       PublisherProblem.known => l.publishersKnown(n),
+      PublisherProblem.revoked => l.publishersRevoked(n),
     };
 
 /// Asks, then adds the publisher of [link] (a scanned or pasted

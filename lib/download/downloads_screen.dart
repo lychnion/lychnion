@@ -213,6 +213,7 @@ Future<void> _stick(
     } else {
       if (m.busy) throw const _Busy();
       final r = await m.withoutDownloads(() => loadFromStick(m.store, dir));
+      if (r.keysChanged) await m.publishersChanged();
       m.installedChanged();
       text = l.stickLoaded(
         '${r.added}',

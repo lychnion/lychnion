@@ -12,6 +12,7 @@ import '../download/download_manager.dart';
 import '../download/publisher_list.dart';
 import '../l10n/app_localizations.dart';
 import '../util/paths.dart';
+import 'key_actions.dart';
 import 'local_publisher.dart';
 import 'publish.dart';
 
@@ -243,6 +244,35 @@ class _PublishScreenState extends State<PublishScreen> {
         label: Text(l.publishCreate),
       ),
     ),
+    const SizedBox(height: 24),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: _busy
+              ? null
+              : () async {
+                  final me = await restoreKey(context, _dir!, widget.manager);
+                  if (me != null && mounted) setState(() => _me = me);
+                },
+          icon: const Icon(Icons.restore_rounded),
+          label: Text(l.publishRestore),
+        ),
+        OutlinedButton.icon(
+          onPressed: _busy
+              ? null
+              : () => revokeFromBackup(context, _dir!, widget.manager),
+          icon: const Icon(Icons.gpp_bad_outlined),
+          label: Text(l.publishRevokeFromBackup),
+        ),
+      ],
+    ),
+    const SizedBox(height: 8),
+    Text(
+      l.publishRevokeFromBackupText,
+      style: Theme.of(context).textTheme.bodySmall,
+    ),
   ];
 
   List<Widget> _publisher(AppLocalizations l, LocalPublisher me) {
@@ -310,6 +340,16 @@ class _PublishScreenState extends State<PublishScreen> {
             ],
           ),
         ),
+      ),
+      const SizedBox(height: 16),
+      PublisherKeyActions(
+        dir: _dir!,
+        manager: widget.manager,
+        me: me,
+        busy: _busy,
+        onChanged: (n) {
+          if (mounted) setState(() => _me = n);
+        },
       ),
       const SizedBox(height: 16),
       Text(l.publishPublished, style: Theme.of(context).textTheme.titleMedium),

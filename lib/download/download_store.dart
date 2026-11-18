@@ -327,6 +327,10 @@ class DownloadStore {
     }
   }
 
+  /// The record in the install marker of [id], signature not checked
+  /// (for re-signing an item with a publisher's new key).
+  PackageRecord? recordOnDisk(ItemKind kind, String id) => _onDisk(kind, id);
+
   /// Version in the install marker of [item]'s id, also when its record
   /// is no longer trusted (versions only go up).
   String? recordedVersion(CatalogItem item) =>

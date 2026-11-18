@@ -52,6 +52,10 @@ class StickResult {
   /// Items whose files were missing, did not match or could not be
   /// written.
   final failed = <String>[];
+
+  /// Loading learned key statements that changed which keys are trusted:
+  /// install records and catalogs must be checked again.
+  var keysChanged = false;
 }
 
 /// A stick whose catalog.json cannot be read (broken, too large, or from a
@@ -88,6 +92,15 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   }
   final old = await _readCatalog(folder);
   await blobs.create(recursive: true);
+  // Key statements on the stick stay, and this device adds the ones it
+  // knows, so other devices learn of replaced and revoked keys.
+  final oldStatements = await KeyStatement.checkAll(old?.keys);
+  final statements = [...oldStatements];
+  for (final s in store.publishers.statements) {
+    if (statements.length >= KeyStatement.maxPerSource) break;
+    if (!statements.contains(s)) statements.add(s);
+  }
+  final trust = store.trust.withStatements(oldStatements);
 
   // What the stick has, by id (signatures are kept as they are: the
   // device reading the stick checks them).
@@ -96,7 +109,7 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   for (final raw in old?.records ?? const []) {
     final r = _shape(raw);
     if (r == null) continue;
-    final ok = await store.trust.check(raw) != null;
+    final ok = await trust.check(raw) != null;
     final have = onStick[r.id];
     // A trusted record wins over an untrusted one with the same id.
     if (have == null ||
@@ -162,6 +175,7 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
       '${const JsonEncoder.withIndent('  ').convert({
         'format': 2,
         'records': [for (final r in records) r.json],
+        if (statements.isNotEmpty) 'keys': [for (final s in statements) s.json],
         'urls': {for (final r in records)
           for (final f in r.files) f.sha256: 'blobs/sha256/${f.sha256}'},
       })}\n';
@@ -280,8 +294,16 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
   final cat = await _readCatalog(folder);
   if (cat == null) throw const FileSystemException('no catalog');
 
+  // Key statements first: they decide which records are trusted.
+  final statements = await KeyStatement.checkAll(cat.keys);
+  try {
+    result.keysChanged = await store.publishers.learn(statements);
+  } on Object {
+    // Not saved: they still apply to the records on this stick.
+  }
+  final trust = store.trust.withStatements(statements);
   for (final raw in cat.records) {
-    final r = await store.trust.check(raw);
+    final r = await trust.check(raw);
     if (r == null) {
       result.notTrusted++;
       continue;
@@ -409,9 +431,8 @@ File? _blobOnStick(Directory folder, RecordFile f, Object? listed) {
 
 /// The records and `urls` of the catalog in [folder]; null when there is
 /// none. Throws [UnreadableStick] when it is there but cannot be read.
-Future<({List<Object?> records, Map<Object?, Object?> urls})?> _readCatalog(
-  Directory folder,
-) async {
+Future<({List<Object?> records, Map<Object?, Object?> urls, Object? keys})?>
+_readCatalog(Directory folder) async {
   final file = File('${folder.path}/catalog.json');
   if (!file.existsSync()) return null;
   if (file.lengthSync() > maxCatalogBytes) {
@@ -431,6 +452,7 @@ Future<({List<Object?> records, Map<Object?, Object?> urls})?> _readCatalog(
     urls: j['urls'] is Map
         ? j['urls'] as Map<Object?, Object?>
         : const <Object?, Object?>{},
+    keys: j['keys'],
   );
 }
 

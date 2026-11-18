@@ -51,6 +51,13 @@ here should be relied on alone in an emergency. Source only; build it as
   own guides and maps; people add the publisher by link or QR code and
   can follow its catalog. The desktop app can make its own key and
   publish.
+- **Back up, replace and revoke a publisher key** (desktop,
+  [#41](https://github.com/lychnion/lychnion/issues/41)). A backup file
+  protected by a passphrase, and restore from it. Replacing a key: the old
+  key signs the new one, and phones that trust the old key accept the new
+  one. Revoking a stolen key: phones stop using it and what it signed, and
+  add the publisher's new link. Phones learn of both from catalogs and
+  USB sticks, also offline.
 - **Headless node** (`packages/lychnion_node`): serves, mirrors and keeps
   catalogs current on a server.
 - **Help inside the app**, in Japanese and English, readable and
@@ -91,7 +98,10 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Formats
 
-Catalog `format: 2`, signed record `format: 1`, base protocol `v: 1`.
+Catalog `format: 2` (with an optional `keys` list), signed record
+`format: 1`, key statement `format: 1`, key backup `format: 1`, base
+protocol `v: 1`. Older builds ignore `keys`: they do not accept a
+replacement key or honour a revocation.
 
 ### Known gaps
 

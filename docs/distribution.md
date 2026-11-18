@@ -65,7 +65,10 @@ user (built 2026-11-18, step 4a):
   that phone has added the city too.
 - Names built into the app (`lychnion`) cannot be added. A name already
   added with another key is refused: the user removes it first, so a
-  changed key is never taken over silently.
+  changed key is never taken over silently. Two exceptions, both from
+  the publisher's own key statements: a replacement signed by the old
+  key, and a new link for a publisher whose key was revoked (see
+  "Backing up and replacing the key").
 - Removing a publisher deletes what was installed from it; what the app
   or a running base had loaded from it is unloaded. Ids and file names
   stay with the publisher that installed them: an added publisher can
@@ -83,7 +86,8 @@ Publishers → "Publish your own" (desktop app only):
    and a shown name (神戸市). The key is saved in the app folder
    (`publisher/publisher.json`, in a folder only this user can read) and never
    served or shared. The screen shows the publisher's QR code and link
-   for phones, and where the key file is, to keep a copy offline.
+   for phones, and where the key file is. Back it up from there
+   (see "Backing up and replacing the key").
 2. "Publish a guide or map": pick a package file (`<id>.sqlite`, built
    with the lychnion-data tools; id, version, titles and notice are read
    from it) or a map area's files (all named `<id>.…`). Check the form,
@@ -100,10 +104,82 @@ cannot use (it is opened as the app does to answer: the `meta`, `sources`,
 that do not start with the id. This computer adds its own publisher to its list,
 so it trusts what it signs.
 
-Not yet: export or back up the key from the app, and replace a lost
-key. Guides are made with
+Guides are made with
 [lychnion-studio](https://github.com/lychnion/lychnion-studio) (step 6),
 not only with our Python tools.
+
+### Backing up and replacing the key
+
+Built 2026-11-19 ([#41](https://github.com/lychnion/lychnion/issues/41)),
+in Publish your own (desktop app).
+
+**Backup.** "Save a key backup" writes `<name>.lychnion-key`: name,
+title, public key, the private key encrypted with a passphrase (at least
+12 characters; Argon2id, then AES-256-GCM; name and public key are bound
+to it), and a warning in English and Japanese. Keep it offline
+(1Password, or a USB stick in a safe), never on a server, in a repository
+or on a stick you hand out. A forgotten passphrase cannot be recovered.
+"Restore from a backup" works only on a computer without a key (a key is
+never replaced silently); a wrong passphrase, a damaged or changed file,
+or another kind of file is refused and nothing is written.
+
+**Key statements.** Small signed statements, carried in a catalog's
+`keys` list (`packages/lychnion_format`, `KeyStatement`):
+
+```json
+{"format": 1, "type": "replace", "publisher": "jp.city.kobe",
+ "old": "<old public key>", "new": "<new public key>",
+ "signed": "2026-11-19T09:00:00+09:00",
+ "signature": "<by the old key>", "new_signature": "<by the new key>"}
+{"format": 1, "type": "revoke", "publisher": "jp.city.kobe",
+ "old": "<public key>", "signed": "…", "signature": "<by that key>"}
+```
+
+Both signatures cover the statement without its signatures, as records
+do (canonical JSON).
+
+- **Replace** ("Replace the key", the old key still there): the old key
+  signs the new one and the new key countersigns. A phone that trusts the
+  old key for that publisher then trusts the new one too; chains (A→B→C)
+  are followed. Records signed by the old key stay valid. Old backups hold
+  the old key: make a new backup.
+- **Revoke** ("Revoke the key", when someone else may have it): signed by
+  the key itself, so whoever holds it can revoke it, a thief too, which
+  does no harm. The app makes a new key. Phones stop trusting the revoked
+  key and every record it signed (installed items are no longer used, as
+  when a publisher is removed), and remember it: its old link stays
+  refused, also after the publisher was removed. The publisher stays
+  listed as revoked until the user adds its new link (QR). Nothing signed
+  by a revoked key can vouch for a new key, so a phone cannot tell owner
+  and thief apart; the user decides by adding the new link.
+- **Theft shows as a conflict:** a key that names two different
+  successors is treated as revoked, and so is every key reached only
+  through a revoked key.
+- **Lost computer:** a backup holds a ready-made revocation of its key,
+  not encrypted. "Revoke a lost key from a backup" uses it without the
+  passphrase.
+
+After a replacement or revocation the desktop app re-signs the newest
+record of each item it published with the new key, so what is installed
+there stays in use. The statements are kept with the key
+(`publisher/publisher.json`) and in `publisher/keys.json` (no private
+key), whose `keys` the publisher puts into its catalog.
+
+**How phones learn of them**, often offline: statements check themselves,
+so any carrier will do. A catalog (Lychnion's, a followed one, and its
+last copy), a USB stick (the desktop app writes the statements it knows
+to the stick and reads them from it) and a device nearby that sends them
+in its catalog. A phone keeps statements made by a key it trusts at that
+moment for that publisher (anyone can sign a statement about a key of
+their own; those are not kept), at most 1000, in `publishers.json`
+(format 2), and
+checks a catalog's records after applying that catalog's statements, so
+records of a new key count at once. Not yet: a base and the headless
+node passing statements on in their own catalogs (follow-up).
+
+**Older apps** ignore `keys`: they keep trusting only the old key, show
+records of the new key as having a bad signature, and do not honour a
+revocation. The record and catalog formats are unchanged.
 
 ### Package records
 

@@ -569,6 +569,25 @@ class DownloadManager extends ChangeNotifier {
   }) =>
       Catalog.parse(json, fetchedFrom: from, trust: trust, ownFilesOnly: true);
 
+  /// Keeps the key statements of [c] about publishers this device knows.
+  /// When they change which keys are trusted, install records and every
+  /// catalog are checked again (not awaited: this runs inside a parse).
+  Future<void> _learnStatements(Catalog c, Uri? from) async {
+    if (c.statements.isEmpty) return;
+    try {
+      if (!await store.publishers.learn(c.statements)) return;
+    } on Object catch (e) {
+      // Not saved: they still applied to this catalog's records.
+      _log({'event': 'key_statements_not_saved', 'error': '$e'});
+      return;
+    }
+    _log({
+      'event': 'key_statements_learned',
+      'from': from == null ? null : redactedUrl(from),
+    });
+    unawaited(publishersChanged());
+  }
+
   /// Records with a bad signature are left out of the catalog and logged.
   /// [device]: from a device on the local network ([parseDeviceCatalog]).
   Future<Catalog> _parse(String json, Uri? from, {bool device = false}) async {
@@ -580,6 +599,7 @@ class DownloadManager extends ChangeNotifier {
             baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
             trust: store.trust,
           );
+    await _learnStatements(c, from);
     // A few lines, not one per record: a catalog may hold thousands of
     // records from publishers not added.
     for (final r in c.rejected.take(10)) {
