@@ -478,5 +478,10 @@
   "stickNoCatalog": "この USB メモリに Lychnion のフォルダがありません。",
   "stickFailed": "完了できませんでした：{detail}",
   "stickBusy": "ダウンロードが終わってから USB メモリから読み込んでください。",
-  "stickUnreadable": "この USB メモリの Lychnion フォルダを読み込めません（{reason}）。何も変更していません。"
+  "stickUnreadable": "この USB メモリの Lychnion フォルダを読み込めません（{reason}）。何も変更していません。",
+  "aboutVersion": "バージョン",
+  "aboutVersionValue": "{version}（ビルド {build}）",
+  "aboutData": "入っているデータ",
+  "aboutCopyHint": "長押しでコピー（問い合わせ用）",
+  "aboutCopied": "コピーしました"
 }

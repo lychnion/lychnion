@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:url_launcher/url_launcher.dart';
 import '../ui/help_screen.dart';
 
@@ -9,7 +10,9 @@ import '../download/catalogs_screen.dart';
 import '../download/downloads_screen.dart';
 import '../download/publishers_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../knowledge/knowledge_package.dart' show PackageInfo;
 import 'settings.dart';
+import 'versions.dart';
 import 'brand.dart';
 import 'lang.dart';
 import 'notices.dart';
@@ -25,7 +28,11 @@ class SettingsScreen extends StatelessWidget {
     this.onShareNearby,
     this.region,
     this.userRegion,
+    this.bundledPackages,
   });
+
+  /// The packages shipped with the app, for the versions in About.
+  final Future<List<PackageInfo>> Function()? bundledPackages;
 
   final AppSettings settings;
   final DownloadManager? downloads;
@@ -178,7 +185,10 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: l.settingsAboutAppHint,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => _AboutPage(settings: settings),
+                      builder: (_) => _AboutPage(
+                        settings: settings,
+                        bundledPackages: bundledPackages,
+                      ),
                     ),
                   ),
                 ),
@@ -266,9 +276,10 @@ class _NavTile extends StatelessWidget {
 }
 
 class _AboutPage extends StatelessWidget {
-  const _AboutPage({required this.settings});
+  const _AboutPage({required this.settings, this.bundledPackages});
 
   final AppSettings settings;
+  final Future<List<PackageInfo>> Function()? bundledPackages;
 
   @override
   Widget build(BuildContext context) {
@@ -340,6 +351,7 @@ class _AboutPage extends StatelessWidget {
                 ),
               ],
             ),
+            _VersionSection(bundledPackages: bundledPackages),
             _Group(
               title: l.aboutOpenSource,
               children: [
@@ -368,13 +380,18 @@ class _AboutPage extends StatelessWidget {
                   ),
                   title: Text(l.aboutLicences),
                   subtitle: Text(l.aboutLicencesText),
-                  onTap: () => showLicensePage(
-                    context: context,
-                    applicationName: l.appName,
-                    applicationLegalese:
-                        '© the Lychnion authors · GNU AGPL v3 '
-                        '(app store exception)\n${Brand.sourceUrl}',
-                  ),
+                  onTap: () async {
+                    final v = await Versions.load(context.lang);
+                    if (!context.mounted) return;
+                    showLicensePage(
+                      context: context,
+                      applicationName: l.appName,
+                      applicationVersion: l.aboutVersionValue(v.app, v.build),
+                      applicationLegalese:
+                          '© the Lychnion authors · GNU AGPL v3 '
+                          '(app store exception)\n${Brand.sourceUrl}',
+                    );
+                  },
                 ),
               ],
             ),
@@ -393,6 +410,81 @@ class _AboutPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The app's version and the installed guides, maps and models. A long
+/// press copies them all for a report.
+class _VersionSection extends StatefulWidget {
+  const _VersionSection({this.bundledPackages});
+
+  final Future<List<PackageInfo>> Function()? bundledPackages;
+
+  @override
+  State<_VersionSection> createState() => _VersionSectionState();
+}
+
+class _VersionSectionState extends State<_VersionSection> {
+  Future<Versions>? _versions;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _versions ??= Versions.load(context.lang, bundled: widget.bundledPackages);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return FutureBuilder<Versions>(
+      future: _versions,
+      builder: (context, snap) {
+        final v = snap.data;
+        if (v == null) return const SizedBox(height: 8);
+        Future<void> copy() async {
+          await Clipboard.setData(ClipboardData(text: v.report(l.appName)));
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l.aboutCopied)));
+        }
+
+        return _Group(
+          title: l.aboutVersion,
+          children: [
+            ListTile(
+              leading: Icon(
+                Icons.tag_rounded,
+                color: theme.colorScheme.primary,
+              ),
+              title: Text(l.aboutVersionValue(v.app, v.build)),
+              subtitle: Text(l.aboutCopyHint, style: muted),
+              onLongPress: copy,
+            ),
+            if (v.data.isNotEmpty)
+              ListTile(
+                leading: Icon(
+                  Icons.inventory_2_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(l.aboutData),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (t, ver) in v.data)
+                      Text('$t  $ver', style: muted),
+                  ],
+                ),
+                onLongPress: copy,
+              ),
+          ],
+        );
+      },
     );
   }
 }

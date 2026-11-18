@@ -1642,4 +1642,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String stickUnreadable(String reason) {
     return 'The Lychnion folder on this stick cannot be read ($reason). Nothing was changed.';
   }
+
+  @override
+  String get aboutVersion => 'Version';
+
+  @override
+  String aboutVersionValue(String version, String build) {
+    return '$version (build $build)';
+  }
+
+  @override
+  String get aboutData => 'Installed data';
+
+  @override
+  String get aboutCopyHint => 'Long press to copy (for reports)';
+
+  @override
+  String get aboutCopied => 'Copied';
 }

@@ -507,6 +507,7 @@ class _HomePageState extends State<HomePage> {
           map: _map,
           mockLocation: _mockLocation,
         ),
+        bundledPackages: _builtInPackageInfo,
         userRegion: () => UserRegion.current(
           widget.settings,
           _map,
@@ -565,6 +566,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             SpikePage(
               tourKeys: _tourKeys,
+              onScreen: _tab == 0,
               onShelterCatalog: _addShelterCatalog,
               view: _tab == 1 ? AskPageView.conversations : AskPageView.home,
               onOpenSettings: _openSettings,
@@ -653,7 +655,11 @@ class SpikePage extends StatefulWidget {
     this.onOpenSettings,
     this.onShowAsk,
     this.tourKeys,
+    this.onScreen = true,
   });
+
+  /// Whether Home is the tab on screen (the map tab keeps it built).
+  final bool onScreen;
 
   /// The parts of the screen the guided tour points at.
   final TourKeys? tourKeys;
@@ -976,13 +982,24 @@ class _SpikePageState extends State<SpikePage> {
         final store = await DownloadStore.instance();
         // The built-in packages (or newer downloads of them) plus every
         // other package installed from Downloads, searched together.
+        // One broken or foreign file must not stop the app from answering
+        // with the others: it is left out and logged.
+        KnowledgePackage? openOrSkip(String id, String path) {
+          try {
+            return KnowledgePackage.open(path);
+          } on Object catch (e) {
+            _log({'event': 'package_skipped', 'id': id, 'error': '$e'});
+            return null;
+          }
+        }
+
         final pkg = KnowledgePackage.merge([
           for (final id in _bundledPackages)
-            KnowledgePackage.open(await store.packagePath(id, '$id.sqlite')),
+            ?openOrSkip(id, await store.packagePath(id, '$id.sqlite')),
           for (final i in store.allInstalled(ItemKind.package))
             if (!_bundledPackages.contains(i.id) &&
                 i.fileEnding('.sqlite') != null)
-              KnowledgePackage.open(store.path(i, i.fileEnding('.sqlite')!)),
+              ?openOrSkip(i.id, store.path(i, i.fileEnding('.sqlite')!)),
         ]);
         HybridRetriever? hybrid;
         final embedPath = _embedPath.isNotEmpty
@@ -1394,7 +1411,9 @@ class _SpikePageState extends State<SpikePage> {
     final hidden = settings?.firstSteps.contains('hidden') ?? false;
     final showSteps = settings != null && !steps.allDone && !hidden;
     // Once the first steps are done, the tour shows the screen once.
-    if (steps.allDone &&
+    if (widget.onScreen &&
+        widget.view == AskPageView.home &&
+        steps.allDone &&
         settings != null &&
         !settings.firstSteps.contains('tour') &&
         !_tourStarted) {

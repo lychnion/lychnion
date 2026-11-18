@@ -1021,5 +1021,11 @@
   "@stickFailed": {"placeholders": {"detail": {"type": "String"}}},
   "stickBusy": "Wait until the downloads have finished, then load from the stick.",
   "stickUnreadable": "The Lychnion folder on this stick cannot be read ({reason}). Nothing was changed.",
-  "@stickUnreadable": {"placeholders": {"reason": {"type": "String"}}}
+  "@stickUnreadable": {"placeholders": {"reason": {"type": "String"}}},
+  "aboutVersion": "Version",
+  "aboutVersionValue": "{version} (build {build})",
+  "@aboutVersionValue": {"placeholders": {"version": {"type": "String"}, "build": {"type": "String"}}},
+  "aboutData": "Installed data",
+  "aboutCopyHint": "Long press to copy (for reports)",
+  "aboutCopied": "Copied"
 }

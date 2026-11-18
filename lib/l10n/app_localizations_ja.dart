@@ -1562,4 +1562,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String stickUnreadable(String reason) {
     return 'この USB メモリの Lychnion フォルダを読み込めません（$reason）。何も変更していません。';
   }
+
+  @override
+  String get aboutVersion => 'バージョン';
+
+  @override
+  String aboutVersionValue(String version, String build) {
+    return '$version（ビルド $build）';
+  }
+
+  @override
+  String get aboutData => '入っているデータ';
+
+  @override
+  String get aboutCopyHint => '長押しでコピー（問い合わせ用）';
+
+  @override
+  String get aboutCopied => 'コピーしました';
 }
