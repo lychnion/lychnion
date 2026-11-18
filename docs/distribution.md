@@ -200,7 +200,8 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
 1. **Signed records** (built 2026-11-18). Sign the records of the Lychnion packages in
    `lychnion-data` and make the app check them. Bundled packages stay as
    they are; downloads and updates must be signed.
-2. **Shelter computer serves packages.** The desktop app serves its
+2. **Shelter computer serves packages** (built 2026-11-18, turned on
+   with a switch in Settings). The desktop app serves its
    records and files on the local network; phones connected to it update
    from it without internet. (Phones already talk to it for answers.)
 3. **Files by hash, several mirrors.** The `blobs/sha256/` layout on every
@@ -212,7 +213,9 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones
    without the app (all iPhones without it, since iOS installs apps only
-   from the App Store) can ask questions in the browser. A "shelter kit":
+   from the App Store) can ask questions in the browser (built
+   2026-11-18, see `docs/shelter-results.md`). Next: open the page by
+   itself when a phone joins the shelter Wi-Fi (lychnion#3). A "shelter kit":
    one folder or stick with the desktop app, all packages and maps, and
    the Android app file.
 
@@ -239,7 +242,7 @@ Separate topic, notes for later:
 - Stores: App Store and Google Play under the app store exception
   (`LICENSE-APPSTORE-EXCEPTION.md`); F-Droid fits the AGPL.
 - On site: Android can install the app file from the shelter kit; iOS
-  cannot, hence the web page in step 4.
+  cannot, hence the web page in step 7.
 - Desktop (shelter computer): macOS and Windows builds as GitHub release
   files; who signs and publishes them is still open.
 - The source repository must be public before the app reaches anyone

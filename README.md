@@ -45,7 +45,9 @@ iPhone simulator, 2026-11-05. Shelter status and warnings on the map are test da
 - Shelter computer ([results](docs/shelter-results.md)): the desktop app
   answers phones on the local network (E4B); a Pixel 5a with no model gets
   answers in 2.5 s instead of 48 s. Phones connect by scanning a QR code
-  on the shelter computer, or by typing its address.
+  on the shelter computer, or by typing its address. Since 2026-11-18 a
+  switch in Settings turns this on, and phones without the app can use a
+  web page from the shelter computer (see [Shelter computer](#shelter-computer)).
 - Real devices ([results](docs/device-results.md)): iPad Air 5 (M1) runs
   the full app offline: about 22 tokens/s, answers in 2 to 9 s, same answers
   as on the Mac. Pixel 5a (2021, 6 GB): same quality but about 48 s per
@@ -60,6 +62,57 @@ iPhone simulator, 2026-11-05. Shelter status and warnings on the map are test da
   blocked roads and warnings with age and source, apart from the AI; full
   shelters are skipped; staff enter them on the shelter computer, phones
   pull them every minute; 16 bytes per update in the radio-sized format.
+
+## Shelter computer
+
+A notebook PC with the desktop app can serve everyone on the same Wi-Fi,
+for example in an evacuation shelter. Phones with the app and phones
+without it both get:
+
+- answers to their questions, from the computer's model (faster than most
+  phones);
+- current information entered on the computer (shelter status, closed
+  roads, warnings);
+- with the app only: the computer's guides, maps and models, so a phone can
+  download them there without internet.
+
+<p>
+  <img src="docs/images/pixel-shelter-web.png" width="230" alt="Shelter page in a phone browser: shelter name, language menu, current information">
+  <img src="docs/images/pixel-shelter-app.png" width="230" alt="App on a phone: answer from the shelter computer, with its source">
+</p>
+
+Pixel 5a over Wi-Fi, 2026-11-18. Left: browser, no app. Right:
+the app. The current information is test data.
+
+**On the computer:**
+
+1. Settings → 避難所 / Shelter → turn on 「この端末を避難所として公開」 /
+   "Share on the local network".
+2. Enter the shelter's name, for example 「南小学校 避難所」. Phones show it.
+3. Show the QR code to people. 「ブラウザで」 / "In the browser" works on
+   every phone; 「アプリで」 / "With the app" connects the app. Only one
+   code is shown at a time, so a camera cannot pick up the wrong one.
+   「大きく表示」 / "Show large" fills the screen, for a monitor at the
+   entrance.
+
+Sharing starts once the answer model has loaded. Turn the switch off to
+stop. The status chip on the home screen says 「公開中」 / "Sharing".
+
+**On a phone:** scan the code with the normal camera app. The browser page
+asks and answers in Japanese or English (menu at the top right). The app
+asks before it connects and remembers the shelter.
+
+**The network:** the phones and the computer must be on the same Wi-Fi,
+and it must let devices reach each other. Many guest and office networks
+block this ("client isolation"). The safest setup is a Wi-Fi the shelter
+controls: the computer's own hotspot or a small router. No internet is
+needed. The page uses plain http on a local address: Chrome shows "not
+secure" in the address bar but no warning page (checked on the Pixel 5a).
+Opening the page by itself when a phone joins the Wi-Fi is planned
+([#3](https://github.com/lychnion/lychnion/issues/3)).
+
+More: [shelter results](docs/shelter-results.md),
+[distribution design](docs/distribution.md).
 
 ## Knowledge packages
 
@@ -115,12 +168,17 @@ flutter run -d macos --dart-define=DOWNLOAD_BASE_URL=http://127.0.0.1:8765/
 ```
 
 `AUTO_DOWNLOAD=id,…` downloads catalog items on start (for scripted tests).
+`SHELTER_SERVER=true` (with `SHELTER_NAME=…`) turns sharing on at start,
+whatever the setting says. `DEMO_FACTS=true` adds test facts; they need a
+map area (downloaded, or `MAP_PMTILES_PATH`).
 `MIN_COS` now defaults to 0.70.
 
 ## Layout
 
 - `lib/llm/local_llm.dart`: the only code that talks to the model engine.
 - `lib/download/`: catalog, downloader (resume, SHA-256), Downloads tab.
+- `lib/shelter/`: shelter server, browser page data, QR codes; the page
+  itself is `assets/web/shelter.html`.
 - `lib/spike/`: test questions for comparing models and devices.
 - `docs/poc-plan.md`: plan, competitor review, licences, naming notes.
 - `docs/distribution.md`: how apps and data packages reach people, also without internet (design note).

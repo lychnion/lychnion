@@ -96,3 +96,39 @@ Notes:
   still send wrong answers or facts: signed facts are still open.
 - `app_links` only receives links in debug builds started by `flutter run`
   (its own check); release builds on phones are not affected.
+
+## Sharing switch and browser page (2026-11-18)
+
+- **Switch:** Settings → 避難所 on computers (macOS, Windows, Linux):
+  「この端末を避難所として公開」 / "Share on the local network", and the
+  shelter's name (asked when turning it on). The server starts, stops and
+  renames itself to match, once the model has loaded
+  (`ShelterShareSection`, `_syncServer` in `lib/main.dart`). The
+  `SHELTER_SERVER` flag still works for development.
+- **Browser page:** `GET /` serves `assets/web/shelter.html`, one
+  self-contained file (no internet, no files from elsewhere).
+  `GET /web.json?lang=` gives its texts from the app's ARB files, the
+  language list and the current facts as display lines; `POST /ask`
+  returns the answer ready to show (`lib/shelter/shelter_web.dart`).
+  Answers follow the question's language, labels included. Text is shown
+  with `textContent` only, never as HTML.
+- **QR card:** one code at a time, browser first, the app on request;
+  「大きく表示」 for a screen at the entrance.
+
+Tested with the Mac (Gemma 4 E2B) as shelter and a Pixel 5a over Wi-Fi
+(no USB tunnel this time):
+
+| Check | Result |
+|---|---|
+| Browser page from `http://192.168.1.242:8642/` | Loads; Chrome shows "not secure" in the address bar, no warning page |
+| Current information on the page | Shown, with shelter names (fixed: first showed site IDs) |
+| "What should I do after a tick bite?" in the browser | Answered with two sources |
+| Japanese question on an English page | Japanese answer, Japanese labels |
+| App linked to the shelter | 「Shelter computer · 南小学校 避難所」 answers, with source |
+
+Fixed during the test: site IDs instead of names on the page; the phone
+keyboard staying open over the answer.
+
+Not tested yet: scanning the codes with a phone camera (the links were
+opened over USB), an iPhone, several phones at once, Windows as shelter.
+
