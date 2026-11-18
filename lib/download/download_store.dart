@@ -9,6 +9,7 @@ import 'catalog.dart';
 import 'downloader.dart';
 import 'followed_catalogs.dart';
 import 'publisher_list.dart';
+
 import 'package:lychnion_format/lychnion_format.dart';
 
 /// Record of a verified download, kept next to its files as

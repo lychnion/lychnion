@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
@@ -27,9 +27,8 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
     if (text == null || !mounted) return;
     final link = catalogLinkFrom(text);
     if (link == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.catalogsNotALink)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.l10n.catalogsNotALink)));
       return;
     }
     await followCatalog(context, widget.manager, link);
@@ -59,9 +58,8 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
       await widget.manager.unfollow(c.url);
     } on Object {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l.catalogsSaveFailed)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.catalogsSaveFailed)));
       }
     }
   }
@@ -71,9 +69,8 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
     final when = s?.fetched == null
         ? l.catalogsNeverFetched
         : l.catalogsFetched(
-            MaterialLocalizations.of(
-              context,
-            ).formatMediumDate(s!.fetched!.toLocal()),
+            MaterialLocalizations.of(context)
+                .formatMediumDate(s!.fetched!.toLocal()),
           );
     return [
       if (s != null && s.fetched != null)

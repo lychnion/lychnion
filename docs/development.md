@@ -5,7 +5,7 @@ How to build, run and test the app. Start with the
 
 ## Requirements
 
-- Flutter 3.44 or newer (Dart 3.12 or newer).
+- Flutter 3.50 or newer (Dart 3.14 or newer).
 - Xcode for iOS and macOS, the Android SDK for Android.
 - Flutter's Swift Package Manager support must stay on (it is on by
   default).

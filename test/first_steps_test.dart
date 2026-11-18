@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
 import 'package:lychnion/ui/first_steps.dart';
 import 'package:lychnion/ui/suggestions.dart';
+import 'package:lychnion/app/text_delegates.dart';
 
 Widget _app(Widget child) => MaterialApp(
   locale: const Locale('ja'),
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  localizationsDelegates: appTextDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   home: Scaffold(body: SingleChildScrollView(child: child)),
 );

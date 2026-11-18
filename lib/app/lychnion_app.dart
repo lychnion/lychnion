@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../knowledge/bundled_packages.dart';
 import '../l10n/app_localizations.dart';
@@ -9,6 +9,7 @@ import 'notices.dart';
 import 'settings.dart';
 import 'splash.dart';
 import 'theme.dart';
+import 'text_delegates.dart';
 
 /// The app: theme, language, splash and first-start notices around the
 /// tabs.
@@ -27,7 +28,7 @@ class LychnionApp extends StatelessWidget {
       darkTheme: buildTheme(Brightness.dark),
       locale: settings.locale,
       supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appTextDelegates,
       home: AppShell(settings: settings),
       // Dev screenshots include pages pushed on top (conversations).
       // Headings in Latin-script languages use Lexend; the language is

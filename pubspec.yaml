@@ -5,7 +5,8 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.14.0
+  flutter: ">=3.50.0"
 
 dependencies:
   flutter:
@@ -18,8 +19,7 @@ dependencies:
   llamadart_llama_cpp_flutter: 0.17.3
   file_selector: ^1.0.3
   path_provider: ^2.1.5
-  # 3.6+ needs a newer Flutter SDK (meta pin).
-  sqlite3: ">=3.0.0 <3.6.0"
+  sqlite3: ^3.9.1
   vector_map_tiles_pmtiles: ^1.5.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
@@ -43,6 +43,9 @@ dependencies:
   # The app's version for Settings → About.
   package_info_plus: ^10.2.2
   bonsoir: ^7.1.5
+  # Material moved out of the Flutter SDK (Flutter 3.47); it brings
+  # cupertino_ui with it.
+  material_ui: ^1.11.1
 
 dev_dependencies:
   flutter_test:

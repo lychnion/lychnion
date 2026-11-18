@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
@@ -62,9 +62,8 @@ class _PublishersScreenState extends State<PublishersScreen> {
     final parsed = Uri.tryParse(link.trim());
     final p = parsed == null ? null : PublisherLink.fromUri(parsed);
     if (p == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.publishersNotALink)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.publishersNotALink)));
       return;
     }
     await addPublisher(context, widget.manager, p);
@@ -122,9 +121,8 @@ class _PublishersScreenState extends State<PublishersScreen> {
                       if (p.title != null) p.name,
                       l.publishersKey(p.keyId),
                       l.publishersAddedOn(
-                        MaterialLocalizations.of(
-                          context,
-                        ).formatMediumDate(p.added.toLocal()),
+                        MaterialLocalizations.of(context)
+                            .formatMediumDate(p.added.toLocal()),
                       ),
                     ].join(' · '),
                   ),

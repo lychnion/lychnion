@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/knowledge/app_help.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
 import 'package:lychnion/ui/help_screen.dart';
+import 'package:lychnion/app/text_delegates.dart';
 
 void main() {
   // Built by tool/build_help.py from help/.
@@ -10,7 +11,7 @@ void main() {
 
   Widget app(Widget child, {String locale = 'ja'}) => MaterialApp(
     locale: Locale(locale),
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: appTextDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: child,
   );

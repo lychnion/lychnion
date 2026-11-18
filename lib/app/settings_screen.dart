@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:url_launcher/url_launcher.dart';
+
 import '../ui/help_screen.dart';
 
 import '../download/download_manager.dart';
@@ -458,9 +459,8 @@ class _VersionSectionState extends State<_VersionSection> {
         Future<void> copy() async {
           await Clipboard.setData(ClipboardData(text: v.report(l.appName)));
           if (!context.mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l.aboutCopied)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l.aboutCopied)));
         }
 
         return _Group(

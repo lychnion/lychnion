@@ -141,17 +141,16 @@ void main() {
   });
 
   test('download catalog: titles, notes and notices in ja and en', () {
-    final catalog =
-        jsonDecode(File('assets/downloads/catalog.json').readAsStringSync())
-            as Map<String, dynamic>;
+    final catalog = jsonDecode(
+      File('assets/downloads/catalog.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
     final problems = <String>[];
     for (final r in (catalog['records'] as List).cast<Map<String, dynamic>>()) {
       for (final e in r.entries) {
         if (e.value is Map) {
           problems.addAll(
-            _langMapProblems(
-              e.value as Map,
-            ).map((p) => '${r['id']} ${e.key}: $p'),
+            _langMapProblems(e.value as Map)
+                .map((p) => '${r['id']} ${e.key}: $p'),
           );
         }
       }

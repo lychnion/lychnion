@@ -43,9 +43,9 @@ void main() {
 
 double _latinShare(String s) {
   final letters = s.runes.where(
-    (r) => RegExp(
-      r'[A-Za-z\u3040-\u30ff\u4e00-\u9fff]',
-    ).hasMatch(String.fromCharCode(r)),
+    (r) =>
+        RegExp(r'[A-Za-z\u3040-\u30ff\u4e00-\u9fff]')
+            .hasMatch(String.fromCharCode(r)),
   );
   if (letters.isEmpty) return 1;
   return letters.where((r) => r < 0x80).length / letters.length;

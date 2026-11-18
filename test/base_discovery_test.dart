@@ -1,13 +1,14 @@
 // Finding bases on the local Wi-Fi (docs/distribution.md, step 5e).
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
 import 'package:lychnion/base/base_discovery.dart';
 import 'package:lychnion/base/base_link.dart';
 import 'package:lychnion/base/base_panel.dart';
+import 'package:lychnion/app/text_delegates.dart';
 
 /// Lists [bases] at once, without the network.
 class _FakeFinder extends BaseFinder {
@@ -92,7 +93,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appTextDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: ListenableBuilder(

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -116,9 +116,8 @@ class _PublishScreenState extends State<PublishScreen> {
         files.length == 1 &&
         files.single.path.endsWith('.sqlite')) {
       // A .sqlite that is not a package: maybe a map's sites file.
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.publishNotPackage)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.publishNotPackage)));
     }
     req ??= PublishRequest(
       kind: ItemKind.map,
@@ -147,15 +146,13 @@ class _PublishScreenState extends State<PublishScreen> {
       ).showSnackBar(SnackBar(content: Text(l.publishDone(r.id, r.version))));
     } on PublishError catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(publishErrorText(l, e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(publishErrorText(l, e))));
     } on Object catch (e) {
       // Disk full, a file in use, a key list that cannot be saved, …
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l.publishFailed('$e'))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.publishFailed('$e'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -330,9 +327,8 @@ class _PublishScreenState extends State<PublishScreen> {
                 : Icons.menu_book_rounded,
           ),
           title: Text(
-            CatalogItem.fromRecord(
-              i.record,
-            ).title(Localizations.localeOf(context).languageCode),
+            CatalogItem.fromRecord(i.record)
+                .title(Localizations.localeOf(context).languageCode),
           ),
           subtitle: Text('${i.id} · ${i.version}'),
         ),
@@ -414,9 +410,8 @@ class _PublishFormState extends State<_PublishForm> {
               ),
               const SizedBox(height: 8),
               Text(
-                [
-                  for (final f in widget.initial.files) f.uri.pathSegments.last,
-                ].join('\n'),
+                [for (final f in widget.initial.files) f.uri.pathSegments.last]
+                    .join('\n'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               field(_id, l.publishId),

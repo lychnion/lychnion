@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/notices.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
+import 'package:lychnion/app/text_delegates.dart';
 
 void main() {
   const ids = ['jp.bousai.core', 'jp.outdoor.hiking', 'intl.firstaid.basics'];
@@ -25,9 +26,8 @@ void main() {
     final p = infos[0];
     expect(
       p.noticeKey,
-      KnowledgePackage.readInfo(
-        'assets/packages/jp.bousai.core.sqlite',
-      ).noticeKey,
+      KnowledgePackage.readInfo('assets/packages/jp.bousai.core.sqlite')
+          .noticeKey,
     );
     final changed = PackageInfo(
       p.id,
@@ -44,15 +44,15 @@ void main() {
 
   test('the app notice names the emergency numbers', () {
     expect(
-      appNotice(
-        lookupAppLocalizations(const Locale('ja')),
-      ).map((l) => l.$2).join(),
+      appNotice(lookupAppLocalizations(const Locale('ja')))
+          .map((l) => l.$2)
+          .join(),
       allOf(contains('119'), contains('110')),
     );
     expect(
-      appNotice(
-        lookupAppLocalizations(const Locale('en')),
-      ).map((l) => l.$2).join(),
+      appNotice(lookupAppLocalizations(const Locale('en')))
+          .map((l) => l.$2)
+          .join(),
       allOf(contains('119'), contains('110')),
     );
   });
@@ -62,7 +62,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         locale: const Locale('ja'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appTextDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: NoticeScreen(packages: infos, onAccept: () => accepted = true),
       ),

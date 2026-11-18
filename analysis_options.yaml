@@ -5,6 +5,11 @@ analyzer:
   # Packages have their own analysis options and CI job.
   exclude:
     - packages/**
+    - build/**
+    - android/**
+    - ios/**
+    - windows/**
+    - macos/**
   # JSON from packages and from other phones is untyped: make every cast
   # from dynamic explicit.
   language:
@@ -28,7 +33,6 @@ linter:
     - literal_only_boolean_expressions
     - avoid_type_to_string
     - prefer_void_to_null
-    - unnecessary_await_in_return
     - avoid_void_async
     - comment_references
     - discarded_futures

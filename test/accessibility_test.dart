@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+
 import 'dart:math';
 
 import 'package:flutter/rendering.dart';
@@ -24,6 +25,7 @@ import 'package:lychnion/base/base_panel.dart';
 import 'package:lychnion/ui/guided_tour.dart';
 import 'package:lychnion/ui/source_link.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:lychnion/app/text_delegates.dart';
 
 /// Screens checked with Flutter's accessibility guidelines, in light and
 /// dark, Japanese and English, and with text at twice the size.
@@ -395,13 +397,12 @@ Future<void> _pump(
   await t.pumpWidget(
     MaterialApp(
       locale: Locale(lang),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appTextDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: buildTheme(b),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
         child: child!,
       ),
       home: screen,
