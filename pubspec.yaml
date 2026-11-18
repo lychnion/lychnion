@@ -38,6 +38,8 @@ dependencies:
   # Downloads and catalog fetches, shared with the headless node.
   lychnion_fetch:
     path: packages/lychnion_fetch
+  lychnion_guide:
+    path: packages/lychnion_guide
   intl: any
   wakelock_plus: ^1.8.0
   # The app's version for Settings → About.

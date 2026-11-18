@@ -53,6 +53,9 @@ here should be relied on alone in an emergency. Source only; build it as
   publish.
 - **Headless node** (`packages/lychnion_node`): serves, mirrors and keeps
   catalogs current on a server.
+- **Guide files** (`packages/lychnion_guide`): the tables, writing a guide
+  and checking that the app can open it, shared with lychnion-studio. The
+  desktop app runs the same check before it signs a guide.
 - **Help inside the app**, in Japanese and English, readable and
   searchable without the AI; the AI also answers questions about the app.
 - **Settings and About:** language, region, mobile data, sharing on the
