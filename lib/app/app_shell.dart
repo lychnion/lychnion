@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -258,9 +258,8 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
 
   /// Phones pass on their downloads to phones nearby (computers do it as
   /// a base).
-  void _openShareNearby() => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const ShareNearbyScreen()));
+  void _openShareNearby() => Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const ShareNearbyScreen()));
 
   @override
   void _openDownloads() {

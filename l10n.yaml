@@ -5,3 +5,6 @@ template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
 nullable-getter: false
+# The generator (Flutter 3.50) still uses the localizations that moved to
+# material_ui and cupertino_ui; until it changes, its output says so once.
+header: "// ignore_for_file: deprecated_member_use"

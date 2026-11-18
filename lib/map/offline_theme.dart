@@ -35,7 +35,6 @@ Theme offlineLightTheme({required String lang}) {
     layers.add(copy);
   }
   const debug = bool.fromEnvironment('MAP_THEME_LOG');
-  return const ProtomapsThemes(
-    logger: debug ? Logger.console() : null,
-  ).build(layers);
+  return const ProtomapsThemes(logger: debug ? Logger.console() : null)
+      .build(layers);
 }

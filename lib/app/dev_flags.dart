@@ -30,8 +30,7 @@ abstract final class DevFlags {
   static const modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
   static const modelUrl = String.fromEnvironment(
     'GGUF_MODEL_URL',
-    defaultValue:
-        'https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf',
+    defaultValue: 'https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf',
   );
   static const autoBench = bool.fromEnvironment('AUTO_BENCH');
   static const bare = bool.fromEnvironment('BARE');

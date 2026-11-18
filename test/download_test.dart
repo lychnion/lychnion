@@ -373,9 +373,8 @@ void main() {
 
     Future<void> put(DownloadStore s, ItemKind k, String name, int size) async {
       await s.dirFor(k).create(recursive: true);
-      await File(
-        '${s.dirFor(k).path}/$name',
-      ).writeAsBytes(List.filled(size, 1));
+      await File('${s.dirFor(k).path}/$name')
+          .writeAsBytes(List.filled(size, 1));
     }
 
     test('only files with a record count, and only at their size', () async {
@@ -493,16 +492,15 @@ void main() {
       // Someone edits one record on disk; another is from before signing.
       final m = File('${s.dirFor(ItemKind.package).path}/p.installed.json');
       await m.writeAsString(m.readAsStringSync().replaceFirst('"1"', '"9"'));
-      await File(
-        '${s.dirFor(ItemKind.package).path}/old.installed.json',
-      ).writeAsString(
-        jsonEncode({
-          'id': 'old',
-          'kind': 'package',
-          'version': '1',
-          'files': {'q.sqlite': 3},
-        }),
-      );
+      await File('${s.dirFor(ItemKind.package).path}/old.installed.json')
+          .writeAsString(
+            jsonEncode({
+              'id': 'old',
+              'kind': 'package',
+              'version': '1',
+              'files': {'q.sqlite': 3},
+            }),
+          );
       final again = DownloadStore(tmp, trust: trust);
       expect(again.installed(ItemKind.package, 'q'), isNull); // not checked yet
       await again.verifyInstalled();

@@ -219,9 +219,8 @@ void main() {
               .having((e) => e.detail, 'detail', contains('source')),
         ),
       );
-      File(
-        '${tmp.path}/src/jp.kobe.bousai.sqlite',
-      ).writeAsStringSync('not sqlite');
+      File('${tmp.path}/src/jp.kobe.bousai.sqlite')
+          .writeAsStringSync('not sqlite');
       await refused(edit(), 'meta');
       packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
       await refused(edit(version: 'new'), 'version');
@@ -338,9 +337,8 @@ void main() {
           throwsA(isA<PublishError>().having((e) => e.code, 'code', 'taken')),
         );
         expect(
-          File(
-            '${store.dirFor(ItemKind.map).path}/jp.a.b.pmtiles',
-          ).readAsStringSync(),
+          File('${store.dirFor(ItemKind.map).path}/jp.a.b.pmtiles')
+              .readAsStringSync(),
           'theirs',
         );
       },
@@ -440,9 +438,8 @@ void main() {
         code('older'),
       );
       expect(
-        File(
-          '${store.dirFor(ItemKind.map).path}/jp.map.k.pmtiles',
-        ).existsSync(),
+        File('${store.dirFor(ItemKind.map).path}/jp.map.k.pmtiles')
+            .existsSync(),
         isTrue,
       );
     });

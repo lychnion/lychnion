@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../knowledge/knowledge_package.dart' show PackageInfo;
 import '../l10n/app_localizations.dart';

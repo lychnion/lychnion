@@ -107,9 +107,8 @@ void main() {
       final wrong = await serve(List<int>.filled(data.length, 7));
       final good = await serve(data);
       final failed = <Object>[];
-      final f = await Downloader(
-        onSourceFailed: (_, e) => failed.add(e),
-      ).fetch(spec([wrong.url, good.url]), tmp);
+      final f = await Downloader(onSourceFailed: (_, e) => failed.add(e))
+          .fetch(spec([wrong.url, good.url]), tmp);
       expect(f.readAsBytesSync(), data);
       expect(failed.single, isA<ChecksumError>());
       expect(good.ranges.single, isNull, reason: 'fetched from the start');
@@ -183,9 +182,8 @@ void main() {
         ..cuts = 1;
       final wrong = await serve(List<int>.filled(data.length, 3));
       final failed = <Uri>[];
-      final f = await Downloader(
-        onSourceFailed: (u, _) => failed.add(u),
-      ).fetch(spec([cut.url, wrong.url]), tmp);
+      final f = await Downloader(onSourceFailed: (u, _) => failed.add(u))
+          .fetch(spec([cut.url, wrong.url]), tmp);
       expect(f.readAsBytesSync(), data);
       expect(cut.ranges, [null, null], reason: 'second time from byte 0');
     });

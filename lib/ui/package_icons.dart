@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Icon names a package manifest may use ("icon", and each suggestion's
 /// "icon"). Icons must be known at build time (Flutter keeps only the icons

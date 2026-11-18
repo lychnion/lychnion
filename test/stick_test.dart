@@ -72,9 +72,8 @@ void main() {
     final folder = stickFolder(stick);
     expect(folder.path, endsWith('/lychnion'));
     expect(
-      File(
-        '${folder.path}/blobs/sha256/${a.files.single.sha256}',
-      ).readAsStringSync(),
+      File('${folder.path}/blobs/sha256/${a.files.single.sha256}')
+          .readAsStringSync(),
       'aaa',
     );
 
@@ -103,9 +102,8 @@ void main() {
     final c = await copyToStick(older, stick);
     expect((c.added, c.notNewer), (0, 1));
     expect(
-      File(
-        '${stickFolder(stick).path}/blobs/sha256/${old.files.single.sha256}',
-      ).existsSync(),
+      File('${stickFolder(stick).path}/blobs/sha256/${old.files.single.sha256}')
+          .existsSync(),
       isFalse,
     );
     final l = await loadFromStick(older, stick);
@@ -117,9 +115,8 @@ void main() {
     final here = store('here');
     final r = await install(here, 'jp.a', '2', 'good');
     await copyToStick(here, stick);
-    File(
-      '${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}',
-    ).writeAsStringSync('evil');
+    File('${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}')
+        .writeAsStringSync('evil');
     final there = store('there');
     await install(there, 'jp.a', '1', 'old');
     final l = await loadFromStick(there, stick);
@@ -244,9 +241,8 @@ void main() {
       final newer = store('newer');
       final r = await install(newer, 'jp.a', '2', 'two');
       await copyToStick(newer, stick);
-      File(
-        '${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}',
-      ).deleteSync();
+      File('${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}')
+          .deleteSync();
       final older = store('older');
       await install(older, 'jp.a', '1', 'one');
       final c = await copyToStick(older, stick);
@@ -258,16 +254,14 @@ void main() {
   test('a file damaged here is not copied to the stick', () async {
     final here = store('here');
     final r = await install(here, 'jp.a', '1', 'aaa');
-    File(
-      here.path(here.installed(ItemKind.package, 'jp.a')!, 'jp.a.sqlite'),
-    ).writeAsStringSync('bbb'); // same size
+    File(here.path(here.installed(ItemKind.package, 'jp.a')!, 'jp.a.sqlite'))
+        .writeAsStringSync('bbb'); // same size
     final c = await copyToStick(here, stick);
     expect(c.added, 0);
     expect(c.failed, ['jp.a 1']);
     expect(
-      File(
-        '${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}',
-      ).existsSync(),
+      File('${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}')
+          .existsSync(),
       isFalse,
     );
   });
@@ -323,9 +317,8 @@ void main() {
     final blob = File('${node.path}/blobs/sha256/${r.files.single.sha256}')
       ..createSync(recursive: true)
       ..writeAsStringSync('aaa');
-    File(
-      '${node.path}/catalog.json',
-    ).writeAsStringSync(jsonEncode({'format': 2, 'records': <Object?>[]}));
+    File('${node.path}/catalog.json')
+        .writeAsStringSync(jsonEncode({'format': 2, 'records': <Object?>[]}));
     File('${node.path}/.kept.json').writeAsStringSync(jsonEncode([r.json]));
     await copyToStick(store('empty'), node);
     expect(blob.existsSync(), isTrue);

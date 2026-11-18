@@ -28,13 +28,15 @@ void main() {
 
     final tiles = InundationTiles.open(path);
     final layer = TileLayer();
-    final hit =
-        tiles.getImage(const TileCoordinates(14540, 6503, 14), layer)
-            as MemoryImage;
+    final hit = tiles.getImage(
+      const TileCoordinates(14540, 6503, 14),
+      layer,
+    ) as MemoryImage;
     expect(hit.bytes, data);
-    final miss =
-        tiles.getImage(const TileCoordinates(14540, 6504, 14), layer)
-            as MemoryImage;
+    final miss = tiles.getImage(
+      const TileCoordinates(14540, 6504, 14),
+      layer,
+    ) as MemoryImage;
     expect(miss.bytes.sublist(1, 4), 'PNG'.codeUnits); // transparent tile
     tiles.dispose();
     dir.deleteSync(recursive: true);

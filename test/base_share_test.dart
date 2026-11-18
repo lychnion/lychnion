@@ -1,16 +1,17 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
 import 'package:lychnion/base/base_panel.dart';
 import 'package:lychnion/ui/ask_view.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:lychnion/app/text_delegates.dart';
 
 void main() {
   Widget app(AppSettings settings, ValueNotifier<List<String>> urls) =>
       MaterialApp(
         locale: const Locale('en'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appTextDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
@@ -81,7 +82,7 @@ void main() {
     await t.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: appTextDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: ListenableBuilder(
@@ -121,7 +122,7 @@ void main() {
     var opened = 0;
     Widget menu({VoidCallback? share}) => MaterialApp(
       locale: const Locale('ja'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appTextDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         appBar: AppBar(

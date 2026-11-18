@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
@@ -859,9 +859,8 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
                     Text(
-                      [
-                        for (final h in n.site.hazards) hazardName(l, h),
-                      ].join(' · '),
+                      [for (final h in n.site.hazards) hazardName(l, h)]
+                          .join(' · '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

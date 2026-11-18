@@ -7,8 +7,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   bonsoir_windows
   connectivity_plus
   file_selector_windows
-  flutter_edge_ai
   geolocator_windows
+  flutter_edge_ai
   url_launcher_windows
 )
 

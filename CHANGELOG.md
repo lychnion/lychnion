@@ -67,6 +67,9 @@ here should be relied on alone in an emergency. Source only; build it as
   `fieldkit://` QR codes still work.
 - Licence: GNU AGPL 3.0 with an app store exception. Versions up to
   commit `064f50a` were published under Apache 2.0.
+- Built with Flutter 3.50 (Dart 3.14). Material and Cupertino widgets
+  now come from the `material_ui` and `cupertino_ui` packages. sqlite3
+  3.9 and newer native build tools.
 - The data tools moved to
   [lychnion-data](https://github.com/lychnion/lychnion-data). Bundled
   data is from its release 2026.11.5.

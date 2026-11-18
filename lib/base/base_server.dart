@@ -342,7 +342,7 @@ class BaseServer {
       final body = await _readBody(req).timeout(bodyTimeout);
       if (body == null) {
         // Read in part when its size was not given beforehand.
-        return _refuse(
+        return await _refuse(
           req,
           413,
           'question too large',
@@ -488,9 +488,8 @@ class BaseServer {
     final size = file.lengthSync();
     // Only `bytes=N-` (what the app sends); anything else gets the whole
     // file. At most 18 digits, so the number always fits.
-    final range = RegExp(
-      r'^bytes=(\d{1,18})-$',
-    ).firstMatch(req.headers.value(HttpHeaders.rangeHeader)?.trim() ?? '');
+    final range = RegExp(r'^bytes=(\d{1,18})-$')
+        .firstMatch(req.headers.value(HttpHeaders.rangeHeader)?.trim() ?? '');
     final from = range == null ? 0 : int.parse(range[1]!);
     if (from > size) {
       res

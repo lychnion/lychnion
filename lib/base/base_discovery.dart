@@ -169,9 +169,8 @@ class BaseFinder {
     switch (e) {
       case BonsoirDiscoveryServiceFoundEvent(:final service):
         unawaited(
-          Future.sync(
-            () => d.serviceResolver.resolveService(service),
-          ).catchError((Object e) => debugPrint('base not resolved: $e')),
+          Future.sync(() => d.serviceResolver.resolveService(service))
+              .catchError((Object e) => debugPrint('base not resolved: $e')),
         );
       case BonsoirDiscoveryServiceResolvedEvent(:final service) ||
           BonsoirDiscoveryServiceUpdatedEvent(:final service):

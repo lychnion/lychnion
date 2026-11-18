@@ -37,7 +37,7 @@ data is for testing; do not rely on it alone in an emergency.
 
 ## Build and run
 
-You need Flutter 3.44 or newer, plus Xcode for Apple platforms or the
+You need Flutter 3.50 or newer, plus Xcode for Apple platforms or the
 Android SDK for Android.
 
 ```bash

@@ -266,29 +266,25 @@ void main() {
 
   // The real area graph, when it has been built (lychnion-data/tool/build_routes.py).
   final real = File('build/maps/jp.map.nishinomiya.routes.bin');
-  test(
-    'Nishinomiya graph: city hall to a site 1 km away',
-    () async {
-      var sw = Stopwatch()..start();
-      final rg = await RouteGraph.load(real.path);
-      // ignore: avoid_print
-      print('load ${sw.elapsedMilliseconds} ms, ${rg.nodeCount} nodes');
-      sw = Stopwatch()..start();
-      const hall = LatLng(34.7376, 135.3417);
-      final t = rg.walkFrom(hall);
-      var reached = 0;
-      for (var i = 0; i < rg.nodeCount; i += 100) {
-        if (t.metersTo(rg.point(i)) != null) reached++;
-      }
-      // ignore: avoid_print
-      print(
-        'walk tree ${sw.elapsedMilliseconds} ms, ~${reached * 100} nodes reached',
-      );
-      const station = LatLng(34.7385, 135.3440); // ~230 m east (阪神西宮駅)
-      final m = t.metersTo(station)!;
-      expect(m, greaterThan(200));
-      expect(m, lessThan(600));
-    },
-    skip: real.existsSync() ? false : 'area graph not built',
-  );
+  test('Nishinomiya graph: city hall to a site 1 km away', () async {
+    var sw = Stopwatch()..start();
+    final rg = await RouteGraph.load(real.path);
+    // ignore: avoid_print
+    print('load ${sw.elapsedMilliseconds} ms, ${rg.nodeCount} nodes');
+    sw = Stopwatch()..start();
+    const hall = LatLng(34.7376, 135.3417);
+    final t = rg.walkFrom(hall);
+    var reached = 0;
+    for (var i = 0; i < rg.nodeCount; i += 100) {
+      if (t.metersTo(rg.point(i)) != null) reached++;
+    }
+    // ignore: avoid_print
+    print(
+      'walk tree ${sw.elapsedMilliseconds} ms, ~${reached * 100} nodes reached',
+    );
+    const station = LatLng(34.7385, 135.3440); // ~230 m east (阪神西宮駅)
+    final m = t.metersTo(station)!;
+    expect(m, greaterThan(200));
+    expect(m, lessThan(600));
+  }, skip: real.existsSync() ? false : 'area graph not built');
 }
