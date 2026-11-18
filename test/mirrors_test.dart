@@ -198,6 +198,39 @@ void main() {
     });
   });
 
+  group('Downloader: errors and logs', () {
+    test('an error answer whose body never ends does not hold up the next '
+        'address', () async {
+      final hang = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => hang.close(force: true));
+      hang.listen((req) {
+        req.response
+          ..statusCode = 500
+          ..bufferOutput = false
+          ..write('still going');
+        req.response.flush(); // and never closed
+      });
+      final good = await serve(data);
+      final f = await Downloader().fetch(
+        spec([Uri.parse('http://127.0.0.1:${hang.port}/file'), good.url]),
+        tmp,
+      );
+      expect(f.readAsBytesSync(), data);
+    }, timeout: const Timeout(Duration(seconds: 10)));
+
+    test('logs show no credentials or tokens', () {
+      final u = Uri.parse(
+        'https://user:secret@cdn.example.org:8443/f.bin?sig=abc#x',
+      );
+      expect(redactedUrl(u), 'https://cdn.example.org:8443/f.bin');
+      expect(
+        sourceErrorText(HttpException('HTTP 403', uri: u)),
+        isNot(contains('secret')),
+      );
+      expect(sourceErrorText(HttpException('HTTP 403', uri: u)), 'HTTP 403');
+    });
+  });
+
   group('Catalog mirrors', () {
     final shaP = 'ab' * 32, shaQ = 'cd' * 32;
 
@@ -347,6 +380,18 @@ void main() {
           'https://m.example.org/blobs/sha256/$shaQ',
           'http://192.168.1.21:8642/blobs/sha256/$shaQ',
         ]);
+      });
+
+      test('merged mirrors stay within the limit', () async {
+        final mine = await catalog(
+          from: home,
+          mirrors: [for (var i = 0; i < 10; i++) 'https://a$i.example.org/'],
+        );
+        final theirs = await catalog(
+          from: shelter,
+          mirrors: [for (var i = 0; i < 10; i++) 'http://b$i.example.org/'],
+        );
+        expect(mine.mergedWith(theirs).mirrors, hasLength(Catalog.maxMirrors));
       });
 
       test('merging twice adds no address twice', () async {

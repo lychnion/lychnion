@@ -265,14 +265,14 @@ class Downloader {
     final response = await _open(url, p.have, cancel);
     if (response.statusCode != HttpStatus.ok &&
         response.statusCode != HttpStatus.partialContent) {
-      await response.drain<void>();
+      await _discard(response);
       throw HttpException('HTTP ${response.statusCode}', uri: url);
     }
     // Nothing is written unless the answer is the expected part of a file
     // of the expected size (not a captive portal's page, not another file).
     final problem = _mismatch(response, p.have, spec.size);
     if (problem != null) {
-      (await response.detachSocket()).destroy();
+      await _discard(response);
       throw HttpException(problem, uri: url);
     }
     if (p.have > 0 && response.statusCode == HttpStatus.ok) {
@@ -312,6 +312,16 @@ class Downloader {
         'Connection ended at ${p.have} of ${spec.size} bytes',
         uri: url,
       );
+    }
+  }
+
+  /// Drops an answer whose body is not wanted, without reading it (a body
+  /// that never ends must not hold up the next address).
+  static Future<void> _discard(HttpClientResponse res) async {
+    try {
+      (await res.detachSocket()).destroy();
+    } on Object {
+      // Already closed.
     }
   }
 
@@ -359,7 +369,7 @@ class Downloader {
       final res = await req.close().timeout(idleTimeout);
       if (res.isRedirect) {
         final loc = res.headers.value(HttpHeaders.locationHeader);
-        await res.drain<void>();
+        await _discard(res);
         if (loc == null) {
           throw HttpException('Redirect without target', uri: uri);
         }
@@ -375,6 +385,26 @@ class Downloader {
 
   void close() => _client.close(force: true);
 }
+
+/// [url] for logs: no user name or password, no query or fragment (signed
+/// links carry their tokens there).
+String redactedUrl(Uri url) => Uri(
+  scheme: url.scheme,
+  host: url.host,
+  port: url.hasPort ? url.port : null,
+  path: url.path,
+).toString();
+
+/// A download error for logs, without the address it came from.
+String sourceErrorText(Object e) => switch (e) {
+  HttpException(:final message) => message,
+  SocketException(:final message, :final osError) =>
+    osError == null ? message : '$message (${osError.message})',
+  ChecksumError() => 'Checksum mismatch',
+  TimeoutException() => 'Timed out',
+  TlsException(:final message) => 'TLS: $message',
+  _ => e.runtimeType.toString(),
+};
 
 /// Hashes a file on disk (to adopt files copied by cable).
 Future<String> sha256OfFile(

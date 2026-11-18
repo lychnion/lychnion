@@ -366,8 +366,8 @@ class DownloadManager extends ChangeNotifier {
           onSourceFailed: (url, e) => _log({
             'event': 'download_source_failed',
             'id': item.id,
-            'url': '$url',
-            'error': '$e',
+            'url': redactedUrl(url),
+            'error': sourceErrorText(e),
           }),
         );
         try {

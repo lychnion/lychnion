@@ -264,7 +264,7 @@ class Catalog {
       ...this.mirrors,
       for (final m in other.mirrors)
         if (!this.mirrors.contains(m)) m,
-    ];
+    ].take(maxMirrors).toList();
     bool reachable(CatalogItem i) => i.files.every(
       (f) => (addresses[f.sha256] ?? const []).isNotEmpty || mirrors.isNotEmpty,
     );

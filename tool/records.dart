@@ -29,6 +29,8 @@
 //   # for a USB stick or any web host (files found in the FOLDERs by name)
 //   dart run tool/records.dart export assets/downloads/catalog.json \
 //     --out /Volumes/STICK/lychnion assets/packages ~/Downloads/maps
+//   (--source-url URL: where the catalog came from, when it has no `base`
+//   and its addresses are relative)
 //
 //   # check a catalog's signatures, and local files against it
 //   dart run tool/records.dart verify assets/downloads/catalog.json [FOLDER]
@@ -375,13 +377,22 @@ Future<void> _catalog(_Args args) async {
 /// the source catalog (the models on Hugging Face, for example).
 Future<void> _export(_Args args) async {
   final out = Directory(args.req('--out'));
+  final sourceUrl = args.opt('--source-url');
   final trust = _trust(args);
   if (args.rest.isEmpty) _fail('Usage: export CATALOG --out DIR [FOLDER...]');
   final j = _readJson(args.rest.first);
   if (j['format'] != 2) _fail('Not a format 2 catalog');
   final folders = args.rest.skip(1).toList();
   // Where the source catalog gets each file, for files not exported.
-  final base = j['base'] is String ? Uri.parse(j['base']! as String) : null;
+  final base = j['base'] is String
+      ? Uri.parse(j['base']! as String)
+      : sourceUrl == null
+      ? null
+      : Uri.parse(sourceUrl);
+  final hasMirrors = [
+    for (final m in (j['mirrors'] as List?) ?? const [])
+      if (m is String && (Uri.tryParse(m)?.hasScheme ?? false)) m,
+  ].isNotEmpty;
   final from = ((j['urls'] as Map?) ?? const {}).cast<String, Object?>();
   String? elsewhere(RecordFile f) {
     final listed = from[f.sha256];
@@ -422,7 +433,14 @@ Future<void> _export(_Args args) async {
       if (src == null) {
         missing++;
         stdout.writeln('none   ${f.name} (${r.id} ${r.version})');
-        if (elsewhere(f) case final u?) urls[f.sha256] = u;
+        if (elsewhere(f) case final u?) {
+          urls[f.sha256] = u;
+        } else if (!hasMirrors) {
+          _fail(
+            '${f.name}: not in the folders and no address to get it from. '
+            'Add the folder that has it, or give --source-url.',
+          );
+        }
         continue;
       }
       final part = File('${blob.path}.part');
