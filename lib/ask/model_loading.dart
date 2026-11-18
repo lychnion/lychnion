@@ -13,6 +13,14 @@ mixin _ModelLoading on _AskPageBase {
   /// A download change that came while busy, looked at again later.
   Timer? _reloadLater;
 
+  /// Whether the last failed load failed before the chat was ready (the
+  /// model or the engine), not later (search model, packages).
+  bool _chatFailed = false;
+
+  /// Whether Downloads were looked at once in this run (a crash marker
+  /// left by an earlier run is read only then).
+  bool _loadedOnce = false;
+
   /// Loads the model on start: GGUF_MODEL_PATH, a download for AUTO_BENCH
   /// on phones, else the model from Downloads (again whenever it changes).
   void _startModel() {
@@ -42,8 +50,17 @@ mixin _ModelLoading on _AskPageBase {
       return;
     }
     final store = await DownloadStore.instance();
-    final chat = store.chatModelPath();
-    if (chat == null) {
+    // A LiteRT-LM load that never ended: it crashed the app last time.
+    // Skip that model, or every start would crash again.
+    if (store.loadingChat case final crashed? when !_loadedOnce) {
+      store.failedChats.add(crashed);
+      await store.setLoadingChat(null);
+      _log({'event': 'chat_crashed_before', 'model': crashed});
+    }
+    _loadedOnce = true;
+    final active = store.activeChat();
+    final chat = active == null ? null : store.path(active, active.chatFile!);
+    if (active == null || chat == null) {
       // The model is gone (deleted, or its publisher removed): stop using
       // what was loaded from Downloads, also on the base server.
       if (_loadedDownloads != null && mounted) {
@@ -65,21 +82,47 @@ mixin _ModelLoading on _AskPageBase {
     ].join('|');
     if (sig == _loadedDownloads) return;
     _loadedDownloads = sig;
-    await _run(() => _llm.loadFile(chat), afterLoad: true);
+    final liteRt = isLiteRtFile(chat);
+    if (liteRt) await store.setLoadingChat(active.id);
+    final ok = await _run(
+      () => _llm.loadFile(chat),
+      afterLoad: true,
+      chatDone: liteRt ? () => store.setLoadingChat(null) : null,
+    );
+    if (ok || !_chatFailed || !liteRt) return;
+    // LiteRT-LM could not start the model: fall back to llama.cpp with the
+    // next answer model (the GGUF one). Without one, the error stays.
+    store.failedChats.add(active.id);
+    if (store.chatModelPath() == null) {
+      store.failedChats.remove(active.id);
+      return;
+    }
+    _log({'event': 'chat_fallback', 'failed': active.id});
+    await _llm.close();
+    await _loadDownloaded();
   }
 
-  Future<void> _run(
+  /// Loads with [load], then the packages; false if it failed. [chatDone]
+  /// runs once the chat is open or failed to open.
+  Future<bool> _run(
     Future<void> Function() load, {
     bool afterLoad = false,
+    Future<void> Function()? chatDone,
   }) async {
     setState(() {
       _loadingModel = true;
       _status = 'Loading model…';
       _phase = AskPhase.loading;
     });
+    var chatReady = false;
     try {
-      await load();
-      await _llm.newChat(systemInstruction: benchSystemInstruction);
+      try {
+        await load();
+        await _llm.newChat(systemInstruction: benchSystemInstruction);
+        chatReady = true;
+      } finally {
+        await chatDone?.call();
+      }
       if (!DevFlags.bare) {
         final store = await DownloadStore.instance();
         // The built-in packages (or newer downloads of them) plus every
@@ -175,12 +218,13 @@ mixin _ModelLoading on _AskPageBase {
             : (_baseReady ? AskPhase.base : AskPhase.ready);
       });
     } catch (e) {
+      _chatFailed = !chatReady;
       setState(() {
         _status = 'Load failed: $e';
         _phase = AskPhase.failed;
       });
       _log({'event': 'load_failed', 'error': '$e'});
-      return;
+      return false;
     } finally {
       setState(() => _loadingModel = false);
       _answerWaiting();
@@ -193,12 +237,13 @@ mixin _ModelLoading on _AskPageBase {
       }
       await widget.onDemoDone?.call(_entries);
     }
+    return true;
   }
 
   Future<void> _pickFile() async {
     final file = await openFile(
       acceptedTypeGroups: [
-        const XTypeGroup(label: 'GGUF models', extensions: ['gguf']),
+        const XTypeGroup(label: 'Models', extensions: ['gguf', 'litertlm']),
       ],
     );
     if (file == null) return;

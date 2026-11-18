@@ -24,7 +24,12 @@ here should be relied on alone in an emergency. Source only; build it as
   or our translation (not official) when the source is in another
   language, with the official text one tap away. Answer models to
   download: Gemma 4 E2B for phones, E4B for computers. Search with
-  EmbeddingGemma 2. All on the device.
+  EmbeddingGemma 2. All on the device. On Android, Gemma 4 E2B also comes
+  as a LiteRT-LM model that answers about twice as fast (Google's engine,
+  on the CPU, Android 11 or newer); the app uses it when it is installed,
+  unless another answer model was picked, and falls back to the GGUF
+  model if it cannot load it. Computers and
+  iPhones keep llama.cpp.
 - **Offline maps** for two areas to download: Nishinomiya and Kushimoto.
   Evacuation sites per hazard, tsunami inundation areas by depth, and
   walking routes; tsunami routes keep to higher ground. The evacuation

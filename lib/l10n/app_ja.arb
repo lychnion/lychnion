@@ -28,6 +28,7 @@
   "downloadsKindPackages": "知識パッケージ",
   "downloadsKindMaps": "地図",
   "downloadsTooLargeForPhone": "多くのスマートフォンには大きすぎます。",
+  "downloadsOnlyFor": "{platforms} 専用です（拠点では近くのスマートフォンのために保存できます）。",
   "downloadsNotDownloaded": "未ダウンロード",
   "downloadsNoSource": "ダウンロード元が未設定（アプリ内蔵版を使用）",
   "downloadsPaused": "一時停止中：{done} / {total}",

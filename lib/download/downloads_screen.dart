@@ -441,7 +441,12 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     body: ListenableBuilder(
       listenable: m,
       builder: (context, _) {
-        final items = byArea(m.catalog.items, _region);
+        // Phones leave out models made for another platform; computers
+        // show them, since a base keeps models for the phones around it.
+        final items = byArea([
+          for (final i in m.catalog.items)
+            if (!_isPhone || i.runsHere) i,
+        ], _region);
         return ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
@@ -523,6 +528,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final running = s.status == ItemStatus.running;
     final chatPick =
         item.role == 'chat' &&
+        item.runsHere &&
         (s.status == ItemStatus.installed || s.status == ItemStatus.update);
     final usedChat = chatPick && _isActiveChat(item);
 
@@ -534,6 +540,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ].join(' · '),
       if (item.note(lang).isNotEmpty) item.note(lang),
       if (item.desktop && _isPhone) l.downloadsTooLargeForPhone,
+      if (!item.runsHere && !_isPhone && item.platforms.isNotEmpty)
+        l.downloadsOnlyFor(item.platforms.map(_platformName).join(', ')),
     ];
 
     final status = switch (s.status) {
@@ -765,6 +773,15 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   /// "2026-11-18" from the record's signing time.
   static String _date(String iso) =>
       iso.length >= 10 ? iso.substring(0, 10) : iso;
+
+  static String _platformName(String os) => switch (os) {
+    'android' => 'Android',
+    'ios' => 'iOS',
+    'macos' => 'macOS',
+    'windows' => 'Windows',
+    'linux' => 'Linux',
+    _ => os,
+  };
 
   bool _isActiveChat(CatalogItem item) => m.store.activeChat()?.id == item.id;
 

@@ -15,6 +15,9 @@ dependencies:
     sdk: flutter
   flutter_edge_ai: ^2.6.0
   flutter_edge_ai_llama: 0.1.0
+  # Google's LiteRT-LM engine for .litertlm models (spike: faster on
+  # Android phones, docs/device-results.md).
+  flutter_edge_ai_litertlm: 1.20.2
   # Needed directly for iOS/macOS SwiftPM linkage (pairs with llamadart 0.17.5).
   llamadart_llama_cpp_flutter: 0.17.3
   file_selector: ^1.0.3
@@ -54,7 +57,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
-# Keep llamadart to llama.cpp only (no LiteRT-LM runtime).
+# Keep llamadart to llama.cpp only (no LiteRT-LM runtime of its own; the
+# app gets LiteRT-LM from flutter_edge_ai_litertlm above).
 hooks:
   user_defines:
     llamadart:

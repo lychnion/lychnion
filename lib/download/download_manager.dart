@@ -796,6 +796,8 @@ class DownloadManager extends ChangeNotifier {
 
   String? get chatModelId => store.chatModelId;
   Future<void> useChatModel(CatalogItem item) async {
+    // Picked again: try it again even if it failed to load before.
+    store.failedChats.remove(item.id);
     await store.setChatModelId(item.id);
     changes.value++;
     notifyListeners();
