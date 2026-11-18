@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
+import '../util/versioned_file.dart';
+
 import '../download/publisher_list.dart';
 
 // Publishing on this computer (docs/distribution.md, step 4b): a city or a
@@ -28,6 +30,10 @@ class LocalPublisher {
 
   Future<SimpleKeyPair> keyPair() => keyPairFromSeed(_seed);
 
+  /// Format of publisher.json (see versioned_file.dart). 0: the same
+  /// fields without a format number.
+  static const format = 1;
+
   static File fileIn(Directory dir) => File('${dir.path}/publisher.json');
 
   /// Whether a key file is there (also when it cannot be read).
@@ -39,6 +45,8 @@ class LocalPublisher {
     try {
       final j =
           jsonDecode(await fileIn(dir).readAsString()) as Map<String, Object?>;
+      // A newer build's file counts as unreadable; it is never replaced.
+      if (formatOf(j) > format) return null;
       final name = j['name']! as String;
       if (!_usable(name)) return null;
       final seed = j['seed']! as String;
@@ -113,6 +121,7 @@ class LocalPublisher {
       await _private(tmp.path, '600');
       await tmp.writeAsString(
         const JsonEncoder.withIndent('  ').convert({
+          'format': format,
           'name': p.name,
           'title': ?p.title,
           'public_key': p.publicKey,

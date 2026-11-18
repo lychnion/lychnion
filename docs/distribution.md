@@ -100,8 +100,10 @@ cannot use (it is opened as the app does to answer: the `meta`, `sources`,
 that do not start with the id. This computer adds its own publisher to its list,
 so it trusts what it signs.
 
-Not yet: export or back up the key from the app, replace a lost key,
-and making packages without our Python tools (step 6, package studio).
+Not yet: export or back up the key from the app, and replace a lost
+key. Guides are made with
+[lychnion-studio](https://github.com/lychnion/lychnion-studio) (step 6),
+not only with our Python tools.
 
 ### Package records
 
@@ -167,8 +169,9 @@ flowchart LR
   C -->|internet| P1
 ```
 
-Open question: how a city makes its own package without our Python build
-tools (for example from its own web pages or PDFs, in the desktop app).
+A city makes its own guide from its web pages with
+[lychnion-studio](https://github.com/lychnion/lychnion-studio) (step 6);
+PDFs and a desktop window are still open.
 
 ### Following catalogs
 
@@ -371,7 +374,17 @@ signed, from shelter computers.
 
 ### Publishing your own packages
 
-Cities and others need two things:
+Built in a first slice (2026-11-19, step 6) in its own repository,
+[lychnion/lychnion-studio](https://github.com/lychnion/lychnion-studio),
+so the app does not grow with tools only publishers need: a command line
+(`draft` turns a city's own web pages into an editable draft, `build`
+writes the guide in the format the app reads, `check` opens it as the app
+does) and the publisher guide (`docs/publishing.md` there). The guide is
+then signed with "Publish your own" in the desktop app. Not yet: PDFs,
+pages in Shift_JIS or EUC-JP (their text is copied by hand for now),
+translation, a desktop window, publishing to a node.
+
+What cities and others need, as planned:
 
 - **A guide:** what makes a good package (clear scope; every source with a
   licence; a notice saying what it is not for), translations and their
@@ -437,7 +450,10 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
    (c) the headless node pulling by itself at an interval (built
    2026-11-18: `pull --every`, `serve --pull`); (d) a USB stick between
    places (built 2026-11-18); (e) finding bases on the local Wi-Fi (built 2026-11-18).
-6. **Publisher guide and package studio.**
+6. **Publisher guide and package studio.** First slice built
+   2026-11-19 in [lychnion-studio](https://github.com/lychnion/lychnion-studio):
+   the publisher guide and a command line that turns a city's own web
+   pages into a guide (see "Publishing your own packages").
 7. **On-site help.** A web page served by the shelter computer, so phones
    without the app (all iPhones without it, since iOS installs apps only
    from the App Store) can ask questions in the browser (built

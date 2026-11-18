@@ -20,6 +20,30 @@ import '../app/brand.dart';
 import 'breathing_light.dart';
 import 'help_screen.dart';
 
+/// What screen readers say when [a] has finished: "The answer is ready"
+/// and its first safety line (the key message), in the answer's language.
+/// Said by whoever answers (AskPage), when the answer is complete.
+String answerReadyMessage(GroundedAnswer a) {
+  final l = _textsFor(a);
+  return [
+    l.answerReadyAnnounce,
+    if (a.alerts.isNotEmpty) a.alerts.first.textIn(a.lang),
+  ].join(' ');
+}
+
+/// What screen readers say when [a] ended without an answer (the base
+/// could not be reached, or the model failed).
+String answerFailedMessage(GroundedAnswer a) =>
+    _textsFor(a).answerFailedAnnounce;
+
+/// App texts in the answer's language (English when the app has none).
+AppLocalizations _textsFor(GroundedAnswer a) {
+  final supported = AppLocalizations.supportedLocales.any(
+    (l) => l.languageCode == a.lang,
+  );
+  return lookupAppLocalizations(Locale(supported ? a.lang : 'en'));
+}
+
 /// One question with its safety lines, answer and the sources it cites.
 /// Its texts follow the question's language, not the app's.
 class AnswerCard extends StatelessWidget {
@@ -101,7 +125,8 @@ class AnswerCard extends StatelessWidget {
                         color: scheme.primary,
                       )
                     else
-                      const LychnionMark(size: 18),
+                      // The name follows as text: read it once.
+                      const ExcludeSemantics(child: LychnionMark(size: 18)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -122,7 +147,15 @@ class AnswerCard extends StatelessWidget {
                 if (thinking)
                   AnswerWaiting(answer: answer)
                 else if (_shownText case final t when t.isNotEmpty)
-                  SelectableText(t, style: theme.textTheme.bodyLarge),
+                  // SelectionArea, not SelectableText: screen readers read
+                  // plain text, not a read-only text field. Its own node,
+                  // so it is not merged with the sources button below.
+                  Semantics(
+                    container: true,
+                    child: SelectionArea(
+                      child: Text(t, style: theme.textTheme.bodyLarge),
+                    ),
+                  ),
                 if (grounded && done) ..._notes(theme, l),
                 const SizedBox(height: 14),
                 ..._whereToGo(theme, l),
@@ -271,7 +304,12 @@ class AnswerCard extends StatelessWidget {
             const SizedBox(height: 10),
             // English readers see a translated passage in its original;
             // Japanese readers see our translation, the original one tap away.
-            SelectableText(p.textIn(lang), style: theme.textTheme.bodyMedium),
+            Semantics(
+              container: true,
+              child: SelectionArea(
+                child: Text(p.textIn(lang), style: theme.textTheme.bodyMedium),
+              ),
+            ),
             if (p.translated && p.textIn(lang) == p.text)
               Theme(
                 data: theme.copyWith(dividerColor: Colors.transparent),
@@ -468,6 +506,16 @@ class SafetyLine extends StatelessWidget {
     final theme = Theme.of(context);
     final on = theme.colorScheme.onErrorContainer;
     final a = alert;
+    // Spoken as "Safety warning: …": the colour and icon say it visually.
+    return MergeSemantics(
+      child: Semantics(
+        label: context.l10n.answerSafetyLineSpoken,
+        child: _box(theme, on, a),
+      ),
+    );
+  }
+
+  Widget _box(ThemeData theme, Color on, Alert a) {
     return Container(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(14),
@@ -478,7 +526,9 @@ class SafetyLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_rounded, color: on, size: 22),
+          ExcludeSemantics(
+            child: Icon(Icons.warning_rounded, color: on, size: 22),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -524,24 +574,30 @@ class _SourcesFooter extends StatelessWidget {
         : l.answerSource(publishers.first);
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline_rounded, size: 18, color: color),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(color: color),
+      child: Semantics(
+        container: true,
+        button: true,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: ConstrainedBox(
+            // A full-size tap target, though the line is small.
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, size: 18, color: color),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(color: color),
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right_rounded, size: 18, color: color),
-            ],
+                Icon(Icons.chevron_right_rounded, size: 18, color: color),
+              ],
+            ),
           ),
         ),
       ),

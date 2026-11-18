@@ -267,7 +267,11 @@ class _PublishScreenState extends State<PublishScreen> {
               Container(
                 color: Colors.white,
                 padding: const EdgeInsets.all(8),
-                child: QrImageView(data: link, size: 200),
+                child: QrImageView(
+                  data: link,
+                  size: 200,
+                  semanticsLabel: context.l10n.publishQrSpoken,
+                ),
               ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 360),

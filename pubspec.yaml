@@ -12,10 +12,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  flutter_edge_ai: ^2.5.5
-  flutter_edge_ai_llama: 0.0.5
-  # Needed directly for iOS/macOS SwiftPM linkage (pairs with llamadart 0.15.1).
-  llamadart_llama_cpp_flutter: 0.15.0
+  flutter_edge_ai: ^2.6.0
+  flutter_edge_ai_llama: 0.1.0
+  # Needed directly for iOS/macOS SwiftPM linkage (pairs with llamadart 0.17.5).
+  llamadart_llama_cpp_flutter: 0.17.3
   file_selector: ^1.0.3
   path_provider: ^2.1.5
   # 3.6+ needs a newer Flutter SDK (meta pin).

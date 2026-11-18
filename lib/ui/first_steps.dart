@@ -107,6 +107,11 @@ class FirstStepsCard extends StatelessWidget {
                 ),
                 Text(
                   l.firstStepsCount(steps.done, steps.total),
+                  // "1 / 4" reads as two numbers: say "1 of 4 done".
+                  semanticsLabel: l.firstStepsCountSpoken(
+                    steps.done,
+                    steps.total,
+                  ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -116,14 +121,15 @@ class FirstStepsCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.only(right: 8, bottom: 6),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: steps.done / steps.total,
-                  minHeight: 8,
-                  semanticsLabel: l.firstStepsTitle,
-                  // Screen readers need a number (percent) here.
-                  semanticsValue: '${(100 * steps.done / steps.total).round()}',
+              // The count above already says this; the title is not
+              // read twice.
+              child: ExcludeSemantics(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: steps.done / steps.total,
+                    minHeight: 8,
+                  ),
                 ),
               ),
             ),

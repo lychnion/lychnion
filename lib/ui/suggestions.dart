@@ -48,7 +48,12 @@ class SuggestionGroups extends StatelessWidget {
               children: [
                 Icon(packageIcon(p.icon), size: 18, color: scheme.primary),
                 const SizedBox(width: 6),
-                Text(p.nameIn(lang), style: theme.textTheme.titleSmall),
+                Expanded(
+                  child: Text(
+                    p.nameIn(lang),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
               ],
             ),
           ),

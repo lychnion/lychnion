@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../util/versioned_file.dart';
+
 /// User settings kept on the device (settings.json in app support).
 class AppSettings extends ChangeNotifier {
   /// App language as a code ('ja', 'en', …); null: follow the device.
@@ -54,11 +56,22 @@ class AppSettings extends ChangeNotifier {
 
   File? _file;
 
-  Future<void> load() async {
-    final dir = await getApplicationSupportDirectory();
-    _file = File('${dir.path}/settings.json');
-    try {
-      final j = jsonDecode(await _file!.readAsString()) as Map;
+  /// Format of settings.json (see versioned_file.dart). 0: before format
+  /// numbers, same fields.
+  static const format = 1;
+
+  /// Reads settings.json from app support, or from [dir] (tests).
+  Future<void> load({Directory? dir}) => _loading = _load(dir);
+
+  /// The running or finished load: saves wait for it.
+  Future<void>? _loading;
+
+  Future<void> _load(Directory? dir) async {
+    dir ??= await getApplicationSupportDirectory();
+    // Saves start once the file was read (and kept as a copy if needed).
+    final file = File('${dir.path}/settings.json');
+    await readVersioned(file, format, (json, _) {
+      final j = json! as Map;
       // Older files wrote 'system' for "follow the device".
       final lang = j['language'];
       language = lang is String && lang.isNotEmpty && lang != 'system'
@@ -73,9 +86,8 @@ class AppSettings extends ChangeNotifier {
       sharingName = j['sharing_name'] as String?;
       acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
       firstSteps = {...?(j['first_steps'] as List?)?.cast<String>()};
-    } on Object {
-      // No file yet, or unreadable: keep defaults.
-    }
+    });
+    _file = file;
     notifyListeners();
   }
 
@@ -117,18 +129,24 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
-  Future<void> _save() async => _file?.writeAsString(
-    jsonEncode({
-      'language': ?language,
-      'show_stats': showStats,
-      'shelter_url': ?shelterUrl,
-      'shelter_name': ?shelterName,
-      'shelter_key': ?shelterKey,
-      'sharing': sharing,
-      'sharing_name': ?sharingName,
-      'region': ?region,
-      'acknowledged': acknowledged.toList()..sort(),
-      'first_steps': firstSteps.toList()..sort(),
-    }),
-  );
+  Future<void> _save() async {
+    await _loading;
+    final f = _file;
+    if (f == null || !mayReplace(f)) return;
+    await f.writeAsString(
+      jsonEncode({
+        'format': format,
+        'language': ?language,
+        'show_stats': showStats,
+        'shelter_url': ?shelterUrl,
+        'shelter_name': ?shelterName,
+        'shelter_key': ?shelterKey,
+        'sharing': sharing,
+        'sharing_name': ?sharingName,
+        'region': ?region,
+        'acknowledged': acknowledged.toList()..sort(),
+        'first_steps': firstSteps.toList()..sort(),
+      }),
+    );
+  }
 }

@@ -593,6 +593,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsShelter => 'Base';
 
   @override
+  String settingsKeptAside(String files) {
+    return 'Some saved data could not be used. A copy was kept: $files';
+  }
+
+  @override
   String get settingsOfflineData => 'Offline data';
 
   @override
@@ -1706,4 +1711,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get answerBaseHint => 'With a base, answers take seconds';
+
+  @override
+  String get answerReadyAnnounce => 'The answer is ready.';
+
+  @override
+  String get answerSafetyLineSpoken => 'Safety warning';
+
+  @override
+  String menuWithUpdates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count updates',
+      one: '1 update',
+    );
+    return 'Show menu ($_temp0)';
+  }
+
+  @override
+  String firstStepsCountSpoken(int done, int total) {
+    return '$done of $total done';
+  }
+
+  @override
+  String get mapLoadingSpoken => 'Loading the map';
+
+  @override
+  String shelterQrSpoken(String name) {
+    return 'QR code to connect to $name';
+  }
+
+  @override
+  String get shareNearbyQrSpoken => 'QR code to receive these downloads';
+
+  @override
+  String get publishQrSpoken => 'QR code to add your publisher';
+
+  @override
+  String mapNearestSiteSpoken(String name) {
+    return 'Nearest site: $name';
+  }
+
+  @override
+  String get mapAddPointAtCentre =>
+      'Long press to report a blocked road or water point at the map centre';
+
+  @override
+  String get answerFailedAnnounce => 'No answer this time.';
 }

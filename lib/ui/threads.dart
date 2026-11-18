@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../knowledge/grounded_answer.dart';
 import '../shelter/shelter_protocol.dart';
+import '../util/versioned_file.dart';
 
 /// One conversation: questions and answers in the order asked.
 ///
@@ -60,24 +61,32 @@ class ThreadStore extends ChangeNotifier {
     unawaited(save());
   }
 
-  Future<void> load() async {
-    final dir = await getApplicationSupportDirectory();
+  /// Format of threads.json (see versioned_file.dart). 0: a bare list of
+  /// threads; 1: `{"format": 1, "threads": [...]}`.
+  static const format = 1;
+
+  /// Reads threads.json from app support, or from [dir] (tests).
+  Future<void> load({Directory? dir}) => _loading = _load(dir);
+
+  /// The running or finished load: [save] waits for it, so it never
+  /// writes before a broken or newer file was kept as a copy.
+  Future<void>? _loading;
+
+  Future<void> _load(Directory? dir) async {
+    dir ??= await getApplicationSupportDirectory();
     _file = File('${dir.path}/threads.json');
-    try {
-      final j = jsonDecode(await _file!.readAsString()) as List;
-      for (final t in j.cast<Map<String, dynamic>>()) {
-        threads.add(
+    final read = await readVersioned(_file!, format, (json, f) {
+      final list = f == 0 ? json! as List : (json! as Map)['threads'] as List;
+      return [
+        for (final t in list.cast<Map<String, dynamic>>())
           Thread(t['id'] as String, DateTime.parse(t['created'] as String), [
             for (final e in (t['entries'] as List).cast<Map<String, dynamic>>())
               answerFromWire(e['answer'] as Map<String, dynamic>)
                 ..answeredBy = e['answered_by'] as String?,
           ])..archived = t['archived'] == true,
-        );
-      }
-    } on Object catch (e) {
-      // No file yet, or an older format: start empty.
-      if (await _file!.exists()) debugPrint('threads not loaded: $e');
-    }
+      ];
+    });
+    threads.addAll(read ?? const []);
     notifyListeners();
   }
 
@@ -97,22 +106,26 @@ class ThreadStore extends ChangeNotifier {
 
   /// Saves finished answers (call after an answer is complete).
   Future<void> save() async {
+    await _loading;
     final file = _file;
-    if (file == null) return;
+    if (file == null || !mayReplace(file)) return;
     await file.writeAsString(
-      jsonEncode([
-        for (final t in threads)
-          if (t.entries.isNotEmpty)
-            {
-              'id': t.id,
-              'created': t.created.toUtc().toIso8601String(),
-              if (t.archived) 'archived': true,
-              'entries': [
-                for (final e in t.entries)
-                  {'answer': answerToWire(e), 'answered_by': e.answeredBy},
-              ],
-            },
-      ]),
+      jsonEncode({
+        'format': format,
+        'threads': [
+          for (final t in threads)
+            if (t.entries.isNotEmpty)
+              {
+                'id': t.id,
+                'created': t.created.toUtc().toIso8601String(),
+                if (t.archived) 'archived': true,
+                'entries': [
+                  for (final e in t.entries)
+                    {'answer': answerToWire(e), 'answered_by': e.answeredBy},
+                ],
+              },
+        ],
+      }),
     );
   }
 }

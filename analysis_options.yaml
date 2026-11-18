@@ -31,5 +31,4 @@ linter:
     - unnecessary_await_in_return
     - avoid_void_async
     - comment_references
-    # TODO: turn on after lib/main.dart is split; its 2 findings follow then.
-    # - discarded_futures
+    - discarded_futures

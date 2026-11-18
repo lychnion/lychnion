@@ -42,12 +42,15 @@ String factLine(AppLocalizations l, Fact f, DateTime now) {
   return '$what$note · ${factAge(l, f, now)} · ${factSourceLabel(l, f)}';
 }
 
-/// Colour hint: red for full/closed or warnings, amber for unconfirmed.
+/// Colour hint: red for full/closed or warnings, amber (Glow) for
+/// unconfirmed.
 Color factColor(Fact f, ColorScheme c) {
   if (f.kind == FactKind.warning || (f.shelterStatus?.avoid ?? false)) {
     return c.error;
   }
-  return f.unconfirmed ? Colors.amber.shade700 : c.onSurfaceVariant;
+  // Tertiary (Glow Deep by day, Glow by night) is readable as text;
+  // plain amber is about 2:1 on Paper.
+  return f.unconfirmed ? c.tertiary : c.onSurfaceVariant;
 }
 
 /// "Current information" box: facts that are not in the knowledge package.
@@ -153,6 +156,16 @@ class CurrentFactsBox extends StatelessWidget {
 }
 
 /// Small coloured label: 満員 · 20分前.
+/// Text and background of a [StatusChip]: Material's matching container
+/// pairs, readable on any card. (A 12% tint of the fact colour was not,
+/// on Home's blue card.)
+(Color, Color) statusChipColors(Fact f, ColorScheme c) {
+  final color = factColor(f, c);
+  if (color == c.error) return (c.onErrorContainer, c.errorContainer);
+  if (color == c.tertiary) return (c.onTertiaryContainer, c.tertiaryContainer);
+  return (c.onSurface, c.surfaceContainerHighest);
+}
+
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.fact, required this.now});
 
@@ -163,11 +176,11 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final color = factColor(fact, scheme);
+    final (color, background) = statusChipColors(fact, scheme);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: background,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(

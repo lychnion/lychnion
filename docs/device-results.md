@@ -180,6 +180,38 @@ Gemma 4 E2B, release build, 4 passages, packages of lychnion-data
   the instructions; three points, so likely but not proven.
 - Only 3 of 8 questions finished before the run's time limit; the phone
   still had an unreachable base saved, which the app tries first.
+
+## Pixel 5a: llamadart 0.15.1 against 0.17.5 (2026-11-19)
+
+The engine update: llamadart 0.15.1 (llama.cpp runtime v0.7.0-1) to
+0.17.5 (v0.8.0-1), with flutter_edge_ai 2.6.0 and flutter_edge_ai_llama
+0.1.0. Same phone, model (Gemma 4 E2B Q4_0), packages and three questions
+as above; release builds with `LLM_BACKEND=cpu`,
+`GGUF_MODEL_PATH=docs:models/gemma-4-E2B-it-Q4_0.gguf` and the questions
+in `ASK`; two runs each, the phone plugged in. Raw results:
+`spike-results/pixel5a-e2b-cpu-llamadart-0.15.1-2026-11-19.jsonl` and
+`…-0.17.5-2026-11-19.jsonl`.
+
+First word, then whole answer (mean of two runs):
+
+| Question | Tokens read | 0.15.1 | 0.17.5 |
+|---|---|---|---|
+| Earthquake indoors | 759 | 37.0 s / 50.2 s | 41.7 s / 55.1 s |
+| Tsunami near the sea | 1047 | 55.3 s / 66.7 s | 62.9 s / 74.5 s |
+| Drinking water | 628 | 30.5 s / 44.1 s | 32.7 s / 44.9 s |
+
+- **Not faster: reading is about 7–14 % slower** (about 18 instead of
+  20.5 tokens/s); all four 0.17.5 answers to the first two questions came
+  after all four 0.15.1 answers. Writing stays at about 5 tokens/s.
+- The answers are word for word the same; memory is about the same
+  (2.1–2.3 GB).
+- Both versions use 4 threads on this phone (0.17 caps the default at the
+  number of cores, at most 4).
+- The phone gets warm during a run (skin about 43 °C); runs started at a
+  battery temperature of 28–33 °C. Two runs each, so small differences
+  are not certain, but the direction was the same every time.
+- On the Mac (CPU) the same question took 3.6 s / 4.8 s before and
+  3.5 s / 4.6 s after, the same answer.
 - So for phones like this: the base (a computer on the same Wi-Fi) is the
   way to fast answers.
 

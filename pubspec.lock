@@ -13,10 +13,10 @@ packages:
     dependency: transitive
     description:
       name: app_links_linux
-      sha256: "9ccb5802085a1e57bb07b6256fd1d61a78c7ec104944d4965e62938b4fefd9cb"
+      sha256: "734aa57a2f65d1b35c3643384ccfbe668730157a08479bfa488e10a9da847853"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.4"
+    version: "1.0.5"
   app_links_platform_interface:
     dependency: transitive
     description:
@@ -37,10 +37,10 @@ packages:
     dependency: transitive
     description:
       name: archive
-      sha256: de5ac590b8155e4e676088d714bd41ea620449a6adc0f7950c5073874b287ddb
+      sha256: "2fda90592c0afd219c5e285618a98da835cd10df38372666093d25dfe457a2d0"
       url: "https://pub.dev"
     source: hosted
-    version: "4.6.0"
+    version: "4.7.1"
   args:
     dependency: transitive
     description:
@@ -354,18 +354,18 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_edge_ai
-      sha256: e768469f5bc6e59e40e9cc172327d2cbca9abf6b23cb4b154b7deebac1ff6c57
+      sha256: "6718574603a0f9afbc14603fa17335a814756079bd4c3220fbbc96277161cdd6"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.5"
+    version: "2.6.0"
   flutter_edge_ai_llama:
     dependency: "direct main"
     description:
       name: flutter_edge_ai_llama
-      sha256: "68f0a664686996c9614a9c785b63e8c0072fa07f7f5c446edfdba6451f8b0e87"
+      sha256: "3d19a9e815cbd4a1234603925f5a66adc99407fd8ec0afd535bfa1682239c923"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.5"
+    version: "0.1.0"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -513,10 +513,10 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "89ed75b2f8231fe676808c5564f9590d728024ded7ac782a7ed8474f1c95b72a"
+      sha256: bc13f61f0f5cb77936e78ae5dae3800f442718dac5d2bc4654f03c239230ed0c
       url: "https://pub.dev"
     source: hosted
-    version: "4.12.0"
+    version: "4.13.1"
   intl:
     dependency: "direct main"
     description:
@@ -617,18 +617,18 @@ packages:
     dependency: transitive
     description:
       name: llamadart
-      sha256: "5d0d5f06d1a38cd6252f3b622402862c79685f7ab5327f5b000c5ff38b62c87c"
+      sha256: "62d8a9081579c2dc176dc509502edb8fc5714be3797a49230a3738d64bfe48ca"
       url: "https://pub.dev"
     source: hosted
-    version: "0.15.1"
+    version: "0.17.5"
   llamadart_llama_cpp_flutter:
     dependency: "direct main"
     description:
       name: llamadart_llama_cpp_flutter
-      sha256: de9cdb6994015b122d96767708e0e08867f47a1ebb59d320e9bf6677260e0c46
+      sha256: "06bbe4302688c51d8bec1eb6bba4b9a7f5c37c766bef9933938a4d99cd5649bf"
       url: "https://pub.dev"
     source: hosted
-    version: "0.15.0"
+    version: "0.17.3"
   logger:
     dependency: transitive
     description:
@@ -935,10 +935,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences_android
-      sha256: "33b38b07d9ac7d16aff0426c61418752fd3e7a8c7dc8be786c875d6ce673b002"
+      sha256: "137dedccacb394b8f470d6c9b435ffc3d33faaa6ce2949c4f54a61007d64396d"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.4"
+    version: "2.5.5"
   shared_preferences_foundation:
     dependency: transitive
     description:
@@ -1068,10 +1068,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
-      sha256: "611e87fb320b70d1dd721dc46af89c98aceccea9b31fde49e084591414e0c610"
+      sha256: b8073b1e5173d63afe1a18985a75896d72f759d3bc1817eb1ae8d26e8527cceb
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.33"
+    version: "6.3.35"
   url_launcher_ios:
     dependency: transitive
     description:

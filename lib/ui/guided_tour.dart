@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app/brand.dart';
 import '../app/lang.dart';
+import 'announce.dart';
 
 /// The parts of the screen the guided tour points at (lychnion#7). The
 /// widgets carry these keys; a part that is not on screen (no map area,
@@ -100,6 +101,9 @@ class _TourState extends State<_Tour> {
       );
     }
     setState(() => _i = i);
+    // Screen readers: the card changed, though focus may not move.
+    final stop = widget.stops[i];
+    announce(context, '${stop.title}. ${stop.text}');
   }
 
   @override
@@ -121,82 +125,99 @@ class _TourState extends State<_Tour> {
     final last = _i == widget.stops.length - 1;
     // The card goes where there is more room: below or above the part.
     final below = hole.center.dy < size.height / 2;
-    return Material(
-      type: MaterialType.transparency,
-      child: Stack(
-        children: [
-          // Taps outside the card do nothing (no accidental actions).
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              child: CustomPaint(painter: _Dim(hole)),
-            ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            top: below ? hole.bottom + 16 : null,
-            bottom: below ? null : size.height - hole.top + 16,
-            child: Semantics(
-              scopesRoute: true,
-              namesRoute: true,
-              explicitChildNodes: true,
-              label: stop.title,
-              child: Card(
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+    // With large text the card may not fit next to the part: then it
+    // takes up to half the screen at the far edge and scrolls.
+    final room = below ? size.height - hole.bottom - 32 : hole.top - 32;
+    final fits = room >= 240;
+    final maxHeight = fits ? room : size.height / 2;
+    // Screen readers reach only the card, not the app behind the dim.
+    return BlockSemantics(
+      child: Material(
+        type: MaterialType.transparency,
+        child: Stack(
+          children: [
+            // Taps outside the card do nothing (no accidental actions).
+            Positioned.fill(
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: CustomPaint(painter: _Dim(hole)),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 8, 12, 14),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              ),
+            ),
+            Positioned(
+              left: 16,
+              right: 16,
+              top: below
+                  ? (fits ? hole.bottom + 16 : null)
+                  : (fits ? null : 16),
+              bottom: below
+                  ? (fits ? null : 16)
+                  : (fits ? size.height - hole.top + 16 : null),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: Semantics(
+                  scopesRoute: true,
+                  explicitChildNodes: true,
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 8, 12, 14),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              l.tourStep(_i + 1, widget.stops.length),
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: theme.colorScheme.tertiary,
-                                fontWeight: FontWeight.w700,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l.tourStep(_i + 1, widget.stops.length),
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.tertiary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                            ),
+                              TextButton(
+                                onPressed: widget.onEnd,
+                                child: Text(l.tourSkip),
+                              ),
+                            ],
                           ),
-                          TextButton(
-                            onPressed: widget.onEnd,
-                            child: Text(l.tourSkip),
+                          Text(stop.title, style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 6),
+                          Text(stop.text, style: theme.textTheme.bodyMedium),
+                          const SizedBox(height: 12),
+                          // Wraps at large text instead of running off.
+                          Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (_i > 0)
+                                OutlinedButton(
+                                  onPressed: () => _go(_i - 1),
+                                  child: Text(l.tourBack),
+                                ),
+                              FilledButton(
+                                onPressed: () => _go(_i + 1),
+                                child: Text(last ? l.tourDone : l.tourNext),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      Text(stop.title, style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 6),
-                      Text(stop.text, style: theme.textTheme.bodyMedium),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (_i > 0)
-                            OutlinedButton(
-                              onPressed: () => _go(_i - 1),
-                              child: Text(l.tourBack),
-                            ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: () => _go(_i + 1),
-                            child: Text(last ? l.tourDone : l.tourNext),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
