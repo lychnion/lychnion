@@ -53,15 +53,16 @@ class FactStore extends ChangeNotifier {
   Future<void> load({Directory? dir}) async {
     dir ??= await getApplicationSupportDirectory();
     final file = _file = File('${dir.path}/facts.jsonl');
+    await _serial(() => _loadFrom(file));
+    // Keys trusted since the facts were saved (a base's QR code scanned
+    // after its facts came): checked again at every start, before the
+    // limit drops unverified facts first.
+    await reverify();
     await _serial(() async {
-      await _loadFrom(file);
       if (_prune() && mayReplace(file) && await file.exists()) {
         await _rewrite(file, [for (final f in _facts) _line(f)]);
       }
     });
-    // Keys trusted since the facts were saved (a base's QR code scanned
-    // after its facts came): checked again at every start.
-    await reverify();
     notifyListeners();
   }
 
@@ -156,6 +157,12 @@ class FactStore extends ChangeNotifier {
     }
     _facts.addAll(fresh);
     final pruned = _prune();
+    // Not those the limit dropped at once.
+    final kept = pruned
+        ? (Set<Fact>.identity()..addAll(_facts))
+              .intersection(Set<Fact>.identity()..addAll(fresh))
+              .length
+        : fresh.length;
     final file = _file;
     if (file != null) {
       // What to write, taken now: facts may arrive while this waits.
@@ -172,7 +179,7 @@ class FactStore extends ChangeNotifier {
       });
     }
     notifyListeners();
-    return fresh.length;
+    return kept;
   }
 
   /// A fact as saved: the check result is kept on this device only.

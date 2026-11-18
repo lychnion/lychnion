@@ -361,6 +361,26 @@ void main() {
       expect(c.refreshUrl, isNull);
     });
 
+    test('the app reads a base catalog with only its own files', () async {
+      final r = await signedRecord(key, 'p', 'package', [
+        ('p.sqlite', 1, shaP),
+      ]);
+      final c = await DownloadManager.parseDeviceCatalog(
+        jsonEncode({
+          'format': 2,
+          'records': [r.json],
+          'urls': {shaP: 'https://elsewhere.example.org/p'},
+          'mirrors': ['https://m.example.org/'],
+        }),
+        Uri.parse('http://192.168.1.20:8642/catalog.json'),
+        trust: trust,
+      );
+      expect(c.mirrors, isEmpty);
+      expect(c.urlsOf(c.items.single.files.single).map((u) => '$u'), [
+        'http://192.168.1.20:8642/p.sqlite',
+      ]);
+    });
+
     test('a base catalog keeps its own hash addresses', () async {
       final c = await catalog(
         from: Uri.parse('http://192.168.1.20:8642/catalog.json'),

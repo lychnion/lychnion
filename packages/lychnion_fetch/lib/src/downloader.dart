@@ -388,7 +388,13 @@ class Downloader {
         }
         final next = Uri.tryParse(loc);
         if (next == null) throw HttpException('Bad redirect', uri: uri);
-        uri = uri.resolveUri(next);
+        final to = uri.resolveUri(next);
+        // A device on the local network (a base, a phone nearby) serves
+        // its own files: it must not send the phone to a host it picks.
+        if (isLocalNetworkHost(url.host) && !_sameOrigin(to, url)) {
+          throw HttpException('Redirect away from a local device', uri: uri);
+        }
+        uri = to;
         continue;
       }
       return res;
@@ -397,6 +403,27 @@ class Downloader {
   }
 
   void close() => _client.close(force: true);
+
+  static bool _sameOrigin(Uri a, Uri b) =>
+      a.scheme == b.scheme && a.host == b.host && a.port == b.port;
+}
+
+/// Whether [host] is on the local network: a private, loopback or
+/// link-local address, or a `.local` name.
+bool isLocalNetworkHost(String host) {
+  final h = host.toLowerCase();
+  if (h == 'localhost' || h.endsWith('.local')) return true;
+  final a = InternetAddress.tryParse(h);
+  if (a == null) return false;
+  if (a.isLoopback || a.isLinkLocal) return true;
+  final b = a.rawAddress;
+  if (a.type == InternetAddressType.IPv4) {
+    return b[0] == 10 ||
+        (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
+        (b[0] == 192 && b[1] == 168);
+  }
+  // IPv6 unique local addresses (fc00::/7).
+  return (b[0] & 0xfe) == 0xfc;
 }
 
 /// [url] for logs: no user name or password, no query or fragment (signed

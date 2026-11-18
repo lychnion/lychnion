@@ -20,10 +20,15 @@ const maxCatalogBytes = 2 << 20;
 /// (its body is not read), the body is counted while it arrives and
 /// refused above [maxBytes] (also after decompression), and the whole
 /// fetch has a time limit.
+///
+/// With [followRedirects] false (a device on the local network), a
+/// redirect is refused like any other answer than 200: that device must
+/// not send the phone to a host it picks.
 Future<String> fetchCatalogText(
   Uri url, {
   int maxBytes = maxCatalogBytes,
   Duration limit = const Duration(seconds: 45),
+  bool followRedirects = true,
 }) async {
   final client = HttpClient()
     ..connectionTimeout = const Duration(seconds: 10)
@@ -32,6 +37,7 @@ Future<String> fetchCatalogText(
   try {
     final req = await client.getUrl(url).timeout(const Duration(seconds: 15));
     req.headers.set(HttpHeaders.acceptHeader, 'application/json');
+    req.followRedirects = followRedirects;
     final res = await req.close().timeout(const Duration(seconds: 15));
     if (res.statusCode != HttpStatus.ok) {
       throw CatalogFetchError('HTTP ${res.statusCode}');

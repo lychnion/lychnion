@@ -550,26 +550,35 @@ class DownloadManager extends ChangeNotifier {
     _main = await _localCatalog();
     await _loadFollowed();
     for (final e in _baseBodies.entries) {
-      _baseCatalogs[e.key] = await _parse(e.value, e.key, ownFilesOnly: true);
+      _baseCatalogs[e.key] = await _parse(e.value, e.key, device: true);
     }
     catalog = _compose();
     changes.value++;
     _refreshStates();
   }
 
-  /// Records with a bad signature are left out of the catalog and logged.
-  Future<Catalog> _parse(
+  /// A catalog from a device on the local network (a base, a phone
+  /// nearby): only files on that device, and none of its own `base`,
+  /// `refresh` or other hosts (Catalog.parse `ownFilesOnly`).
+  @visibleForTesting
+  static Future<Catalog> parseDeviceCatalog(
     String json,
-    Uri? from, {
-    bool ownFilesOnly = false,
-  }) async {
-    final c = await Catalog.parse(
-      json,
-      fetchedFrom: from,
-      baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
-      trust: store.trust,
-      ownFilesOnly: ownFilesOnly,
-    );
+    Uri from, {
+    TrustedKeys? trust,
+  }) =>
+      Catalog.parse(json, fetchedFrom: from, trust: trust, ownFilesOnly: true);
+
+  /// Records with a bad signature are left out of the catalog and logged.
+  /// [device]: from a device on the local network ([parseDeviceCatalog]).
+  Future<Catalog> _parse(String json, Uri? from, {bool device = false}) async {
+    final c = device
+        ? await parseDeviceCatalog(json, from!, trust: store.trust)
+        : await Catalog.parse(
+            json,
+            fetchedFrom: from,
+            baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
+            trust: store.trust,
+          );
     // A few lines, not one per record: a catalog may hold thousands of
     // records from publishers not added.
     for (final r in c.rejected.take(10)) {
@@ -632,11 +641,12 @@ class DownloadManager extends ChangeNotifier {
   /// could not be read.
   Future<int?> addCatalogFrom(Uri url) async {
     try {
-      // Size and time limited, like every catalog fetch.
-      final body = await fetchCatalogText(url);
+      // Size and time limited, like every catalog fetch, and no
+      // redirects: the device must not send the phone elsewhere.
+      final body = await fetchCatalogText(url, followRedirects: false);
       // Only files on that device: it is on the local Wi-Fi, not a
       // catalog the user chose to follow.
-      final other = await _parse(body, url, ownFilesOnly: true);
+      final other = await _parse(body, url, device: true);
       _baseCatalogs[url] = other;
       _baseBodies[url] = body;
       catalog = catalog.mergedWith(other);

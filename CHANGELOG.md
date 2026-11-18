@@ -84,7 +84,7 @@ here should be relied on alone in an emergency. Source only; build it as
 - A phone keeps at most 5,000 facts and drops expired ones.
 - A base stops an answer when the phone that asked has left.
 - From a base or a phone nearby, the app downloads only files on that
-  device, never from other addresses its catalog names.
+  device, never from other addresses its catalog names or redirects to.
 
 ### Formats
 

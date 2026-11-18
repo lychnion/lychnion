@@ -22,8 +22,12 @@ import 'support/fake_llm.dart';
 /// Answers only when [release] completes, so tests decide how long the
 /// model is busy.
 class _GatedLlm extends FakeLlm {
-  _GatedLlm() : super(['高い所へ [1]。']);
+  _GatedLlm({this.first}) : super(['高い所へ [1]。']);
   var release = Completer<void>();
+
+  /// The reply to the first prompt (for example a Japanese search), when
+  /// it should differ from the answer.
+  final String? first;
 
   /// Questions the model started on.
   var started = 0;
@@ -33,7 +37,7 @@ class _GatedLlm extends FakeLlm {
       Stream.fromFuture(
         Future(() => started++).then((_) => release.future).then((_) {
           prompts.add(prompt);
-          return '高い所へ [1]。';
+          return prompts.length == 1 && first != null ? first! : '高い所へ [1]。';
         }),
       );
 }
@@ -366,6 +370,28 @@ void main() {
       expect((await call(s, 'POST', '/ask', body: question('津波は？'))).$1, 200);
       expect(s.answered, 1);
     });
+
+    test(
+      'a phone that leaves before the model writes is not answered',
+      () async {
+        // The search finds tsunami passages, so the model would write next.
+        final llm = _GatedLlm(first: '津波は一回だけですか？');
+        final s = await start(llm: llm);
+        // English: the model first turns it into a Japanese search, so the
+        // phone leaves while that runs, before any passage or word.
+        final phone = await _askRaw(s.port, 'What to do after a tsunami?');
+        await _until(() => llm.started == 1);
+        phone.destroy();
+        await _until(() => s.questionsWaiting == 0);
+        llm.release.complete();
+        // The next phone's question runs after it.
+        expect((await call(s, 'POST', '/ask', body: question('津波は？'))).$1, 200);
+        // The search, then the next question: the left one never got an
+        // answer written.
+        expect(llm.started, 2);
+        expect(s.answered, 1);
+      },
+    );
 
     test('phones that leave do not use up the connections', () async {
       final llm = _StoppableLlm();

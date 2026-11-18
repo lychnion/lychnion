@@ -55,6 +55,14 @@ void main() {
         [for (final a in e) (a.answeredBy, a.baseUnchecked)],
         [('Hall', true), ('Hall', false)],
       );
+      // A base answer saved before the check was kept counts as unchecked.
+      final file = File('${dir.path}/threads.json');
+      file.writeAsStringSync(
+        file.readAsStringSync().replaceAll(',"base_unchecked":false', ''),
+      );
+      final old = ThreadStore();
+      await old.load(dir: dir);
+      expect(old.recent.single.entries.last.baseUnchecked, isTrue);
     },
   );
 }
