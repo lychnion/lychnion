@@ -1018,7 +1018,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareNearbyKeepOpen =>
-      'Sharing runs only while this screen is open.';
+      'Sharing runs only while this screen is open. The screen stays on meanwhile.';
 
   @override
   String get shareNearbyNothing =>
@@ -1083,4 +1083,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get answerBaseUnreachable =>
       'Can\'t reach the base, and this phone has no answer model of its own. Join the base\'s Wi-Fi and try again.';
+
+  @override
+  String get shareNearbyHint =>
+      'Pass on your downloaded guides, maps and models to phones nearby';
 }

@@ -19,6 +19,7 @@ class SettingsScreen extends StatelessWidget {
     required this.settings,
     required this.downloads,
     this.shelter,
+    this.onShareNearby,
   });
 
   final AppSettings settings;
@@ -26,6 +27,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// Shelter section: the QR code on a shelter computer, else connect.
   final Widget? shelter;
+
+  /// Phones: pass on downloads to phones nearby.
+  final VoidCallback? onShareNearby;
 
   /// Segment value for "follow the device".
   static const _device = '';
@@ -91,6 +95,13 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ),
                 ),
+                if (onShareNearby != null)
+                  _NavTile(
+                    icon: Icons.share_rounded,
+                    title: l.shareNearby,
+                    subtitle: l.shareNearbyHint,
+                    onTap: onShareNearby,
+                  ),
                 if (downloads != null)
                   ListenableBuilder(
                     listenable: downloads!,

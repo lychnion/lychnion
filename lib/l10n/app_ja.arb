@@ -272,7 +272,7 @@
   "shareShowLarge": "大きく表示",
   "shareNearby": "近くの人に共有",
   "shareNearbyIntro": "同じWi-Fiやテザリングにつないだスマートフォンで、このQRコードを読み取ると、このスマートフォンにダウンロードした資料・地図・モデルを受け取れます。インターネットは要りません。",
-  "shareNearbyKeepOpen": "この画面を開いている間だけ共有します。",
+  "shareNearbyKeepOpen": "この画面を開いている間だけ共有します。その間、画面は消えません。",
   "shareNearbyNothing": "まだダウンロードしたものがありません。共有できるのは、ダウンロードした資料・地図・モデルです。",
   "shareNearbyItems": "共有中：{count}件",
   "@shareNearbyItems": {
@@ -311,5 +311,6 @@
     }
   },
   "shareReceiveNothingNew": "新しいものはありません。このスマートフォンにはすべてそろっています。",
-  "answerBaseUnreachable": "ベースにつながらず、この端末にも回答モデルがありません。ベースと同じWi-Fiにつないでから、もう一度お試しください。"
+  "answerBaseUnreachable": "ベースにつながらず、この端末にも回答モデルがありません。ベースと同じWi-Fiにつないでから、もう一度お試しください。",
+  "shareNearbyHint": "ダウンロードした資料・地図・モデルを、近くのスマートフォンに渡します"
 }

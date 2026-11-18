@@ -1733,7 +1733,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareNearbyKeepOpen.
   ///
   /// In en, this message translates to:
-  /// **'Sharing runs only while this screen is open.'**
+  /// **'Sharing runs only while this screen is open. The screen stays on meanwhile.'**
   String get shareNearbyKeepOpen;
 
   /// No description provided for @shareNearbyNothing.
@@ -1801,6 +1801,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t reach the base, and this phone has no answer model of its own. Join the base\'s Wi-Fi and try again.'**
   String get answerBaseUnreachable;
+
+  /// No description provided for @shareNearbyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass on your downloaded guides, maps and models to phones nearby'**
+  String get shareNearbyHint;
 }
 
 class _AppLocalizationsDelegate

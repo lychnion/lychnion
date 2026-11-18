@@ -33,6 +33,7 @@ import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
 import 'package:app_links/app_links.dart';
 
+import 'shelter/share_nearby.dart';
 import 'shelter/shelter_client.dart';
 import 'shelter/shelter_link.dart';
 import 'shelter/shelter_panel.dart';
@@ -442,6 +443,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => SettingsScreen(
         settings: widget.settings,
         downloads: _downloads,
+        onShareNearby: _isDesktop ? null : _openShareNearby,
         shelter: _isDesktop
             ? ShelterShareSection(
                 settings: widget.settings,
@@ -452,6 +454,12 @@ class _HomePageState extends State<HomePage> {
       ),
     ),
   );
+
+  /// Phones pass on their downloads to phones nearby (computers do it as
+  /// a base).
+  void _openShareNearby() => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ShareNearbyScreen()));
 
   void _openDownloads() {
     final dm = _downloads;
@@ -1201,6 +1209,13 @@ class _SpikePageState extends State<SpikePage> {
           : NearestSiteCard(map: widget.map!, onShowOnMap: widget.onShowOnMap),
       packageInfos: _packages,
       updates: widget.updates,
+      onShareNearby: _usesDownload
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ShareNearbyScreen(),
+              ),
+            )
+          : null,
       onShowNotice: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (c) => NoticeScreen(

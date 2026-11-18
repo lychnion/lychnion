@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../app/lang.dart';
 import '../download/download_store.dart';
@@ -39,6 +40,17 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
   void initState() {
     super.initState();
     unawaited(_start());
+    // A locked phone stops sharing; keep the screen on while it is open.
+    unawaited(_wake(true));
+  }
+
+  /// Ignored where the platform has no wake lock (tests, desktop).
+  static Future<void> _wake(bool on) async {
+    try {
+      await WakelockPlus.toggle(enable: on);
+    } on Object {
+      // Sharing still works; the phone may lock on its own.
+    }
   }
 
   Future<void> _start() async {
@@ -70,6 +82,7 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
   void dispose() {
     // Sharing ends with this screen.
     unawaited(_server?.stop());
+    unawaited(_wake(false));
     super.dispose();
   }
 

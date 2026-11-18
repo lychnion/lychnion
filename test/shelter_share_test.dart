@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
 import 'package:lychnion/shelter/shelter_panel.dart';
+import 'package:lychnion/ui/ask_view.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 void main() {
@@ -114,5 +115,31 @@ void main() {
     expect(en.shareReceiveFound(1), '1 item available');
     final ja = lookupAppLocalizations(const Locale('ja'));
     expect(ja.shareNearbyItems(3), '共有中：3件');
+  });
+
+  testWidgets('the menu offers sharing only when the app passes it', (t) async {
+    var opened = 0;
+    Widget menu({VoidCallback? share}) => MaterialApp(
+      locale: const Locale('ja'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        appBar: AppBar(
+          actions: [AppMenu(onOpenSettings: () {}, onShareNearby: share)],
+        ),
+      ),
+    );
+    await t.pumpWidget(menu(share: () => opened++));
+    await t.tap(find.byIcon(Icons.more_vert));
+    await t.pumpAndSettle();
+    await t.tap(find.text('近くの人に共有'));
+    await t.pumpAndSettle();
+    expect(opened, 1);
+
+    // Computers share as a base: no entry.
+    await t.pumpWidget(menu());
+    await t.tap(find.byIcon(Icons.more_vert));
+    await t.pumpAndSettle();
+    expect(find.text('近くの人に共有'), findsNothing);
   });
 }

@@ -986,7 +986,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '同じWi-Fiやテザリングにつないだスマートフォンで、このQRコードを読み取ると、このスマートフォンにダウンロードした資料・地図・モデルを受け取れます。インターネットは要りません。';
 
   @override
-  String get shareNearbyKeepOpen => 'この画面を開いている間だけ共有します。';
+  String get shareNearbyKeepOpen => 'この画面を開いている間だけ共有します。その間、画面は消えません。';
 
   @override
   String get shareNearbyNothing =>
@@ -1031,4 +1031,7 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get answerBaseUnreachable =>
       'ベースにつながらず、この端末にも回答モデルがありません。ベースと同じWi-Fiにつないでから、もう一度お試しください。';
+
+  @override
+  String get shareNearbyHint => 'ダウンロードした資料・地図・モデルを、近くのスマートフォンに渡します';
 }

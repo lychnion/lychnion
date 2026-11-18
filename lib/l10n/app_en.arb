@@ -658,7 +658,7 @@
   "shareShowLarge": "Show large",
   "shareNearby": "Share with people nearby",
   "shareNearbyIntro": "Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.",
-  "shareNearbyKeepOpen": "Sharing runs only while this screen is open.",
+  "shareNearbyKeepOpen": "Sharing runs only while this screen is open. The screen stays on meanwhile.",
   "shareNearbyNothing": "Nothing downloaded yet. You can share guides, maps and models you have downloaded.",
   "shareNearbyItems": "{count, plural, =1{Sharing 1 item} other{Sharing {count} items}}",
   "@shareNearbyItems": {
@@ -697,5 +697,6 @@
     }
   },
   "shareReceiveNothingNew": "Nothing new: this phone already has everything offered.",
-  "answerBaseUnreachable": "Can't reach the base, and this phone has no answer model of its own. Join the base's Wi-Fi and try again."
+  "answerBaseUnreachable": "Can't reach the base, and this phone has no answer model of its own. Join the base's Wi-Fi and try again.",
+  "shareNearbyHint": "Pass on your downloaded guides, maps and models to phones nearby"
 }
