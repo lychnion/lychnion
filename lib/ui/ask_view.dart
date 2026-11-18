@@ -474,8 +474,11 @@ class QuestionBar extends StatelessWidget {
   final TextEditingController input;
   final bool ready;
 
-  /// The model is loading: say so where people would type.
+  /// The model is loading: say so where people would type. Questions are
+  /// still taken and answered once it has loaded.
   final bool loading;
+
+  /// An answer is being written: the stop button replaces send.
   final bool busy;
   final VoidCallback onSend;
   final VoidCallback onStop;
@@ -494,10 +497,10 @@ class QuestionBar extends StatelessWidget {
               textInputAction: TextInputAction.send,
               style: Theme.of(context).textTheme.bodyLarge,
               decoration: InputDecoration(
-                hintText: loading && !ready
+                hintText: loading
                     ? context.l10n.askPhaseLoading
                     : context.l10n.askHint,
-                prefixIcon: loading && !ready
+                prefixIcon: loading
                     ? const Padding(
                         padding: EdgeInsets.all(14),
                         child: BreathingLight(size: 20),
@@ -508,7 +511,7 @@ class QuestionBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          busy && !loading
+          busy
               ? IconButton.filledTonal(
                   tooltip: context.l10n.askStop,
                   onPressed: onStop,

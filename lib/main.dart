@@ -586,7 +586,26 @@ class _SpikePageState extends State<SpikePage> {
 
   /// The knowledge packages answers come from (shown on the home screen).
   List<PackageInfo> _packages = const [];
-  bool _busy = false;
+
+  /// Loading the phone's own model, and answering a question: separate,
+  /// so the shelter can answer while the phone's model still loads.
+  bool _loadingModel = false;
+  bool _answering = false;
+  bool get _busy => _loadingModel || _answering;
+
+  /// Questions asked before anything could answer them, shown in their
+  /// conversation, answered in order as soon as the shelter or the model
+  /// is ready. A tap is never lost.
+  final _waiting = <(Thread, String, GroundedAnswer)>[];
+
+  bool get _canAnswer => _llm.isLoaded || _shelterReady;
+
+  void _answerWaiting() {
+    if (_waiting.isEmpty || _answering || !_canAnswer || !mounted) return;
+    final (thread, question, placeholder) = _waiting.removeAt(0);
+    thread.entries.remove(placeholder);
+    unawaited(_ask(question, into: thread));
+  }
 
   /// Phone side: the shelter computer to ask first (SHELTER_URL, or the
   /// one saved in settings from a QR code or a typed address).
@@ -749,7 +768,7 @@ class _SpikePageState extends State<SpikePage> {
     bool afterLoad = false,
   }) async {
     setState(() {
-      _busy = true;
+      _loadingModel = true;
       _status = 'Loading model…';
       _phase = AskPhase.loading;
     });
@@ -828,7 +847,8 @@ class _SpikePageState extends State<SpikePage> {
       _log({'event': 'load_failed', 'error': '$e'});
       return;
     } finally {
-      setState(() => _busy = false);
+      setState(() => _loadingModel = false);
+      _answerWaiting();
     }
     if (afterLoad && _autoBench) await _bench();
     if (afterLoad && _demoQuestions.isNotEmpty) {
@@ -927,6 +947,7 @@ class _SpikePageState extends State<SpikePage> {
         _status = 'Connected to shelter: ${info['name']} (${info['model']})';
         _phase = AskPhase.shelter;
       });
+      _answerWaiting();
       if (_modelPath.isEmpty && _demoQuestions.isNotEmpty) {
         _startThread();
         for (final q in _demoQuestions.split('|')) {
@@ -945,16 +966,26 @@ class _SpikePageState extends State<SpikePage> {
     }
   }
 
-  Future<void> _ask(String question) async {
-    final thread = _current ??= _threads.create();
+  Future<void> _ask(String question, {Thread? into}) async {
+    final thread = into ?? (_current ??= _threads.create());
     final lang = appLang(context);
+    // Nothing can answer yet (the model is loading, or another question is
+    // being answered): show the question now, answer it when ready.
+    if (_answering || (!_canAnswer && _loadingModel)) {
+      final placeholder = GroundedAnswer(question, appLang: lang);
+      setState(() {
+        thread.entries.add(placeholder);
+        _waiting.add((thread, question, placeholder));
+      });
+      return;
+    }
     // A shelter computer answers first: faster and better than a phone.
     final shelter = _shelter;
     if (shelter != null && _shelterReady) {
       final placeholder = GroundedAnswer(question, appLang: lang)
         ..answeredBy = shelter.name;
       setState(() {
-        _busy = true;
+        _answering = true;
         thread.entries.add(placeholder);
       });
       try {
@@ -965,17 +996,30 @@ class _SpikePageState extends State<SpikePage> {
         );
         unawaited(_threads.save());
         _log({'event': 'answer', ...remote.toJson()});
-        setState(() => _busy = false);
+        setState(() => _answering = false);
+        _answerWaiting();
         return;
       } catch (e) {
         _log({'event': 'shelter_failed', 'error': '$e'});
-        setState(() => thread.entries.remove(placeholder));
+        setState(() {
+          thread.entries.remove(placeholder);
+          _answering = false;
+        });
+        // The phone's own model is still loading: answer with it then.
+        if (!_llm.isLoaded && _loadingModel) {
+          final waiting = GroundedAnswer(question, appLang: lang);
+          setState(() {
+            thread.entries.add(waiting);
+            _waiting.add((thread, question, waiting));
+          });
+          return;
+        }
         if (!_llm.isLoaded) {
           final failed = GroundedAnswer(question, appLang: lang)
             ..text = 'Shelter not reachable and no model on this device: $e';
           setState(() {
             thread.entries.add(failed);
-            _busy = false;
+            _answering = false;
           });
           return;
         }
@@ -983,7 +1027,7 @@ class _SpikePageState extends State<SpikePage> {
     }
     final entry = GroundedAnswer(question, appLang: lang);
     setState(() {
-      _busy = true;
+      _answering = true;
       thread.entries.add(entry);
     });
     try {
@@ -1003,8 +1047,9 @@ class _SpikePageState extends State<SpikePage> {
     } catch (e) {
       entry.text += '\n[error: $e]';
     } finally {
-      setState(() => _busy = false);
+      setState(() => _answering = false);
       unawaited(_threads.save());
+      _answerWaiting();
     }
   }
 
@@ -1069,7 +1114,9 @@ class _SpikePageState extends State<SpikePage> {
 
   @override
   Widget build(BuildContext context) {
-    final ready = (_llm.isLoaded || _shelterReady) && !_busy;
+    // Questions are taken while the model loads or another answer is
+    // written: they wait in their conversation (see _waiting).
+    final ready = _canAnswer || _loadingModel;
     if (widget.view == AskPageView.conversations) {
       return ConversationsView(
         store: _threads,
@@ -1079,7 +1126,7 @@ class _SpikePageState extends State<SpikePage> {
           input: _input,
           ready: ready,
           loading: _phase == AskPhase.loading,
-          busy: _busy,
+          busy: _answering,
           onSend: _sendNew,
           onStop: _llm.stop,
         ),
@@ -1117,7 +1164,7 @@ class _SpikePageState extends State<SpikePage> {
               keyText: widget.facts?.signer?.publicKeyText,
             ),
       ready: ready,
-      busy: _busy,
+      busy: _answering,
       input: _input,
       onSend: _sendNew,
       onAsk: (q) {
@@ -1152,7 +1199,9 @@ class _SpikePageState extends State<SpikePage> {
 
   /// The conversation page for [t], rebuilt on every state change.
   Widget _conversation(BuildContext context, Thread t) {
-    final ready = (_llm.isLoaded || _shelterReady) && !_busy;
+    // Questions are taken while the model loads or another answer is
+    // written: they wait in their conversation (see _waiting).
+    final ready = _canAnswer || _loadingModel;
     final l = context.l10n;
     final settings = widget.settings;
     return ConversationPage(
@@ -1213,7 +1262,7 @@ class _SpikePageState extends State<SpikePage> {
         input: _threadInput,
         ready: ready,
         loading: _phase == AskPhase.loading,
-        busy: _busy,
+        busy: _answering,
         onSend: () {
           final q = _threadInput.text.trim();
           if (q.isEmpty) return;
