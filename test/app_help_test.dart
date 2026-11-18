@@ -2,24 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/knowledge/app_help.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
-import 'package:lychnion/llm/local_llm.dart';
 
-/// Answers without a model: records the prompt it was given.
-class _FakeLlm extends LocalLlm {
-  String? prompt;
-
-  @override
-  Future<void> newChat({
-    required String systemInstruction,
-    int maxOutputTokens = 512,
-  }) async {}
-
-  @override
-  Stream<String> ask(String prompt, {void Function(AnswerStats)? onDone}) {
-    this.prompt = prompt;
-    return Stream.value('OK');
-  }
-}
+import 'support/fake_llm.dart';
 
 void main() {
   // Built by tool/build_help.py from help/.
@@ -62,7 +46,7 @@ void main() {
   });
 
   test('an app question is answered from the help only', () async {
-    final llm = _FakeLlm();
+    final llm = FakeLlm();
     final answerer = GroundedAnswerer(llm, safety, help: help);
     final a = GroundedAnswer('近くの人に共有するには？', lang: 'ja');
     await answerer.answer(a, () {});
@@ -76,7 +60,7 @@ void main() {
   });
 
   test('a safety question never sees help passages', () async {
-    final llm = _FakeLlm();
+    final llm = FakeLlm();
     final answerer = GroundedAnswerer(llm, safety, help: help);
     final a = GroundedAnswer('海の近くで強い揺れを感じたら？', lang: 'ja');
     await answerer.answer(a, () {});

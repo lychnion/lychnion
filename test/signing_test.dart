@@ -124,11 +124,11 @@ void main() {
 
   test('an empty trust list file does not stop the app', () async {
     final dir = await Directory.systemTemp.createTemp('trust');
+    addTearDown(() => dir.delete(recursive: true));
     final f = File('${dir.path}/trusted_keys.json')..writeAsStringSync('');
     final t = TrustList();
     await t.load(f);
     expect(t.names, isEmpty);
-    await dir.delete(recursive: true);
   });
 
   test('facts from a base become verified once its key is trusted', () async {
