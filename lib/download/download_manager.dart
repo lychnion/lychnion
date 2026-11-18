@@ -416,7 +416,12 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       s.error = _errorCode(e);
       if (s.error != null) {
-        _log({'event': 'download_error', 'id': item.id, 'detail': '$e'});
+        // An HttpException's text carries its address (maybe with a token).
+        _log({
+          'event': 'download_error',
+          'id': item.id,
+          'detail': e is HttpException ? sourceErrorText(e) : '$e',
+        });
       }
     } finally {
       s
@@ -437,7 +442,11 @@ class DownloadManager extends ChangeNotifier {
     return null;
   }
 
+  @visibleForTesting
+  static String? errorCodeOf(Object e) => _errorCode(e);
+
   /// Short code for the screen (see DownloadsScreen), or null if stopped.
+  /// Never the address: it may carry a token.
   static String? _errorCode(Object e) => switch (e) {
     DownloadCancelled() => null,
     UnsignedItem() => 'signature',
@@ -451,6 +460,8 @@ class DownloadManager extends ChangeNotifier {
     TimeoutException() => 'network',
     HttpException(:final message) when !message.startsWith('HTTP ') =>
       'network',
+    HttpException(:final message) => message,
+    TlsException() => 'network',
     _ => '$e',
   };
 

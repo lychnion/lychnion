@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/download/catalog.dart';
+import 'package:lychnion/download/download_manager.dart';
 import 'package:lychnion/download/downloader.dart';
 import 'package:lychnion/download/record.dart';
 
@@ -198,6 +199,28 @@ void main() {
     });
   });
 
+  test('the test server stops cutting once its cuts are used up', () async {
+    final s = await serve(data)
+      ..cutAfter = 1000
+      ..cuts = 1;
+    Future<int> get() async {
+      final c = HttpClient();
+      try {
+        final res = await (await c.getUrl(s.url)).close();
+        return (await res.fold<int>(0, (n, b) => n + b.length));
+      } on Object {
+        return -1;
+      } finally {
+        c.close(force: true);
+      }
+    }
+
+    final first = await get();
+    expect(first, anyOf(-1, lessThan(data.length)));
+    expect(await get(), data.length);
+    expect(await get(), data.length);
+  });
+
   group('Downloader: errors and logs', () {
     test('an error answer whose body never ends does not hold up the next '
         'address', () async {
@@ -256,6 +279,28 @@ void main() {
         isNot(contains('secret')),
       );
       expect(sourceErrorText(HttpException('HTTP 403', uri: u)), 'HTTP 403');
+      // The last error, after every address failed, goes to the screen.
+      expect(
+        DownloadManager.errorCodeOf(HttpException('HTTP 403', uri: u)),
+        'HTTP 403',
+      );
+    });
+
+    test('when every address fails, the error shown has no address', () async {
+      final missing = await statusServer(403);
+      addTearDown(() => missing.close(force: true));
+      final secret = Uri.parse(
+        'http://user:pw@127.0.0.1:${missing.port}/file?sig=TOKEN',
+      );
+      Object? error;
+      try {
+        await Downloader().fetch(spec([await deadUrl(), secret]), tmp);
+      } catch (e) {
+        error = e;
+      }
+      final shown = DownloadManager.errorCodeOf(error!)!;
+      expect(shown, 'HTTP 403');
+      expect(sourceErrorText(error), isNot(contains('TOKEN')));
     });
   });
 

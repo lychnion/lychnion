@@ -393,14 +393,17 @@ Future<void> _export(_Args args) async {
   // where the source catalog came from (--source-url, else its base), as
   // the app does; without either they are left out.
   final origin = sourceUrl != null ? Uri.parse(sourceUrl) : base;
+  // Only what the app accepts as a mirror: http(s) with a host.
+  bool web(Uri u) =>
+      (u.isScheme('http') || u.isScheme('https')) && u.host.isNotEmpty;
   final mirrors = <String>[
     for (final m in (j['mirrors'] as List?) ?? const [])
       if (m is String)
         if (Uri.tryParse(m) case final u?)
           if (u.hasScheme)
-            '$u'
+            if (web(u)) '$u' else ...[]
           else if (origin != null)
-            '${origin.resolveUri(u)}',
+            if (web(origin.resolveUri(u))) '${origin.resolveUri(u)}',
   ];
   final hasMirrors = mirrors.isNotEmpty;
   final from = ((j['urls'] as Map?) ?? const {}).cast<String, Object?>();

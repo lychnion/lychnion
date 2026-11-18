@@ -74,7 +74,9 @@ class TestServer {
       final body = data.sublist(from);
       res.contentLength = body.length;
       final cut = cutAfter;
-      if (cut != null && cut < body.length && cuts-- != 0) {
+      final cutNow = cut != null && cut < body.length && cuts != 0;
+      if (cutNow && cuts > 0) cuts--;
+      if (cutNow) {
         // Send the headers and part of the body, then drop the socket,
         // like a lost Wi-Fi connection.
         final socket = await res.detachSocket();
