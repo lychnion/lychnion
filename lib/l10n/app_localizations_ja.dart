@@ -1352,4 +1352,62 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get catalogsInvalid => '正しいカタログではないか、大きすぎます。前回のものを使っています。';
+
+  @override
+  String get firstStepsTitle => 'はじめの準備';
+
+  @override
+  String firstStepsCount(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
+  String get firstStepsLater => 'あとで';
+
+  @override
+  String firstStepsResume(int done, int total) {
+    return 'はじめの準備を続ける（$done / $total）';
+  }
+
+  @override
+  String get firstStepDone => '完了';
+
+  @override
+  String get firstStepAi => '回答のための AI をダウンロード';
+
+  @override
+  String get firstStepAiText => 'Wi-Fi のあるときに一度だけ。入れておけば、電波がなくても答えられます。';
+
+  @override
+  String get firstStepAiAction => 'ダウンロードへ';
+
+  @override
+  String get firstStepMap => '地域の地図をダウンロード';
+
+  @override
+  String get firstStepMapText => '近くの避難場所と歩いて行ける道を、オフラインで。';
+
+  @override
+  String get firstStepMapAction => '地図を選ぶ';
+
+  @override
+  String get firstStepSite => '近くの避難場所を地図で確かめる';
+
+  @override
+  String get firstStepSiteText => '歩いて何分か、いまのうちに。';
+
+  @override
+  String get firstStepSiteAction => '地図を開く';
+
+  @override
+  String get firstStepAsk => '最初の質問をしてみる';
+
+  @override
+  String get firstStepAskText => '答えには、いつも出典がつきます。';
+
+  @override
+  String get firstStepAskAction => '質問を選ぶ';
+
+  @override
+  String get readyOffline => 'オフラインで使えます';
 }

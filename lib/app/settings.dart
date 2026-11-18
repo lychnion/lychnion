@@ -35,6 +35,17 @@ class AppSettings extends ChangeNotifier {
 
   bool hasAcknowledged(String key) => acknowledged.contains(key);
 
+  /// First steps on Home: `site` (the map was opened with an area),
+  /// `hidden` (the user chose "Later").
+  Set<String> firstSteps = {};
+
+  Future<void> markFirstStep(String key, {bool on = true}) async {
+    if (firstSteps.contains(key) == on) return;
+    on ? firstSteps.add(key) : firstSteps.remove(key);
+    notifyListeners();
+    await _save();
+  }
+
   Future<void> acknowledge(Iterable<String> keys) async {
     acknowledged.addAll(keys);
     notifyListeners();
@@ -61,6 +72,7 @@ class AppSettings extends ChangeNotifier {
       region = j['region'] as String?;
       sharingName = j['sharing_name'] as String?;
       acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
+      firstSteps = {...?(j['first_steps'] as List?)?.cast<String>()};
     } on Object {
       // No file yet, or unreadable: keep defaults.
     }
@@ -116,6 +128,7 @@ class AppSettings extends ChangeNotifier {
       'sharing_name': ?sharingName,
       'region': ?region,
       'acknowledged': acknowledged.toList()..sort(),
+      'first_steps': firstSteps.toList()..sort(),
     }),
   );
 }
