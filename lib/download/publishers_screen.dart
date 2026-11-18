@@ -46,30 +46,10 @@ class _PublishersScreenState extends State<PublishersScreen> {
 
   Future<void> _fromLink() async {
     final l = context.l10n;
-    final text = TextEditingController();
     final link = await showDialog<String>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: Text(l.publishersFromLink),
-        content: TextField(
-          controller: text,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: l.publishersLinkLabel,
-            hintText: 'lychnion://publisher?…',
-          ),
-          onSubmitted: (v) => Navigator.pop(c, v),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: Text(l.cancel)),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, text.text),
-            child: Text(l.publishersAdd),
-          ),
-        ],
-      ),
+      builder: (_) => const _LinkDialog(),
     );
-    text.dispose();
     if (link == null || !mounted) return;
     final parsed = Uri.tryParse(link.trim());
     final p = parsed == null ? null : PublisherLink.fromUri(parsed);
@@ -224,4 +204,53 @@ Future<bool> addPublisher(
     SnackBar(content: Text(l.publishersAdded(link.title ?? link.name))),
   );
   return true;
+}
+
+/// Asks for a pasted publisher link. Owns its text field's controller, so
+/// it is disposed only after the dialog has closed.
+class _LinkDialog extends StatefulWidget {
+  const _LinkDialog();
+
+  @override
+  State<_LinkDialog> createState() => _LinkDialogState();
+}
+
+class _LinkDialogState extends State<_LinkDialog> {
+  final _text = TextEditingController();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    return AlertDialog(
+      title: Text(l.publishersFromLink),
+      content: TextField(
+        controller: _text,
+        autofocus: true,
+        autocorrect: false,
+        enableSuggestions: false,
+        keyboardType: TextInputType.url,
+        decoration: InputDecoration(
+          labelText: l.publishersLinkLabel,
+          hintText: 'lychnion://publisher?…',
+        ),
+        onSubmitted: (v) => Navigator.pop(context, v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _text.text),
+          child: Text(l.publishersAdd),
+        ),
+      ],
+    );
+  }
 }
