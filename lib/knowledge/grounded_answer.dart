@@ -153,7 +153,7 @@ class GroundedAnswerer {
     answer.hits = sameAnimal(
       [q, search],
       hybrid != null
-          ? await hybrid!.search(search, limit: topK)
+          ? await hybrid!.search(search, limit: topK, original: q)
           : retriever.search(search, limit: topK),
     );
     onUpdate();

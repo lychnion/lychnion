@@ -72,10 +72,22 @@ class HybridRetriever {
       [p.source.title, if (p.heading.isNotEmpty) p.heading, p.text].join('\n');
 
   /// All passages ranked, before the cut-off (used by the eval logs).
-  Future<List<RankedHit>> rankAll(String query) async {
+  ///
+  /// [original] is the question as asked when [query] is a translation of
+  /// it: each passage then keeps the better of both similarities, so a bad
+  /// translation cannot hide the right passages (the phone model once
+  /// translated "avalanche" as 「あらわせ」). The search model is
+  /// multilingual, so the original works as it is.
+  Future<List<RankedHit>> rankAll(String query, {String? original}) async {
     final q = await embedder.query(query);
+    final o = original == null || original == query
+        ? null
+        : await embedder.query(original);
     final n = package.passages.length;
-    final cos = [for (final v in _vectors) _dot(q, v)];
+    final cos = [
+      for (final v in _vectors)
+        o == null ? _dot(q, v) : max(_dot(q, v), _dot(o, v)),
+    ];
     // Keyword search is for Japanese text only: Latin letters in English
     // questions matched link lists and captions in spike 3.
     final kw = <int, double>{
@@ -111,10 +123,14 @@ class HybridRetriever {
     return hits;
   }
 
-  Future<List<RankedHit>> search(String query, {int limit = 4}) async =>
-      (await rankAll(
-        query,
-      )).where((h) => h.cosine >= minCosine).take(limit).toList();
+  Future<List<RankedHit>> search(
+    String query, {
+    int limit = 4,
+    String? original,
+  }) async => (await rankAll(
+    query,
+    original: original,
+  )).where((h) => h.cosine >= minCosine).take(limit).toList();
 
   static double _dot(List<double> a, List<double> b) {
     var s = 0.0;
