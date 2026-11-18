@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:app_links/app_links.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,133 +11,61 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
+import 'app/brand.dart';
+import 'app/dev_flags.dart';
+import 'app/lang.dart';
+import 'app/notices.dart';
+import 'app/region.dart';
 import 'app/settings.dart';
 import 'app/settings_screen.dart';
+import 'app/splash.dart';
 import 'app/theme.dart';
 import 'download/catalog.dart';
+import 'download/catalogs_screen.dart';
 import 'download/download_manager.dart';
 import 'download/download_store.dart';
-import 'download/catalogs_screen.dart';
 import 'download/downloads_screen.dart';
 import 'download/followed_catalogs.dart';
 import 'download/publisher_list.dart';
 import 'download/publishers_screen.dart';
-import 'ui/ask_view.dart';
-import 'ui/first_steps.dart';
-import 'ui/guided_tour.dart';
-import 'ui/suggestions.dart';
-import 'knowledge/app_help.dart';
-import 'knowledge/grounded_answer.dart';
-import 'knowledge/hybrid_retriever.dart';
-import 'knowledge/knowledge_package.dart';
-import 'app/region.dart';
-import 'ui/package_row.dart';
-import 'llm/local_embedder.dart';
-import 'map/map_screen.dart';
 import 'facts/compact_codec.dart';
 import 'facts/demo_facts.dart';
 import 'facts/fact_form.dart';
 import 'facts/fact_store.dart';
 import 'facts/signing.dart';
+import 'knowledge/app_help.dart';
+import 'knowledge/bundled_packages.dart';
+import 'knowledge/grounded_answer.dart';
+import 'knowledge/hybrid_retriever.dart';
+import 'knowledge/knowledge_package.dart';
+import 'l10n/app_localizations.dart';
+import 'llm/local_embedder.dart';
+import 'llm/local_llm.dart';
 import 'map/hazard_detect.dart';
+import 'map/map_screen.dart';
 import 'map/map_state.dart';
-import 'package:app_links/app_links.dart';
-
 import 'shelter/base_discovery.dart';
 import 'shelter/share_nearby.dart';
 import 'shelter/shelter_client.dart';
+import 'shelter/shelter_library.dart';
 import 'shelter/shelter_link.dart';
 import 'shelter/shelter_panel.dart';
 import 'shelter/shelter_server.dart';
-import 'shelter/shelter_library.dart';
-import 'llm/local_llm.dart';
 import 'spike/bench_prompts.dart';
 import 'spike/eval_questions.dart';
 import 'ui/answer_card.dart';
+import 'ui/ask_view.dart';
 import 'ui/conversation_page.dart';
+import 'ui/first_steps.dart';
+import 'ui/guided_tour.dart';
+import 'ui/nearest_card.dart';
+import 'ui/package_row.dart';
+import 'ui/suggestions.dart';
 import 'ui/thread_list.dart';
 import 'ui/threads.dart';
-import 'ui/nearest_card.dart';
 import 'util/paths.dart';
-import 'app/brand.dart';
-import 'app/splash.dart';
-import 'app/notices.dart';
-import 'app/lang.dart';
-import 'l10n/app_localizations.dart';
 
-/// Spike app: load a GGUF model, chat with it, and time a fixed question set.
-///
-/// Dev flags (all optional):
-///   --dart-define=GGUF_MODEL_PATH=/path/in/app/storage.gguf  load on start (docs:… = in Documents)
-///   --dart-define=GGUF_MODEL_URL=https://...gguf             download on start
-///   --dart-define=AUTO_BENCH=true                            run the questions after loading
-///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
-///   --dart-define=EMBED_MODEL_PATH=/path/in/app/storage.gguf  vector search (spike 3)
-///   --dart-define=MIN_COS=0.5                                relevance cut-off for vector search (default 0.70)
-///   --dart-define=CATALOG_URL=https://…/catalog.json         download catalog (Downloads tab)
-///   --dart-define=DOWNLOAD_BASE_URL=http://host:port/        base for relative catalog URLs
-///   --dart-define=MAP_PMTILES_PATH=/path/area.pmtiles        offline base map
-///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
-///   --dart-define=START_TAB=2                                open on the map (1: conversations)
-///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
-///   --dart-define=SHELTER_SERVER=true                        answer phones on the local network (desktop)
-///   --dart-define=SHELTER_NAME=…                             shown on phones
-///   --dart-define=SHELTER_URL=http://192.168.1.20:8642       ask this shelter first (phone)
-///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with SHELTER_SERVER)
-///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
-///   --dart-define=TOP_K=2                                    passages per answer (default 4)
-///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: engine decides)
-///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
-///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
-///                                                            screenshots of the answers and the map
-const _modelPath = String.fromEnvironment('GGUF_MODEL_PATH');
-const _modelUrl = String.fromEnvironment(
-  'GGUF_MODEL_URL',
-  defaultValue:
-      'https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf',
-);
-const _autoBench = bool.fromEnvironment('AUTO_BENCH');
-const _bare = bool.fromEnvironment('BARE');
-
-/// Knowledge packages built into the app (`assets/packages/<id>.sqlite`).
-/// A newer download from the catalog replaces the built-in copy.
-const _bundledPackages = [
-  'jp.bousai.core',
-  'jp.outdoor.hiking',
-  'intl.firstaid.basics',
-];
-const _embedPath = String.fromEnvironment('EMBED_MODEL_PATH');
-const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0.70');
-const _mapPmtiles = String.fromEnvironment('MAP_PMTILES_PATH');
-const _mockLocation = String.fromEnvironment('MOCK_LOCATION');
 const _mapSitesAsset = 'jp.map.nishinomiya.sites.sqlite';
-const _startTab = int.fromEnvironment('START_TAB');
-const _screenshotAfter = int.fromEnvironment('SCREENSHOT_AFTER_S');
-const _demoQuestions = String.fromEnvironment('ASK');
-const _relevanceCheck = bool.fromEnvironment('RELEVANCE_CHECK');
-const _topK = int.fromEnvironment('TOP_K', defaultValue: 4);
-const _shelterServer = bool.fromEnvironment('SHELTER_SERVER');
-const _shelterNameFlag = String.fromEnvironment(
-  'SHELTER_NAME',
-  defaultValue: 'Lychnion shelter',
-);
-
-/// Computers can share on the local network (phones: later).
-bool get _isDesktop => switch (defaultTargetPlatform) {
-  TargetPlatform.macOS ||
-  TargetPlatform.windows ||
-  TargetPlatform.linux => true,
-  _ => false,
-};
-
-/// Sharing on the local network: the switch in Settings, or the
-/// SHELTER_SERVER flag for development.
-bool _sharingOn(AppSettings? s) =>
-    _shelterServer || (_isDesktop && (s?.sharing ?? false));
-String _sharingName(AppSettings? s) => s?.sharingName ?? _shelterNameFlag;
-const _shelterUrl = String.fromEnvironment('SHELTER_URL');
-const _demoFactsFlag = bool.fromEnvironment('DEMO_FACTS');
-const _factsEdit = bool.fromEnvironment('FACTS_EDIT');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -188,17 +117,9 @@ class LychnionApp extends StatelessWidget {
   /// First start: what the app can and cannot do, over the home page.
   Widget _gate(Widget child) => NoticeGate(
     settings: settings,
-    packages: _builtInPackageInfo,
+    packages: builtInPackageInfo,
     child: child,
   );
-}
-
-Future<List<PackageInfo>> _builtInPackageInfo() async {
-  final store = await DownloadStore.instance();
-  return [
-    for (final id in _bundledPackages)
-      KnowledgePackage.readInfo(await store.packagePath(id, '$id.sqlite')),
-  ];
 }
 
 /// Three tabs: ask, the offline map and settings (with downloads).
@@ -212,7 +133,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _tab = _startTab;
+  int _tab = DevFlags.startTab;
 
   /// Shared by Home and the bottom bar: the parts the guided tour shows.
   final _tourKeys = TourKeys();
@@ -224,12 +145,12 @@ class _HomePageState extends State<HomePage> {
 
   /// Map data and position, shared by the answers and the map tab.
   /// From MAP_PMTILES_PATH, else from a downloaded map area.
-  late MapState? _map = _mapPmtiles.isEmpty
+  late MapState? _map = DevFlags.mapPmtiles.isEmpty
       ? null
       : MapState(
-          pmtilesPath: _mapPmtiles,
+          pmtilesPath: DevFlags.mapPmtiles,
           sitesAsset: _mapSitesAsset,
-          mockLocation: _mockLocation,
+          mockLocation: DevFlags.mockLocation,
           facts: _facts,
         );
 
@@ -404,7 +325,7 @@ class _HomePageState extends State<HomePage> {
 
   /// (Re)opens the downloaded map area unless MAP_PMTILES_PATH is set.
   void _useDownloadedMap() {
-    if (_mapPmtiles.isNotEmpty) return;
+    if (DevFlags.mapPmtiles.isNotEmpty) return;
     final p = _downloads!.store.mapPaths();
     final old = _map;
     setState(
@@ -416,7 +337,7 @@ class _HomePageState extends State<HomePage> {
               sitesPath: p.sites,
               routesPath: p.routes,
               inundationPath: p.inundation,
-              mockLocation: _mockLocation,
+              mockLocation: DevFlags.mockLocation,
               facts: _facts,
             ),
     );
@@ -430,12 +351,12 @@ class _HomePageState extends State<HomePage> {
     unawaited(_map?.load());
     unawaited(_initFacts());
     unawaited(_initDownloads());
-    if (!_shelterServer) {
+    if (!DevFlags.shelterServer) {
       // Phones only: links come from the QR code at a shelter.
       _links = AppLinks().uriLinkStream.listen((u) => unawaited(_openLink(u)));
     }
-    if (_screenshotAfter > 0) {
-      Timer(const Duration(seconds: _screenshotAfter), _saveScreenshot);
+    if (DevFlags.screenshotAfter > 0) {
+      Timer(const Duration(seconds: DevFlags.screenshotAfter), _saveScreenshot);
     }
   }
 
@@ -449,15 +370,18 @@ class _HomePageState extends State<HomePage> {
     final dir = await getApplicationSupportDirectory();
     await _trust.load(File('${dir.path}/trusted_keys.json'));
     // Devices that enter official facts (shelter computer, demo) sign them.
-    if (_isDesktop || _shelterServer || _factsEdit || _demoFactsFlag) {
+    if (isDesktop ||
+        DevFlags.shelterServer ||
+        DevFlags.factsEdit ||
+        DevFlags.demoFacts) {
       final signer = await FactSigner.loadOrCreate(
         File('${dir.path}/signing_key'),
       );
       _facts.signer = signer;
-      await _trust.add(signer.publicKeyText, _sharingName(widget.settings));
+      await _trust.add(signer.publicKeyText, sharingName(widget.settings));
     }
     await _facts.load();
-    if (!_demoFactsFlag) return;
+    if (!DevFlags.demoFacts) return;
     // Demo facts refer to evacuation sites: wait for the map area.
     for (var i = 0; i < 300; i++) {
       final sites = _map?.sites;
@@ -508,19 +432,19 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => SettingsScreen(
         settings: widget.settings,
         downloads: _downloads,
-        onShareNearby: _isDesktop ? null : _openShareNearby,
+        onShareNearby: isDesktop ? null : _openShareNearby,
         region: RegionTile(
           settings: widget.settings,
           map: _map,
-          mockLocation: _mockLocation,
+          mockLocation: DevFlags.mockLocation,
         ),
-        bundledPackages: _builtInPackageInfo,
+        bundledPackages: builtInPackageInfo,
         userRegion: () => UserRegion.current(
           widget.settings,
           _map,
-          mockLocation: _mockLocation,
+          mockLocation: DevFlags.mockLocation,
         ),
-        shelter: _isDesktop
+        shelter: isDesktop
             ? ShelterShareSection(
                 settings: widget.settings,
                 urls: _shelterUrls,
@@ -547,7 +471,7 @@ class _HomePageState extends State<HomePage> {
           userRegion: () => UserRegion.current(
             widget.settings,
             _map,
-            mockLocation: _mockLocation,
+            mockLocation: DevFlags.mockLocation,
           ),
         ),
       ),
@@ -605,9 +529,9 @@ class _HomePageState extends State<HomePage> {
                       builder: (_, _) => MapScreen(
                         key: ObjectKey(_map),
                         state: _map!,
-                        editor: _sharingOn(widget.settings) || _factsEdit
+                        editor: sharingOn(widget.settings) || DevFlags.factsEdit
                             ? FactEditor(
-                                sourceName: _sharingName(widget.settings),
+                                sourceName: sharingName(widget.settings),
                               )
                             : null,
                       ),
@@ -705,7 +629,7 @@ class _SpikePageState extends State<SpikePage> {
   final _llm = LocalLlm();
   final _input = TextEditingController();
   final _threadInput = TextEditingController();
-  final _url = TextEditingController(text: _modelUrl);
+  final _url = TextEditingController(text: DevFlags.modelUrl);
   final _threads = ThreadStore();
 
   /// The guided tour starts by itself once, after the first steps.
@@ -800,8 +724,9 @@ class _SpikePageState extends State<SpikePage> {
   bool _shelterReady = false;
   Timer? _retry;
 
-  String? get _wantedShelter =>
-      _shelterUrl.isNotEmpty ? _shelterUrl : widget.settings?.shelterUrl;
+  String? get _wantedShelter => DevFlags.shelterUrl.isNotEmpty
+      ? DevFlags.shelterUrl
+      : widget.settings?.shelterUrl;
 
   /// Connects, switches or disconnects when the saved shelter changes.
   void _shelterChanged() {
@@ -833,8 +758,8 @@ class _SpikePageState extends State<SpikePage> {
   Future<void> _serverOps = Future.value();
 
   void _sharingChanged() {
-    final want = _sharingOn(widget.settings) && _answerer != null;
-    final name = _sharingName(widget.settings);
+    final want = sharingOn(widget.settings) && _answerer != null;
+    final name = sharingName(widget.settings);
     if (want == (_server != null) && (!want || _server!.name == name)) return;
     _serverOps = _serverOps.then((_) => _syncServer()).then((_) {
       if (!mounted) return;
@@ -854,8 +779,8 @@ class _SpikePageState extends State<SpikePage> {
   /// needs the loaded model, so it starts once the model is ready.
   Future<void> _syncServer() async {
     final answerer = _answerer;
-    final want = _sharingOn(widget.settings) && answerer != null;
-    final name = _sharingName(widget.settings);
+    final want = sharingOn(widget.settings) && answerer != null;
+    final name = sharingName(widget.settings);
     // A new answerer (other packages, or a publisher removed) restarts the
     // server: it must not keep answering from what was unloaded.
     if (_server case final s?
@@ -870,7 +795,7 @@ class _SpikePageState extends State<SpikePage> {
     final server = ShelterServer(
       answerer: answerer,
       name: name,
-      modelName: _modelPath.split('/').last,
+      modelName: DevFlags.modelPath.split('/').last,
       facts: widget.facts,
       codec: widget.map?.sites == null
           ? null
@@ -920,7 +845,7 @@ class _SpikePageState extends State<SpikePage> {
     // Until packages load here (or when a shelter answers instead), show
     // the built-in packages' names and suggestions.
     unawaited(
-      _builtInPackageInfo()
+      builtInPackageInfo()
           .then((p) {
             if (mounted && _packages.isEmpty) setState(() => _packages = p);
           })
@@ -929,14 +854,14 @@ class _SpikePageState extends State<SpikePage> {
     widget.settings?.addListener(_shelterChanged);
     widget.settings?.addListener(_sharingChanged);
     _shelterChanged();
-    if (_modelPath.isNotEmpty) {
+    if (DevFlags.modelPath.isNotEmpty) {
       unawaited(
         _run(
-          () async => _llm.loadFile(await resolvePath(_modelPath)),
+          () async => _llm.loadFile(await resolvePath(DevFlags.modelPath)),
           afterLoad: true,
         ),
       );
-    } else if (_autoBench && _usesDownload) {
+    } else if (DevFlags.autoBench && _usesDownload) {
       unawaited(_download());
     } else {
       widget.downloadChanges?.addListener(_loadDownloaded);
@@ -1006,7 +931,7 @@ class _SpikePageState extends State<SpikePage> {
     try {
       await load();
       await _llm.newChat(systemInstruction: benchSystemInstruction);
-      if (!_bare) {
+      if (!DevFlags.bare) {
         final store = await DownloadStore.instance();
         // The built-in packages (or newer downloads of them) plus every
         // other package installed from Downloads, searched together.
@@ -1022,16 +947,16 @@ class _SpikePageState extends State<SpikePage> {
         }
 
         final pkg = KnowledgePackage.merge([
-          for (final id in _bundledPackages)
+          for (final id in bundledPackages)
             ?openOrSkip(id, await store.packagePath(id, '$id.sqlite')),
           for (final i in store.allInstalled(ItemKind.package))
-            if (!_bundledPackages.contains(i.id) &&
+            if (!bundledPackages.contains(i.id) &&
                 i.fileEnding('.sqlite') != null)
               ?openOrSkip(i.id, store.path(i, i.fileEnding('.sqlite')!)),
         ]);
         HybridRetriever? hybrid;
-        final embedPath = _embedPath.isNotEmpty
-            ? await resolvePath(_embedPath)
+        final embedPath = DevFlags.embedPath.isNotEmpty
+            ? await resolvePath(DevFlags.embedPath)
             : store.embedModelPath();
         if (embedPath != null) {
           final sw = Stopwatch()..start();
@@ -1039,7 +964,7 @@ class _SpikePageState extends State<SpikePage> {
           hybrid = HybridRetriever(
             pkg,
             _embedder,
-            minCosine: double.parse(_minCos),
+            minCosine: double.parse(DevFlags.minCos),
           );
           await hybrid.index();
           _log({
@@ -1058,7 +983,7 @@ class _SpikePageState extends State<SpikePage> {
             helpHybrid = HybridRetriever(
               help,
               _embedder,
-              minCosine: double.parse(_minCos),
+              minCosine: double.parse(DevFlags.minCos),
             );
             await helpHybrid.index();
           }
@@ -1069,8 +994,8 @@ class _SpikePageState extends State<SpikePage> {
           _llm,
           pkg,
           hybrid: hybrid,
-          checkRelevance: _relevanceCheck,
-          topK: _topK,
+          checkRelevance: DevFlags.relevanceCheck,
+          topK: DevFlags.topK,
           help: help,
           helpHybrid: helpHybrid,
         );
@@ -1111,10 +1036,10 @@ class _SpikePageState extends State<SpikePage> {
       setState(() => _loadingModel = false);
       _answerWaiting();
     }
-    if (afterLoad && _autoBench) await _bench();
-    if (afterLoad && _demoQuestions.isNotEmpty) {
+    if (afterLoad && DevFlags.autoBench) await _bench();
+    if (afterLoad && DevFlags.demoQuestions.isNotEmpty) {
       _startThread();
-      for (final q in _demoQuestions.split('|')) {
+      for (final q in DevFlags.demoQuestions.split('|')) {
         await _ask(q.trim());
       }
       await widget.onDemoDone?.call(_entries);
@@ -1218,9 +1143,9 @@ class _SpikePageState extends State<SpikePage> {
         _phase = AskPhase.shelter;
       });
       _answerWaiting();
-      if (_modelPath.isEmpty && _demoQuestions.isNotEmpty) {
+      if (DevFlags.modelPath.isEmpty && DevFlags.demoQuestions.isNotEmpty) {
         _startThread();
-        for (final q in _demoQuestions.split('|')) {
+        for (final q in DevFlags.demoQuestions.split('|')) {
           await _ask(q.trim());
         }
         await widget.onDemoDone?.call(_entries);
@@ -1301,7 +1226,7 @@ class _SpikePageState extends State<SpikePage> {
     final region = await UserRegion.current(
       widget.settings,
       widget.map,
-      mockLocation: _mockLocation,
+      mockLocation: DevFlags.mockLocation,
     );
     if (_answerer case final a? when a.userRegion != region) {
       a.userRegion = region;
@@ -1345,20 +1270,22 @@ class _SpikePageState extends State<SpikePage> {
         : benchPrompts;
     for (final q in questions) {
       // A fresh chat per question, so answers do not depend on each other.
-      if (_bare) await _llm.newChat(systemInstruction: benchSystemInstruction);
+      if (DevFlags.bare) {
+        await _llm.newChat(systemInstruction: benchSystemInstruction);
+      }
       await _ask(q);
       results.add(_entries.last.toJson());
     }
     final dir = await exchangeDirectory();
     final out = File(
-      '${dir.path}/lychnion-bench-${_bare ? 'bare' : 'grounded'}-${DateTime.now().millisecondsSinceEpoch}.json',
+      '${dir.path}/lychnion-bench-${DevFlags.bare ? 'bare' : 'grounded'}-${DateTime.now().millisecondsSinceEpoch}.json',
     );
     await out.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
         'platform': defaultTargetPlatform.name,
-        'mode': _bare ? 'bare' : 'grounded',
-        'relevance_check': _relevanceCheck,
-        'top_k': _topK,
+        'mode': DevFlags.bare ? 'bare' : 'grounded',
+        'relevance_check': DevFlags.relevanceCheck,
+        'top_k': DevFlags.topK,
         'package': _answerer?.package.version,
         'backend': _llm.backend,
         'load_ms': _llm.lastLoadTime?.inMilliseconds,
@@ -1485,7 +1412,7 @@ class _SpikePageState extends State<SpikePage> {
       detail: _status,
       // Sharing: this computer's name; connected: the shelter's.
       shelterName: _server != null
-          ? _sharingName(widget.settings)
+          ? sharingName(widget.settings)
           : _shelter?.name,
       home: widget.map == null
           ? null
@@ -1518,7 +1445,7 @@ class _SpikePageState extends State<SpikePage> {
           ? null
           : ShelterQrCard(
               urls: widget.shelterUrls?.value ?? const [],
-              name: _sharingName(widget.settings),
+              name: sharingName(widget.settings),
               keyText: widget.facts?.signer?.publicKeyText,
             ),
       ready: ready,
