@@ -143,8 +143,8 @@ club, so it comes in forms they can operate:
 - **A headless node** for a server or a small box: the same Dart code as a
   single program (`dart compile exe`) or a container. For people who
   operate servers. Built 2026-11-18: `packages/lychnion_node`
-  (`serve`, `pull`, `check`; README there). `pull` from cron keeps it
-  current; the download and catalog code is shared with the app in
+  (`serve`, `pull`, `check`; README there). `pull --every 30m` (or
+  `serve --pull … --every 30m`, step 5c) keeps it current; the download and catalog code is shared with the app in
   `packages/lychnion_fetch`.
 - **A static folder.** A node can export its catalog and files as plain
   files, to put on any web host or a USB stick. GitHub Pages works too,

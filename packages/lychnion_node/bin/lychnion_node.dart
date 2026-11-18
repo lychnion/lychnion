@@ -51,13 +51,13 @@ Future<void> main(List<String> argv) async {
     stderr.writeln(e);
     exitCode = 75;
   } on FileSystemException catch (e) {
-    stderr.writeln('${e.path ?? ''}: ${e.osError?.message ?? e.message}');
+    stderr.writeln(errorLine(e));
     exitCode = 74;
   } on SocketException catch (e) {
-    stderr.writeln('network: ${e.osError?.message ?? e.message}');
+    stderr.writeln(errorLine(e));
     exitCode = 1;
   } on FormatException catch (e) {
-    stderr.writeln(e.message);
+    stderr.writeln(errorLine(e));
     exitCode = 1;
   }
   // Signal listeners would keep the process alive; end it here.
@@ -111,11 +111,12 @@ TrustedKeys _trust(List<String> args) {
   }
 }
 
-/// The options of a pull: sources, trust and kinds, taken out of [args].
+/// The options of a pull (trust and kinds), taken out of [args], and its
+/// sources: [urls], or else what is left in [args] after the options.
 ({List<Uri> sources, TrustedKeys trust, Set<String> kinds}) _pullOptions(
-  List<String> args,
-  List<String> urls,
-) {
+  List<String> args, {
+  List<String>? urls,
+}) {
   final trust = _trust(args);
   final kinds = _opts(args, '--kind').toSet();
   for (final k in kinds) {
@@ -123,8 +124,10 @@ TrustedKeys _trust(List<String> args) {
       throw _Usage('--kind is package, map or model');
     }
   }
+  final addresses = urls ?? [...args];
+  if (urls == null) args.clear();
   final sources = <Uri>[];
-  for (final a in urls) {
+  for (final a in addresses) {
     final u = Uri.tryParse(a);
     if (u == null || !(u.isScheme('http') || u.isScheme('https'))) {
       throw _Usage('not an http(s) address: $a');
@@ -138,10 +141,11 @@ Duration? _every(List<String> args) {
   final text = _opt(args, '--every');
   if (text == null) return null;
   return parseEvery(text) ??
-      (throw _Usage('--every wants a time of at least 1m, like 30m or 2h'));
+      (throw _Usage('--every wants a time from 1m to 168h, like 30m or 2h'));
 }
 
-/// Completes on Ctrl-C or SIGTERM (docker stop).
+/// Completes on Ctrl-C or SIGTERM (docker stop). A second one ends the
+/// process at once (130).
 Future<void> _stopSignal() {
   final done = Completer<void>();
   for (final s in [
@@ -149,7 +153,8 @@ Future<void> _stopSignal() {
     if (!Platform.isWindows) ProcessSignal.sigterm,
   ]) {
     s.watch().listen((_) {
-      if (!done.isCompleted) done.complete();
+      if (done.isCompleted) exit(130);
+      done.complete();
     });
   }
   return done.future;
@@ -220,8 +225,13 @@ Future<int> _serve(List<String> args) async {
     }
   }
   final pulls = _opts(args, '--pull');
+  if (pulls.isEmpty) {
+    for (final o in ['--every', '--publisher', '--kind']) {
+      if (args.contains(o)) throw _Usage('serve: $o needs --pull');
+    }
+  }
   final every = _every(args) ?? const Duration(minutes: 30);
-  final options = pulls.isEmpty ? null : _pullOptions(args, pulls);
+  final options = pulls.isEmpty ? null : _pullOptions(args, urls: pulls);
   final folder = NodeFolder(_dir(args));
   if (options == null && !await folder.catalogFile.exists()) {
     stderr.writeln('${folder.catalogFile.path} is missing (run pull first)');
@@ -259,9 +269,7 @@ Future<int> _pull(List<String> args) async {
   final into = _opt(args, '--into');
   if (into == null) throw _Usage('pull needs --into DIR');
   final every = _every(args);
-  // The options are taken out of args first; what is left are the
-  // catalog addresses.
-  final all = _pullOptions(args, args);
+  final all = _pullOptions(args);
   if (all.sources.isEmpty) {
     throw _Usage('pull needs at least one catalog URL');
   }
@@ -296,12 +304,18 @@ Future<int> _pull(List<String> args) async {
     );
     return r.failed.isEmpty ? 0 : 1;
   }
-  await runEvery(
-    () => _pullOnce(all, folder),
-    every,
-    stop: _stopSignal(),
-    log: stdout.writeln,
-  );
+  final stop = _stopSignal();
+  // A stop does not wait for a pull in the middle of a download: the part
+  // file resumes next time, and the lock ends with the process.
+  await Future.any([
+    runEvery(
+      () => _pullOnce(all, folder),
+      every,
+      stop: stop,
+      log: stdout.writeln,
+    ),
+    stop,
+  ]);
   return 0;
 }
 
