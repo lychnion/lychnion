@@ -56,6 +56,7 @@ flutter:
     - assets/downloads/
     # The page a shelter computer serves to phones without the app.
     - assets/web/
+    - assets/regions/
     - assets/fonts/OFL-BIZUDPGothic.txt
     - assets/fonts/OFL-Lexend.txt
     - assets/fonts/OFL-ZenMaruGothic.txt

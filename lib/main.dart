@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
@@ -21,6 +22,7 @@ import 'ui/ask_view.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
+import 'knowledge/regions.dart';
 import 'ui/package_row.dart';
 import 'llm/local_embedder.dart';
 import 'map/map_screen.dart';
@@ -696,6 +698,35 @@ class _SpikePageState extends State<SpikePage> {
     if (_shelter != null) unawaited(_connectShelter());
   }
 
+  /// Prefecture or state boundaries (Natural Earth), for ranking local
+  /// sources. Null until loaded or when the file is missing.
+  RegionLookup? _regions;
+
+  /// 'JP-28' where the user is, else 'JP'. From the map's position (GPS or
+  /// MOCK_LOCATION), else the phone's last known position when location
+  /// is already allowed: no permission prompt just for this. Stays on this
+  /// device.
+  Future<String> _userRegion() async {
+    final regions = _regions;
+    if (regions == null) return 'JP';
+    double? lat = widget.map?.here?.latitude, lon = widget.map?.here?.longitude;
+    if (lat == null && _usesDownload) {
+      try {
+        final perm = await Geolocator.checkPermission();
+        if (perm == LocationPermission.always ||
+            perm == LocationPermission.whileInUse) {
+          final p = await Geolocator.getLastKnownPosition();
+          lat = p?.latitude;
+          lon = p?.longitude;
+        }
+      } on Object {
+        // No location service: rank as for Japan.
+      }
+    }
+    if (lat == null || lon == null) return 'JP';
+    return regions.codeAt(lat, lon) ?? 'JP';
+  }
+
   /// Desktop side: answers phones on the local network.
   ShelterServer? _server;
 
@@ -781,6 +812,15 @@ class _SpikePageState extends State<SpikePage> {
     );
     widget.settings?.addListener(_shelterChanged);
     widget.settings?.addListener(_sharingChanged);
+    unawaited(
+      DownloadStore.instance()
+          .then((st) => st.copyBundled('regions', 'regions.sqlite'))
+          .then((path) => _regions = RegionLookup.open(path))
+          .catchError((Object e) {
+            _log({'event': 'regions_failed', 'error': '$e'});
+            return RegionLookup.empty;
+          }),
+    );
     _shelterChanged();
     if (_modelPath.isNotEmpty) {
       unawaited(
@@ -1088,6 +1128,13 @@ class _SpikePageState extends State<SpikePage> {
           return;
         }
       }
+    }
+    // Local sources rank a little higher: the region where the user is,
+    // from the real (or mock) position only, never from the map area alone.
+    final region = await _userRegion();
+    if (_answerer case final a? when a.userRegion != region) {
+      a.userRegion = region;
+      _log({'event': 'region', 'region': region});
     }
     final entry = GroundedAnswer(question, appLang: lang);
     setState(() {

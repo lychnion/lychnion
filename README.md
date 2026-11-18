@@ -211,6 +211,7 @@ Data and models keep their own licences:
 | Knowledge packages (official pages) | Mostly PDL1.0 (compatible with CC BY 4.0); each source is listed in `tool/packages/*.json` and shown with every answer |
 | Maps: OpenStreetMap data | ODbL (share-alike) |
 | Maps: 国土地理院 and 国土数値情報 layers | GSI terms, CC BY 4.0 |
+| Region boundaries (`assets/regions/`, Natural Earth admin-1) | Public domain |
 | Models (Gemma 4, EmbeddingGemma 2) | Apache 2.0 |
 | Fonts (BIZ UDPGothic, Lexend, Zen Maru Gothic) | SIL OFL 1.1 |
 
