@@ -837,6 +837,12 @@ abstract class AppLocalizations {
   /// **'Base not checked. Scan its QR code to make sure it is the right one.'**
   String get answerBaseUnchecked;
 
+  /// Under the base name on an answer, when the base was connected by its QR code but sent its answer without a signature (an older base app).
+  ///
+  /// In en, this message translates to:
+  /// **'This base did not sign its answer. Update the app on the base computer.'**
+  String get answerBaseUnsigned;
+
   /// No description provided for @answerBaseComputer.
   ///
   /// In en, this message translates to:

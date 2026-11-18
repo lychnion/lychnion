@@ -491,6 +491,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '確認されていないベースです。正しいベースか、QR コードを読み取って確かめてください。';
 
   @override
+  String get answerBaseUnsigned =>
+      'このベースは回答に署名していません。ベースのコンピューターのアプリを更新してください。';
+
+  @override
   String answerBaseComputer(String name) {
     return 'ベース · $name';
   }

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/base/answer_signing.dart';
 import 'package:lychnion/base/base_checks.dart';
 import 'package:lychnion/base/base_client.dart';
 import 'package:lychnion/facts/fact.dart';
@@ -21,7 +22,7 @@ class _FakeBase extends BaseClient {
   final Exception? error;
 
   @override
-  Future<GroundedAnswer> ask(String question) async {
+  Future<GroundedAnswer> ask(String question, {String? pinnedKey}) async {
     if (error case final e?) throw e;
     return GroundedAnswer(question)..text = reply!;
   }
@@ -108,7 +109,7 @@ void main() {
         final a = await answerFromBase(
           _FakeBase(reply: '高い所へ [1]。'),
           '津波は？',
-          unchecked: true,
+          pinnedKey: null,
         );
         expect(a!.text, '高い所へ [1]。');
         expect(a.answeredBy, 'Hall');
@@ -116,17 +117,27 @@ void main() {
       },
     );
 
+    test('with a pinned key the answer is checked', () async {
+      final a = await answerFromBase(
+        _FakeBase(reply: '高い所へ [1]。'),
+        '津波は？',
+        pinnedKey: base.publicKeyText,
+      );
+      expect(a!.baseUnchecked, isFalse);
+    });
+
     test('an error or a timeout leaves the answer to the phone', () async {
       for (final e in [
         TimeoutException('slow'),
         const HttpException('base: 500'),
         const FormatException('not this protocol'),
+        const BadAnswerSignature('bad signature'),
       ]) {
         final errors = <Object>[];
         final a = await answerFromBase(
           _FakeBase(error: e),
           '津波は？',
-          unchecked: false,
+          pinnedKey: base.publicKeyText,
           onError: errors.add,
         );
         expect(a, isNull, reason: '$e');
@@ -140,7 +151,10 @@ void main() {
       await s.close();
       final c = BaseClient('http://127.0.0.1:$port');
       addTearDown(c.close);
-      expect(await answerFromBase(c, '津波は？', unchecked: false), isNull);
+      expect(
+        await answerFromBase(c, '津波は？', pinnedKey: base.publicKeyText),
+        isNull,
+      );
     });
   });
 }

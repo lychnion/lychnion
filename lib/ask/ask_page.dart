@@ -26,6 +26,7 @@ import '../knowledge/knowledge_package.dart';
 import '../llm/local_embedder.dart';
 import '../llm/local_llm.dart';
 import '../map/map_state.dart';
+import '../base/answer_signing.dart' show BadAnswerSignature;
 import '../base/base_discovery.dart';
 import '../base/share_nearby.dart';
 import '../base/base_checks.dart';
@@ -291,8 +292,13 @@ class _AskPageState extends _AskPageBase
       final remote = await answerFromBase(
         base,
         question,
-        unchecked: unchecked,
-        onError: (e) => _log({'event': 'base_failed', 'error': '$e'}),
+        pinnedKey: _baseKeyUsed,
+        onError: (e) => _log({
+          'event': e is BadAnswerSignature
+              ? 'base_answer_bad_signature'
+              : 'base_failed',
+          'error': '$e',
+        }),
       );
       if (remote != null) {
         try {

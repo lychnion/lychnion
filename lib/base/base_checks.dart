@@ -48,18 +48,22 @@ Future<BaseKeyCheck> checkBaseKey(
 }
 
 /// The base's answer to [question], or null when the base failed
-/// (network, timeout, not the protocol): the phone then answers with its
-/// own model. [onError] gets the reason, for the log.
+/// (network, timeout, not the protocol, a bad signature): the phone then
+/// answers with its own model. [onError] gets the reason, for the log.
+///
+/// [pinnedKey] is the key from the base's QR code that matched its /info
+/// when the phone connected. Without one the answer is unchecked: its
+/// signature would only prove it came from whoever sent that /info.
 Future<GroundedAnswer?> answerFromBase(
   BaseClient base,
   String question, {
-  required bool unchecked,
+  required String? pinnedKey,
   void Function(Object error)? onError,
 }) async {
   try {
-    return await base.ask(question)
+    return await base.ask(question, pinnedKey: pinnedKey)
       ..answeredBy = base.name
-      ..baseUnchecked = unchecked;
+      ..baseUnchecked = pinnedKey == null;
   } on Object catch (e) {
     onError?.call(e);
     return null;

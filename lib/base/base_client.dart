@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import '../download/publisher_list.dart' show cleanShownText;
 import '../facts/fact.dart';
 import '../knowledge/grounded_answer.dart';
+import 'answer_signing.dart';
 import 'base_protocol.dart';
 
 /// Asks a base computer on the local network (see BaseServer).
@@ -72,14 +73,40 @@ class BaseClient {
 
   /// The base's answer. Throws on network errors or timeouts, so the
   /// caller can fall back to the phone's own model.
-  Future<GroundedAnswer> ask(String question) async {
-    final j = await _json(
+  ///
+  /// With [pinnedKey] (the key from the base's QR code) the answer must be
+  /// signed by that key for this question: a bad signature, or an answer
+  /// to another question, throws [BadAnswerSignature]. An answer without
+  /// a signature (an old base) comes back with [GroundedAnswer.baseUnsigned].
+  Future<GroundedAnswer> ask(String question, {String? pinnedKey}) async {
+    final nonce = newAnswerNonce();
+    final (j, body, signature) = await _request(
       'POST',
       '/ask',
-      body: {'question': question},
+      body: {'question': question, 'nonce': nonce},
       timeout: const Duration(minutes: 2),
+      maxBytes: maxBodyBytes,
     );
-    return answerFromWire(j);
+    final answer = answerFromWire(j);
+    if (pinnedKey == null) return answer;
+    switch (await checkAnswerSignature(
+      header: signature,
+      nonce: nonce,
+      body: body,
+      pinnedKey: pinnedKey,
+    )) {
+      case AnswerSignature.bad:
+        throw const BadAnswerSignature('bad signature');
+      case AnswerSignature.missing:
+        return answer..baseUnsigned = true;
+      case AnswerSignature.valid:
+        // Signed, but someone in between may have sent the base another
+        // question with this phone's nonce.
+        if (answer.question != question.trim()) {
+          throw const BadAnswerSignature('answers another question');
+        }
+        return answer;
+    }
   }
 
   /// One request; [timeout] covers all of it, [maxBytes] the body.
@@ -89,8 +116,24 @@ class BaseClient {
     Map<String, Object?>? body,
     required Duration timeout,
     int maxBytes = maxBodyBytes,
+  }) async => (await _request(
+    method,
+    path,
+    body: body,
+    timeout: timeout,
+    maxBytes: maxBytes,
+  )).$1;
+
+  /// One request: the decoded body, its bytes as received, and the
+  /// base's answer signature if it sent one.
+  Future<(Map<String, dynamic>, Uint8List, String?)> _request(
+    String method,
+    String path, {
+    Map<String, Object?>? body,
+    required Duration timeout,
+    required int maxBytes,
   }) async {
-    final (int, Uint8List) got;
+    final (int, Uint8List, String?) got;
     final pending = _Pending();
     try {
       got = await _fetch(
@@ -107,7 +150,7 @@ class BaseClient {
       pending.cancel();
       rethrow;
     }
-    final (status, bytes) = got;
+    final (status, bytes, signature) = got;
     final Object? j;
     try {
       j = jsonDecode(utf8.decode(bytes));
@@ -124,10 +167,10 @@ class BaseClient {
         'base: $status ${cleanShownText(e is String ? e : null) ?? ''}'.trim(),
       );
     }
-    return j;
+    return (j, bytes, signature);
   }
 
-  Future<(int, Uint8List)> _fetch(
+  Future<(int, Uint8List, String?)> _fetch(
     String method,
     String path,
     Map<String, Object?>? body,
@@ -173,7 +216,11 @@ class BaseClient {
     pending.response = sub;
     if (pending.cancelled) unawaited(sub.cancel());
     await done.future;
-    return (res.statusCode, out.takeBytes());
+    return (
+      res.statusCode,
+      out.takeBytes(),
+      res.headers.value(answerSignatureHeader),
+    );
   }
 
   void close() => _http.close(force: true);
