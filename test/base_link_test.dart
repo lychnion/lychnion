@@ -1,4 +1,5 @@
 import 'package:lychnion/base/base_link.dart';
+import 'package:lychnion/base/base_panel.dart' show baseAppLink;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -40,5 +41,62 @@ void main() {
       Uri.parse('fieldkit://shelter?url=http://192.168.1.20:8642'),
     );
     expect(old?.url, 'http://192.168.1.20:8642');
+  });
+
+  group('a base that signs its answers', () {
+    const base = 'http://192.168.1.20:8642';
+
+    test('says so in its link, read back', () {
+      const link = BaseLink(base, key: 'k1', signs: true);
+      expect(link.toUri().queryParameters['s'], '1');
+      final back = BaseLink.fromUri(Uri.parse(link.toUri().toString()))!;
+      expect((back.key, back.signs), ('k1', true));
+    });
+
+    test('old links, and links without a key, do not say so', () {
+      final old = BaseLink.fromUri(
+        Uri.parse('lychnion://shelter?url=$base&key=k1'),
+      )!;
+      expect(old.signs, isFalse);
+      // Without a key nothing could check the signature.
+      final noKey = BaseLink.fromUri(
+        Uri.parse('lychnion://shelter?url=$base&s=1'),
+      )!;
+      expect(noKey.signs, isFalse);
+      expect(const BaseLink(base, signs: true).toUri().queryParameters, {
+        'url': base,
+      });
+      expect(
+        BaseLink.fromUri(Uri.parse('lychnion://shelter?url=$base&key=k1&s=0'))!
+            .signs,
+        isFalse,
+      );
+    });
+
+    test('the same base scanned again changes something only when '
+        'the link says it signs and the phone did not know', () {
+      bool same(BaseLink l, {String? key, String? signed}) =>
+          l.changesNothing(url: base, key: key, signedKey: signed);
+      const plain = BaseLink(base, key: 'k1');
+      const signs = BaseLink(base, key: 'k1', signs: true);
+      expect(same(const BaseLink(base), key: 'k1'), isTrue);
+      expect(same(plain, key: 'k1'), isTrue);
+      expect(same(plain, key: 'k2'), isFalse);
+      expect(same(signs, key: 'k1'), isFalse);
+      expect(same(signs, key: 'k1', signed: 'k1'), isTrue);
+      expect(
+        signs.changesNothing(
+          url: 'http://192.168.1.21:8642',
+          key: 'k1',
+          signedKey: 'k1',
+        ),
+        isFalse,
+      );
+    });
+
+    test('the QR code a base shows says it signs when it has a key', () {
+      expect(baseAppLink(base, name: 'Hall', keyText: 'k1').signs, isTrue);
+      expect(baseAppLink(base, name: 'Hall', keyText: null).signs, isFalse);
+    });
   });
 }

@@ -505,6 +505,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This base did not sign its answer. Update the app on the base computer.';
 
   @override
+  String get answerBaseRefused =>
+      'The base\'s answer did not match its QR code, so it was not used.';
+
+  @override
   String answerBaseComputer(String name) {
     return 'Base · $name';
   }

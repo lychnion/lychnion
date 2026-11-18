@@ -173,6 +173,26 @@ void main() {
       expect(find.textContaining('確認されていないベース'), findsOneWidget);
     });
 
+    testWidgets('the phone\'s own answer says when the base\'s was refused', (
+      t,
+    ) async {
+      Widget card({required bool refused}) => Scaffold(
+        body: ListView(
+          children: [
+            AnswerCard(
+              answer: answer()..baseRefused = refused,
+              grounded: true,
+              done: true,
+            ),
+          ],
+        ),
+      );
+      await _pump(t, card(refused: true), 'en', Brightness.light, 1);
+      expect(find.textContaining('QR コードと一致しなかった'), findsOneWidget);
+      await _pump(t, card(refused: false), 'en', Brightness.light, 1);
+      expect(find.textContaining('QR コードと一致しなかった'), findsNothing);
+    });
+
     testWidgets('the answer card itself announces nothing', (t) async {
       final said = <Object?>[];
       t.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(

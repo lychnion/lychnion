@@ -10,6 +10,12 @@ import '../app/settings.dart';
 import 'base_discovery.dart';
 import 'base_link.dart';
 
+/// The link in the base's QR code for phones with the app. A base with a
+/// key signs every answer the app asks for (base_server.dart), so the
+/// link says so: phones then refuse unsigned answers from the first one.
+BaseLink baseAppLink(String url, {String? name, required String? keyText}) =>
+    BaseLink(url, name: name, key: keyText, signs: keyText != null);
+
 /// Base computer: the QR code phones scan, one at a time so a camera
 /// cannot pick up the wrong one. The browser page comes first: it works on
 /// every phone; the app link is for phones with the app.
@@ -72,10 +78,10 @@ class _BaseQrCardState extends State<BaseQrCard> {
     final (data, title, hint) = switch (_for) {
       _QrFor.browser => (url, l.baseInBrowser, l.baseBrowserHint),
       _QrFor.app => (
-        BaseLink(
+        baseAppLink(
           url,
           name: widget.name,
-          key: widget.keyText,
+          keyText: widget.keyText,
         ).toUri().toString(),
         l.baseWithApp,
         l.baseScanHint(l.appName, widget.name),

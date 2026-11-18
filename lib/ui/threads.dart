@@ -86,7 +86,8 @@ class ThreadStore extends ChangeNotifier {
                 // Saved before this was kept: not known to be checked.
                 ..baseUnchecked =
                     e['base_unchecked'] as bool? ?? e['answered_by'] != null
-                ..baseUnsigned = e['base_unsigned'] == true,
+                ..baseUnsigned = e['base_unsigned'] == true
+                ..baseRefused = e['base_refused'] == true,
           ])..archived = t['archived'] == true,
       ];
     });
@@ -132,6 +133,7 @@ class ThreadStore extends ChangeNotifier {
                         'base_unchecked': e.baseUnchecked,
                       if (e.answeredBy != null && e.baseUnsigned)
                         'base_unsigned': true,
+                      if (e.baseRefused) 'base_refused': true,
                     },
                 ],
               },

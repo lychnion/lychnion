@@ -843,6 +843,12 @@ abstract class AppLocalizations {
   /// **'This base did not sign its answer. Update the app on the base computer.'**
   String get answerBaseUnsigned;
 
+  /// On the phone's own answer, when the base's answer was refused because its signature did not match the key from the base's QR code (or was missing from a base that signs).
+  ///
+  /// In en, this message translates to:
+  /// **'The base\'s answer did not match its QR code, so it was not used.'**
+  String get answerBaseRefused;
+
   /// No description provided for @answerBaseComputer.
   ///
   /// In en, this message translates to:

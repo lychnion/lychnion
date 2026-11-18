@@ -90,8 +90,10 @@ here should be relied on alone in an emergency. Source only; build it as
   answer that was changed, signed by another key, sent before, or made
   for a changed question, and answers itself. An answer from an older
   base without a signature says so; once a base has signed, the phone
-  refuses unsigned answers from it. The page for phones without the app
-  stays unsigned.
+  refuses unsigned answers from it. The QR code of a base that signs
+  says so, so the phone refuses unsigned answers from the first one.
+  When the phone refuses a base's answer, its own answer says so. The
+  page for phones without the app stays unsigned.
 - A phone keeps at most 5,000 facts and drops expired ones.
 - A base stops an answer when the phone that asked has left.
 - From a base or a phone nearby, the app downloads only files on that

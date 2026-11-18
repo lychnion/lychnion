@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import '../app/settings.dart';
 import '../facts/fact_store.dart';
 import '../knowledge/grounded_answer.dart';
+import 'answer_signing.dart' show BadAnswerSignature;
 import 'base_client.dart';
 
 /// What the phone made of a base's key (from its /info).
@@ -81,4 +85,33 @@ Future<GroundedAnswer?> answerFromBase(
   return a
     ..answeredBy = base.name
     ..baseUnchecked = pinnedKey == null;
+}
+
+/// What the Ask page gets from the base: its answer, or null; `refused`
+/// when that was for the answer's signature (the phone then says so).
+typedef BaseReply = ({GroundedAnswer? answer, bool refused});
+
+/// [answerFromBase] as the Ask page calls it: [settings] knows whether
+/// the base signs (from its QR code or an earlier answer) and remembers
+/// when it does.
+Future<BaseReply> askBase(
+  BaseClient base,
+  String question, {
+  required String? pinnedKey,
+  required AppSettings? settings,
+  void Function(Object error)? onError,
+}) async {
+  var refused = false;
+  final answer = await answerFromBase(
+    base,
+    question,
+    pinnedKey: pinnedKey,
+    signedKey: settings?.baseSignedKey,
+    onSigned: (key) => unawaited(settings?.setBaseSigned(key)),
+    onError: (e) {
+      refused = e is BadAnswerSignature;
+      onError?.call(e);
+    },
+  );
+  return (answer: answer, refused: refused);
 }

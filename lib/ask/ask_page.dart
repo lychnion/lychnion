@@ -277,6 +277,9 @@ class _AskPageState extends _AskPageBase
       });
       return;
     }
+    // The base's answer was refused for its signature: the phone's own
+    // answer says so.
+    var baseRefused = false;
     // A base computer answers first: faster and better than a phone.
     final base = _base;
     if (base != null && _baseReady) {
@@ -289,12 +292,11 @@ class _AskPageState extends _AskPageBase
         _answering = true;
         thread.entries.add(placeholder);
       });
-      final remote = await answerFromBase(
+      final (answer: remote, :refused) = await askBase(
         base,
         question,
         pinnedKey: _baseKeyUsed,
-        signedKey: widget.settings?.baseSignedKey,
-        onSigned: (key) => unawaited(widget.settings?.setBaseSigned(key)),
+        settings: widget.settings,
         onError: (e) => _log({
           'event': e is BadAnswerSignature
               ? 'base_answer_bad_signature'
@@ -302,6 +304,7 @@ class _AskPageState extends _AskPageBase
           'error': '$e',
         }),
       );
+      baseRefused = refused;
       if (remote != null) {
         try {
           setState(() {
@@ -335,7 +338,8 @@ class _AskPageState extends _AskPageBase
         if (!_llm.isLoaded) {
           if (!mounted) return;
           final failed = GroundedAnswer(question, appLang: lang)
-            ..text = context.l10n.answerBaseUnreachable;
+            ..text = context.l10n.answerBaseUnreachable
+            ..baseRefused = baseRefused;
           setState(() {
             thread.entries.add(failed);
             _answering = false;
@@ -356,7 +360,8 @@ class _AskPageState extends _AskPageBase
       a.userRegion = region;
       _log({'event': 'region', 'region': region});
     }
-    final entry = GroundedAnswer(question, appLang: lang);
+    final entry = GroundedAnswer(question, appLang: lang)
+      ..baseRefused = baseRefused;
     setState(() {
       _answering = true;
       thread.entries.add(entry);

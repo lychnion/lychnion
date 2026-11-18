@@ -495,6 +495,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'このベースは回答に署名していません。ベースのコンピューターのアプリを更新してください。';
 
   @override
+  String get answerBaseRefused => 'ベースの回答が QR コードと一致しなかったため、使いませんでした。';
+
+  @override
   String answerBaseComputer(String name) {
     return 'ベース · $name';
   }

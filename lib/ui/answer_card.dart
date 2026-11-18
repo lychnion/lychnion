@@ -154,6 +154,16 @@ class AnswerCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (answer.baseRefused)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      l.answerBaseRefused,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 for (final a in answer.alerts)
                   SafetyLine(alert: a, lang: answer.lang),
                 const SizedBox(height: 12),
