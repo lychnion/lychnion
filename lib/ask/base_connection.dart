@@ -13,7 +13,7 @@ mixin _BaseConnection on _AskPageBase {
     final want = _wantedBase;
     final key = widget.settings?.baseKey;
     // A key pinned for the same address connects again, to check it.
-    if (want == _base?.baseUrl && key == _baseKeyUsed) return;
+    if (want == _base?.url && key == _baseKeyUsed) return;
     _baseKeyUsed = key;
     _factsTimer?.cancel();
     _retry?.cancel();
@@ -93,9 +93,7 @@ mixin _BaseConnection on _AskPageBase {
       });
       await _pullFacts();
       // Packages, maps and models the base can pass on (signed records).
-      widget.onBaseCatalog?.call(
-        Uri.parse(base.baseUrl).resolve('/catalog.json'),
-      );
+      widget.onBaseCatalog?.call(Uri.parse(base.url).resolve('/catalog.json'));
       // Keep current facts in step with the base while connected.
       _factsTimer = Timer.periodic(
         const Duration(minutes: 1),

@@ -2,7 +2,7 @@ part of 'ask_page.dart';
 
 /// Desktop side: shares this computer as a base on the local
 /// network, and announces it so phones find it.
-mixin _BaseServer on _AskPageBase {
+mixin _BaseSharing on _AskPageBase {
   /// Server changes run one after the other.
   Future<void> _serverOps = Future.value();
 

@@ -47,7 +47,7 @@ import '../ui/thread_list.dart';
 import '../ui/threads.dart';
 import '../util/paths.dart';
 
-part 'base_server.dart';
+part 'base_sharing.dart';
 part 'first_steps_hookup.dart';
 part 'model_loading.dart';
 part 'base_connection.dart';
@@ -172,7 +172,7 @@ abstract class _AskPageBase extends State<AskPage> {
 }
 
 class _AskPageState extends _AskPageBase
-    with _ModelLoading, _BaseServer, _BaseConnection, _FirstStepsHookup {
+    with _ModelLoading, _BaseSharing, _BaseConnection, _FirstStepsHookup {
   final _input = TextEditingController();
   final _threadInput = TextEditingController();
 

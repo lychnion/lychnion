@@ -15,10 +15,10 @@ import 'base_protocol.dart';
 /// like the protocol throws ([FormatException], [HttpException],
 /// [TimeoutException]), so the phone answers itself instead.
 class BaseClient {
-  BaseClient(this.baseUrl);
+  BaseClient(this.url);
 
   /// For example http://192.168.1.20:8642
-  final String baseUrl;
+  final String url;
 
   /// The base's name, cleaned for showing (at most 60 characters).
   String? name;
@@ -134,7 +134,7 @@ class BaseClient {
     int maxBytes,
     _Pending pending,
   ) async {
-    final req = await _http.openUrl(method, Uri.parse('$baseUrl$path'));
+    final req = await _http.openUrl(method, Uri.parse('$url$path'));
     pending.request = req;
     // Timed out while connecting: not sent at all.
     if (pending.cancelled) req.abort();
