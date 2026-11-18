@@ -351,6 +351,22 @@ void main() {
       expect(c.items.single.record!.keyId, next.keyId);
     });
 
+    test('a base serves a revocation too', () async {
+      await publishOne('2026.11.1');
+      final next = await me.revokeAndRenew(pubDir);
+      await adoptNewKey(desk, pubDir, next);
+      final cat = BaseLibrary(desk).catalog();
+      expect(cat['keys'], [next.statements.single.json]);
+      final p = await phone('phone', me.link);
+      await Catalog.parse(
+        jsonEncode(cat),
+        fetchedFrom: Uri.parse('http://192.168.1.2:8080/catalog.json'),
+        trust: p.trust,
+        ownFilesOnly: true,
+      ).then((c) => p.learn(c.statements));
+      expect(p.keyStateOf(_name), PublisherKeyState.revoked);
+    });
+
     test('from a stick, which carries them on', () async {
       final data = utf8.encode('aaa');
       final here = DownloadStore(

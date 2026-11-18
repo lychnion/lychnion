@@ -12,9 +12,6 @@ void main() {
       '{"format": 2}',
       '{"format": 2, "records": {}}',
       '{"format": 2, "records": [], "urls": []}',
-      '{"format": 2, "records": [], "mirrors": "x"}',
-      '{"format": 2, "records": [], "keys": {}}',
-      '{"format": 2, "records": [], "base": 3}',
     ]) {
       expect(
         () => CatalogDocument.parse(bad),
@@ -22,6 +19,23 @@ void main() {
         reason: bad,
       );
     }
+  });
+
+  test('optional fields of the wrong type are ignored, as before', () {
+    final c = CatalogDocument.parse(
+      '{"format": 2, "records": [], "mirrors": "x", "keys": {}, '
+      '"base": 3, "refresh": []}',
+    );
+    expect(c.mirrors, isEmpty);
+    expect(c.keys, isEmpty);
+    expect(c.base, isNull);
+    expect(c.refresh, isNull);
+    expect(
+      () => CatalogDocument.parse('nope'),
+      throwsA(
+        isA<CatalogFormatException>().having((e) => e.notJson, 'notJson', true),
+      ),
+    );
   });
 
   test('entries that are not strings are left out', () {

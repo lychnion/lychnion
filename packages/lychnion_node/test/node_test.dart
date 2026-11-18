@@ -161,6 +161,65 @@ void main() {
       expect(folder.blob(a.files.single.sha256)!.existsSync(), isTrue);
     });
 
+    test('a key revoked mid-pull: the version before stays', () async {
+      final next = await Ed25519().newKeyPair();
+      final ab = await KeyStatement.replace(
+        publisher: 'jp.city.test',
+        oldKey: city,
+        newKey: next,
+        signed: '2026-11-19',
+      );
+      final v1 = await offer('jp.a', '1', 'one');
+      publish([v1]);
+      await go();
+      final v2 = await offer('jp.a', '2', 'two', key: next);
+      final revoke = await KeyStatement.revoke(
+        publisher: 'jp.city.test',
+        key: next,
+        signed: '2026-11-20',
+      );
+      publish([v2]);
+      src.catalog['keys'] = [ab.json, revoke.json];
+      await go();
+      expect((await folder.allRecords()).single.version, '1');
+    });
+
+    test('a catalog over 2 MB: reported, nothing pruned', () async {
+      final a = await offer('jp.a', '1', 'aaa');
+      publish([a]);
+      await go();
+      // Two catalogs under the fetch limit, together over it.
+      Future<PackageRecord> large(String id, String content) async {
+        final r = await offer(id, '1', content);
+        return PackageRecord.sign(
+          {
+            ...r.json,
+            'title': {'en': 'x' * (1200 * 1024)},
+          }..remove('signature'),
+          city,
+        );
+      }
+
+      final b = await large('jp.b', 'bbb');
+      publish([a, b]);
+      final other = Source();
+      await other.start();
+      try {
+        final c = await large('jp.c', 'ccc');
+        other.files['jp.c.sqlite'] = src.files.remove('jp.c.sqlite')!;
+        other.catalog = {
+          'format': 2,
+          'records': [c.json],
+        };
+        final r = await pull([src.url, other.url], folder, trust);
+        expect(r.failed.any((f) => f.startsWith('catalog.json')), isTrue);
+        expect((await folder.allRecords()).single.id, 'jp.a');
+        expect(folder.blob(a.files.single.sha256)!.existsSync(), isTrue);
+      } finally {
+        await other.server.close(force: true);
+      }
+    });
+
     test('again: nothing fetched twice', () async {
       publish([await offer('jp.a', '1', 'aaa')]);
       await go();
