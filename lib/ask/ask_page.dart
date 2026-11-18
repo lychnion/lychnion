@@ -255,6 +255,11 @@ class _AskPageState extends _AskPageBase
     if (mounted) announce(context, answerReadyMessage(a));
   }
 
+  /// Screen readers: this question ended without an answer.
+  void _sayAnswerFailed(GroundedAnswer a) {
+    if (mounted) announce(context, answerFailedMessage(a));
+  }
+
   @override
   Future<void> _ask(String question, {Thread? into}) async {
     final thread = into ?? (_current ??= _threads.create());
@@ -313,6 +318,7 @@ class _AskPageState extends _AskPageBase
             thread.entries.add(failed);
             _answering = false;
           });
+          _sayAnswerFailed(failed);
           return;
         }
       }
@@ -350,6 +356,7 @@ class _AskPageState extends _AskPageBase
       _sayAnswerReady(entry);
     } catch (e) {
       entry.text += '\n[error: $e]';
+      _sayAnswerFailed(entry);
     } finally {
       setState(() => _answering = false);
       unawaited(_threads.save());

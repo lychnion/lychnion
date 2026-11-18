@@ -2869,6 +2869,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Long press to report a blocked road or water point at the map centre'**
   String get mapAddPointAtCentre;
+
+  /// No description provided for @answerFailedAnnounce.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer this time.'**
+  String get answerFailedAnnounce;
 }
 
 class _AppLocalizationsDelegate

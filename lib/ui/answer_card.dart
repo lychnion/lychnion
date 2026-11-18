@@ -24,14 +24,24 @@ import 'help_screen.dart';
 /// and its first safety line (the key message), in the answer's language.
 /// Said by whoever answers (AskPage), when the answer is complete.
 String answerReadyMessage(GroundedAnswer a) {
-  final supported = AppLocalizations.supportedLocales.any(
-    (l) => l.languageCode == a.lang,
-  );
-  final l = lookupAppLocalizations(Locale(supported ? a.lang : 'en'));
+  final l = _textsFor(a);
   return [
     l.answerReadyAnnounce,
     if (a.alerts.isNotEmpty) a.alerts.first.textIn(a.lang),
   ].join(' ');
+}
+
+/// What screen readers say when [a] ended without an answer (the base
+/// could not be reached, or the model failed).
+String answerFailedMessage(GroundedAnswer a) =>
+    _textsFor(a).answerFailedAnnounce;
+
+/// App texts in the answer's language (English when the app has none).
+AppLocalizations _textsFor(GroundedAnswer a) {
+  final supported = AppLocalizations.supportedLocales.any(
+    (l) => l.languageCode == a.lang,
+  );
+  return lookupAppLocalizations(Locale(supported ? a.lang : 'en'));
 }
 
 /// One question with its safety lines, answer and the sources it cites.

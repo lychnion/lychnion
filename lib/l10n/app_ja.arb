@@ -503,5 +503,6 @@
   "shareNearbyQrSpoken": "このダウンロードを受け取るためのQRコード",
   "publishQrSpoken": "あなたの発行元を追加するためのQRコード",
   "mapNearestSiteSpoken": "最寄りの場所：{name}",
-  "mapAddPointAtCentre": "長押しで、地図の中心に通行止め・給水所を登録します"
+  "mapAddPointAtCentre": "長押しで、地図の中心に通行止め・給水所を登録します",
+  "answerFailedAnnounce": "今回は回答できませんでした。"
 }

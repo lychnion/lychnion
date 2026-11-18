@@ -119,6 +119,8 @@ void main() {
       final en = GroundedAnswer('Does a tsunami come only once?', lang: 'en')
         ..text = 'No.';
       expect(answerReadyMessage(en), 'The answer is ready.');
+      expect(answerFailedMessage(en), 'No answer this time.');
+      expect(answerFailedMessage(answer()), '今回は回答できませんでした。');
     });
 
     testWidgets('the answer card itself announces nothing', (t) async {
@@ -282,30 +284,60 @@ void main() {
     expect(find.text('app'), findsOneWidget);
   });
 
-  test('"unconfirmed" text is readable in light and dark', () {
+  test('fact text and status chips are readable in light and dark', () {
     final now = DateTime(2026, 11, 19);
-    final f = Fact(
-      kind: FactKind.roadBlocked,
-      subject: '国道2号',
-      value: '通行止め',
+    Fact fact(FactKind kind, String value, SourceType src) => Fact(
+      kind: kind,
+      subject: 'x',
+      value: value,
       observedAt: now,
       expiresAt: now.add(const Duration(hours: 6)),
-      sourceType: SourceType.citizen,
+      sourceType: src,
     );
+    final facts = {
+      'unconfirmed road': fact(
+        FactKind.roadBlocked,
+        '通行止め',
+        SourceType.citizen,
+      ),
+      'open, official': fact(
+        FactKind.shelterStatus,
+        'open',
+        SourceType.official,
+      ),
+      'crowded, unconfirmed': fact(
+        FactKind.shelterStatus,
+        'crowded',
+        SourceType.citizen,
+      ),
+      'full, official': fact(
+        FactKind.shelterStatus,
+        'full',
+        SourceType.official,
+      ),
+    };
+    final low = <String>[];
     for (final b in Brightness.values) {
       final c = buildTheme(b).colorScheme;
-      for (final bg in [
+      // Where facts are shown: plain screens, cards, Home's nearest-site
+      // card (secondaryContainer) and the map sheet.
+      final grounds = [
         c.surface,
         c.surfaceContainerLowest,
         c.surfaceContainer,
-      ]) {
-        expect(
-          _contrast(factColor(f, c), bg),
-          greaterThanOrEqualTo(4.5),
-          reason: '${b.name} on $bg',
-        );
+        c.secondaryContainer,
+      ];
+      for (final MapEntry(key: name, value: f) in facts.entries) {
+        final (fg, chip) = statusChipColors(f, c);
+        for (final g in grounds) {
+          final text = _contrast(factColor(f, c), g);
+          final onChip = _contrast(fg, Color.alphaBlend(chip, g));
+          if (text < 4.5) low.add('$name text, ${b.name}, on $g: $text');
+          if (onChip < 4.5) low.add('$name chip, ${b.name}, on $g: $onChip');
+        }
       }
     }
+    expect(low, isEmpty);
   });
 }
 

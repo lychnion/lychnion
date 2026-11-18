@@ -1751,4 +1751,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mapAddPointAtCentre =>
       'Long press to report a blocked road or water point at the map centre';
+
+  @override
+  String get answerFailedAnnounce => 'No answer this time.';
 }

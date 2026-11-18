@@ -1656,4 +1656,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get mapAddPointAtCentre => '長押しで、地図の中心に通行止め・給水所を登録します';
+
+  @override
+  String get answerFailedAnnounce => '今回は回答できませんでした。';
 }

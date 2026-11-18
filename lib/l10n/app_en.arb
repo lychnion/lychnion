@@ -1055,5 +1055,6 @@
   "publishQrSpoken": "QR code to add your publisher",
   "mapNearestSiteSpoken": "Nearest site: {name}",
   "@mapNearestSiteSpoken": {"placeholders": {"name": {"type": "String"}}},
-  "mapAddPointAtCentre": "Long press to report a blocked road or water point at the map centre"
+  "mapAddPointAtCentre": "Long press to report a blocked road or water point at the map centre",
+  "answerFailedAnnounce": "No answer this time."
 }
