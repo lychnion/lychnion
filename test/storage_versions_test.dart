@@ -183,6 +183,20 @@ void main() {
       expect(j.containsKey('base_signed_key'), isFalse);
     });
 
+    test('a late answer from the base before does not count', () async {
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      await s.setBase('http://192.168.1.20:8642', key: 'kA');
+      // Switched to base B; then base A's answer arrives, signed.
+      await s.setBase('http://192.168.1.30:8642', key: 'kB');
+      await s.setBaseSigned('kA');
+      expect(s.baseSignedKey, isNull);
+      await s.setBaseSigned('kB');
+      expect(s.baseSignedKey, 'kB');
+      await s.setBaseSigned('kA');
+      expect(s.baseSignedKey, 'kB');
+    });
+
     test('a QR code that says the base signs is remembered at once', () async {
       final s = AppSettings();
       await s.load(dir: tmp);

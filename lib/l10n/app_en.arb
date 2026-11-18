@@ -368,9 +368,13 @@
   "@answerBaseUnsigned": {
     "description": "Under the base name on an answer, when the base was connected by its QR code but sent its answer without a signature (an older base app)."
   },
-  "answerBaseRefused": "The base's answer did not match its QR code, so it was not used.",
+  "answerBaseRefused": "The base's answer could not be checked with its QR code, so it was not used.",
   "@answerBaseRefused": {
     "description": "On the phone's own answer, when the base's answer was refused because its signature did not match the key from the base's QR code (or was missing from a base that signs)."
+  },
+  "answerBaseRefusedNoModel": "The base's answer could not be checked with its QR code, so it was not used. This phone has no answer model of its own.",
+  "@answerBaseRefusedNoModel": {
+    "description": "Instead of an answer, when the base's answer was refused for its signature and the phone has no answer model."
   },
   "answerBaseComputer": "Base · {name}",
   "@answerBaseComputer": {

@@ -136,8 +136,10 @@ class AppSettings extends ChangeNotifier {
   }
 
   /// The base with QR key [key] signed an answer (see [baseSignedKey]).
+  /// Ignored unless [key] is still the pinned one: a late answer from the
+  /// base before must not stand for the one connected now.
   Future<void> setBaseSigned(String key) async {
-    if (baseSignedKey == key) return;
+    if (key != baseKey || baseSignedKey == key) return;
     baseSignedKey = key;
     notifyListeners();
     await _save();

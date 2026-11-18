@@ -109,7 +109,7 @@ Future<BaseReply> askBase(
     signedKey: settings?.baseSignedKey,
     onSigned: (key) => unawaited(settings?.setBaseSigned(key)),
     onError: (e) {
-      refused = e is BadAnswerSignature;
+      refused = refused || e is BadAnswerSignature;
       onError?.call(e);
     },
   );

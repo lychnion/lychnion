@@ -338,8 +338,10 @@ class _AskPageState extends _AskPageBase
         if (!_llm.isLoaded) {
           if (!mounted) return;
           final failed = GroundedAnswer(question, appLang: lang)
-            ..text = context.l10n.answerBaseUnreachable
-            ..baseRefused = baseRefused;
+            // Refused, not unreachable: say that, once.
+            ..text = baseRefused
+                ? context.l10n.answerBaseRefusedNoModel
+                : context.l10n.answerBaseUnreachable;
           setState(() {
             thread.entries.add(failed);
             _answering = false;

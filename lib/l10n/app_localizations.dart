@@ -846,8 +846,14 @@ abstract class AppLocalizations {
   /// On the phone's own answer, when the base's answer was refused because its signature did not match the key from the base's QR code (or was missing from a base that signs).
   ///
   /// In en, this message translates to:
-  /// **'The base\'s answer did not match its QR code, so it was not used.'**
+  /// **'The base\'s answer could not be checked with its QR code, so it was not used.'**
   String get answerBaseRefused;
+
+  /// Instead of an answer, when the base's answer was refused for its signature and the phone has no answer model.
+  ///
+  /// In en, this message translates to:
+  /// **'The base\'s answer could not be checked with its QR code, so it was not used. This phone has no answer model of its own.'**
+  String get answerBaseRefusedNoModel;
 
   /// No description provided for @answerBaseComputer.
   ///

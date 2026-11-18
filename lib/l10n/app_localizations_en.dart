@@ -506,7 +506,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get answerBaseRefused =>
-      'The base\'s answer did not match its QR code, so it was not used.';
+      'The base\'s answer could not be checked with its QR code, so it was not used.';
+
+  @override
+  String get answerBaseRefusedNoModel =>
+      'The base\'s answer could not be checked with its QR code, so it was not used. This phone has no answer model of its own.';
 
   @override
   String answerBaseComputer(String name) {
