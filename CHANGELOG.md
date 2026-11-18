@@ -17,13 +17,16 @@ here should be relied on alone in an emergency. Source only; build it as
 
 - **Offline answers with sources.** Japanese or English questions are
   answered from installed guides (official pages). Answers cite their
-  sources and the app checks the citations; an answer without a valid
-  citation is shown with a warning. Hazards like tsunamis start with a
-  fixed official safety line. Gemma 4 E2B on phones, E4B on computers, search with
-  EmbeddingGemma 2, all on the device.
-- **Offline maps.** Evacuation sites per hazard, tsunami inundation
-  areas by depth, and walking routes that keep to higher ground. Areas
-  Nishinomiya and Kushimoto. The nearest site is on Home.
+  sources and the app checks the citation numbers; an answer without a
+  valid citation is shown with a warning. When a question matches a
+  hazard in a guide (for example a tsunami), the answer starts with a
+  safety line quoted word for word from an official source. Answer
+  models to download: Gemma 4 E2B for phones, E4B for computers. Search
+  with EmbeddingGemma 2. All on the device.
+- **Offline maps** for two areas: Nishinomiya (bundled) and Kushimoto
+  (download). Evacuation sites per hazard, tsunami inundation areas by
+  depth, and walking routes; tsunami routes keep to higher ground. The
+  nearest site is on Home.
 - **Home, Ask and Map tabs.** Saved conversations, first steps, a guided
   tour, and a first-start notice on what the app can and cannot do.
 - **Downloads.** Models, guides and maps from catalogs of signed package
@@ -35,15 +38,17 @@ here should be relied on alone in an emergency. Source only; build it as
   warnings) and passes on guides, maps and models. Phones connect by QR
   code or find the base on the Wi-Fi; phones without the app use a web
   page.
-- **Phone to phone.** Share downloads with a phone nearby, without
-  internet.
+- **Phone to phone.** Share downloads with a phone nearby on the same
+  Wi-Fi or a phone's hotspot, without internet.
 - **USB stick (desktop).** The desktop app copies downloads to and from a
   USB stick. Phones cannot read a stick yet.
 - **Short internet windows.** Catalogs refresh when a connection comes
-  back and every 30 minutes; a base can keep every guide and map current.
-- **Publishers and catalogs.** Cities and clubs sign and publish their own
-  guides and maps; people add them by link or QR code and follow their
-  catalogs. The desktop app can make its own key and publish.
+  back and every 30 minutes. A computer with the desktop app can keep
+  every guide and map current for the phones nearby.
+- **Publishers and catalogs.** A city or a club can sign and publish its
+  own guides and maps; people add the publisher by link or QR code and
+  can follow its catalog. The desktop app can make its own key and
+  publish.
 - **Headless node** (`packages/lychnion_node`): serves, mirrors and keeps
   catalogs current on a server.
 - **Help inside the app**, in Japanese and English, readable and
