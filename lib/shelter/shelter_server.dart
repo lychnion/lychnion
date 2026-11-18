@@ -101,9 +101,10 @@ class ShelterServer {
   /// less than 2 minutes, so an answer started just before has time.
   final Duration maxWait;
 
-  /// A response that cannot send anything for this long (the phone
-  /// stopped reading) is closed. A slow download goes on as long as
-  /// data moves; [idleTimeout] does not cover a response being sent.
+  /// A download that cannot send anything for this long (the phone
+  /// stopped reading) is closed; a slow one goes on as long as data
+  /// moves. Other responses (small) must be sent within this in all.
+  /// [idleTimeout] does not cover a response being sent.
   final Duration sendStall;
 
   static const defaultPort = 8642;
@@ -270,16 +271,15 @@ class ShelterServer {
   }
 
   Future<void> _ask(HttpRequest req) async {
-    final res = req.response;
     final phone = req.connectionInfo?.remoteAddress.address ?? '?';
-    // Refused before the body is read: the connection closes after the
-    // answer, so the rest of the body does not matter.
-    if (_live() >= maxQuestions) {
-      res.headers.set(HttpHeaders.retryAfterHeader, '30');
-      return _refuse(res, 503, 'busy, try again soon');
+    // Questions whose phone gave up wait for their turn to be dropped;
+    // a hard limit keeps them from piling up while the model is busy.
+    if (_live() >= maxQuestions || _questions.length >= 4 * maxQuestions) {
+      req.response.headers.set(HttpHeaders.retryAfterHeader, '30');
+      return _refuse(req, 503, 'busy, try again soon');
     }
     if (_live(phone) >= maxQuestionsPerPhone) {
-      return _refuse(res, 429, 'one question at a time');
+      return _refuse(req, 429, 'one question at a time');
     }
     // The place is taken before the body arrives, so questions sent at
     // the same moment cannot all pass the limits.
@@ -297,10 +297,23 @@ class ShelterServer {
     final Object? j;
     try {
       final body = await _readBody(req).timeout(bodyTimeout);
-      if (body == null) return _refuse(res, 413, 'question too large');
+      if (body == null) {
+        // Read in part when its size was not given beforehand.
+        return _refuse(
+          req,
+          413,
+          'question too large',
+          bodyRead: req.contentLength <= maxBodyBytes,
+        );
+      }
       j = jsonDecode(utf8.decode(body));
     } on TimeoutException {
-      return _refuse(res, 408, 'question took too long to arrive');
+      return _refuse(
+        req,
+        408,
+        'question took too long to arrive',
+        bodyRead: true,
+      );
     } on FormatException {
       return _send(res, 400, {'error': 'not a question'});
     }
@@ -338,7 +351,8 @@ class ShelterServer {
     _send(res, 200, {...answerToWire(answer), 'web': webAnswer(answer)});
   }
 
-  /// The body, or null when it is larger than [maxBodyBytes].
+  /// The body, or null when it is larger than [maxBodyBytes]. Not read
+  /// at all when its Content-Length says so already.
   Future<List<int>?> _readBody(HttpRequest req) async {
     if (req.contentLength > maxBodyBytes) return null;
     final out = BytesBuilder(copy: false);
@@ -349,10 +363,51 @@ class ShelterServer {
     return out.takeBytes();
   }
 
-  /// An error for a request whose body was not read to the end: the
-  /// connection closes after it.
-  void _refuse(HttpResponse res, int status, String error) {
-    res.persistentConnection = false;
+  /// Reads and drops the body when it is at most [_readBeforeError]
+  /// bytes and arrives within [bodyTimeout]; false (and stops reading)
+  /// otherwise. Phones send questions without a length (chunked), so the
+  /// size is counted while it arrives.
+  Future<bool> _readSmall(HttpRequest req) async {
+    if (req.contentLength > _readBeforeError) {
+      await req.listen(null).cancel();
+      return false;
+    }
+    var n = 0;
+    final done = Completer<bool>();
+    late final StreamSubscription<List<int>> sub;
+    sub = req.listen(
+      (chunk) {
+        n += chunk.length;
+        if (n > _readBeforeError && !done.isCompleted) done.complete(false);
+      },
+      onError: (Object _) => done.isCompleted ? null : done.complete(false),
+      onDone: () => done.isCompleted ? null : done.complete(true),
+      cancelOnError: true,
+    );
+    final small = await done.future.timeout(
+      bodyTimeout,
+      onTimeout: () => false,
+    );
+    if (!small) await sub.cancel();
+    return small;
+  }
+
+  /// A body up to this size is read before an error, so the phone gets
+  /// the error (HTTP reads a body before it can answer).
+  static const _readBeforeError = 64 * 1024;
+
+  /// An error for a request whose body was not read (or not to the end):
+  /// the connection closes after it. A small body is read first, within
+  /// [bodyTimeout], so the error arrives. A large or endless one is not:
+  /// the connection just ends, and the phone falls back on its own.
+  Future<void> _refuse(
+    HttpRequest req,
+    int status,
+    String error, {
+    bool bodyRead = false,
+  }) async {
+    final res = req.response..persistentConnection = false;
+    if (!bodyRead && !await _readSmall(req)) return _close(res);
     _send(res, status, {'error': error});
   }
 
@@ -408,11 +463,10 @@ class ShelterServer {
         }
       }
       res.deadline = sendStall;
+      _closed[res] = true;
+      // Sent. The connection may be closed by now, when the phone asked
+      // for that (Connection: close, HTTP/1.0): that is not a stall.
       await res.close();
-      if (res.connectionInfo == null) {
-        _log('blob_stalled', 'closed after no progress', req);
-        return;
-      }
     } on Object catch (e) {
       // The phone went away, or the file could not be read half-way. The
       // headers are sent, so the connection just ends; the phone resumes.
@@ -424,7 +478,11 @@ class ShelterServer {
       }
       return;
     }
-    onBlobServed?.call(file.uri.pathSegments.last);
+    try {
+      onBlobServed?.call(file.uri.pathSegments.last);
+    } on Object catch (e) {
+      _log('blob_served_callback', e, req);
+    }
     // For whoever runs the shelter: what was passed on, to whom.
     debugPrint(
       'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': to})}',
@@ -442,9 +500,16 @@ class ShelterServer {
     unawaited(_close(res));
   }
 
+  /// Responses closed already: a second close must not set a deadline,
+  /// which nothing would clear and which would end the connection while
+  /// it serves the next request.
+  final _closed = Expando<bool>();
+
   /// Closes [res]; a phone that went away is not an error. A phone that
   /// does not read the response loses the connection after [sendStall].
   Future<void> _close(HttpResponse res) async {
+    if (_closed[res] ?? false) return;
+    _closed[res] = true;
     try {
       res.deadline = sendStall;
       await res.close();

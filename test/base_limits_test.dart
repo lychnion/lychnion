@@ -301,14 +301,14 @@ void main() {
       final s = await start(
         llm: llm,
         perPhone: 10,
-        maxWait: const Duration(milliseconds: 50),
+        maxWait: const Duration(milliseconds: 500),
       );
       final first = call(s, 'POST', '/ask', body: question('津波は？'));
       await _until(() => llm.started == 1);
       final second = call(s, 'POST', '/ask', body: question('避難所は？'));
       await _until(() => s.questionsWaiting == 2);
       // Longer than maxWait: the second one's phone has given up.
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 700));
       // It no longer counts: only the one being answered does.
       expect(s.questionsWaiting, 1);
       // So its phone can ask again.
@@ -321,6 +321,42 @@ void main() {
       // The model never saw the second one.
       expect(llm.prompts, hasLength(2));
       expect(s.answered, 2);
+    });
+
+    test('a huge refused upload is not read, the connection ends', () async {
+      final llm = _GatedLlm();
+      final s = await start(llm: llm);
+      // The phone's one question is waiting.
+      final first = call(s, 'POST', '/ask', body: question('津波は？'));
+      await _until(() => s.questionsWaiting == 1);
+      final sock = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
+      addTearDown(sock.destroy);
+      var closed = false;
+      sock.listen(
+        (_) {},
+        onDone: () => closed = true,
+        onError: (Object _) => closed = true,
+      );
+      sock.add(
+        utf8.encode(
+          'POST /ask HTTP/1.1\r\nHost: x\r\nContent-Length: 1000000000000\r\n\r\n',
+        ),
+      );
+      final junk = Uint8List(64 * 1024);
+      final sw = Stopwatch()..start();
+      // Keeps sending, as a phone that wants to waste the base's time.
+      while (!closed && sw.elapsed < const Duration(seconds: 5)) {
+        try {
+          sock.add(junk);
+          await sock.flush();
+        } on Object {
+          break;
+        }
+      }
+      // Not after sendStall (30 s), and not 5 s of reading: at once.
+      expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
+      llm.release.complete();
+      expect((await first).$1, 200);
     });
 
     test('connections over the limit, and closes idle ones', () async {
@@ -449,6 +485,31 @@ void main() {
       // Stopped, not read to the end, and not counted as sent.
       expect(served, 0);
     });
+
+    test(
+      'a download is counted as sent, also with Connection: close',
+      () async {
+        final s = await start(library: _OneFile(file, sha));
+        var served = 0;
+        s.onBlobServed = (_) => served++;
+        expect((await call(s, 'GET', '/blobs/sha256/$sha')).$1, 200);
+        expect(
+          (await call(
+            s,
+            'GET',
+            '/blobs/sha256/$sha',
+            headers: {'Connection': 'close'},
+          )).$1,
+          200,
+        );
+        // HTTP/1.0: the connection closes after the file.
+        await _raw(
+          s.port,
+          utf8.encode('GET /blobs/sha256/$sha HTTP/1.0\r\n\r\n'),
+        );
+        await _until(() => served == 3);
+      },
+    );
 
     test('a phone that leaves half-way does not stop the base', () async {
       final big = File('${dir.path}/big.bin')
