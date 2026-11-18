@@ -1,82 +1,322 @@
 {
- "tsunami-wait-ja:A": "mac-e4b",
- "tsunami-wait-ja:B": "mac-e2b",
- "tsunami-wait-en:A": "mac-e2b",
- "tsunami-wait-en:B": "mac-e4b",
- "snakebite-tie-ja:A": "mac-e2b",
- "snakebite-tie-ja:B": "mac-e4b",
- "snakebite-tie-en:A": "mac-e2b",
- "snakebite-tie-en:B": "mac-e4b",
- "avalanche-buried-ja:A": "mac-e2b",
- "avalanche-buried-ja:B": "mac-e4b",
- "avalanche-buried-en:A": "mac-e4b",
- "avalanche-buried-en:B": "mac-e2b",
- "heat-stroke-ja:A": "mac-e4b",
- "heat-stroke-ja:B": "mac-e2b",
- "heat-stroke-en:A": "mac-e2b",
- "heat-stroke-en:B": "mac-e4b",
- "hypothermia-ja:A": "mac-e2b",
- "hypothermia-ja:B": "mac-e4b",
- "hypothermia-en:A": "mac-e4b",
- "hypothermia-en:B": "mac-e2b",
- "bleeding-tie-ja:A": "mac-e2b",
- "bleeding-tie-ja:B": "mac-e4b",
- "bleeding-tie-en:A": "mac-e2b",
- "bleeding-tie-en:B": "mac-e4b",
- "bear-run-ja:A": "mac-e2b",
- "bear-run-ja:B": "mac-e4b",
- "bear-run-en:A": "mac-e2b",
- "bear-run-en:B": "mac-e4b",
- "lost-stream-ja:A": "mac-e4b",
- "lost-stream-ja:B": "mac-e2b",
- "lost-stream-en:A": "mac-e2b",
- "lost-stream-en:B": "mac-e4b",
- "quake-indoors-ja:A": "mac-e2b",
- "quake-indoors-ja:B": "mac-e4b",
- "quake-indoors-en:A": "mac-e2b",
- "quake-indoors-en:B": "mac-e4b",
- "quake-driving-ja:A": "mac-e4b",
- "quake-driving-ja:B": "mac-e2b",
- "quake-driving-en:A": "mac-e4b",
- "quake-driving-en:B": "mac-e2b",
- "water-family-ja:A": "mac-e2b",
- "water-family-ja:B": "mac-e4b",
- "water-family-en:A": "mac-e4b",
- "water-family-en:B": "mac-e2b",
- "lightning-tree-ja:A": "mac-e2b",
- "lightning-tree-ja:B": "mac-e4b",
- "lightning-tree-en:A": "mac-e2b",
- "lightning-tree-en:B": "mac-e4b",
- "tick-pull-ja:A": "mac-e2b",
- "tick-pull-ja:B": "mac-e4b",
- "tick-pull-en:A": "mac-e4b",
- "tick-pull-en:B": "mac-e2b",
- "co-tent-ja:A": "mac-e4b",
- "co-tent-ja:B": "mac-e2b",
- "co-tent-en:A": "mac-e2b",
- "co-tent-en:B": "mac-e4b",
- "frostbite-rub-ja:A": "mac-e4b",
- "frostbite-rub-ja:B": "mac-e2b",
- "frostbite-rub-en:A": "mac-e4b",
- "frostbite-rub-en:B": "mac-e2b",
- "hornet-breathing-ja:A": "mac-e2b",
- "hornet-breathing-ja:B": "mac-e4b",
- "hornet-breathing-en:A": "mac-e2b",
- "hornet-breathing-en:B": "mac-e4b",
- "river-water-ja:A": "mac-e2b",
- "river-water-ja:B": "mac-e4b",
- "river-water-en:A": "mac-e4b",
- "river-water-en:B": "mac-e2b",
- "mushroom-ja:A": "mac-e2b",
- "mushroom-ja:B": "mac-e4b",
- "mushroom-en:A": "mac-e2b",
- "mushroom-en:B": "mac-e4b",
- "jellyfish-ja:A": "mac-e2b",
- "jellyfish-ja:B": "mac-e4b",
- "jellyfish-en:A": "mac-e4b",
- "jellyfish-en:B": "mac-e2b",
- "fridge-outage-ja:A": "mac-e4b",
- "fridge-outage-ja:B": "mac-e2b",
- "fridge-outage-en:A": "mac-e2b",
- "fridge-outage-en:B": "mac-e4b"
+ "tsunami-wait-ja:A": {
+  "model": "mac-e4b",
+  "answer": "b32d1c6a4214a96c"
+ },
+ "tsunami-wait-ja:B": {
+  "model": "mac-e2b",
+  "answer": "79da8670463eacae"
+ },
+ "tsunami-wait-en:A": {
+  "model": "mac-e2b",
+  "answer": "f76861b2b63ab138"
+ },
+ "tsunami-wait-en:B": {
+  "model": "mac-e4b",
+  "answer": "bbfe741055c8638c"
+ },
+ "snakebite-tie-ja:A": {
+  "model": "mac-e2b",
+  "answer": "5fe74825cd2f74fe"
+ },
+ "snakebite-tie-ja:B": {
+  "model": "mac-e4b",
+  "answer": "ac44f92fb539e544"
+ },
+ "snakebite-tie-en:A": {
+  "model": "mac-e2b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "snakebite-tie-en:B": {
+  "model": "mac-e4b",
+  "answer": "703eefbb72937e3d"
+ },
+ "avalanche-buried-ja:A": {
+  "model": "mac-e2b",
+  "answer": "d31834609af53ceb"
+ },
+ "avalanche-buried-ja:B": {
+  "model": "mac-e4b",
+  "answer": "23d9bd7d3b48b2a2"
+ },
+ "avalanche-buried-en:A": {
+  "model": "mac-e4b",
+  "answer": "0b01f564f57e3a67"
+ },
+ "avalanche-buried-en:B": {
+  "model": "mac-e2b",
+  "answer": "6f47194af4daef96"
+ },
+ "heat-stroke-ja:A": {
+  "model": "mac-e4b",
+  "answer": "8bc3b71c7cc44922"
+ },
+ "heat-stroke-ja:B": {
+  "model": "mac-e2b",
+  "answer": "8a9939387992d30d"
+ },
+ "heat-stroke-en:A": {
+  "model": "mac-e2b",
+  "answer": "4f1107a4972a4c7a"
+ },
+ "heat-stroke-en:B": {
+  "model": "mac-e4b",
+  "answer": "d887087a3b58dec0"
+ },
+ "hypothermia-ja:A": {
+  "model": "mac-e2b",
+  "answer": "11cc2e45542d99e4"
+ },
+ "hypothermia-ja:B": {
+  "model": "mac-e4b",
+  "answer": "996f8dfc11cb106c"
+ },
+ "hypothermia-en:A": {
+  "model": "mac-e4b",
+  "answer": "e2451b323640a9b5"
+ },
+ "hypothermia-en:B": {
+  "model": "mac-e2b",
+  "answer": "d4f5f4d703b4791e"
+ },
+ "bleeding-tie-ja:A": {
+  "model": "mac-e2b",
+  "answer": "a2910d53dbe6d9bc"
+ },
+ "bleeding-tie-ja:B": {
+  "model": "mac-e4b",
+  "answer": "80a7e548727fa304"
+ },
+ "bleeding-tie-en:A": {
+  "model": "mac-e2b",
+  "answer": "de3b089de8d06d4c"
+ },
+ "bleeding-tie-en:B": {
+  "model": "mac-e4b",
+  "answer": "ffeeaac8f191cca9"
+ },
+ "bear-run-ja:A": {
+  "model": "mac-e2b",
+  "answer": "ac2185475373cb08"
+ },
+ "bear-run-ja:B": {
+  "model": "mac-e4b",
+  "answer": "1d486839fce86d6a"
+ },
+ "bear-run-en:A": {
+  "model": "mac-e2b",
+  "answer": "89269958ce8959d7"
+ },
+ "bear-run-en:B": {
+  "model": "mac-e4b",
+  "answer": "797d787bc686c680"
+ },
+ "lost-stream-ja:A": {
+  "model": "mac-e4b",
+  "answer": "d74e0649b31845a2"
+ },
+ "lost-stream-ja:B": {
+  "model": "mac-e2b",
+  "answer": "d7b73498a949bdb2"
+ },
+ "lost-stream-en:A": {
+  "model": "mac-e2b",
+  "answer": "d3402571e8b026b2"
+ },
+ "lost-stream-en:B": {
+  "model": "mac-e4b",
+  "answer": "8e92b4f388098b2b"
+ },
+ "quake-indoors-ja:A": {
+  "model": "mac-e2b",
+  "answer": "fe598c15f3f13c08"
+ },
+ "quake-indoors-ja:B": {
+  "model": "mac-e4b",
+  "answer": "1b624bd3427257b3"
+ },
+ "quake-indoors-en:A": {
+  "model": "mac-e2b",
+  "answer": "0df76a4daece3d0e"
+ },
+ "quake-indoors-en:B": {
+  "model": "mac-e4b",
+  "answer": "7398f4f0d95235c7"
+ },
+ "quake-driving-ja:A": {
+  "model": "mac-e4b",
+  "answer": "4659b17f75b64e6a"
+ },
+ "quake-driving-ja:B": {
+  "model": "mac-e2b",
+  "answer": "b2a89521c38634bc"
+ },
+ "quake-driving-en:A": {
+  "model": "mac-e4b",
+  "answer": "cac6ca2a2ab65a8f"
+ },
+ "quake-driving-en:B": {
+  "model": "mac-e2b",
+  "answer": "44c0152f72944851"
+ },
+ "water-family-ja:A": {
+  "model": "mac-e2b",
+  "answer": "4909b6dd747130de"
+ },
+ "water-family-ja:B": {
+  "model": "mac-e4b",
+  "answer": "205b60638b3f856d"
+ },
+ "water-family-en:A": {
+  "model": "mac-e4b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "water-family-en:B": {
+  "model": "mac-e2b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "lightning-tree-ja:A": {
+  "model": "mac-e2b",
+  "answer": "71295210c5b9c0a1"
+ },
+ "lightning-tree-ja:B": {
+  "model": "mac-e4b",
+  "answer": "fa9a6b683cc4ef40"
+ },
+ "lightning-tree-en:A": {
+  "model": "mac-e2b",
+  "answer": "40a3a2a57a0e4e58"
+ },
+ "lightning-tree-en:B": {
+  "model": "mac-e4b",
+  "answer": "73358e1d9001bd36"
+ },
+ "tick-pull-ja:A": {
+  "model": "mac-e2b",
+  "answer": "aa011f1b6ebdcebc"
+ },
+ "tick-pull-ja:B": {
+  "model": "mac-e4b",
+  "answer": "49ace24a34f45fe3"
+ },
+ "tick-pull-en:A": {
+  "model": "mac-e4b",
+  "answer": "66bdc73ea9c654da"
+ },
+ "tick-pull-en:B": {
+  "model": "mac-e2b",
+  "answer": "ebe2ec549b5773c5"
+ },
+ "co-tent-ja:A": {
+  "model": "mac-e4b",
+  "answer": "0c6a420c42e2e8ae"
+ },
+ "co-tent-ja:B": {
+  "model": "mac-e2b",
+  "answer": "3513fd38c1c4de6b"
+ },
+ "co-tent-en:A": {
+  "model": "mac-e2b",
+  "answer": "d6c4c1fd0ddffb87"
+ },
+ "co-tent-en:B": {
+  "model": "mac-e4b",
+  "answer": "ca56fea79d75751e"
+ },
+ "frostbite-rub-ja:A": {
+  "model": "mac-e4b",
+  "answer": "f656e66aaac41ced"
+ },
+ "frostbite-rub-ja:B": {
+  "model": "mac-e2b",
+  "answer": "b0f24e238e26b5da"
+ },
+ "frostbite-rub-en:A": {
+  "model": "mac-e4b",
+  "answer": "8cbbae293adef73a"
+ },
+ "frostbite-rub-en:B": {
+  "model": "mac-e2b",
+  "answer": "73274faa9c96d210"
+ },
+ "hornet-breathing-ja:A": {
+  "model": "mac-e2b",
+  "answer": "cd44ba16ab8dab7a"
+ },
+ "hornet-breathing-ja:B": {
+  "model": "mac-e4b",
+  "answer": "f7567df6b8be41d7"
+ },
+ "hornet-breathing-en:A": {
+  "model": "mac-e2b",
+  "answer": "63e6d3011d31a3af"
+ },
+ "hornet-breathing-en:B": {
+  "model": "mac-e4b",
+  "answer": "280c1ae86452012a"
+ },
+ "river-water-ja:A": {
+  "model": "mac-e2b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "river-water-ja:B": {
+  "model": "mac-e4b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "river-water-en:A": {
+  "model": "mac-e4b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "river-water-en:B": {
+  "model": "mac-e2b",
+  "answer": "7689916fefcefbe2"
+ },
+ "mushroom-ja:A": {
+  "model": "mac-e2b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "mushroom-ja:B": {
+  "model": "mac-e4b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "mushroom-en:A": {
+  "model": "mac-e2b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "mushroom-en:B": {
+  "model": "mac-e4b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "jellyfish-ja:A": {
+  "model": "mac-e2b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "jellyfish-ja:B": {
+  "model": "mac-e4b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "jellyfish-en:A": {
+  "model": "mac-e4b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "jellyfish-en:B": {
+  "model": "mac-e2b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "fridge-outage-ja:A": {
+  "model": "mac-e4b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "fridge-outage-ja:B": {
+  "model": "mac-e2b",
+  "answer": "6ec6b725f1df9847"
+ },
+ "fridge-outage-en:A": {
+  "model": "mac-e2b",
+  "answer": "0436e8b1bb21da44"
+ },
+ "fridge-outage-en:B": {
+  "model": "mac-e4b",
+  "answer": "0436e8b1bb21da44"
+ }
 }

@@ -103,6 +103,7 @@ def main():
     ap.add_argument("--out", help="default: tool/eval/results/<date>/<label>.jsonl")
     ap.add_argument("--only", help="comma-separated topic names (for a quick check)")
     ap.add_argument("--timeout", type=int, default=3600, help="seconds for all answers")
+    ap.add_argument("--force", action="store_true", help="overwrite an existing results file")
     a = ap.parse_args()
     if a.app_id == "com.lychnion.app":
         sys.exit("use a test app id, never the live app's")
@@ -113,6 +114,8 @@ def main():
         qs = [q for q in qs if q[0].rsplit("-", 1)[0] in keep]
     by_text = {text.strip(): (qid, lang) for qid, lang, text in qs}  # the app trims each question
     out = a.out or os.path.join(HERE, "results", datetime.date.today().isoformat(), f"{a.label}.jsonl")
+    if os.path.exists(out) and not a.force:
+        sys.exit(f"{out} exists (and may be graded): choose another --label or --out")
 
     # The container must exist before the models can go in; the docs: paths are fixed, so build
     # with them first.

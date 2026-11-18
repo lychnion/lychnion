@@ -6,10 +6,12 @@ Usage: python3 tool/eval/make_batches.py tool/eval/results/2026-11-19 [--per-bat
 Reads every <label>.jsonl in the run folder (from run_mac.py) and writes
 tool/eval/judging/<run>/batch-N.md: for each question, the key point and the harms (from
 questions.json), the package's own text for it, then every model's answer as "Answer A, B, ..."
-in a shuffled order. key.json maps each label back to its model; judges never see it.
+in a shuffled order. key.json maps each label back to its model and a hash of the answer text;
+judges never see it.
 The shuffle is seeded by the question id, so the same run always gives the same files.
 
-key.json must not change once grades exist (the letters would then point to other models):
+key.json must not change once grades exist (the letters would then point to other models or
+other answers):
 the script stops if it would, unless --force is given (then delete the old grades).
 
 --flagged (after the safety judges): writes skeptic-<qid>-<label>.md for every answer a safety
@@ -17,6 +19,7 @@ judge rated 2 or 3: that question's block with only that answer, and the judge's
 """
 import argparse
 import glob
+import hashlib
 import json
 import os
 import random
@@ -25,6 +28,11 @@ import sqlite3
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def answer_hash(text):
+    """Ties a grade to the exact answer it was given for (see score.py)."""
+    return hashlib.sha256((text or "").strip().encode("utf-8")).hexdigest()[:16]
 REPO = os.path.dirname(os.path.dirname(HERE))
 PACKAGES = os.path.join(REPO, "assets", "packages")
 
@@ -37,9 +45,15 @@ def load_run(run_dir):
             continue
         rows = [json.loads(line) for line in open(os.path.join(run_dir, name), encoding="utf-8")]
         meta = rows[0] if rows and rows[0].get("event") == "meta" else {"label": name[:-6]}
+        if meta["label"] in metas:
+            sys.exit(f"two result files have the label {meta['label']!r}")
         metas[meta["label"]] = meta
+        seen = set()
         for r in rows:
             if r.get("event") == "answer" and r.get("qid"):
+                if r["qid"] in seen:
+                    sys.exit(f"{name} answers {r['qid']} twice")
+                seen.add(r["qid"])
                 answers.setdefault(r["qid"], []).append((meta["label"], r))
     return answers, metas
 
@@ -126,7 +140,7 @@ def main():
             head = lines
             for n, (label, r) in enumerate(shuffled):
                 letter = chr(ord("A") + n)
-                key[f"{qid}:{letter}"] = label
+                key[f"{qid}:{letter}"] = {"model": label, "answer": answer_hash(r.get("a"))}
                 read = sorted({h["source"] for h in r.get("retrieved", [])})
                 one = [f"### Answer {letter}"]
                 for alert in r.get("alerts", []):
@@ -144,9 +158,9 @@ def main():
     old_key = json.load(open(key_path, encoding="utf-8")) if os.path.exists(key_path) else None
     graded = [os.path.basename(f) for f in glob.glob(os.path.join(out_dir, "*.json"))
               if re.match(r"(accuracy|safety|skeptic)-.*\.json$|human\.json$", os.path.basename(f))]
-    if old_key is not None and old_key != key and graded and not a.force:
+    if graded and old_key != key and not a.force:
         sys.exit(f"the answers in {a.run_dir} no longer match key.json, and grades exist "
-                 f"({', '.join(sorted(graded)[:3])}, ...): they would be counted for the wrong model. "
+                 f"({', '.join(sorted(graded)[:3])}, ...): they would be counted for the wrong model or answer. "
                  "Grade a new run folder, or use --force and delete the old grades.")
     if a.flagged:
         for path, text in pending:

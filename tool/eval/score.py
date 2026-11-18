@@ -13,10 +13,13 @@ scores.md.
 import argparse
 import glob
 import json
+import sys
 import os
 from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from make_batches import answer_hash  # noqa: E402
 
 
 def read_json(path, default):
@@ -32,7 +35,7 @@ def grades(judge_dir):
         k = f"{e['qid']}:{e['label']}"
         if k not in key:
             raise SystemExit(f"grade for {k} has no entry in {judge_dir}/key.json")
-        return key[k]
+        return key[k]["model"]
 
     for path in sorted(glob.glob(os.path.join(judge_dir, "accuracy-*.json"))):
         for e in read_json(path, []):
@@ -56,6 +59,8 @@ def main():
     judge_dir = os.path.join(HERE, "judging", run)
     topics = {t["topic"]: t for t in json.load(open(os.path.join(HERE, "questions.json"), encoding="utf-8"))["topics"]}
     g = grades(judge_dir)
+    graded_for = {(k.rsplit(":", 1)[0], v["model"]): v["answer"]
+                  for k, v in read_json(os.path.join(judge_dir, "key.json"), {}).items()}
 
     rows = defaultdict(list)  # (model, lang) -> [answer row]
     metas = {}
@@ -72,7 +77,13 @@ def main():
         m = defaultdict(int)
         accs, secs, ttft = [], [], []
         for r in rs:
-            t = topics[r["qid"].rsplit("-", 1)[0]]
+            topic = r["qid"].rsplit("-", 1)[0]
+            if topic not in topics:
+                sys.exit(f"{model} answers {r['qid']}, which questions.json no longer has")
+            t = topics[topic]
+            if (r["qid"], model) in graded_for and graded_for[(r["qid"], model)] != answer_hash(r.get("a")):
+                sys.exit(f"{model} {r['qid']}: the answer differs from the one that was graded "
+                         "(results file replaced after judging?)")
             covered = bool(t["expected_sources"])
             sources = {h["source"] for h in r.get("retrieved", [])}
             cited = {r["retrieved"][n - 1]["source"] for n in r.get("cited", [])

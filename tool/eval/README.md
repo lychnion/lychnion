@@ -59,7 +59,8 @@ expected source ids, and the key passages that the judges see (`package:passage 
    Writes `judging/<date>/batch-N.md` (10 questions each: question, key point, harms, the
    package's text, then every model's answer as A, B, … in a shuffle seeded by the question) and
    `key.json` (label → model). Once grades exist, the script refuses to change `key.json`
-   (the letters would point to other models); grade a new run folder instead.
+   (the letters would point to other models); grade a new run folder instead. `key.json` also
+   holds a hash of each answer, and `score.py` stops if an answer no longer matches its grades.
 
 3. **Judges** (Claude Code subagents, no API key or extra bill). In Claude Code, ask:
 
@@ -130,3 +131,6 @@ Full table and every harmful answer with the skeptic's reason:
   sources do not state…" for river water, which is right in substance but not the app's fixed
   "no answer" text (so the app shows it as an uncited answer).
 - No invalid citation numbers in 80 answers.
+- When search finds no passage, the app says "no answer" without calling the model, so 3 of the
+  4 uncovered topics (and "water" in English) came out the same for every model; only
+  river water reached the models.
