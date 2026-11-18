@@ -1987,6 +1987,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it.'**
   String get publishersNone;
+
+  /// No description provided for @publishTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish your own'**
+  String get publishTitle;
+
+  /// No description provided for @publishIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Make guides and maps of your city or club available to phones. Your signing key stays on this computer; phones trust your packages after scanning your code.'**
+  String get publishIntro;
+
+  /// No description provided for @publishName.
+  ///
+  /// In en, this message translates to:
+  /// **'Publisher name, e.g. jp.city.kobe'**
+  String get publishName;
+
+  /// No description provided for @publishNameHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Lower case letters, digits, dots and hyphens. It cannot be changed later.'**
+  String get publishNameHelp;
+
+  /// No description provided for @publishDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown name, e.g. 神戸市'**
+  String get publishDisplayName;
+
+  /// No description provided for @publishCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create publisher key'**
+  String get publishCreate;
+
+  /// No description provided for @publishBadName.
+  ///
+  /// In en, this message translates to:
+  /// **'Use lower case letters, digits, dots and hyphens. \'lychnion\' is taken.'**
+  String get publishBadName;
+
+  /// No description provided for @publishKeyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The key is saved in {path}. Keep a copy offline. If it is lost, phones have to add a new key.'**
+  String publishKeyNote(String path);
+
+  /// No description provided for @publishScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones scan this code to trust your guides and maps.'**
+  String get publishScanHint;
+
+  /// No description provided for @publishCopyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get publishCopyLink;
+
+  /// No description provided for @publishLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get publishLinkCopied;
+
+  /// No description provided for @publishPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish a guide or map'**
+  String get publishPick;
+
+  /// No description provided for @publishKindPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'Guide'**
+  String get publishKindPackage;
+
+  /// No description provided for @publishKindMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get publishKindMap;
+
+  /// No description provided for @publishId.
+  ///
+  /// In en, this message translates to:
+  /// **'ID'**
+  String get publishId;
+
+  /// No description provided for @publishVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version, e.g. 2026.11.1'**
+  String get publishVersion;
+
+  /// No description provided for @publishTitleJa.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (Japanese)'**
+  String get publishTitleJa;
+
+  /// No description provided for @publishTitleEn.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (English)'**
+  String get publishTitleEn;
+
+  /// No description provided for @publishLicence.
+  ///
+  /// In en, this message translates to:
+  /// **'Licence and sources'**
+  String get publishLicence;
+
+  /// No description provided for @publishSign.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign and publish'**
+  String get publishSign;
+
+  /// No description provided for @publishDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} {version} published'**
+  String publishDone(String name, String version);
+
+  /// No description provided for @publishPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Published on this computer'**
+  String get publishPublished;
+
+  /// No description provided for @publishNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing published yet.'**
+  String get publishNothing;
+
+  /// No description provided for @publishNotPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is not a package file.'**
+  String get publishNotPackage;
+
+  /// No description provided for @publishErrorId.
+  ///
+  /// In en, this message translates to:
+  /// **'The ID may only use letters, digits, dots, hyphens and underscores.'**
+  String get publishErrorId;
+
+  /// No description provided for @publishErrorVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'The version must be numbers with dots, e.g. 2026.11.1.'**
+  String get publishErrorVersion;
+
+  /// No description provided for @publishErrorOlder.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {have} is already published or installed. Use a higher version.'**
+  String publishErrorOlder(String have);
+
+  /// No description provided for @publishErrorFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Every file name must start with the ID and a dot. A guide is one file.'**
+  String get publishErrorFiles;
+
+  /// No description provided for @publishErrorMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'ID and version must match the package file.'**
+  String get publishErrorMeta;
+
+  /// No description provided for @publishErrorTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'This ID is installed from {publisher}. Use another ID.'**
+  String publishErrorTaken(String publisher);
+
+  /// No description provided for @publishErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a title.'**
+  String get publishErrorTitle;
+
+  /// No description provided for @publishErrorKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Another key is added under this publisher name. Remove it in Publishers first.'**
+  String get publishErrorKey;
+
+  /// No description provided for @publishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not publish: {detail}'**
+  String publishFailed(String detail);
+
+  /// No description provided for @publishKeyUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.'**
+  String publishKeyUnreadable(String path);
+
+  /// No description provided for @publishKeyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A key file is already there. It is never replaced.'**
+  String get publishKeyExists;
+
+  /// No description provided for @publishKeyPrivateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The key file could not be made private, so no key was made.'**
+  String get publishKeyPrivateFailed;
 }
 
 class _AppLocalizationsDelegate

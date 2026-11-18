@@ -76,6 +76,31 @@ A city's publisher key is separate from a base's key (the one that signs
 facts, `lib/facts/signing.dart`): the city signs on one machine, and bases
 only carry its signed records.
 
+**Publishing on the desktop** (built 2026-11-18, step 4b). Settings →
+Publishers → "Publish your own" (desktop app only):
+
+1. Create the publisher key once: a name (`jp.city.kobe`, cannot change)
+   and a shown name (神戸市). The key is saved in the app folder
+   (`publisher/publisher.json`, in a folder only this user can read) and never
+   served or shared. The screen shows the publisher's QR code and link
+   for phones, and where the key file is, to keep a copy offline.
+2. "Publish a guide or map": pick a package file (`<id>.sqlite`, built
+   with the lychnion-data tools; id, version, titles and notice are read
+   from it) or a map area's files (all named `<id>.…`). Check the form,
+   then "Sign and publish".
+3. The app signs the record, copies the files in and installs them, so
+   the base passes them on at once. The signed record is also kept in
+   `publisher/records/<id>/<version>.json` (the lychnion-data layout).
+
+Refused: a version not higher than one this publisher signed or that is
+installed (versions only go up), an id installed from another publisher,
+a package whose file says another id or version, and file names that do
+not start with the id. This computer adds its own publisher to its list,
+so it trusts what it signs.
+
+Not yet: export or back up the key from the app, replace a lost key,
+and making packages without our Python tools (step 6, package studio).
+
 ### Package records
 
 For each package version, the publisher signs a small record:
@@ -284,9 +309,9 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
 4. **Nodes for others.** Following catalogs and publishing own packages
    in the desktop app, plus the headless node. A city or a club runs one
    without Git or a server background; phones trust its key by QR.
-   In parts: (a) publisher keys in the app (built 2026-11-18, see
-   "Publishers and keys"); (b) publishing own packages on the desktop;
-   (c) following catalogs on the desktop; (d) the headless node.
+   In parts: (a) publisher keys in the app and (b) publishing own
+   packages on the desktop (both built 2026-11-18, see "Publishers and
+   keys"); (c) following catalogs on the desktop; (d) the headless node.
 5. **Sync between nodes**, including updates during a disaster.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones

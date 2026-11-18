@@ -1147,4 +1147,125 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get publishersNone =>
       'ほかの発行元はまだありません。独自のガイドを発行する市や団体から、追加用のリンクか QR コードを受け取れます。';
+
+  @override
+  String get publishTitle => '自分で発行';
+
+  @override
+  String get publishIntro =>
+      '市や団体のガイドと地図をスマートフォンに届けます。署名の鍵はこのパソコンに残ります。スマートフォンはあなたのコードを読み取ると、あなたのパッケージを信頼します。';
+
+  @override
+  String get publishName => '発行元名（例：jp.city.kobe）';
+
+  @override
+  String get publishNameHelp => '小文字の英字・数字・ドット・ハイフン。あとから変更できません。';
+
+  @override
+  String get publishDisplayName => '表示名（例：神戸市）';
+
+  @override
+  String get publishCreate => '発行元の鍵を作成';
+
+  @override
+  String get publishBadName => '小文字の英字・数字・ドット・ハイフンを使ってください。「lychnion」は使えません。';
+
+  @override
+  String publishKeyNote(String path) {
+    return '鍵は $path に保存されています。オフラインで控えを保管してください。失うと、スマートフォンで新しい鍵を追加し直す必要があります。';
+  }
+
+  @override
+  String get publishScanHint => 'スマートフォンでこのコードを読み取ると、あなたのガイドと地図を信頼します。';
+
+  @override
+  String get publishCopyLink => 'リンクをコピー';
+
+  @override
+  String get publishLinkCopied => 'リンクをコピーしました';
+
+  @override
+  String get publishPick => 'ガイドか地図を発行';
+
+  @override
+  String get publishKindPackage => 'ガイド';
+
+  @override
+  String get publishKindMap => '地図';
+
+  @override
+  String get publishId => 'ID';
+
+  @override
+  String get publishVersion => '版（例：2026.11.1）';
+
+  @override
+  String get publishTitleJa => 'タイトル（日本語）';
+
+  @override
+  String get publishTitleEn => 'タイトル（英語）';
+
+  @override
+  String get publishLicence => 'ライセンスと出典';
+
+  @override
+  String get publishSign => '署名して発行';
+
+  @override
+  String publishDone(String name, String version) {
+    return '$name $version を発行しました';
+  }
+
+  @override
+  String get publishPublished => 'このパソコンで発行したもの';
+
+  @override
+  String get publishNothing => 'まだ発行したものはありません。';
+
+  @override
+  String get publishNotPackage => 'パッケージファイルではありません。';
+
+  @override
+  String get publishErrorId => 'ID には英字・数字・ドット・ハイフン・アンダースコアだけを使えます。';
+
+  @override
+  String get publishErrorVersion => '版はドット区切りの数字にしてください（例：2026.11.1）。';
+
+  @override
+  String publishErrorOlder(String have) {
+    return '版 $have は発行済みかインストール済みです。より大きい版にしてください。';
+  }
+
+  @override
+  String get publishErrorFiles => 'ファイル名はすべて「ID.」で始まる必要があります。ガイドは1ファイルです。';
+
+  @override
+  String get publishErrorMeta => 'ID と版はパッケージファイルと一致させてください。';
+
+  @override
+  String publishErrorTaken(String publisher) {
+    return 'この ID は $publisher からインストール済みです。別の ID にしてください。';
+  }
+
+  @override
+  String get publishErrorTitle => 'タイトルを入力してください。';
+
+  @override
+  String get publishErrorKey => 'この発行元名には別の鍵が追加されています。先に「発行元」で削除してください。';
+
+  @override
+  String publishFailed(String detail) {
+    return '発行できませんでした：$detail';
+  }
+
+  @override
+  String publishKeyUnreadable(String path) {
+    return '鍵ファイル $path を読み込めません。控えから戻してください。新しい鍵にすると、スマートフォンで発行元を追加し直す必要があります。';
+  }
+
+  @override
+  String get publishKeyExists => '鍵ファイルがすでにあります。置き換えることはありません。';
+
+  @override
+  String get publishKeyPrivateFailed => '鍵ファイルを非公開にできなかったため、鍵を作成しませんでした。';
 }

@@ -798,5 +798,74 @@
       }
     }
   },
-  "publishersNone": "No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it."
+  "publishersNone": "No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it.",
+  "publishTitle": "Publish your own",
+  "publishIntro": "Make guides and maps of your city or club available to phones. Your signing key stays on this computer; phones trust your packages after scanning your code.",
+  "publishName": "Publisher name, e.g. jp.city.kobe",
+  "publishNameHelp": "Lower case letters, digits, dots and hyphens. It cannot be changed later.",
+  "publishDisplayName": "Shown name, e.g. 神戸市",
+  "publishCreate": "Create publisher key",
+  "publishBadName": "Use lower case letters, digits, dots and hyphens. 'lychnion' is taken.",
+  "publishKeyNote": "The key is saved in {path}. Keep a copy offline. If it is lost, phones have to add a new key.",
+  "@publishKeyNote": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "publishScanHint": "Phones scan this code to trust your guides and maps.",
+  "publishCopyLink": "Copy link",
+  "publishLinkCopied": "Link copied",
+  "publishPick": "Publish a guide or map",
+  "publishKindPackage": "Guide",
+  "publishKindMap": "Map",
+  "publishId": "ID",
+  "publishVersion": "Version, e.g. 2026.11.1",
+  "publishTitleJa": "Title (Japanese)",
+  "publishTitleEn": "Title (English)",
+  "publishLicence": "Licence and sources",
+  "publishSign": "Sign and publish",
+  "publishDone": "{name} {version} published",
+  "@publishDone": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "publishPublished": "Published on this computer",
+  "publishNothing": "Nothing published yet.",
+  "publishNotPackage": "This file is not a package file.",
+  "publishErrorId": "The ID may only use letters, digits, dots, hyphens and underscores.",
+  "publishErrorVersion": "The version must be numbers with dots, e.g. 2026.11.1.",
+  "publishErrorOlder": "Version {have} is already published or installed. Use a higher version.",
+  "@publishErrorOlder": {
+    "placeholders": {
+      "have": {
+        "type": "String"
+      }
+    }
+  },
+  "publishErrorFiles": "Every file name must start with the ID and a dot. A guide is one file.",
+  "publishErrorMeta": "ID and version must match the package file.",
+  "publishErrorTaken": "This ID is installed from {publisher}. Use another ID.",
+  "@publishErrorTaken": {
+    "placeholders": {
+      "publisher": {
+        "type": "String"
+      }
+    }
+  },
+  "publishErrorTitle": "Give a title.",
+  "publishErrorKey": "Another key is added under this publisher name. Remove it in Publishers first.",
+  "publishFailed": "Could not publish: {detail}",
+  "@publishFailed": {"placeholders": {"detail": {"type": "String"}}},
+  "publishKeyUnreadable": "The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.",
+  "@publishKeyUnreadable": {"placeholders": {"path": {"type": "String"}}},
+  "publishKeyExists": "A key file is already there. It is never replaced.",
+  "publishKeyPrivateFailed": "The key file could not be made private, so no key was made."
 }

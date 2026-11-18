@@ -1202,4 +1202,134 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publishersNone =>
       'No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it.';
+
+  @override
+  String get publishTitle => 'Publish your own';
+
+  @override
+  String get publishIntro =>
+      'Make guides and maps of your city or club available to phones. Your signing key stays on this computer; phones trust your packages after scanning your code.';
+
+  @override
+  String get publishName => 'Publisher name, e.g. jp.city.kobe';
+
+  @override
+  String get publishNameHelp =>
+      'Lower case letters, digits, dots and hyphens. It cannot be changed later.';
+
+  @override
+  String get publishDisplayName => 'Shown name, e.g. 神戸市';
+
+  @override
+  String get publishCreate => 'Create publisher key';
+
+  @override
+  String get publishBadName =>
+      'Use lower case letters, digits, dots and hyphens. \'lychnion\' is taken.';
+
+  @override
+  String publishKeyNote(String path) {
+    return 'The key is saved in $path. Keep a copy offline. If it is lost, phones have to add a new key.';
+  }
+
+  @override
+  String get publishScanHint =>
+      'Phones scan this code to trust your guides and maps.';
+
+  @override
+  String get publishCopyLink => 'Copy link';
+
+  @override
+  String get publishLinkCopied => 'Link copied';
+
+  @override
+  String get publishPick => 'Publish a guide or map';
+
+  @override
+  String get publishKindPackage => 'Guide';
+
+  @override
+  String get publishKindMap => 'Map';
+
+  @override
+  String get publishId => 'ID';
+
+  @override
+  String get publishVersion => 'Version, e.g. 2026.11.1';
+
+  @override
+  String get publishTitleJa => 'Title (Japanese)';
+
+  @override
+  String get publishTitleEn => 'Title (English)';
+
+  @override
+  String get publishLicence => 'Licence and sources';
+
+  @override
+  String get publishSign => 'Sign and publish';
+
+  @override
+  String publishDone(String name, String version) {
+    return '$name $version published';
+  }
+
+  @override
+  String get publishPublished => 'Published on this computer';
+
+  @override
+  String get publishNothing => 'Nothing published yet.';
+
+  @override
+  String get publishNotPackage => 'This file is not a package file.';
+
+  @override
+  String get publishErrorId =>
+      'The ID may only use letters, digits, dots, hyphens and underscores.';
+
+  @override
+  String get publishErrorVersion =>
+      'The version must be numbers with dots, e.g. 2026.11.1.';
+
+  @override
+  String publishErrorOlder(String have) {
+    return 'Version $have is already published or installed. Use a higher version.';
+  }
+
+  @override
+  String get publishErrorFiles =>
+      'Every file name must start with the ID and a dot. A guide is one file.';
+
+  @override
+  String get publishErrorMeta => 'ID and version must match the package file.';
+
+  @override
+  String publishErrorTaken(String publisher) {
+    return 'This ID is installed from $publisher. Use another ID.';
+  }
+
+  @override
+  String get publishErrorTitle => 'Give a title.';
+
+  @override
+  String get publishErrorKey =>
+      'Another key is added under this publisher name. Remove it in Publishers first.';
+
+  @override
+  String publishFailed(String detail) {
+    return 'Could not publish: $detail';
+  }
+
+  @override
+  String publishKeyUnreadable(String path) {
+    return 'The key file $path cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.';
+  }
+
+  @override
+  String get publishKeyExists =>
+      'A key file is already there. It is never replaced.';
+
+  @override
+  String get publishKeyPrivateFailed =>
+      'The key file could not be made private, so no key was made.';
 }

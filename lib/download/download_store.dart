@@ -203,7 +203,11 @@ class DownloadStore {
   /// Version in the install marker of [item]'s id, also when its record
   /// is no longer trusted (versions only go up).
   String? recordedVersion(CatalogItem item) =>
-      _onDisk(item.kind, item.id)?.version;
+      recordedVersionOf(item.kind, item.id);
+
+  /// [recordedVersion] by kind and id.
+  String? recordedVersionOf(ItemKind kind, String id) =>
+      _onDisk(kind, id)?.version;
 
   /// File endings the store and the downloader use for their own files:
   /// a download must never be named like one.
