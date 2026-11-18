@@ -1041,5 +1041,20 @@
   "answerTimeLeft": "About {seconds} s left",
   "@answerTimeLeft": {"placeholders": {"seconds": {"type": "int"}}},
   "answerSlowPhone": "On this device an answer can take about a minute.",
-  "answerBaseHint": "With a base, answers take seconds"
+  "answerBaseHint": "With a base, answers take seconds",
+  "answerReadyAnnounce": "The answer is ready.",
+  "answerSafetyLineSpoken": "Safety warning",
+  "menuWithUpdates": "Show menu ({count, plural, =1{1 update} other{{count} updates}})",
+  "@menuWithUpdates": {"placeholders": {"count": {"type": "int"}}},
+  "firstStepsCountSpoken": "{done} of {total} done",
+  "@firstStepsCountSpoken": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "mapLoadingSpoken": "Loading the map",
+  "shelterQrSpoken": "QR code to connect to {name}",
+  "@shelterQrSpoken": {"placeholders": {"name": {"type": "String"}}},
+  "shareNearbyQrSpoken": "QR code to receive these downloads",
+  "publishQrSpoken": "QR code to add your publisher",
+  "mapNearestSiteSpoken": "Nearest site: {name}",
+  "@mapNearestSiteSpoken": {"placeholders": {"name": {"type": "String"}}},
+  "mapAddPointAtCentre": "Long press to report a blocked road or water point at the map centre",
+  "answerFailedAnnounce": "No answer this time."
 }

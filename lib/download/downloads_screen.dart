@@ -569,160 +569,170 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () =>
-            setState(() => open ? _open.remove(item.id) : _open.add(item.id)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title(lang),
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        if (item.area.isNotEmpty) ...[
+      // The chevron shows open or closed; screen readers hear it.
+      child: Semantics(
+        container: true,
+        button: true,
+        expanded: open,
+        child: InkWell(
+          onTap: () =>
+              setState(() => open ? _open.remove(item.id) : _open.add(item.id)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title(lang),
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          if (item.area.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.place_outlined,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    _areaText(item.area),
+                                    style: muted,
+                                    overflow: TextOverflow.ellipsis,
+                                    semanticsLabel:
+                                        '${l.settingsRegion}: ${_areaText(item.area)}',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 2),
                           Row(
                             children: [
-                              Icon(
-                                Icons.place_outlined,
-                                size: 14,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 3),
+                              if (r != null) ...[
+                                Icon(
+                                  Icons.verified_user_outlined,
+                                  size: 14,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  l.downloadsSigned,
+                                  style: small?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                Text(' · ', style: muted),
+                              ],
                               Flexible(
+                                // Up to three lines: progress, time left and
+                                // "update available" stay readable at large text.
                                 child: Text(
-                                  _areaText(item.area),
+                                  '${formatBytes(item.size)} · $status',
                                   style: muted,
+                                  maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
-                                  semanticsLabel:
-                                      '${l.settingsRegion}: ${_areaText(item.area)}',
                                 ),
                               ),
                             ],
                           ),
                         ],
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            if (r != null) ...[
-                              Icon(
-                                Icons.verified_user_outlined,
-                                size: 14,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                l.downloadsSigned,
-                                style: small?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                              Text(' · ', style: muted),
-                            ],
-                            Flexible(
-                              child: Text(
-                                '${formatBytes(item.size)} · $status',
-                                style: muted,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  ?mark,
-                  const SizedBox(width: 4),
-                  Icon(
-                    open ? Icons.expand_less : Icons.expand_more,
-                    color: theme.colorScheme.outline,
-                  ),
-                ],
-              ),
-              if (running || s.status == ItemStatus.partial) ...[
-                const SizedBox(height: 6),
-                LinearProgressIndicator(
-                  value: s.total > 0 ? s.bytes / s.total : null,
-                ),
-              ],
-              if (s.error != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  _errorText(s.error!),
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              ],
-              if (open) ...[
-                const SizedBox(height: 8),
-                for (final line in lines) Text(line, style: small),
-                if (r != null) ...[
-                  const SizedBox(height: 8),
-                  _detail(l.downloadsPublisher, r.publisher),
-                  _detail(l.downloadsSignedOn, _date(r.signed)),
-                  _detail(l.downloadsKey, r.keyId),
-                  for (final f in r.files)
-                    _detail(
-                      f.name,
-                      '${formatBytes(f.size)} · SHA-256 ${f.sha256.substring(0, 12)}…',
+                    ?mark,
+                    const SizedBox(width: 4),
+                    Icon(
+                      open ? Icons.expand_less : Icons.expand_more,
+                      color: theme.colorScheme.outline,
                     ),
-                ],
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    if (running)
-                      OutlinedButton(
-                        onPressed: () => m.stop(item),
-                        child: Text(l.downloadsStop),
-                      ),
-                    if (!running &&
-                        canGet &&
-                        (s.status == ItemStatus.absent ||
-                            s.status == ItemStatus.partial ||
-                            s.status == ItemStatus.update))
-                      FilledButton.icon(
-                        onPressed: () => _download(item),
-                        icon: Icon(
-                          s.status == ItemStatus.update
-                              ? Icons.update_rounded
-                              : Icons.download_rounded,
-                        ),
-                        label: Text(switch (s.status) {
-                          ItemStatus.partial => l.downloadsResume,
-                          ItemStatus.update => l.downloadsUpdate,
-                          _ => l.downloadsDownload,
-                        }),
-                      ),
-                    if (!running && s.status == ItemStatus.unverified)
-                      FilledButton(
-                        onPressed: () => m.verifyExisting(item),
-                        child: Text(l.downloadsCheckFile),
-                      ),
-                    if (chatPick)
-                      usedChat
-                          ? Chip(label: Text(l.downloadsInUse))
-                          : OutlinedButton(
-                              onPressed: () => m.useChatModel(item),
-                              child: Text(l.downloadsUseModel),
-                            ),
-                    if (!running && s.status != ItemStatus.absent)
-                      TextButton(
-                        onPressed: () => _delete(item),
-                        child: Text(l.delete),
-                      ),
                   ],
                 ),
+                if (running || s.status == ItemStatus.partial) ...[
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(
+                    value: s.total > 0 ? s.bytes / s.total : null,
+                    semanticsLabel: item.title(lang),
+                  ),
+                ],
+                if (s.error != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _errorText(s.error!),
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ],
+                if (open) ...[
+                  const SizedBox(height: 8),
+                  for (final line in lines) Text(line, style: small),
+                  if (r != null) ...[
+                    const SizedBox(height: 8),
+                    _detail(l.downloadsPublisher, r.publisher),
+                    _detail(l.downloadsSignedOn, _date(r.signed)),
+                    _detail(l.downloadsKey, r.keyId),
+                    for (final f in r.files)
+                      _detail(
+                        f.name,
+                        '${formatBytes(f.size)} · SHA-256 ${f.sha256.substring(0, 12)}…',
+                      ),
+                  ],
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      if (running)
+                        OutlinedButton(
+                          onPressed: () => m.stop(item),
+                          child: Text(l.downloadsStop),
+                        ),
+                      if (!running &&
+                          canGet &&
+                          (s.status == ItemStatus.absent ||
+                              s.status == ItemStatus.partial ||
+                              s.status == ItemStatus.update))
+                        FilledButton.icon(
+                          onPressed: () => _download(item),
+                          icon: Icon(
+                            s.status == ItemStatus.update
+                                ? Icons.update_rounded
+                                : Icons.download_rounded,
+                          ),
+                          label: Text(switch (s.status) {
+                            ItemStatus.partial => l.downloadsResume,
+                            ItemStatus.update => l.downloadsUpdate,
+                            _ => l.downloadsDownload,
+                          }),
+                        ),
+                      if (!running && s.status == ItemStatus.unverified)
+                        FilledButton(
+                          onPressed: () => m.verifyExisting(item),
+                          child: Text(l.downloadsCheckFile),
+                        ),
+                      if (chatPick)
+                        usedChat
+                            ? Chip(label: Text(l.downloadsInUse))
+                            : OutlinedButton(
+                                onPressed: () => m.useChatModel(item),
+                                child: Text(l.downloadsUseModel),
+                              ),
+                      if (!running && s.status != ItemStatus.absent)
+                        TextButton(
+                          onPressed: () => _delete(item),
+                          child: Text(l.delete),
+                        ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -2809,6 +2809,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'With a base, answers take seconds'**
   String get answerBaseHint;
+
+  /// No description provided for @answerReadyAnnounce.
+  ///
+  /// In en, this message translates to:
+  /// **'The answer is ready.'**
+  String get answerReadyAnnounce;
+
+  /// No description provided for @answerSafetyLineSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety warning'**
+  String get answerSafetyLineSpoken;
+
+  /// No description provided for @menuWithUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Show menu ({count, plural, =1{1 update} other{{count} updates}})'**
+  String menuWithUpdates(int count);
+
+  /// No description provided for @firstStepsCountSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} done'**
+  String firstStepsCountSpoken(int done, int total);
+
+  /// No description provided for @mapLoadingSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the map'**
+  String get mapLoadingSpoken;
+
+  /// No description provided for @shelterQrSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code to connect to {name}'**
+  String shelterQrSpoken(String name);
+
+  /// No description provided for @shareNearbyQrSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code to receive these downloads'**
+  String get shareNearbyQrSpoken;
+
+  /// No description provided for @publishQrSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code to add your publisher'**
+  String get publishQrSpoken;
+
+  /// No description provided for @mapNearestSiteSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest site: {name}'**
+  String mapNearestSiteSpoken(String name);
+
+  /// No description provided for @mapAddPointAtCentre.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press to report a blocked road or water point at the map centre'**
+  String get mapAddPointAtCentre;
+
+  /// No description provided for @answerFailedAnnounce.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer this time.'**
+  String get answerFailedAnnounce;
 }
 
 class _AppLocalizationsDelegate

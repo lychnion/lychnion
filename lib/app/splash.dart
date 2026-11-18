@@ -26,23 +26,27 @@ class SplashOverlay extends StatefulWidget {
 
 class _SplashOverlayState extends State<SplashOverlay>
     with TickerProviderStateMixin {
-  late final _intro = AnimationController(
-    vsync: this,
-    duration: SplashOverlay.intro,
-  );
-  late final _out = AnimationController(
-    vsync: this,
-    duration: SplashOverlay.fade,
-  );
+  // Made in initState, not lazily: dispose must not create them.
+  late final AnimationController _intro, _out;
   bool _done = false;
   bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _intro = AnimationController(vsync: this, duration: SplashOverlay.intro);
+    _out = AnimationController(vsync: this, duration: SplashOverlay.fade);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    if (MediaQuery.disableAnimationsOf(context)) {
+    // With a screen reader on, the intro only delays the app: skip it.
+    if (MediaQuery.accessibleNavigationOf(context)) {
+      _done = true;
+    } else if (MediaQuery.disableAnimationsOf(context)) {
       _intro.value = 1;
       Future.delayed(SplashOverlay.still, _finish);
     } else {
@@ -70,10 +74,12 @@ class _SplashOverlayState extends State<SplashOverlay>
     return Stack(
       fit: StackFit.expand,
       children: [
-        widget.child,
+        // Hidden under the intro: not reachable by screen readers either.
+        ExcludeSemantics(child: widget.child),
         FadeTransition(
           opacity: ReverseAnimation(_out),
           child: GestureDetector(
+            excludeFromSemantics: true,
             behavior: HitTestBehavior.opaque,
             onTap: _finish,
             child: ColoredBox(

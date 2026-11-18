@@ -232,7 +232,7 @@ class _MapScreenState extends State<MapScreen> {
       return Center(
         child: e != null && e.length > 20
             ? Text(e)
-            : const BreathingLight(size: 56),
+            : BreathingLight(size: 56, label: l.mapLoadingSpoken),
       );
     }
     final from = s.from!;
@@ -322,144 +322,166 @@ class _MapScreenState extends State<MapScreen> {
     return Stack(
       children: [
         Positioned.fill(
-          child: FlutterMap(
-            mapController: _map,
-            options: MapOptions(
-              initialCenter: s.focus ?? from,
-              initialZoom: 15,
-              minZoom: 10,
-              maxZoom: 18,
-              onMapReady: () {
-                _mapReady = true;
-                _moveTo(s.focus ?? from, 15);
-                s.focus = null;
-              },
-              onLongPress: _editor == null ? null : (_, p) => _addPoint(p),
-            ),
-            children: [
-              VectorTileLayer(
-                theme: offlineLightTheme(lang: context.lang),
-                tileProviders: TileProviders({'protomaps': tiles}),
-                // Vector mode draws the labels; raster mode dropped them.
-                layerMode: VectorTileLayerMode.vector,
-                fileCacheTtl: Duration.zero,
-                maximumZoom: 18,
-              ),
-              if (hazard == Hazard.tsunami && s.inundationTiles != null)
-                TileLayer(
-                  tileProvider: s.inundationTiles!,
-                  minNativeZoom: InundationTiles.minZoom,
-                  maxNativeZoom: InundationTiles.maxZoom,
+          // Screen readers skip the map itself (hundreds of markers, no
+          // order) and hear the nearest site; the list in the sheet below
+          // is the full, readable version.
+          child: Semantics(
+            container: true,
+            label: nearest.isEmpty
+                ? null
+                : l.mapNearestSiteSpoken(nearest.first.site.name),
+            // Staff: the long press that adds a blocked road or water
+            // point, at the map centre (screen readers can't long-press
+            // a spot on the map).
+            hint: _editor == null ? null : l.mapAddPointAtCentre,
+            onLongPress: _editor == null
+                ? null
+                : () => _addPoint(_mapReady ? _map.camera.center : from),
+            child: ExcludeSemantics(
+              child: FlutterMap(
+                mapController: _map,
+                options: MapOptions(
+                  initialCenter: s.focus ?? from,
+                  initialZoom: 15,
+                  minZoom: 10,
                   maxZoom: 18,
+                  onMapReady: () {
+                    _mapReady = true;
+                    _moveTo(s.focus ?? from, 15);
+                    s.focus = null;
+                  },
+                  onLongPress: _editor == null ? null : (_, p) => _addPoint(p),
                 ),
-              if (route != null)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: route,
-                      strokeWidth: 6,
-                      color: _selected == _wayOutId
-                          ? Colors.teal.shade700
-                          : theme.colorScheme.primary,
-                      borderStrokeWidth: 2,
-                      borderColor: Colors.white,
+                children: [
+                  VectorTileLayer(
+                    theme: offlineLightTheme(lang: context.lang),
+                    tileProviders: TileProviders({'protomaps': tiles}),
+                    // Vector mode draws the labels; raster mode dropped them.
+                    layerMode: VectorTileLayerMode.vector,
+                    fileCacheTtl: Duration.zero,
+                    maximumZoom: 18,
+                  ),
+                  if (hazard == Hazard.tsunami && s.inundationTiles != null)
+                    TileLayer(
+                      tileProvider: s.inundationTiles!,
+                      minNativeZoom: InundationTiles.minZoom,
+                      maxNativeZoom: InundationTiles.maxZoom,
+                      maxZoom: 18,
                     ),
-                  ],
-                ),
-              MarkerLayer(
-                markers: [
-                  for (final site in shown)
-                    Marker(
-                      point: site.point,
-                      width: 14,
-                      height: 14,
-                      child: Tooltip(
-                        message: site.name,
-                        child: Icon(
-                          Icons.place,
-                          size: 14,
-                          color: theme.colorScheme.primary,
+                  if (route != null)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: route,
+                          strokeWidth: 6,
+                          color: _selected == _wayOutId
+                              ? Colors.teal.shade700
+                              : theme.colorScheme.primary,
+                          borderStrokeWidth: 2,
+                          borderColor: Colors.white,
                         ),
-                      ),
+                      ],
                     ),
-                  for (final n in nearest)
-                    Marker(
-                      point: n.site.point,
-                      width: 22,
-                      height: 22,
-                      child: Icon(
-                        s.avoid(n.site) ? Icons.block : Icons.place,
-                        size: 22,
-                        // Full or closed: grey, so it does not look like a target.
-                        color: s.avoid(n.site)
-                            ? Colors.grey
-                            : theme.colorScheme.error,
-                      ),
-                    ),
-                  for (final f
-                      in s.facts?.currentOf({
-                            FactKind.roadBlocked,
-                            FactKind.waterPoint,
-                          }) ??
-                          const <Fact>[])
-                    if (pointOf(f.subject) case final p?)
-                      Marker(
-                        point: p,
-                        width: 22,
-                        height: 22,
-                        child: GestureDetector(
-                          onTap: _editor == null ? null : () => _editPoint(f),
+                  MarkerLayer(
+                    markers: [
+                      for (final site in shown)
+                        Marker(
+                          point: site.point,
+                          width: 14,
+                          height: 14,
                           child: Tooltip(
-                            message: factLine(l, f, s.facts!.now),
-                            child: f.kind == FactKind.roadBlocked
-                                ? const Icon(
-                                    Icons.do_not_disturb_on,
-                                    size: 22,
-                                    color: Colors.deepOrange,
-                                  )
-                                : const Icon(
-                                    Icons.water_drop,
-                                    size: 22,
-                                    color: Colors.blue,
-                                  ),
+                            message: site.name,
+                            child: Icon(
+                              Icons.place,
+                              size: 14,
+                              color: theme.colorScheme.primary,
+                            ),
                           ),
                         ),
-                      ),
-                  if (_selected == _wayOutId && out != null)
-                    Marker(
-                      point: out.path.last,
-                      width: 26,
-                      height: 26,
-                      child: Icon(
-                        Icons.flag_rounded,
-                        size: 26,
-                        color: Colors.teal.shade700,
-                      ),
-                    ),
-                  if (s.here != null)
-                    Marker(
-                      point: s.here!,
-                      width: 18,
-                      height: 18,
-                      child: const Icon(
-                        Icons.my_location,
-                        size: 18,
-                        color: Colors.blue,
-                      ),
-                    ),
+                      for (final n in nearest)
+                        Marker(
+                          point: n.site.point,
+                          width: 22,
+                          height: 22,
+                          child: Icon(
+                            s.avoid(n.site) ? Icons.block : Icons.place,
+                            size: 22,
+                            // Full or closed: grey, so it does not look like a target.
+                            color: s.avoid(n.site)
+                                ? Colors.grey
+                                : theme.colorScheme.error,
+                          ),
+                        ),
+                      for (final f
+                          in s.facts?.currentOf({
+                                FactKind.roadBlocked,
+                                FactKind.waterPoint,
+                              }) ??
+                              const <Fact>[])
+                        if (pointOf(f.subject) case final p?)
+                          Marker(
+                            point: p,
+                            // 48 dp to tap (editor), the icon stays 22.
+                            width: 48,
+                            height: 48,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _editor == null
+                                  ? null
+                                  : () => _editPoint(f),
+                              child: Tooltip(
+                                message: factLine(l, f, s.facts!.now),
+                                child: f.kind == FactKind.roadBlocked
+                                    ? const Icon(
+                                        Icons.do_not_disturb_on,
+                                        size: 22,
+                                        color: Colors.deepOrange,
+                                      )
+                                    : const Icon(
+                                        Icons.water_drop,
+                                        size: 22,
+                                        color: Colors.blue,
+                                      ),
+                              ),
+                            ),
+                          ),
+                      if (_selected == _wayOutId && out != null)
+                        Marker(
+                          point: out.path.last,
+                          width: 26,
+                          height: 26,
+                          child: Icon(
+                            Icons.flag_rounded,
+                            size: 26,
+                            color: Colors.teal.shade700,
+                          ),
+                        ),
+                      if (s.here != null)
+                        Marker(
+                          point: s.here!,
+                          width: 18,
+                          height: 18,
+                          child: const Icon(
+                            Icons.my_location,
+                            size: 18,
+                            color: Colors.blue,
+                          ),
+                        ),
+                    ],
+                  ),
+                  RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution(sites.basemapAttribution),
+                      TextSourceAttribution(l.mapAttributionSites),
+                      if (s.routes?.hasHeights ?? false)
+                        TextSourceAttribution(l.mapAttributionHeights),
+                      if (s.routes?.hasFlood ?? false)
+                        TextSourceAttribution(l.mapAttributionFlood),
+                    ],
+                  ),
                 ],
               ),
-              RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution(sites.basemapAttribution),
-                  TextSourceAttribution(l.mapAttributionSites),
-                  if (s.routes?.hasHeights ?? false)
-                    TextSourceAttribution(l.mapAttributionHeights),
-                  if (s.routes?.hasFlood ?? false)
-                    TextSourceAttribution(l.mapAttributionFlood),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
         SafeArea(child: chips),
@@ -627,55 +649,61 @@ class _MapScreenState extends State<MapScreen> {
     final selected = _selected == _wayOutId;
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 4),
-      child: Material(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
+      // The way out is shown on the map when selected.
+      child: Semantics(
+        container: true,
+        button: out != null,
+        selected: out != null && selected,
+        child: Material(
+          color: bg,
           borderRadius: BorderRadius.circular(16),
-          onTap: out == null
-              ? null
-              : () {
-                  setState(() => _selected = selected ? null : _wayOutId);
-                  if (!selected) _moveTo(out.path.last, 15);
-                },
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Icon(
-                  inside ? Icons.waves_rounded : Icons.check_circle_outline,
-                  color: fg,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        out != null
-                            ? l.mapWayOut(
-                                formatDistance(out.meters),
-                                '$minutes',
-                              )
-                            : l.mapFloodBasis,
-                        style: theme.textTheme.bodySmall?.copyWith(color: fg),
-                      ),
-                    ],
-                  ),
-                ),
-                if (out != null)
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: out == null
+                ? null
+                : () {
+                    setState(() => _selected = selected ? null : _wayOutId);
+                    if (!selected) _moveTo(out.path.last, 15);
+                  },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
                   Icon(
-                    selected ? Icons.flag_rounded : Icons.flag_outlined,
+                    inside ? Icons.waves_rounded : Icons.check_circle_outline,
                     color: fg,
                   ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: fg,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          out != null
+                              ? l.mapWayOut(
+                                  formatDistance(out.meters),
+                                  '$minutes',
+                                )
+                              : l.mapFloodBasis,
+                          style: theme.textTheme.bodySmall?.copyWith(color: fg),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (out != null)
+                    Icon(
+                      selected ? Icons.flag_rounded : Icons.flag_outlined,
+                      color: fg,
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -725,10 +753,26 @@ class _MapScreenState extends State<MapScreen> {
   /// One site: distance, name, status; tap to see it on the map and open
   /// its address.
   Widget _siteRow(ThemeData theme, SiteDistance n) {
-    final scheme = theme.colorScheme;
     final avoid = s.avoid(n.site);
     final status = s.statusOf(n.site);
     final open = _selected == n.site.uid;
+    // Open: the address shows and the map moves to the site.
+    return Semantics(
+      container: true,
+      button: true,
+      expanded: open,
+      child: _siteInk(theme, n, avoid, status, open),
+    );
+  }
+
+  Widget _siteInk(
+    ThemeData theme,
+    SiteDistance n,
+    bool avoid,
+    Fact? status,
+    bool open,
+  ) {
+    final scheme = theme.colorScheme;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -741,8 +785,9 @@ class _MapScreenState extends State<MapScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 58,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              // Grows with large text instead of breaking the words.
+              constraints: const BoxConstraints(minWidth: 58),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               decoration: BoxDecoration(
                 color: avoid
                     ? scheme.surfaceContainerHighest

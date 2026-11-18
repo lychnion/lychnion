@@ -93,6 +93,7 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
         data: data,
         size: big ? 320 : 180,
         padding: EdgeInsets.zero,
+        semanticsLabel: l.shelterQrSpoken(widget.name),
       ),
     );
     final text = Column(
