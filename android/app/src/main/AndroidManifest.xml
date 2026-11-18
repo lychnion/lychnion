@@ -39,6 +39,7 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="lychnion" android:host="shelter"/>
                 <data android:scheme="lychnion" android:host="share"/>
+                <data android:scheme="lychnion" android:host="publisher"/>
                 <data android:scheme="fieldkit" android:host="shelter"/>
             </intent-filter>
             <!-- Links are handled by the app_links package. -->

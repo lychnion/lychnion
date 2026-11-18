@@ -52,6 +52,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadsErrorOlder => 'インストール済みより古い版のため、インストールしませんでした。';
 
   @override
+  String get downloadsErrorTaken =>
+      'この ID かファイル名がほかの発行元からインストール済みのため、インストールしませんでした。';
+
+  @override
   String downloadsLargeWarning(String size) {
     return '$size をダウンロードします。Wi-Fi で行ってください。空き容量が $size 以上必要です。途中で止まっても、続きから再開できます。';
   }
@@ -1059,4 +1063,88 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get regionJapan => '日本（都道府県を指定しない）';
+
+  @override
+  String get publishersTitle => '発行元';
+
+  @override
+  String get publishersHint => 'インストールするガイドと地図に署名できる発行元';
+
+  @override
+  String get publishersBuiltIn => 'アプリに組み込み';
+
+  @override
+  String publishersAddedOn(String date) {
+    return '$date に追加';
+  }
+
+  @override
+  String publishersKey(String id) {
+    return '鍵 $id';
+  }
+
+  @override
+  String get publishersRemove => '削除';
+
+  @override
+  String publishersRemoveTitle(String name) {
+    return '$name を削除しますか？';
+  }
+
+  @override
+  String get publishersRemoveBody =>
+      'この発行元のガイドと地図は、この端末から削除されます。もう一度使うには、発行元を追加し直してダウンロードしてください。';
+
+  @override
+  String get publishersAddTitle => 'この発行元を追加しますか？';
+
+  @override
+  String publishersAddBody(String app) {
+    return '知っている発行元（お住まいの市など）だけを追加してください。追加すると、$appはその発行元が署名したガイドと地図を、自身のものと同じようにインストールします。';
+  }
+
+  @override
+  String get publishersAdd => '追加';
+
+  @override
+  String publishersAdded(String name) {
+    return '$name を追加しました';
+  }
+
+  @override
+  String get publishersFromLink => 'リンクから追加';
+
+  @override
+  String get publishersLinkLabel => '発行元のリンク';
+
+  @override
+  String get publishersNotALink => '発行元のリンクではありません。';
+
+  @override
+  String get publishersBadName => 'リンクの発行元名が正しくありません。';
+
+  @override
+  String get publishersBadKey => 'リンクの鍵が正しくありません。';
+
+  @override
+  String publishersBuiltInName(String name) {
+    return '$name はアプリに組み込まれているため、追加できません。';
+  }
+
+  @override
+  String publishersOtherKey(String name) {
+    return '$name は別の鍵で追加済みです。発行元が鍵を変えた場合は、先に削除してください。';
+  }
+
+  @override
+  String publishersKnown(String name) {
+    return '$name は追加済みです。';
+  }
+
+  @override
+  String get publishersSaveFailed => '発行元の一覧を保存できませんでした。変更はありません。';
+
+  @override
+  String get publishersNone =>
+      'ほかの発行元はまだありません。独自のガイドを発行する市や団体から、追加用のリンクか QR コードを受け取れます。';
 }

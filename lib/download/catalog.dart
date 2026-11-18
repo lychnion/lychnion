@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../knowledge/language.dart';
+import 'download_store.dart';
 import 'downloader.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
@@ -155,6 +156,8 @@ class Catalog {
         rejected.add('${id ?? '#$n'}: bad signature or record');
       } else if (!ItemKind.values.any((k) => k.name == r.kind)) {
         rejected.add('${r.id}: unknown kind ${r.kind}');
+      } else if (r.files.any((f) => DownloadStore.isReservedName(f.name))) {
+        rejected.add('${r.id}: reserved file name');
       } else if (items.any((i) => i.id == r.id)) {
         rejected.add('${r.id}: listed twice');
       } else {
@@ -271,6 +274,11 @@ class Catalog {
     for (final o in other.items) {
       final mine = byId[o.id];
       if (mine != null && isOlder(o.version, mine.version)) continue;
+      // An id stays with its publisher: another publisher's item of the
+      // same id (a city's catalog on a base) never replaces it.
+      if (mine?.record case final m? when m.publisher != o.record?.publisher) {
+        continue;
+      }
       if (o.record == null || !reachable(o)) continue;
       byId[o.id] = o;
     }

@@ -170,6 +170,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     'disk' => l.downloadsErrorDisk,
     'signature' => l.downloadsErrorSignature,
     'older' => l.downloadsErrorOlder,
+    'taken' => l.downloadsErrorTaken,
     _ => e,
   };
 

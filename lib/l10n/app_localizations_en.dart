@@ -57,6 +57,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This is an older version than the one installed, so it was not installed.';
 
   @override
+  String get downloadsErrorTaken =>
+      'This ID or one of its files is already installed from another publisher, so it was not installed.';
+
+  @override
   String downloadsLargeWarning(String size) {
     return 'This downloads $size. Please use Wi-Fi. You need at least $size of free space. If it stops, you can resume where it left off.';
   }
@@ -1113,4 +1117,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get regionJapan => 'Japan (no prefecture)';
+
+  @override
+  String get publishersTitle => 'Publishers';
+
+  @override
+  String get publishersHint => 'Who may sign the guides and maps you install';
+
+  @override
+  String get publishersBuiltIn => 'Built into the app';
+
+  @override
+  String publishersAddedOn(String date) {
+    return 'Added $date';
+  }
+
+  @override
+  String publishersKey(String id) {
+    return 'Key $id';
+  }
+
+  @override
+  String get publishersRemove => 'Remove';
+
+  @override
+  String publishersRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get publishersRemoveBody =>
+      'Its guides and maps are deleted from this device. To use them again, add the publisher again and download them.';
+
+  @override
+  String get publishersAddTitle => 'Add this publisher?';
+
+  @override
+  String publishersAddBody(String app) {
+    return 'Only add publishers you know, for example your city. $app then installs guides and maps they sign, like its own.';
+  }
+
+  @override
+  String get publishersAdd => 'Add';
+
+  @override
+  String publishersAdded(String name) {
+    return '$name added';
+  }
+
+  @override
+  String get publishersFromLink => 'Add from a link';
+
+  @override
+  String get publishersLinkLabel => 'Publisher link';
+
+  @override
+  String get publishersNotALink => 'This is not a publisher link.';
+
+  @override
+  String get publishersBadName => 'The link has an invalid publisher name.';
+
+  @override
+  String get publishersBadKey => 'The link has an invalid key.';
+
+  @override
+  String publishersBuiltInName(String name) {
+    return '$name is built into the app and cannot be added.';
+  }
+
+  @override
+  String publishersOtherKey(String name) {
+    return '$name is already added with another key. If the publisher changed its key, remove it first.';
+  }
+
+  @override
+  String publishersKnown(String name) {
+    return '$name is already added.';
+  }
+
+  @override
+  String get publishersSaveFailed =>
+      'Could not save the list of publishers. Nothing was changed.';
+
+  @override
+  String get publishersNone =>
+      'No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it.';
 }

@@ -261,7 +261,25 @@ class TrustedKeys {
           },
       };
 
+  TrustedKeys._(this._keys);
+
   final Map<String, Map<String, List<int>>> _keys;
+
+  /// Publisher names with at least one key.
+  Iterable<String> get publishers => _keys.keys;
+
+  /// These keys plus [more] (publisher name → public keys), for example
+  /// publishers the user added. Keys of the same publisher are combined.
+  TrustedKeys plus(Map<String, List<String>> more) {
+    final keys = {for (final e in _keys.entries) e.key: Map.of(e.value)};
+    for (final e in more.entries) {
+      final m = keys.putIfAbsent(e.key, () => {});
+      for (final k in e.value) {
+        m[recordKeyIdOf(_checked(k))] = _checked(k);
+      }
+    }
+    return TrustedKeys._(keys);
+  }
 
   static List<int> _checked(String k) {
     final b = _unb64(k);
