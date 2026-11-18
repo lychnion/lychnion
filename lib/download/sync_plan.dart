@@ -28,8 +28,11 @@ List<CatalogItem> itemsToSync(
     if (!_final.contains(error(i)) && i.record != null)
       if (switch (status(i)) {
         ItemStatus.update => updates || (keepAll && _kept(i, keepModels)),
+        // Unverified: its files are here, download() checks them and only
+        // fetches what does not match.
         ItemStatus.absent ||
-        ItemStatus.partial => keepAll && _kept(i, keepModels),
+        ItemStatus.partial ||
+        ItemStatus.unverified => keepAll && _kept(i, keepModels),
         _ => false,
       })
         i,

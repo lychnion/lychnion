@@ -54,6 +54,7 @@ void main() {
       c,
       status: (i) => switch (i.id) {
         'updated' => ItemStatus.update,
+        'map' => ItemStatus.unverified,
         _ => ItemStatus.absent,
       },
       error: (i) => i.id == 'broken' ? 'signature' : null,
