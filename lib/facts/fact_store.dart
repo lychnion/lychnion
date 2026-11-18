@@ -65,8 +65,13 @@ class FactStore extends ChangeNotifier {
     if (await file.exists()) {
       var lines = const <String>[];
       try {
+        // A write cut in the middle of a character spoils one line,
+        // not the whole file: that line is then skipped below.
+        final text = const Utf8Decoder(
+          allowMalformed: true,
+        ).convert(await file.readAsBytes());
         lines = [
-          for (final l in await file.readAsLines())
+          for (final l in const LineSplitter().convert(text))
             if (l.trim().isNotEmpty) l,
         ];
       } on Object {

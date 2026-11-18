@@ -93,8 +93,10 @@ carries a format number, `"format": n` (none means 0). The rules are in
 - When you change what a file holds, raise its `format` constant and
   keep reading the old formats. The next save writes the new one.
 - A broken file is kept as `<name>.broken`, a file from a newer app as
-  `<name>.newer`. The app never crashes on either, and Settings shows a
-  line.
+  `<name>.newer` (with a time in the name if such a copy is already
+  there; copies are never written over). If the copy fails, the app does
+  not write over the file in that run. The app never crashes on either,
+  and Settings shows a line.
 - Install markers (`<id>.installed.json`) are trusted only with a signed
   record. Old unsigned ones are checked against the signed catalog by
   size and SHA-256 at start, never trusted as they are.

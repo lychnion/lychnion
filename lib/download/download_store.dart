@@ -243,9 +243,11 @@ class DownloadStore {
       return OldMarker.retired;
     }
 
-    final r = item?.record;
-    if (item == null ||
-        r == null ||
+    // Not in the catalog now (a base's or a followed catalog not read
+    // yet): checked again at the next start, files stay in use by none.
+    if (item == null) return OldMarker.kept;
+    final r = item.record;
+    if (r == null ||
         item.id != id ||
         item.kind != kind ||
         !await trust.verify(r) ||

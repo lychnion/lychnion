@@ -25,7 +25,15 @@ void main() {
     tmp = await Directory.systemTemp.createTemp('lychnion-store');
     resetKeptAside();
   });
-  tearDown(() => tmp.delete(recursive: true));
+  tearDown(() {
+    Process.runSync('chmod', ['-R', 'u+w', tmp.path]);
+    return tmp.delete(recursive: true);
+  });
+
+  /// Copies into [dir] fail while it is read-only (files in it stay
+  /// writable).
+  void readOnly(Directory dir, {bool on = true}) =>
+      Process.runSync('chmod', [if (on) 'a-w' else 'u+w', dir.path]);
 
   File file(String name) => File('${tmp.path}/$name');
 
@@ -77,26 +85,41 @@ void main() {
 
     test('a failed copy: the file must not be replaced, retried', () async {
       file('a.json').writeAsStringSync('{"format":2}');
-      // A folder where the copy should go makes the copy fail.
-      Directory('${tmp.path}/a.json.newer').createSync();
+      readOnly(tmp);
       expect(await read(file('a.json')), isNull);
       expect(mayReplace(file('a.json')), isFalse);
       expect(keptAside.value, isEmpty);
 
-      Directory('${tmp.path}/a.json.newer').deleteSync();
+      readOnly(tmp, on: false);
       expect(await read(file('a.json')), isNull);
       expect(file('a.json.newer').existsSync(), isTrue);
       expect(mayReplace(file('a.json')), isTrue);
     });
 
-    test('two readers wait for the same copy', () async {
+    test('two readers get the same single copy', () async {
       file('a.json').writeAsStringSync('{');
       final both = await Future.wait([
         keepAside(file('a.json'), 'broken'),
         keepAside(file('a.json'), 'broken'),
       ]);
-      expect(both.every((f) => f != null), isTrue);
-      expect(keptAside.value, ['a.json.broken']);
+      expect(both[0]!.path, both[1]!.path);
+      expect(
+        tmp.listSync().where((f) => f.path.endsWith('.broken')),
+        hasLength(1),
+      );
+    });
+
+    test('a copy from an earlier run is never written over', () async {
+      file('a.json.newer').writeAsStringSync('first');
+      file('a.json').writeAsStringSync('{"format":2}');
+      expect(await read(file('a.json')), isNull);
+      expect(file('a.json.newer').readAsStringSync(), 'first');
+      final copies = tmp
+          .listSync()
+          .map((f) => f.uri.pathSegments.last)
+          .where((n) => n.startsWith('a.json.') && n.endsWith('.newer'));
+      expect(copies, hasLength(2));
+      expect(keptAside.value.single, isNot('a.json.newer'));
     });
 
     test('sync reading does the same', () {
@@ -134,7 +157,7 @@ void main() {
     test('newer and the copy fails: a save leaves the file', () async {
       const newer = '{"format":99,"region":"JP-30"}';
       file('settings.json').writeAsStringSync(newer);
-      Directory('${tmp.path}/settings.json.newer').createSync();
+      readOnly(tmp);
       final s = AppSettings();
       await s.load(dir: tmp);
       await s.setShowStats(true);
@@ -248,6 +271,17 @@ void main() {
       expect(file('facts.jsonl').readAsLinesSync(), hasLength(3));
     });
 
+    test('a line cut inside a character loses only that line', () async {
+      final good = utf8.encode('{"format":1}\n${line(fact('開いている'))}\n');
+      final cut = utf8.encode(line(fact('満員')));
+      // The append stopped in the middle of a 3-byte character.
+      final bytes = [...good, ...cut.sublist(0, cut.length - 6)];
+      file('facts.jsonl').writeAsBytesSync(bytes.sublist(0, bytes.length - 1));
+      final s = FactStore(clock: () => now);
+      await s.load(dir: tmp);
+      expect(s.all.single.value, '開いている');
+    });
+
     test('a newer file is kept aside; new facts go into a new file', () async {
       const newer = '{"format":2}\n{"something":"new"}\n';
       file('facts.jsonl').writeAsStringSync(newer);
@@ -278,7 +312,7 @@ void main() {
     test('newer and the copy fails: the file is left as it is', () async {
       const newer = '{"format":2}\n{"something":"new"}\n';
       file('facts.jsonl').writeAsStringSync(newer);
-      Directory('${tmp.path}/facts.jsonl.newer').createSync();
+      readOnly(tmp);
       final s = FactStore(clock: () => now);
       await s.load(dir: tmp);
       await s.addAll([fact('open')]);
@@ -400,7 +434,7 @@ void main() {
         final f = File('${tmp.path}/downloads/settings.json')
           ..createSync(recursive: true)
           ..writeAsStringSync(newer);
-        Directory('${f.path}.newer').createSync();
+        readOnly(f.parent);
         await expectLater(
           s.setKeepAll(true),
           throwsA(isA<FileSystemException>()),
@@ -514,13 +548,14 @@ void main() {
       expect(s.oldMarkers(), isEmpty);
     });
 
-    test('no record in the catalog: not installed, marker set aside', () async {
+    test('not in the catalog yet: not installed, checked again', () async {
       final s = await oldDevice();
       expect(
         await s.upgradeOldMarker(ItemKind.model, id, null),
-        OldMarker.retired,
+        OldMarker.kept,
       );
       expect(s.installed(ItemKind.model, id), isNull);
+      expect(s.oldMarkers().single.id, id);
     });
 
     test('a missing file: not installed, marker set aside', () async {
@@ -644,7 +679,7 @@ void main() {
 
     test('deleting an item also removes its old marker', () async {
       final s = await oldDevice();
-      await s.upgradeOldMarker(ItemKind.model, id, null);
+      await s.upgradeOldMarker(ItemKind.model, id, await item(sha: 'f' * 64));
       await s.delete(await item());
       expect(File('${marker(s).path}.old').existsSync(), isFalse);
     });

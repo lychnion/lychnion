@@ -15,6 +15,9 @@ import 'package:flutter/foundation.dart';
 ///   file, the copy stays. If the copy fails, saves must not replace the
 ///   file in this run: writers check [mayReplace].
 ///
+/// A copy never replaces one from an earlier run: the next one is
+/// `<name>.<time>.broken` or `<name>.<time>.newer`.
+///
 /// Older formats are given to the caller to read; its next save writes
 /// the current format.
 int formatOf(Object? json) => switch (json) {
@@ -26,24 +29,36 @@ int formatOf(Object? json) => switch (json) {
 /// line in Settings.
 final keptAside = ValueNotifier<List<String>>(const []);
 
-/// Copies made in this run (only finished ones), and copies under way.
-final _asideDone = <String>{};
+/// Copies made in this run (only finished ones: kind → copy path), and
+/// copies under way.
+final _asideDone = <String, String>{};
 final _asidePending = <String, Future<File?>>{};
 
 /// Files whose copy failed: the app must not write over them in this
 /// run, or the only copy of their data would be lost (see [mayReplace]).
 final _mustKeep = <String>{};
 
-/// Copies [file] to `<name>.[why]` once per run and notes it in
+/// Where a new copy of [file] goes: `<name>.[why]`, or, when a copy from
+/// an earlier run is there, `<name>.<time>.[why]`. Copies are never
+/// written over.
+String _target(File file, String why) {
+  final plain = '${file.path}.$why';
+  if (FileSystemEntity.typeSync(plain) == FileSystemEntityType.notFound) {
+    return plain;
+  }
+  return '${file.path}.${DateTime.now().millisecondsSinceEpoch}.$why';
+}
+
+/// Copies [file] aside once per run (see [_target]) and notes it in
 /// [keptAside]. Returns the copy, or null when nothing could be copied:
 /// then [mayReplace] is false for [file] for the rest of the run.
 Future<File?> keepAside(File file, String why) {
-  final to = '${file.path}.$why';
-  if (_asideDone.contains(to)) return Future.value(File(to));
-  return _asidePending[to] ??= () async {
+  final key = '${file.path}.$why';
+  if (_asideDone[key] case final done?) return Future.value(File(done));
+  return _asidePending[key] ??= () async {
     try {
-      final copy = await file.copy(to);
-      _done(file, why);
+      final copy = await file.copy(_target(file, why));
+      _done(file, why, copy);
       return copy;
     } on Object catch (e) {
       _failed(file, e);
@@ -51,7 +66,7 @@ Future<File?> keepAside(File file, String why) {
     } finally {
       // A failed copy is tried again next time. (This runs after the
       // first await, so after the entry was stored.)
-      _asidePending.removeWhere((k, _) => k == to);
+      _asidePending.removeWhere((k, _) => k == key);
     }
   }();
 }
@@ -59,11 +74,11 @@ Future<File?> keepAside(File file, String why) {
 /// [keepAside] for code that cannot wait. A copy under way elsewhere
 /// counts as not made yet.
 File? keepAsideSync(File file, String why) {
-  final to = '${file.path}.$why';
-  if (_asideDone.contains(to)) return File(to);
+  final key = '${file.path}.$why';
+  if (_asideDone[key] case final done?) return File(done);
   try {
-    final copy = file.copySync(to);
-    _done(file, why);
+    final copy = file.copySync(_target(file, why));
+    _done(file, why, copy);
     return copy;
   } on Object catch (e) {
     _failed(file, e);
@@ -75,10 +90,10 @@ File? keepAsideSync(File file, String why) {
 /// must then leave it as it is.
 bool mayReplace(File file) => !_mustKeep.contains(file.path);
 
-void _done(File file, String why) {
-  _asideDone.add('${file.path}.$why');
+void _done(File file, String why, File copy) {
+  _asideDone['${file.path}.$why'] = copy.path;
   _mustKeep.remove(file.path);
-  _note(file, why);
+  _note(copy);
 }
 
 void _failed(File file, Object e) {
@@ -86,9 +101,9 @@ void _failed(File file, Object e) {
   debugPrint('could not keep ${file.path} aside, not writing over it: $e');
 }
 
-void _note(File file, String why) {
-  debugPrint('kept ${file.path} aside as .$why');
-  final name = '${file.uri.pathSegments.last}.$why';
+void _note(File copy) {
+  debugPrint('kept a copy: ${copy.path}');
+  final name = copy.uri.pathSegments.last;
   if (!keptAside.value.contains(name)) {
     keptAside.value = [...keptAside.value, name];
   }
