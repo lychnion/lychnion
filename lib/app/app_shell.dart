@@ -266,14 +266,16 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
   void _openDownloads() {
     final dm = _downloads;
     if (dm == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => DownloadsScreen(
-          manager: dm,
-          userRegion: () => UserRegion.current(
-            widget.settings,
-            _map,
-            mockLocation: DevFlags.mockLocation,
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => DownloadsScreen(
+            manager: dm,
+            userRegion: () => UserRegion.current(
+              widget.settings,
+              _map,
+              mockLocation: DevFlags.mockLocation,
+            ),
           ),
         ),
       ),
