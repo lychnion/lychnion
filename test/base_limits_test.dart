@@ -750,34 +750,38 @@ void main() {
       timeout: const Timeout(Duration(seconds: 20)),
     );
 
-    test('a stalled fact pull does not end an answer on its way', () async {
-      final url = await fakeBase((req) async {
-        req.response.headers.contentType = ContentType.json;
-        if (req.uri.path == '/facts') {
-          // Headers, then nothing: the pull times out after 10 s.
-          await req.response.flush();
-          return;
-        }
-        // The answer comes after the pull has timed out.
-        await Future<void>.delayed(const Duration(seconds: 11));
-        req.response.write(
-          jsonEncode({
-            'v': 1,
-            'question': '津波は？',
-            'lang': 'ja',
-            'text': '高い所へ。',
-            'alerts': <Object>[],
-            'hits': <Object>[],
-          }),
-        );
-        await req.response.close();
-      });
-      final c = BaseClient(url);
-      addTearDown(c.close);
-      final answer = c.ask('津波は？');
-      await expectLater(c.facts(), throwsA(isA<TimeoutException>()));
-      expect((await answer).text, '高い所へ。');
-    }, timeout: const Timeout(Duration(seconds: 30)));
+    test(
+      'a stalled fact pull does not end an answer on its way',
+      () async {
+        final url = await fakeBase((req) async {
+          req.response.headers.contentType = ContentType.json;
+          if (req.uri.path == '/facts') {
+            // Headers, then nothing: the pull times out after 10 s.
+            await req.response.flush();
+            return;
+          }
+          // The answer comes after the pull has timed out.
+          await Future<void>.delayed(const Duration(seconds: 11));
+          req.response.write(
+            jsonEncode({
+              'v': 1,
+              'question': '津波は？',
+              'lang': 'ja',
+              'text': '高い所へ。',
+              'alerts': <Object>[],
+              'hits': <Object>[],
+            }),
+          );
+          await req.response.close();
+        });
+        final c = BaseClient(url);
+        addTearDown(c.close);
+        final answer = c.ask('津波は？');
+        await expectLater(c.facts(), throwsA(isA<TimeoutException>()));
+        expect((await answer).text, '高い所へ。');
+      },
+      timeout: const Timeout(Duration(seconds: 30)),
+    );
 
     test('no more than 500 facts, and broken ones are left out', () async {
       final good = Fact(
