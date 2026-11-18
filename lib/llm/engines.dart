@@ -1,25 +1,34 @@
+import 'dart:convert';
 import 'dart:io';
 
-/// Whether Google's LiteRT-LM engine can run on this device.
-///
-/// It needs Android 11 (API 30) or newer; the app itself runs from
-/// Android 9, where answer models stay on llama.cpp. Other platforms are
-/// not gated here (their catalog records say which platforms a model is
-/// for). An Android version that cannot be read counts as too old.
-final bool liteRtRunsHere = !Platform.isAndroid || (androidSdk() ?? 0) >= 30;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
-/// The Android API level (30 = Android 11), or null if not Android or
-/// unreadable. Read once from the system property.
-int? androidSdk() => _sdk ??= _readSdk();
-int? _sdk;
+/// Which answer engines this device can run. Read once at start ([init]).
+abstract final class Engines {
+  static const _channel = MethodChannel('lychnion/device');
 
-int? _readSdk() {
-  if (!Platform.isAndroid) return null;
-  try {
-    final r = Process.runSync('getprop', ['ro.build.version.sdk']);
-    return int.tryParse('${r.stdout}'.trim());
-  } on Object {
-    return null;
+  /// The Android API level (30 = Android 11); null elsewhere or if it
+  /// could not be read.
+  static int? androidSdk;
+
+  /// Whether LiteRT-LM answer models run here: only on Android 11 (API 30)
+  /// or newer. The app runs from Android 9; older phones, iPhones and
+  /// computers answer with llama.cpp. An Android version that cannot be
+  /// read counts as too old. Tests may set it.
+  static bool liteRt = false;
+
+  /// Reads the Android version from the platform.
+  static Future<void> init() async {
+    if (!Platform.isAndroid) return;
+    try {
+      androidSdk = await _channel.invokeMethod<int>('sdkInt');
+    } on Object catch (e) {
+      debugPrint(
+        'LYCHNION ${jsonEncode({'event': 'android_sdk_unknown', 'error': '$e'})}',
+      );
+    }
+    liteRt = (androidSdk ?? 0) >= 30;
   }
 }
 

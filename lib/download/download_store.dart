@@ -588,22 +588,27 @@ class DownloadStore {
 
   // --- what the loaders use ---------------------------------------------
 
+  /// Chat models that failed to load in this run (LiteRT-LM could not
+  /// start them): left out until picked again or the app restarts, so the
+  /// GGUF model takes over. Not saved.
+  final failedChats = <String>{};
+
   /// The chat model in use: the one picked, else one made for this
   /// platform (the LiteRT-LM model on Android), else the first installed.
   /// Models for other platforms (and files the app cannot load) are left
-  /// out, and so are LiteRT-LM models below Android 11 and the ids in
-  /// [skip].
-  Installed? activeChat({Set<String> skip = const {}}) => pickChat(
+  /// out, and so are LiteRT-LM models where the engine does not run
+  /// ([Engines.liteRt]) and [failedChats].
+  Installed? activeChat() => pickChat(
     allInstalled(ItemKind.model),
     want: chatModelId,
     os: Platform.operatingSystem,
-    liteRt: liteRtRunsHere,
-    skip: skip,
+    liteRt: Engines.liteRt,
+    skip: failedChats,
   );
 
   /// Path of [activeChat], or null.
-  String? chatModelPath({Set<String> skip = const {}}) {
-    final c = activeChat(skip: skip);
+  String? chatModelPath() {
+    final c = activeChat();
     return c == null ? null : path(c, c.chatFile!);
   }
 

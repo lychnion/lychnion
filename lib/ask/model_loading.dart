@@ -13,9 +13,9 @@ mixin _ModelLoading on _AskPageBase {
   /// A download change that came while busy, looked at again later.
   Timer? _reloadLater;
 
-  /// Chat models that failed to load in this run (a LiteRT-LM model the
-  /// device cannot run): left out, so the GGUF model takes over.
-  final _failedChats = <String>{};
+  /// Whether the last failed load failed before the chat was ready (the
+  /// model or the engine), not later (search model, packages).
+  bool _chatFailed = false;
 
   /// Loads the model on start: GGUF_MODEL_PATH, a download for AUTO_BENCH
   /// on phones, else the model from Downloads (again whenever it changes).
@@ -46,8 +46,9 @@ mixin _ModelLoading on _AskPageBase {
       return;
     }
     final store = await DownloadStore.instance();
-    final chat = store.chatModelPath(skip: _failedChats);
-    if (chat == null) {
+    final active = store.activeChat();
+    final chat = active == null ? null : store.path(active, active.chatFile!);
+    if (active == null || chat == null) {
       // The model is gone (deleted, or its publisher removed): stop using
       // what was loaded from Downloads, also on the base server.
       if (_loadedDownloads != null && mounted) {
@@ -70,16 +71,17 @@ mixin _ModelLoading on _AskPageBase {
     if (sig == _loadedDownloads) return;
     _loadedDownloads = sig;
     final ok = await _run(() => _llm.loadFile(chat), afterLoad: true);
-    // LiteRT-LM could not load the model: fall back to llama.cpp with the
-    // next answer model (the GGUF one), if there is one.
-    final failed = store.activeChat(skip: _failedChats);
-    if (!ok && !_llm.isLoaded && isLiteRtFile(chat) && failed != null) {
-      _failedChats.add(failed.id);
-      if (store.chatModelPath(skip: _failedChats) != null) {
-        _log({'event': 'chat_fallback', 'failed': failed.id});
-        await _loadDownloaded();
-      }
+    if (ok || !_chatFailed || !isLiteRtFile(chat)) return;
+    // LiteRT-LM could not start the model: fall back to llama.cpp with the
+    // next answer model (the GGUF one). Without one, the error stays.
+    store.failedChats.add(active.id);
+    if (store.chatModelPath() == null) {
+      store.failedChats.remove(active.id);
+      return;
     }
+    _log({'event': 'chat_fallback', 'failed': active.id});
+    await _llm.close();
+    await _loadDownloaded();
   }
 
   /// Loads with [load], then the packages; false if it failed.
@@ -92,9 +94,11 @@ mixin _ModelLoading on _AskPageBase {
       _status = 'Loading model…';
       _phase = AskPhase.loading;
     });
+    var chatReady = false;
     try {
       await load();
       await _llm.newChat(systemInstruction: benchSystemInstruction);
+      chatReady = true;
       if (!DevFlags.bare) {
         final store = await DownloadStore.instance();
         // The built-in packages (or newer downloads of them) plus every
@@ -190,6 +194,7 @@ mixin _ModelLoading on _AskPageBase {
             : (_baseReady ? AskPhase.base : AskPhase.ready);
       });
     } catch (e) {
+      _chatFailed = !chatReady;
       setState(() {
         _status = 'Load failed: $e';
         _phase = AskPhase.failed;

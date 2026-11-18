@@ -97,6 +97,28 @@ void main() {
     );
   });
 
+  test('Downloads lists a model only where it runs', () {
+    final lite = CatalogItem.fromRecord(liteRt.record);
+    final plain = CatalogItem.fromRecord(gguf.record);
+    // Android 11 or newer.
+    expect(lite.runsHereOn('android', liteRt: true), isTrue);
+    // Android 9 and 10: LiteRT-LM does not run.
+    expect(lite.runsHereOn('android', liteRt: false), isFalse);
+    expect(plain.runsHereOn('android', liteRt: false), isTrue);
+    // iPhones and computers.
+    for (final os in ['ios', 'macos', 'windows', 'linux']) {
+      expect(lite.runsHereOn(os, liteRt: false), isFalse);
+      expect(plain.runsHereOn(os, liteRt: false), isTrue);
+    }
+    expect(lite.needsLiteRt, isTrue);
+    expect(plain.needsLiteRt, isFalse);
+  });
+
+  test('LiteRT-LM does not run off Android (tests run on a computer)', () {
+    expect(Engines.liteRt, isFalse);
+    expect(Engines.androidSdk, isNull);
+  });
+
   test('isLiteRtFile', () {
     expect(isLiteRtFile('a.litertlm'), isTrue);
     expect(isLiteRtFile('A.LITERTLM'), isTrue);

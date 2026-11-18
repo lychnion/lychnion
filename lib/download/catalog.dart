@@ -80,10 +80,14 @@ class CatalogItem {
   /// Whether the item is a LiteRT-LM model (needs Android 11 on Android).
   bool get needsLiteRt => files.any((f) => isLiteRtFile(f.name));
 
-  /// [runsOn] this device: the platform, and for LiteRT-LM models the
-  /// Android version.
+  /// [runsOn] this device: the platform, and for LiteRT-LM models whether
+  /// the engine runs here ([Engines.liteRt]).
   bool get runsHere =>
-      runsOn(Platform.operatingSystem) && (liteRtRunsHere || !needsLiteRt);
+      runsHereOn(Platform.operatingSystem, liteRt: Engines.liteRt);
+
+  /// [runsHere] for [os], with [liteRt] saying whether LiteRT-LM runs.
+  bool runsHereOn(String os, {required bool liteRt}) =>
+      runsOn(os) && (liteRt || !needsLiteRt);
 
   /// Places the item is for ('JP', 'JP-30'); empty means anywhere.
   List<String> get area => record?.area ?? const [];
