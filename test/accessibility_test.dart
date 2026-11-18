@@ -144,6 +144,33 @@ void main() {
       expect(find.textContaining('確認されていないベース'), findsOneWidget);
       await _pump(t, card(false), 'en', Brightness.light, 1);
       expect(find.textContaining('確認されていないベース'), findsNothing);
+      expect(find.textContaining('署名していません'), findsNothing);
+    });
+
+    testWidgets('a checked base that did not sign its answer says so', (
+      t,
+    ) async {
+      Widget card({required bool unchecked}) => Scaffold(
+        body: ListView(
+          children: [
+            AnswerCard(
+              answer: answer()
+                ..answeredBy = 'Hall'
+                ..baseUnchecked = unchecked
+                ..baseUnsigned = true,
+              grounded: true,
+              done: true,
+            ),
+          ],
+        ),
+      );
+      await _pump(t, card(unchecked: false), 'en', Brightness.light, 1);
+      expect(find.textContaining('署名していません'), findsOneWidget);
+      expect(find.textContaining('確認されていないベース'), findsNothing);
+      // Not checked at all says that instead: only one note.
+      await _pump(t, card(unchecked: true), 'en', Brightness.light, 1);
+      expect(find.textContaining('署名していません'), findsNothing);
+      expect(find.textContaining('確認されていないベース'), findsOneWidget);
     });
 
     testWidgets('the answer card itself announces nothing', (t) async {

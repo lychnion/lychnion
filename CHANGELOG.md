@@ -84,6 +84,14 @@ here should be relied on alone in an emergency. Source only; build it as
   connection, and its errors don't show file paths. Phones limit what
   they accept from a base.
 - An answer from a base that was not connected by its QR code says so.
+- Base answers are signed. A phone that scanned the base's QR code sends
+  a new random value with each question, and the base signs its answer
+  together with it and the question as received. The phone refuses an
+  answer that was changed, signed by another key, sent before, or made
+  for a changed question, and answers itself. An answer from an older
+  base without a signature says so; once a base has signed, the phone
+  refuses unsigned answers from it. The page for phones without the app
+  stays unsigned.
 - A phone keeps at most 5,000 facts and drops expired ones.
 - A base stops an answer when the phone that asked has left.
 - From a base or a phone nearby, the app downloads only files on that
@@ -104,7 +112,8 @@ Catalog `format: 2`, signed record `format: 1`, base protocol `v: 1`.
   at one base ([#5](https://github.com/lychnion/lychnion/issues/5)),
   Android Nearby ([#6](https://github.com/lychnion/lychnion/issues/6)).
 - On phones without a fast GPU, answers are slow (Pixel 5a: about 48 s).
-- Answers from a base are not signed
+- Questions and answers on the base Wi-Fi are not encrypted, and a base
+  found on the Wi-Fi without its QR code is not checked
   ([#36](https://github.com/lychnion/lychnion/issues/36)).
 
 [Unreleased]: https://github.com/lychnion/lychnion/commits/main

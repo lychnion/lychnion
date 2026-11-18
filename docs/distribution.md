@@ -417,7 +417,7 @@ list, so people do not have to judge keys themselves. To decide later.
 | Stolen node key | Each key signs only its publisher's packages; Lychnion's key is not on any node. Key rotation and revocation: a later step |
 | Bad or slow mirror | Mirrors are unsigned on purpose: a file from one must match the signed hash, or it is thrown away and the next address is tried. A bad mirror costs time, not safety |
 | Malicious file content | Packages are data; opened read-only, only after the checks; size limits |
-| Fake base announced on the Wi-Fi | Listed only (private addresses); the user picks it and answers a question. Its facts stay unverified until the base's QR code is scanned, so a fake cannot make its notices look official. Downloads from any base are checked by signature and hash. A device flooding the network with announcements can hide real bases from the list; the address and QR code still work |
+| Fake base announced on the Wi-Fi | Listed only (private addresses); the user picks it and answers a question. Its facts stay unverified and its answers are marked "Base not checked" until the base's QR code is scanned, so a fake cannot make its notices look official. After the scan, the base signs each answer with its key and a value the phone picks per question; the phone refuses answers that do not check out. Downloads from any base are checked by signature and hash. A device flooding the network with announcements can hide real bases from the list; the address and QR code still work |
 | Wrong publisher trusted | Keys are added only by an explicit action (QR at the shelter), shown with the publisher's name; the user can remove them |
 | Licence problems | Every source has a licence entry; each package carries its licences and attributions |
 

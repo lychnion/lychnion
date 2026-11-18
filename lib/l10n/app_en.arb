@@ -364,6 +364,10 @@
   "@answerBaseUnchecked": {
     "description": "Under the base name on an answer, when the base was found on the Wi-Fi or typed in, not connected by its QR code."
   },
+  "answerBaseUnsigned": "This base did not sign its answer. Update the app on the base computer.",
+  "@answerBaseUnsigned": {
+    "description": "Under the base name on an answer, when the base was connected by its QR code but sent its answer without a signature (an older base app)."
+  },
   "answerBaseComputer": "Base · {name}",
   "@answerBaseComputer": {
     "placeholders": {

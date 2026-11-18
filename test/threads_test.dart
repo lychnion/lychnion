@@ -46,14 +46,18 @@ void main() {
         GroundedAnswer('b')
           ..text = 'y'
           ..answeredBy = 'Hall',
+        GroundedAnswer('c')
+          ..text = 'z'
+          ..answeredBy = 'Hall'
+          ..baseUnsigned = true,
       ]);
       await s.save();
       final again = ThreadStore();
       await again.load(dir: dir);
       final e = again.recent.single.entries;
       expect(
-        [for (final a in e) (a.answeredBy, a.baseUnchecked)],
-        [('Hall', true), ('Hall', false)],
+        [for (final a in e) (a.answeredBy, a.baseUnchecked, a.baseUnsigned)],
+        [('Hall', true, false), ('Hall', false, false), ('Hall', false, true)],
       );
       // A base answer saved before the check was kept counts as unchecked.
       final file = File('${dir.path}/threads.json');
@@ -62,7 +66,7 @@ void main() {
       );
       final old = ThreadStore();
       await old.load(dir: dir);
-      expect(old.recent.single.entries.last.baseUnchecked, isTrue);
+      expect(old.recent.single.entries[1].baseUnchecked, isTrue);
     },
   );
 }
