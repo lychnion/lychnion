@@ -550,7 +550,7 @@ class DownloadManager extends ChangeNotifier {
     _main = await _localCatalog();
     await _loadFollowed();
     for (final e in _baseBodies.entries) {
-      _baseCatalogs[e.key] = await _parse(e.value, e.key);
+      _baseCatalogs[e.key] = await _parse(e.value, e.key, ownFilesOnly: true);
     }
     catalog = _compose();
     changes.value++;
@@ -558,12 +558,17 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Records with a bad signature are left out of the catalog and logged.
-  Future<Catalog> _parse(String json, Uri? from) async {
+  Future<Catalog> _parse(
+    String json,
+    Uri? from, {
+    bool ownFilesOnly = false,
+  }) async {
     final c = await Catalog.parse(
       json,
       fetchedFrom: from,
       baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
       trust: store.trust,
+      ownFilesOnly: ownFilesOnly,
     );
     // A few lines, not one per record: a catalog may hold thousands of
     // records from publishers not added.
@@ -629,7 +634,9 @@ class DownloadManager extends ChangeNotifier {
     try {
       // Size and time limited, like every catalog fetch.
       final body = await fetchCatalogText(url);
-      final other = await _parse(body, url);
+      // Only files on that device: it is on the local Wi-Fi, not a
+      // catalog the user chose to follow.
+      final other = await _parse(body, url, ownFilesOnly: true);
       _baseCatalogs[url] = other;
       _baseBodies[url] = body;
       catalog = catalog.mergedWith(other);

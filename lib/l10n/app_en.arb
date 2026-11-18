@@ -360,6 +360,10 @@
       }
     }
   },
+  "answerBaseUnchecked": "Base not checked. Scan its QR code to make sure it is the right one.",
+  "@answerBaseUnchecked": {
+    "description": "Under the base name on an answer, when the base was found on the Wi-Fi or typed in, not connected by its QR code."
+  },
   "answerBaseComputer": "Base · {name}",
   "@answerBaseComputer": {
     "placeholders": {

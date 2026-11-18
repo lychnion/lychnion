@@ -82,7 +82,8 @@ class ThreadStore extends ChangeNotifier {
           Thread(t['id'] as String, DateTime.parse(t['created'] as String), [
             for (final e in (t['entries'] as List).cast<Map<String, dynamic>>())
               answerFromWire(e['answer'] as Map<String, dynamic>)
-                ..answeredBy = e['answered_by'] as String?,
+                ..answeredBy = e['answered_by'] as String?
+                ..baseUnchecked = e['base_unchecked'] == true,
           ])..archived = t['archived'] == true,
       ];
     });
@@ -121,7 +122,11 @@ class ThreadStore extends ChangeNotifier {
                 if (t.archived) 'archived': true,
                 'entries': [
                   for (final e in t.entries)
-                    {'answer': answerToWire(e), 'answered_by': e.answeredBy},
+                    {
+                      'answer': answerToWire(e),
+                      'answered_by': e.answeredBy,
+                      if (e.baseUnchecked) 'base_unchecked': true,
+                    },
                 ],
               },
         ],

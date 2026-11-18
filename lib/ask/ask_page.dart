@@ -278,15 +278,19 @@ class _AskPageState extends _AskPageBase
     // A base computer answers first: faster and better than a phone.
     final base = _base;
     if (base != null && _baseReady) {
+      // Its key matched the QR code when it connected, or there was none.
+      final unchecked = _baseKeyUsed == null;
       final placeholder = GroundedAnswer(question, appLang: lang)
-        ..answeredBy = base.name;
+        ..answeredBy = base.name
+        ..baseUnchecked = unchecked;
       setState(() {
         _answering = true;
         thread.entries.add(placeholder);
       });
       try {
         final remote = await base.ask(question)
-          ..answeredBy = base.name;
+          ..answeredBy = base.name
+          ..baseUnchecked = unchecked;
         setState(
           () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
         );

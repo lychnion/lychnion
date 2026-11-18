@@ -38,6 +38,35 @@ class _GatedLlm extends FakeLlm {
       );
 }
 
+/// A [_GatedLlm] that counts [stop] calls; a stop ends the answer.
+class _StoppableLlm extends _GatedLlm {
+  var stops = 0;
+
+  @override
+  Future<void> stop() async {
+    stops++;
+    if (!release.isCompleted) release.complete();
+  }
+}
+
+/// Sends a question on a raw connection and returns the connection, so a
+/// test can close it as a phone that gives up would.
+Future<Socket> _askRaw(int port, String q) async {
+  final s = await Socket.connect(InternetAddress.loopbackIPv4, port);
+  final body = utf8.encode(jsonEncode({'question': q}));
+  s.add([
+    ...utf8.encode(
+      'POST /ask HTTP/1.1\r\nHost: x\r\n'
+      'Content-Type: application/json\r\n'
+      'Content-Length: ${body.length}\r\n\r\n',
+    ),
+    ...body,
+  ]);
+  await s.flush();
+  s.listen((_) {}, onError: (Object _) {});
+  return s;
+}
+
 /// Waits until [ready] is true (checked every 10 ms, at most 5 s), so tests
 /// wait for a state and not for a time that a slow machine may need.
 Future<void> _until(bool Function() ready) async {
@@ -321,6 +350,55 @@ void main() {
       // The model never saw the second one.
       expect(llm.prompts, hasLength(2));
       expect(s.answered, 2);
+    });
+
+    test('a phone that leaves stops the answer it waits for', () async {
+      final llm = _StoppableLlm();
+      final s = await start(llm: llm);
+      final phone = await _askRaw(s.port, '津波は？');
+      await _until(() => llm.started == 1);
+      phone.destroy();
+      // The model is stopped, and the question no longer counts.
+      await _until(() => llm.stops >= 1);
+      await _until(() => s.questionsWaiting == 0);
+      expect(s.answered, 0);
+      // The next phone is answered as usual.
+      expect((await call(s, 'POST', '/ask', body: question('津波は？'))).$1, 200);
+      expect(s.answered, 1);
+    });
+
+    test('phones that leave do not use up the connections', () async {
+      final llm = _StoppableLlm();
+      final s = await start(llm: llm, maxConnections: 2, perPhone: 10);
+      for (var i = 0; i < 2; i++) {
+        final phone = await _askRaw(s.port, '津波は？');
+        await _until(() => llm.started == i + 1);
+        phone.destroy();
+        await _until(() => s.questionsWaiting == 0);
+        llm.release = Completer<void>();
+      }
+      // Both connections were let go of: the base still answers.
+      final (code, _, _) = await call(s, 'GET', '/info');
+      expect(code, 200);
+    });
+
+    test('a waiting question whose phone left is dropped', () async {
+      final llm = _StoppableLlm();
+      final s = await start(llm: llm, perPhone: 10);
+      final first = call(s, 'POST', '/ask', body: question('津波は？'));
+      await _until(() => llm.started == 1);
+      final phone = await _askRaw(s.port, '避難所は？');
+      await _until(() => s.questionsWaiting == 2);
+      phone.destroy();
+      // It stops counting at once, without stopping the first answer.
+      await _until(() => s.questionsWaiting == 1);
+      expect(llm.stops, 0);
+      llm.release.complete();
+      expect((await first).$1, 200);
+      await _until(() => s.questionsWaiting == 0);
+      // The model never saw the second question.
+      expect(llm.prompts, hasLength(1));
+      expect(s.answered, 1);
     });
 
     test('a huge refused upload is not read, the connection ends', () async {
@@ -672,38 +750,34 @@ void main() {
       timeout: const Timeout(Duration(seconds: 20)),
     );
 
-    test(
-      'a stalled fact pull does not end an answer on its way',
-      () async {
-        final url = await fakeBase((req) async {
-          req.response.headers.contentType = ContentType.json;
-          if (req.uri.path == '/facts') {
-            // Headers, then nothing: the pull times out after 10 s.
-            await req.response.flush();
-            return;
-          }
-          // The answer comes after the pull has timed out.
-          await Future<void>.delayed(const Duration(seconds: 11));
-          req.response.write(
-            jsonEncode({
-              'v': 1,
-              'question': '津波は？',
-              'lang': 'ja',
-              'text': '高い所へ。',
-              'alerts': <Object>[],
-              'hits': <Object>[],
-            }),
-          );
-          await req.response.close();
-        });
-        final c = BaseClient(url);
-        addTearDown(c.close);
-        final answer = c.ask('津波は？');
-        await expectLater(c.facts(), throwsA(isA<TimeoutException>()));
-        expect((await answer).text, '高い所へ。');
-      },
-      timeout: const Timeout(Duration(seconds: 30)),
-    );
+    test('a stalled fact pull does not end an answer on its way', () async {
+      final url = await fakeBase((req) async {
+        req.response.headers.contentType = ContentType.json;
+        if (req.uri.path == '/facts') {
+          // Headers, then nothing: the pull times out after 10 s.
+          await req.response.flush();
+          return;
+        }
+        // The answer comes after the pull has timed out.
+        await Future<void>.delayed(const Duration(seconds: 11));
+        req.response.write(
+          jsonEncode({
+            'v': 1,
+            'question': '津波は？',
+            'lang': 'ja',
+            'text': '高い所へ。',
+            'alerts': <Object>[],
+            'hits': <Object>[],
+          }),
+        );
+        await req.response.close();
+      });
+      final c = BaseClient(url);
+      addTearDown(c.close);
+      final answer = c.ask('津波は？');
+      await expectLater(c.facts(), throwsA(isA<TimeoutException>()));
+      expect((await answer).text, '高い所へ。');
+    }, timeout: const Timeout(Duration(seconds: 30)));
 
     test('no more than 500 facts, and broken ones are left out', () async {
       final good = Fact(

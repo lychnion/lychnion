@@ -80,6 +80,11 @@ here should be relied on alone in an emergency. Source only; build it as
 - A base limits what each phone can send and how long it may hold a
   connection, and its errors don't show file paths. Phones limit what
   they accept from a base.
+- An answer from a base that was not connected by its QR code says so.
+- A phone keeps at most 5,000 facts and drops expired ones.
+- A base stops an answer when the phone that asked has left.
+- From a base or a phone nearby, the app downloads only files on that
+  device, never from other addresses its catalog names.
 
 ### Formats
 

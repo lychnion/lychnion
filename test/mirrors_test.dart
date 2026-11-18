@@ -314,6 +314,8 @@ void main() {
       Uri? from,
       String version = '1',
       String? sha,
+      String? base,
+      bool ownFilesOnly = false,
     }) async {
       final r = await signedRecord(key, 'p', 'package', [
         ('p.sqlite', 1, sha ?? shaP),
@@ -324,11 +326,51 @@ void main() {
           'records': [r.json],
           'urls': ?urls,
           'mirrors': ?mirrors,
+          'base': ?base,
         }),
         trust: trust,
         fetchedFrom: from,
+        ownFilesOnly: ownFilesOnly,
       );
     }
+
+    test('a base catalog: only files on the base itself', () async {
+      final c = await catalog(
+        from: Uri.parse('http://192.168.1.20:8642/catalog.json'),
+        ownFilesOnly: true,
+        base: 'https://elsewhere.example.org/',
+        urls: {shaP: 'https://elsewhere.example.org/p'},
+        mirrors: [
+          'http://192.168.1.20:8642/',
+          'http://192.168.1.20:9999/',
+          'https://m.example.org/',
+          'other/',
+        ],
+      );
+      final f = c.items.single.files.single;
+      expect(c.mirrors.map((u) => '$u'), [
+        'http://192.168.1.20:8642/',
+        'http://192.168.1.20:8642/other/',
+      ]);
+      expect(c.urlsOf(f).map((u) => '$u'), [
+        // The name next to the catalog, not the address it gave.
+        'http://192.168.1.20:8642/p.sqlite',
+        'http://192.168.1.20:8642/blobs/sha256/$shaP',
+        'http://192.168.1.20:8642/other/blobs/sha256/$shaP',
+      ]);
+      expect(c.refreshUrl, isNull);
+    });
+
+    test('a base catalog keeps its own hash addresses', () async {
+      final c = await catalog(
+        from: Uri.parse('http://192.168.1.20:8642/catalog.json'),
+        ownFilesOnly: true,
+        urls: {shaP: 'blobs/sha256/$shaP'},
+      );
+      expect(c.urlsOf(c.items.single.files.single).map((u) => '$u'), [
+        'http://192.168.1.20:8642/blobs/sha256/$shaP',
+      ]);
+    });
 
     test('every file is also looked for on each mirror, by hash', () async {
       final c = await catalog(

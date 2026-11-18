@@ -830,6 +830,12 @@ abstract class AppLocalizations {
   /// **'The GSI data lists no {hazard} evacuation site in {city}. The nearest site may be in another city. Check {city}\'s own hazard map and evacuation guidance.'**
   String mapNoSiteWarning(String hazard, String city);
 
+  /// Under the base name on an answer, when the base was found on the Wi-Fi or typed in, not connected by its QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Base not checked. Scan its QR code to make sure it is the right one.'**
+  String get answerBaseUnchecked;
+
   /// No description provided for @answerBaseComputer.
   ///
   /// In en, this message translates to:
