@@ -84,6 +84,25 @@ All other flags: [dev-flags.md](dev-flags.md).
   [lychnion-data](https://github.com/lychnion/lychnion-data).
 - `docs/`: these pages ([index](README.md)).
 
+## Saved files
+
+Users keep their data across app updates, so every file the app saves
+carries a format number, `"format": n` (none means 0). The rules are in
+`lib/util/versioned_file.dart`:
+
+- When you change what a file holds, raise its `format` constant and
+  keep reading the old formats. The next save writes the new one.
+- A broken file is kept as `<name>.broken`, a file from a newer app as
+  `<name>.newer`. The app never crashes on either, and Settings shows a
+  line.
+- Install markers (`<id>.installed.json`) are trusted only with a signed
+  record. Old unsigned ones are checked against the signed catalog by
+  size and SHA-256 at start, never trusted as they are.
+- Test old, broken and newer files (see
+  `test/storage_versions_test.dart`). To try old data in the real app,
+  build it with another app id and copy the data into that app, never
+  into the installed one.
+
 ## Name, brand and app assets
 
 Lychnion (Greek λυχνίον, "small lamp") is the public name. "fieldkit" was
