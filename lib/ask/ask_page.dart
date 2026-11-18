@@ -26,12 +26,12 @@ import '../knowledge/knowledge_package.dart';
 import '../llm/local_embedder.dart';
 import '../llm/local_llm.dart';
 import '../map/map_state.dart';
-import '../shelter/base_discovery.dart';
-import '../shelter/share_nearby.dart';
-import '../shelter/shelter_client.dart';
-import '../shelter/shelter_library.dart';
-import '../shelter/shelter_panel.dart';
-import '../shelter/shelter_server.dart';
+import '../base/base_discovery.dart';
+import '../base/share_nearby.dart';
+import '../base/base_client.dart';
+import '../base/base_library.dart';
+import '../base/base_panel.dart';
+import '../base/base_server.dart';
 import '../spike/bench_prompts.dart';
 import '../spike/eval_questions.dart';
 import '../ui/announce.dart';
@@ -50,11 +50,11 @@ import '../util/paths.dart';
 part 'base_server.dart';
 part 'first_steps_hookup.dart';
 part 'model_loading.dart';
-part 'shelter_connection.dart';
+part 'base_connection.dart';
 
 enum AskPageView { home, conversations }
 
-/// Home and the conversations: asks the shelter base or the model on
+/// Home and the conversations: asks the base or the model on
 /// this device, and shares this computer as a base.
 class AskPage extends StatefulWidget {
   const AskPage({
@@ -62,12 +62,12 @@ class AskPage extends StatefulWidget {
     this.map,
     this.onShowOnMap,
     this.onDemoDone,
-    this.onShelterCatalog,
+    this.onBaseCatalog,
     this.downloadChanges,
     this.facts,
     this.settings,
     this.onOpenDownloads,
-    this.shelterUrls,
+    this.baseUrls,
     this.updates,
     this.view = AskPageView.home,
     this.onOpenSettings,
@@ -89,8 +89,8 @@ class AskPage extends StatefulWidget {
   /// "See all" on the home screen: switch to the Ask tab.
   final VoidCallback? onShowAsk;
 
-  /// Set by the shelter computer: its addresses, for the QR code.
-  final ValueNotifier<List<String>>? shelterUrls;
+  /// Set by the base computer: its addresses, for the QR code.
+  final ValueNotifier<List<String>>? baseUrls;
 
   /// New versions of installed downloads (badge on the ⋮ menu).
   final ValueListenable<int>? updates;
@@ -105,8 +105,8 @@ class AskPage extends StatefulWidget {
   final void Function()? onShowOnMap;
   final Future<void> Function(List<GroundedAnswer>)? onDemoDone;
 
-  /// Connected to a shelter: its catalog address, for Downloads.
-  final void Function(Uri catalog)? onShelterCatalog;
+  /// Connected to a base: its catalog address, for Downloads.
+  final void Function(Uri catalog)? onBaseCatalog;
 
   @override
   State<AskPage> createState() => _AskPageState();
@@ -141,18 +141,18 @@ abstract class _AskPageBase extends State<AskPage> {
   List<PackageInfo> _packages = const [];
 
   /// Loading the phone's own model, and answering a question: separate,
-  /// so the shelter can answer while the phone's model still loads.
+  /// so the base can answer while the phone's model still loads.
   bool _loadingModel = false;
   bool _answering = false;
   bool get _busy => _loadingModel || _answering;
 
-  /// Phone side: the shelter computer to ask first (SHELTER_URL, or the
+  /// Phone side: the base to ask first (BASE_URL, or the
   /// one saved in settings from a QR code or a typed address).
-  ShelterClient? _shelter;
-  bool _shelterReady = false;
+  BaseClient? _base;
+  bool _baseReady = false;
 
   /// Desktop side: answers phones on the local network.
-  ShelterServer? _server;
+  BaseServer? _server;
 
   bool get _usesDownload =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -172,7 +172,7 @@ abstract class _AskPageBase extends State<AskPage> {
 }
 
 class _AskPageState extends _AskPageBase
-    with _ModelLoading, _BaseServer, _ShelterConnection, _FirstStepsHookup {
+    with _ModelLoading, _BaseServer, _BaseConnection, _FirstStepsHookup {
   final _input = TextEditingController();
   final _threadInput = TextEditingController();
 
@@ -204,11 +204,11 @@ class _AskPageState extends _AskPageBase
   }
 
   /// Questions asked before anything could answer them, shown in their
-  /// conversation, answered in order as soon as the shelter or the model
+  /// conversation, answered in order as soon as the base or the model
   /// is ready. A tap is never lost.
   final _waiting = <(Thread, String, GroundedAnswer)>[];
 
-  bool get _canAnswer => _llm.isLoaded || _shelterReady;
+  bool get _canAnswer => _llm.isLoaded || _baseReady;
 
   @override
   void _answerWaiting() {
@@ -222,7 +222,7 @@ class _AskPageState extends _AskPageBase
   void initState() {
     super.initState();
     unawaited(_threads.load());
-    // Until packages load here (or when a shelter answers instead), show
+    // Until packages load here (or when a base answers instead), show
     // the built-in packages' names and suggestions.
     unawaited(
       builtInPackageInfo()
@@ -231,9 +231,9 @@ class _AskPageState extends _AskPageBase
           })
           .catchError((Object _) {}),
     );
-    widget.settings?.addListener(_shelterChanged);
+    widget.settings?.addListener(_baseChanged);
     widget.settings?.addListener(_sharingChanged);
-    _shelterChanged();
+    _baseChanged();
     _startModel();
   }
 
@@ -241,7 +241,7 @@ class _AskPageState extends _AskPageBase
   void dispose() {
     widget.downloadChanges?.removeListener(_loadDownloaded);
     _reloadLater?.cancel();
-    widget.settings?.removeListener(_shelterChanged);
+    widget.settings?.removeListener(_baseChanged);
     widget.settings?.removeListener(_sharingChanged);
     unawaited(_server?.stop());
     unawaited(_announcer.dispose().catchError((Object _) {}));
@@ -275,18 +275,18 @@ class _AskPageState extends _AskPageBase
       });
       return;
     }
-    // A shelter computer answers first: faster and better than a phone.
-    final shelter = _shelter;
-    if (shelter != null && _shelterReady) {
+    // A base computer answers first: faster and better than a phone.
+    final base = _base;
+    if (base != null && _baseReady) {
       final placeholder = GroundedAnswer(question, appLang: lang)
-        ..answeredBy = shelter.name;
+        ..answeredBy = base.name;
       setState(() {
         _answering = true;
         thread.entries.add(placeholder);
       });
       try {
-        final remote = await shelter.ask(question)
-          ..answeredBy = shelter.name;
+        final remote = await base.ask(question)
+          ..answeredBy = base.name;
         setState(
           () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
         );
@@ -297,7 +297,7 @@ class _AskPageState extends _AskPageBase
         _answerWaiting();
         return;
       } catch (e) {
-        _log({'event': 'shelter_failed', 'error': '$e'});
+        _log({'event': 'base_failed', 'error': '$e'});
         setState(() {
           thread.entries.remove(placeholder);
           _answering = false;
@@ -432,10 +432,8 @@ class _AskPageState extends _AskPageBase
       onOpenSettings: widget.onOpenSettings,
       phase: _phase,
       detail: _status,
-      // Sharing: this computer's name; connected: the shelter's.
-      shelterName: _server != null
-          ? sharingName(widget.settings)
-          : _shelter?.name,
+      // Sharing: this computer's name; connected: the base's.
+      baseName: _server != null ? sharingName(widget.settings) : _base?.name,
       home: widget.map == null
           ? null
           : NearestSiteCard(
@@ -465,8 +463,8 @@ class _AskPageState extends _AskPageBase
           : PackageRow(packages: _packages, onAdd: widget.onOpenDownloads),
       detailExtra: _server == null
           ? null
-          : ShelterQrCard(
-              urls: widget.shelterUrls?.value ?? const [],
+          : BaseQrCard(
+              urls: widget.baseUrls?.value ?? const [],
               name: sharingName(widget.settings),
               keyText: widget.facts?.signer?.publicKeyText,
             ),

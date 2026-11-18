@@ -13,9 +13,9 @@ import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/llm/local_llm.dart';
 import 'package:lychnion/map/evac_sites.dart';
-import 'package:lychnion/shelter/shelter_client.dart';
-import 'package:lychnion/shelter/shelter_protocol.dart';
-import 'package:lychnion/shelter/shelter_server.dart';
+import 'package:lychnion/base/base_client.dart';
+import 'package:lychnion/base/base_protocol.dart';
+import 'package:lychnion/base/base_server.dart';
 
 import 'support/fake_llm.dart';
 
@@ -49,7 +49,7 @@ class _FailOnceLlm extends FakeLlm {
   }
 }
 
-/// A port that was free a moment ago (ShelterServer cannot bind port 0
+/// A port that was free a moment ago (BaseServer cannot bind port 0
 /// and tell us the port yet: lychnion/lychnion#24).
 Future<int> _freePort() async {
   final s = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
@@ -75,13 +75,13 @@ void main() {
   );
 
   late FactSigner signer;
-  late ShelterServer server;
+  late BaseServer server;
   late String base;
 
-  Future<ShelterServer> startServer(LocalLlm llm, {int perPhone = 1}) async {
+  Future<BaseServer> startServer(LocalLlm llm, {int perPhone = 1}) async {
     final store = FactStore(clock: () => now, signer: signer);
     await store.addOwn([full()]);
-    final s = ShelterServer(
+    final s = BaseServer(
       answerer: GroundedAnswerer(llm, pkg),
       name: 'Test base',
       modelName: 'fake',
@@ -126,7 +126,7 @@ void main() {
     test('says who it is, that it answers, and its key', () async {
       final (status, info) = await call('GET', '/info');
       expect(status, 200);
-      expect(info['v'], shelterProtocolVersion);
+      expect(info['v'], baseProtocolVersion);
       expect(info['name'], 'Test base');
       expect(info['answers'], isTrue);
       expect(info['package'], pkg.id);
@@ -225,11 +225,11 @@ void main() {
     expect(server.answered, 1);
   });
 
-  group('ShelterClient', () {
+  group('BaseClient', () {
     setUp(() async => server = await startServer(FakeLlm(['高い所へ [1]。'])));
 
     test('info, facts and an answer', () async {
-      final c = ShelterClient(base);
+      final c = BaseClient(base);
       addTearDown(c.close);
       final info = await c.info();
       expect(c.name, 'Test base');
@@ -240,7 +240,7 @@ void main() {
     });
 
     test('an error answer throws, so the phone can answer itself', () async {
-      final c = ShelterClient(base);
+      final c = BaseClient(base);
       addTearDown(c.close);
       await expectLater(
         c.ask(''),
@@ -255,7 +255,7 @@ void main() {
     });
 
     test('a base that is gone throws', () async {
-      final c = ShelterClient('http://127.0.0.1:${await _freePort()}');
+      final c = BaseClient('http://127.0.0.1:${await _freePort()}');
       addTearDown(c.close);
       await expectLater(c.info(), throwsA(isA<Exception>()));
     });
@@ -271,7 +271,7 @@ void main() {
           ..write('<html>Bad gateway</html>');
         unawaited(req.response.close());
       });
-      final c = ShelterClient('http://127.0.0.1:${portal.port}');
+      final c = BaseClient('http://127.0.0.1:${portal.port}');
       addTearDown(c.close);
       await expectLater(c.ask('津波は？'), throwsA(isA<Exception>()));
     });

@@ -740,11 +740,11 @@ abstract class AppLocalizations {
   /// **'My location'**
   String get mapMyLocation;
 
-  /// No description provided for @mapShelterHint.
+  /// No description provided for @mapBaseHint.
   ///
   /// In en, this message translates to:
   /// **'Base: ✎ sets a site\'s status; long-press the map for a blocked road or water point.'**
-  String get mapShelterHint;
+  String get mapBaseHint;
 
   /// No description provided for @mapInFloodArea.
   ///
@@ -830,11 +830,11 @@ abstract class AppLocalizations {
   /// **'The GSI data lists no {hazard} evacuation site in {city}. The nearest site may be in another city. Check {city}\'s own hazard map and evacuation guidance.'**
   String mapNoSiteWarning(String hazard, String city);
 
-  /// No description provided for @answerShelterComputer.
+  /// No description provided for @answerBaseComputer.
   ///
   /// In en, this message translates to:
   /// **'Base · {name}'**
-  String answerShelterComputer(String name);
+  String answerBaseComputer(String name);
 
   /// No description provided for @answerLooking.
   ///
@@ -962,11 +962,11 @@ abstract class AppLocalizations {
   /// **'Device'**
   String get settingsLanguageDevice;
 
-  /// No description provided for @settingsShelter.
+  /// No description provided for @settingsBase.
   ///
   /// In en, this message translates to:
   /// **'Base'**
-  String get settingsShelter;
+  String get settingsBase;
 
   /// Settings: saved files that were broken or from a newer app version were copied aside (lib/util/versioned_file.dart).
   ///
@@ -1214,11 +1214,11 @@ abstract class AppLocalizations {
   /// **'Offline ready'**
   String get askPhaseReady;
 
-  /// No description provided for @askPhaseShelter.
+  /// No description provided for @askPhaseBase.
   ///
   /// In en, this message translates to:
   /// **'Base'**
-  String get askPhaseShelter;
+  String get askPhaseBase;
 
   /// No description provided for @askPhaseServing.
   ///
@@ -1250,11 +1250,11 @@ abstract class AppLocalizations {
   /// **'The AI runs on this device. No internet is needed.'**
   String get askExplainReady;
 
-  /// No description provided for @askExplainShelter.
+  /// No description provided for @askExplainBase.
   ///
   /// In en, this message translates to:
   /// **'A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.'**
-  String get askExplainShelter;
+  String get askExplainBase;
 
   /// No description provided for @askExplainServing.
   ///
@@ -1388,89 +1388,89 @@ abstract class AppLocalizations {
   /// **'Get more packages'**
   String get packagesAddTooltip;
 
-  /// No description provided for @shelterNoAddress.
+  /// No description provided for @baseNoAddress.
   ///
   /// In en, this message translates to:
   /// **'No network address found. Connect this computer to Wi-Fi.'**
-  String get shelterNoAddress;
+  String get baseNoAddress;
 
-  /// No description provided for @shelterConnectPhones.
+  /// No description provided for @baseConnectPhones.
   ///
   /// In en, this message translates to:
   /// **'Connect phones'**
-  String get shelterConnectPhones;
+  String get baseConnectPhones;
 
-  /// No description provided for @shelterScanHint.
+  /// No description provided for @baseScanHint.
   ///
   /// In en, this message translates to:
   /// **'On the same Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".'**
-  String shelterScanHint(String appName, String name);
+  String baseScanHint(String appName, String name);
 
-  /// No description provided for @shelterOrEnterAddress.
+  /// No description provided for @baseOrEnterAddress.
   ///
   /// In en, this message translates to:
   /// **'Or enter the address:'**
-  String get shelterOrEnterAddress;
+  String get baseOrEnterAddress;
 
-  /// No description provided for @shelterConnectTo.
+  /// No description provided for @baseConnectTo.
   ///
   /// In en, this message translates to:
   /// **'Connect to {name}?'**
-  String shelterConnectTo(String name);
+  String baseConnectTo(String name);
 
-  /// No description provided for @shelterThisShelter.
+  /// No description provided for @baseThisBase.
   ///
   /// In en, this message translates to:
   /// **'this base'**
-  String get shelterThisShelter;
+  String get baseThisBase;
 
-  /// No description provided for @shelterConnectBody.
+  /// No description provided for @baseConnectBody.
   ///
   /// In en, this message translates to:
   /// **'The base ({address}) will answer your questions and share current information. Only connect to a base where you are.'**
-  String shelterConnectBody(String address);
+  String baseConnectBody(String address);
 
-  /// No description provided for @shelterConnect.
+  /// No description provided for @baseConnect.
   ///
   /// In en, this message translates to:
   /// **'Connect'**
-  String get shelterConnect;
+  String get baseConnect;
 
-  /// No description provided for @shelterAddress.
+  /// No description provided for @baseAddress.
   ///
   /// In en, this message translates to:
   /// **'Base address'**
-  String get shelterAddress;
+  String get baseAddress;
 
-  /// No description provided for @shelterAddressHelper.
+  /// No description provided for @baseAddressHelper.
   ///
   /// In en, this message translates to:
   /// **'Shown on the base, under the QR code.'**
-  String get shelterAddressHelper;
+  String get baseAddressHelper;
 
-  /// No description provided for @shelterConnectComputer.
+  /// No description provided for @baseConnectComputer.
   ///
   /// In en, this message translates to:
   /// **'Connect to a base'**
-  String get shelterConnectComputer;
+  String get baseConnectComputer;
 
-  /// No description provided for @shelterConnectComputerHint.
+  /// No description provided for @baseConnectComputerHint.
   ///
   /// In en, this message translates to:
   /// **'Scan the base\'s QR code, or enter its address. Answers come faster.'**
-  String get shelterConnectComputerHint;
+  String get baseConnectComputerHint;
 
-  /// No description provided for @shelterAskedFirst.
+  /// No description provided for @baseAskedFirst.
   ///
   /// In en, this message translates to:
   /// **'Asked first · {address}'**
-  String shelterAskedFirst(String address);
+  String baseAskedFirst(String address);
 
-  /// No description provided for @shelterDisconnect.
+  /// No description provided for @baseDisconnect.
   ///
   /// In en, this message translates to:
   /// **'Disconnect'**
-  String get shelterDisconnect;
+  String get baseDisconnect;
 
   /// No description provided for @mapNoMap.
   ///
@@ -1676,23 +1676,23 @@ abstract class AppLocalizations {
   /// **'The base could not answer. Please try again.'**
   String get webError;
 
-  /// No description provided for @shelterWithApp.
+  /// No description provided for @baseWithApp.
   ///
   /// In en, this message translates to:
   /// **'With the app'**
-  String get shelterWithApp;
+  String get baseWithApp;
 
-  /// No description provided for @shelterInBrowser.
+  /// No description provided for @baseInBrowser.
   ///
   /// In en, this message translates to:
   /// **'In the browser'**
-  String get shelterInBrowser;
+  String get baseInBrowser;
 
-  /// No description provided for @shelterBrowserHint.
+  /// No description provided for @baseBrowserHint.
   ///
   /// In en, this message translates to:
   /// **'For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.'**
-  String get shelterBrowserHint;
+  String get baseBrowserHint;
 
   /// No description provided for @shareOnNetwork.
   ///
@@ -2768,29 +2768,29 @@ abstract class AppLocalizations {
   /// **'This file is not a guide the app can use ({detail}). Build it again with the lychnion-data tools.'**
   String publishErrorPackage(String detail);
 
-  /// No description provided for @shelterFoundTitle.
+  /// No description provided for @baseFoundTitle.
   ///
   /// In en, this message translates to:
   /// **'Bases on this Wi-Fi'**
-  String get shelterFoundTitle;
+  String get baseFoundTitle;
 
-  /// No description provided for @shelterFoundLooking.
+  /// No description provided for @baseFoundLooking.
   ///
   /// In en, this message translates to:
   /// **'Looking…'**
-  String get shelterFoundLooking;
+  String get baseFoundLooking;
 
-  /// No description provided for @shelterFoundNone.
+  /// No description provided for @baseFoundNone.
   ///
   /// In en, this message translates to:
   /// **'No base found yet. Enter its address below, or scan its QR code.'**
-  String get shelterFoundNone;
+  String get baseFoundNone;
 
-  /// No description provided for @shelterScanToTrust.
+  /// No description provided for @baseScanToTrust.
   ///
   /// In en, this message translates to:
   /// **'Scan the base\'s QR code to trust its notices.'**
-  String get shelterScanToTrust;
+  String get baseScanToTrust;
 
   /// No description provided for @answerReading.
   ///
@@ -2846,11 +2846,11 @@ abstract class AppLocalizations {
   /// **'Loading the map'**
   String get mapLoadingSpoken;
 
-  /// No description provided for @shelterQrSpoken.
+  /// No description provided for @baseQrSpoken.
   ///
   /// In en, this message translates to:
   /// **'QR code to connect to {name}'**
-  String shelterQrSpoken(String name);
+  String baseQrSpoken(String name);
 
   /// No description provided for @shareNearbyQrSpoken.
   ///

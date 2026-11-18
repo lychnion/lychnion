@@ -11,9 +11,9 @@ import 'package:lychnion_format/lychnion_format.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/llm/local_llm.dart';
-import 'package:lychnion/shelter/shelter_library.dart';
-import 'package:lychnion/shelter/shelter_link.dart';
-import 'package:lychnion/shelter/shelter_server.dart';
+import 'package:lychnion/base/base_library.dart';
+import 'package:lychnion/base/base_link.dart';
+import 'package:lychnion/base/base_server.dart';
 
 Future<PackageRecord> _record(
   SimpleKeyPair key,
@@ -33,8 +33,8 @@ Future<PackageRecord> _record(
   'signed': '2026-11-18T09:00:00+09:00',
 }, key);
 
-/// A shelter library without a download store: one file.
-class _OneFile implements ShelterLibrary {
+/// A base library without a download store: one file.
+class _OneFile implements BaseLibrary {
   _OneFile(this.file, this.sha, this.catalogJson);
   final File file;
   final String sha;
@@ -75,11 +75,11 @@ void main() {
     trust: trust,
   );
 
-  group('merging a shelter catalog', () {
+  group('merging a base catalog', () {
     final home = Uri.parse('https://example.org/catalog.json');
-    final shelter = Uri.parse('http://192.168.1.20:8642/catalog.json');
+    final base = Uri.parse('http://192.168.1.20:8642/catalog.json');
 
-    test('same or newer from the shelter wins, with its addresses', () async {
+    test('same or newer from the base wins, with its addresses', () async {
       final mine = await catalog([
         await _record(key, 'jp.x', '2026.11.1', shaA),
       ], home);
@@ -88,7 +88,7 @@ void main() {
           await _record(key, 'jp.x', '2026.11.2', shaB),
           await _record(key, 'jp.y', '1', shaA),
         ],
-        shelter,
+        base,
         urls: {shaB: 'blobs/sha256/$shaB', shaA: 'blobs/sha256/$shaA'},
       );
       final m = mine.mergedWith(theirs);
@@ -102,32 +102,29 @@ void main() {
       expect(m.refreshUrl, mine.refreshUrl);
     });
 
-    test('an older version on the shelter does not replace mine', () async {
+    test('an older version on the base does not replace mine', () async {
       final mine = await catalog([
         await _record(key, 'jp.x', '2026.11.2', shaA),
       ], home);
       final theirs = await catalog([
         await _record(key, 'jp.x', '2026.11.1', shaB),
-      ], shelter);
+      ], base);
       expect(mine.mergedWith(theirs).byId('jp.x')!.version, '2026.11.2');
     });
 
-    test(
-      'records with a bad signature from the shelter are left out',
-      () async {
-        final other = await Ed25519().newKeyPair();
-        final theirs = await catalog([
-          await _record(other, 'jp.evil', '9', shaB),
-        ], shelter);
-        final m = (await catalog([], home)).mergedWith(theirs);
-        expect(m.byId('jp.evil'), isNull);
-        expect(m.rejected, isNotEmpty);
-      },
-    );
+    test('records with a bad signature from the base are left out', () async {
+      final other = await Ed25519().newKeyPair();
+      final theirs = await catalog([
+        await _record(other, 'jp.evil', '9', shaB),
+      ], base);
+      final m = (await catalog([], home)).mergedWith(theirs);
+      expect(m.byId('jp.evil'), isNull);
+      expect(m.rejected, isNotEmpty);
+    });
   });
 
-  group('shelter server', () {
-    late ShelterServer server;
+  group('base server', () {
+    late BaseServer server;
     late Directory tmp;
     late List<int> data;
     late String sha;
@@ -135,16 +132,16 @@ void main() {
     Uri url(String path) => Uri.parse('http://127.0.0.1:$port$path');
 
     setUp(() async {
-      tmp = await Directory.systemTemp.createTemp('lychnion-shelter');
+      tmp = await Directory.systemTemp.createTemp('lychnion-base');
       data = List<int>.generate(5000, (i) => i * 7 & 0xff);
       sha = sha256.convert(data).toString();
       final file = File('${tmp.path}/x.sqlite')..writeAsBytesSync(data);
-      server = ShelterServer(
+      server = BaseServer(
         answerer: GroundedAnswerer(
           LocalLlm(),
           KnowledgePackage.open('assets/packages/jp.bousai.core.sqlite'),
         ),
-        name: 'Test shelter',
+        name: 'Test base',
         modelName: 'none',
         page: '<!doctype html><title>Lychnion</title>',
         library: _OneFile(file, sha, {
@@ -230,7 +227,7 @@ void main() {
       final file = File('${tmp.path}/x.sqlite')..writeAsBytesSync(data);
       final port = 20000 + Random().nextInt(2000);
       final sent = <String>[];
-      final server = ShelterServer(
+      final server = BaseServer(
         answerer: null,
         name: '',
         library: _OneFile(file, sha, {
@@ -272,12 +269,12 @@ void main() {
       }
     });
 
-    test('share links keep their port and are not shelter links', () {
+    test('share links keep their port and are not base links', () {
       final link = ShareLink('http://192.168.43.1:8643');
       final uri = link.toUri();
       expect(uri.toString(), startsWith('lychnion://share?'));
       expect(ShareLink.fromUri(uri)!.url, 'http://192.168.43.1:8643');
-      expect(ShelterLink.fromUri(uri), isNull);
+      expect(BaseLink.fromUri(uri), isNull);
       expect(ShareLink.fromUri(Uri.parse('lychnion://shelter?url=x')), isNull);
     });
   });

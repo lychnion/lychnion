@@ -144,6 +144,24 @@ void main() {
       expect(j['region'], 'JP-28');
     });
 
+    test('the base from older shelter_* keys, saved as base_*', () async {
+      file('settings.json').writeAsStringSync(
+        '{"format":1,"shelter_url":"http://192.168.1.20:8642",'
+        '"shelter_name":"Central school","shelter_key":"k1"}',
+      );
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      expect(s.baseUrl, 'http://192.168.1.20:8642');
+      expect(s.baseName, 'Central school');
+      expect(s.baseKey, 'k1');
+      await s.setShowStats(true);
+      final j = jsonDecode(file('settings.json').readAsStringSync()) as Map;
+      expect(j['base_url'], 'http://192.168.1.20:8642');
+      expect(j['base_name'], 'Central school');
+      expect(j['base_key'], 'k1');
+      expect(j.containsKey('shelter_url'), isFalse);
+    });
+
     test('a newer file: defaults, and a copy survives the next save', () async {
       const newer = '{"format":99,"region":"JP-30"}';
       file('settings.json').writeAsStringSync(newer);

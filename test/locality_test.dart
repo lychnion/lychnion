@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/knowledge/retriever.dart';
-import 'package:lychnion/shelter/shelter_protocol.dart';
+import 'package:lychnion/base/base_protocol.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 /// A tiny package: the same advice from a Japanese and a British source,
@@ -80,7 +80,7 @@ void main() {
     expect(pkg.sources.values.every((s) => s.region == 'JP'), isTrue);
   });
 
-  test('the region travels from shelter to phone', () {
+  test('the region travels from base to phone', () {
     final gb = _package().sources['gb']!;
     expect(sourceFromWire(sourceToWire(gb)).region, 'GB');
     final old = Map<String, dynamic>.from(sourceToWire(gb))..remove('region');

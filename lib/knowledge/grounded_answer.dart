@@ -83,7 +83,7 @@ const _texts = <String, AnswerTexts>{
 
 /// What the app shows for one question.
 class GroundedAnswer {
-  /// [lang] when already known (from a shelter computer); otherwise from
+  /// [lang] when already known (from a base computer); otherwise from
   /// the question, with [appLang] deciding between Latin-script languages.
   GroundedAnswer(this.question, {String? lang, String appLang = 'en'})
     : lang = lang ?? questionLanguage(question, appLang: appLang);
@@ -94,7 +94,7 @@ class GroundedAnswer {
   /// The Japanese search query used for an English question.
   String? searchQuery;
 
-  /// Name of the shelter computer that answered, if not this device.
+  /// Name of the base computer that answered, if not this device.
   String? answeredBy;
 
   /// Result of the relevance check: false means the passages are related but

@@ -2,7 +2,7 @@
 
 > **Name:** since 2026-11-18 the app calls the shelter computer a
 > 「ベース」 / "base", because it also fits huts, schools and camps.
-> Code and this note keep "shelter".
+> This note keeps "shelter"; the code says "base" since 2026-11-19.
 
 Design note, 2026-11-18. Status: steps 1, 2, 3 and 7 built; storage,
 node sync and publishing extended the same day.

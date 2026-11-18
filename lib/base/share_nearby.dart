@@ -7,9 +7,9 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../app/lang.dart';
 import '../ui/help_screen.dart';
 import '../download/download_store.dart';
-import 'shelter_library.dart';
-import 'shelter_link.dart';
-import 'shelter_server.dart';
+import 'base_library.dart';
+import 'base_link.dart';
+import 'base_server.dart';
 
 /// "Share with people nearby": while this screen is open, the phone passes
 /// on what it has downloaded (guides, maps, models) to phones on the same
@@ -23,7 +23,7 @@ class ShareNearbyScreen extends StatefulWidget {
   /// For tests; the app's download store otherwise.
   final DownloadStore? store;
 
-  /// For tests; [ShelterServer.sharePort] otherwise.
+  /// For tests; [BaseServer.sharePort] otherwise.
   final int? port;
 
   @override
@@ -31,7 +31,7 @@ class ShareNearbyScreen extends StatefulWidget {
 }
 
 class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
-  ShelterServer? _server;
+  BaseServer? _server;
   List<String>? _urls;
   int _items = 0;
   int _sent = 0;
@@ -57,9 +57,9 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
   Future<void> _start() async {
     try {
       final store = widget.store ?? await DownloadStore.instance();
-      final library = ShelterLibrary(store);
-      final port = widget.port ?? ShelterServer.sharePort;
-      final server = ShelterServer(answerer: null, name: '', library: library)
+      final library = BaseLibrary(store);
+      final port = widget.port ?? BaseServer.sharePort;
+      final server = BaseServer(answerer: null, name: '', library: library)
         ..onBlobServed = (_) {
           if (mounted) setState(() => _sent++);
         };
@@ -68,7 +68,7 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
         await server.stop();
         return;
       }
-      final addrs = await ShelterServer.localAddresses();
+      final addrs = await BaseServer.localAddresses();
       setState(() {
         _server = server;
         _items = library.items.length;

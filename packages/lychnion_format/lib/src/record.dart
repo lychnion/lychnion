@@ -13,7 +13,7 @@ String _b64(List<int> b) => base64Url.encode(b).replaceAll('=', '');
 List<int> _unb64(String s) => base64Url.decode(base64Url.normalize(s));
 
 /// Short id of a public key: its first 6 bytes, base64url (8 characters).
-/// Same as the key ids of signed shelter facts (lib/facts/signing.dart).
+/// Same as the key ids of signed base facts (lib/facts/signing.dart).
 String recordKeyIdOf(List<int> publicKey) => _b64(publicKey.sublist(0, 6));
 
 /// The bytes a signature covers: JSON with keys sorted, no spaces, and

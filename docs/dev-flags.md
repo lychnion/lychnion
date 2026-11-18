@@ -43,11 +43,13 @@ the comment on `DevFlags` in
 
 | Flag | Example | What it does |
 |---|---|---|
-| `SHELTER_SERVER` | `true` | Turn on the base at start, whatever the setting says (desktop). |
-| `SHELTER_NAME` | `南小学校` | The base's name shown on phones, with `SHELTER_SERVER`. |
-| `SHELTER_URL` | `http://192.168.1.20:8642` | Phone: ask this base first. |
-| `FACTS_EDIT` | `true` | Allow entering current information on the map. On with `SHELTER_SERVER`. |
+| `BASE_SERVER` | `true` | Turn on the base at start, whatever the setting says (desktop). |
+| `BASE_NAME` | `南小学校` | The base's name shown on phones, with `BASE_SERVER`. |
+| `BASE_URL` | `http://192.168.1.20:8642` | Phone: ask this base first. |
+| `FACTS_EDIT` | `true` | Allow entering current information on the map. On with `BASE_SERVER`. |
 | `DEMO_FACTS` | `true` | Add made-up current information (test data). Needs a map area. |
+
+The old names `SHELTER_SERVER`, `SHELTER_NAME` and `SHELTER_URL` still work.
 
 ## Scripted tests and screenshots
 

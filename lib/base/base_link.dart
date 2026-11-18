@@ -1,21 +1,21 @@
-/// Links that tell a phone which shelter computer to use.
+/// Links that tell a phone which base computer to use.
 ///
-/// The shelter computer shows `lychnion://shelter?url=…&name=…` as a QR
+/// The base computer shows `lychnion://shelter?url=…&name=…` as a QR
 /// code. Scanning it with the phone's camera opens Lychnion, which asks the
 /// user before it connects. A typed address (`192.168.1.20`,
 /// `http://192.168.1.20:8642`) works too.
 library;
 
-import 'shelter_server.dart';
+import 'base_server.dart';
 
-class ShelterLink {
-  const ShelterLink(this.url, {this.name, this.key});
+class BaseLink {
+  const BaseLink(this.url, {this.name, this.key});
 
   /// Base URL, e.g. http://192.168.1.20:8642
   final String url;
   final String? name;
 
-  /// The shelter's public signing key: its signed facts are trusted, and a
+  /// The base's public signing key: its signed facts are trusted, and a
   /// computer at this address with another key is refused.
   final String? key;
 
@@ -24,24 +24,27 @@ class ShelterLink {
   /// QR codes printed before the rename still open the app.
   static const oldScheme = 'fieldkit';
 
+  /// The link's host. It stays `shelter` (the base's old name in the
+  /// code): printed QR codes use it.
+  static const host = 'shelter';
+
   Uri toUri() => Uri(
     scheme: scheme,
-    host: 'shelter',
+    host: host,
     queryParameters: {'url': url, 'name': ?name, 'key': ?key},
   );
 
   /// A lychnion:// (or old fieldkit://) link, or null if [uri] is
   /// something else.
-  static ShelterLink? fromUri(Uri uri) {
-    if ((uri.scheme != scheme && uri.scheme != oldScheme) ||
-        uri.host != 'shelter') {
+  static BaseLink? fromUri(Uri uri) {
+    if ((uri.scheme != scheme && uri.scheme != oldScheme) || uri.host != host) {
       return null;
     }
     final url = normalize(uri.queryParameters['url'] ?? '');
     if (url == null) return null;
     final name = uri.queryParameters['name'];
     final key = uri.queryParameters['key'];
-    return ShelterLink(
+    return BaseLink(
       url,
       name: name == null || name.isEmpty ? null : name,
       key: key == null || key.isEmpty ? null : key,
@@ -60,7 +63,7 @@ class ShelterLink {
     if (u.hasQuery || u.hasFragment || (u.path.isNotEmpty && u.path != '/')) {
       return null;
     }
-    final port = u.hasPort ? u.port : ShelterServer.defaultPort;
+    final port = u.hasPort ? u.port : BaseServer.defaultPort;
     return '${u.scheme}://${u.host}:$port';
   }
 }
@@ -75,14 +78,14 @@ class ShareLink {
   final String url;
 
   Uri toUri() => Uri(
-    scheme: ShelterLink.scheme,
+    scheme: BaseLink.scheme,
     host: 'share',
     queryParameters: {'url': url},
   );
 
   static ShareLink? fromUri(Uri uri) {
-    if (uri.scheme != ShelterLink.scheme || uri.host != 'share') return null;
-    final url = ShelterLink.normalize(uri.queryParameters['url'] ?? '');
+    if (uri.scheme != BaseLink.scheme || uri.host != 'share') return null;
+    final url = BaseLink.normalize(uri.queryParameters['url'] ?? '');
     return url == null ? null : ShareLink(url);
   }
 }

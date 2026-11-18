@@ -408,19 +408,19 @@ void main() {
       expect('${c.urlOf(c.items.single.files.single)}', endsWith('p.sqlite'));
     });
 
-    group('merging a shelter catalog', () {
+    group('merging a base catalog', () {
       final home = Uri.parse('https://example.org/catalog.json');
-      final shelter = Uri.parse('http://192.168.1.20:8642/catalog.json');
+      final base = Uri.parse('http://192.168.1.20:8642/catalog.json');
 
       test(
-        'the same file keeps its internet address after the shelter\'s',
+        'the same file keeps its internet address after the base\'s',
         () async {
           final mine = await catalog(
             from: home,
             mirrors: ['https://m.example.org/'],
           );
           final theirs = await catalog(
-            from: shelter,
+            from: base,
             urls: {shaP: 'blobs/sha256/$shaP'},
           );
           final m = mine.mergedWith(theirs);
@@ -433,14 +433,14 @@ void main() {
         },
       );
 
-      test('a newer version only on the shelter: the shelter, then the '
+      test('a newer version only on the base: the base, then the '
           'mirrors', () async {
         final mine = await catalog(
           from: home,
           mirrors: ['https://m.example.org/'],
         );
         final theirs = await catalog(
-          from: shelter,
+          from: base,
           version: '2',
           sha: shaQ,
           urls: {shaQ: 'blobs/sha256/$shaQ'},
@@ -462,7 +462,7 @@ void main() {
           mirrors: [for (var i = 0; i < 10; i++) 'https://a$i.example.org/'],
         );
         final theirs = await catalog(
-          from: shelter,
+          from: base,
           mirrors: [for (var i = 0; i < 10; i++) 'http://b$i.example.org/'],
         );
         expect(mine.mergedWith(theirs).mirrors, hasLength(Catalog.maxMirrors));
@@ -471,7 +471,7 @@ void main() {
       test('merging twice adds no address twice', () async {
         final mine = await catalog(from: home);
         final theirs = await catalog(
-          from: shelter,
+          from: base,
           urls: {shaP: 'blobs/sha256/$shaP'},
         );
         final once = mine.mergedWith(theirs);

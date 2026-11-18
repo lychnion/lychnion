@@ -16,7 +16,7 @@ import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter/foundation.dart';
 
 import '../download/publisher_list.dart' show cleanShownText;
-import 'shelter_link.dart';
+import 'base_link.dart';
 
 /// The Bonjour service type of a base.
 const baseServiceType = '_lychnion._tcp';
@@ -59,9 +59,9 @@ bool isPrivateIPv4(InternetAddress a) {
 
 /// A found base as a link, or null when its announcement is not usable:
 /// the first private IPv4 address (bases are reached by IPv4 on the local
-/// network, see ShelterServer.localAddresses), the port and the name. The
+/// network, see BaseServer.localAddresses), the port and the name. The
 /// announced key is not used: nothing here was checked in person.
-ShelterLink? baseLinkFrom({
+BaseLink? baseLinkFrom({
   required List<String> addresses,
   required int port,
   required Map<String, String> attributes,
@@ -77,9 +77,9 @@ ShelterLink? baseLinkFrom({
     }
   }
   if (v4 == null) return null;
-  final url = ShelterLink.normalize('${v4.address}:$port');
+  final url = BaseLink.normalize('${v4.address}:$port');
   if (url == null) return null;
-  return ShelterLink(
+  return BaseLink(
     url,
     name: cleanShownText(attributes['name']) ?? cleanShownText(serviceName),
   );
@@ -138,11 +138,11 @@ class BaseAnnouncer {
 /// Lists the bases on the local Wi-Fi while it runs.
 class BaseFinder {
   /// The bases found so far, by the order they were found.
-  final found = ValueNotifier<List<ShelterLink>>(const []);
+  final found = ValueNotifier<List<BaseLink>>(const []);
 
   /// By service name (unique on a network: mDNS renames a second one), so
   /// a base that moves to a new address is listed once, at the new one.
-  final _entries = <String, ShelterLink>{};
+  final _entries = <String, BaseLink>{};
   BonsoirDiscovery? _discovery;
   StreamSubscription<BonsoirDiscoveryEvent>? _events;
   var _started = false;

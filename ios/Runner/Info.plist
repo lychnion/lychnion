@@ -84,7 +84,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<!-- lychnion://shelter?url=… from the QR code on a shelter computer
+	<!-- lychnion://shelter?url=… from the QR code on a base computer
 	     (fieldkit:// on codes made before the rename). -->
 	<key>CFBundleURLTypes</key>
 	<array>

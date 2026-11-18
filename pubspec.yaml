@@ -63,7 +63,7 @@ flutter:
     - assets/packages/
     - assets/maps/
     - assets/downloads/
-    # The page a shelter computer serves to phones without the app.
+    # The page a base computer serves to phones without the app.
     - assets/web/
     - assets/regions/
     # The app's own help (help/, built by tool/build_help.py).

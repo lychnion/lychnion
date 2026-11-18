@@ -10,21 +10,21 @@ import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
 import '../facts/signing.dart';
 import '../knowledge/grounded_answer.dart';
-import 'shelter_library.dart';
-import 'shelter_protocol.dart';
-import 'shelter_web.dart';
+import 'base_library.dart';
+import 'base_protocol.dart';
+import 'base_web.dart';
 
-/// Answers questions from phones on the shelter's local network.
+/// Answers questions from phones on the base's local network.
 ///
-/// GET /       → a page for phones without the app (assets/web/shelter.html)
+/// GET /       → a page for phones without the app (assets/web/base.html)
 /// GET /web.json?lang=ja → that page's texts and the current facts
 /// GET /info  → {name, model, package, version}
 /// GET /facts → current facts (JSON, or ?compact=1 for radio-sized messages)
-/// POST /ask  {"question": "…"} → an answer (shelter_protocol.dart)
-/// GET /catalog.json        → signed records of what this shelter has
+/// POST /ask  {"question": "…"} → an answer (base_protocol.dart)
+/// GET /catalog.json        → signed records of what this base has
 /// GET `/blobs/sha256/<hash>` → one of those files (resumable with Range)
 ///
-/// No login: anyone on the shelter Wi-Fi may ask. One model, so questions
+/// No login: anyone on the base Wi-Fi may ask. One model, so questions
 /// are answered one after another.
 ///
 /// Anyone on the Wi-Fi can also send anything, so every request has
@@ -37,8 +37,8 @@ import 'shelter_web.dart';
 ///
 /// Without an [answerer] it only passes on files: a phone sharing its
 /// downloads with phones nearby (`sharePort`, no /ask, no page).
-class ShelterServer {
-  ShelterServer({
+class BaseServer {
+  BaseServer({
     required this.answerer,
     required this.name,
     this.modelName = '',
@@ -65,9 +65,9 @@ class ShelterServer {
   final String? page;
 
   /// Packages, maps and models passed on to phones (null: none).
-  final ShelterLibrary? library;
+  final BaseLibrary? library;
 
-  /// Current facts the shelter shares with phones (GET /facts).
+  /// Current facts the base shares with phones (GET /facts).
   final FactStore? facts;
   final CompactCodec? codec;
 
@@ -95,7 +95,7 @@ class ShelterServer {
   /// Questions from one address at a time; more get 429.
   final int maxQuestionsPerPhone;
 
-  /// The phone gives up after 2 minutes (ShelterClient.ask): a question
+  /// The phone gives up after 2 minutes (BaseClient.ask): a question
   /// that waited this long for the model is not answered any more, and
   /// no longer counts for the limits (its phone may ask again). It is
   /// less than 2 minutes, so an answer started just before has time.
@@ -110,7 +110,7 @@ class ShelterServer {
   static const defaultPort = 8642;
 
   /// A phone sharing its downloads: another port, so it never clashes with
-  /// a shelter computer on the same machine.
+  /// a base computer on the same machine.
   static const sharePort = 8643;
 
   /// Called after a file was sent (its name), e.g. to count on screen.
@@ -219,7 +219,7 @@ class ShelterServer {
       } else if (req.method == 'GET' && req.uri.path == '/info') {
         final a = answerer;
         _send(res, 200, {
-          'v': shelterProtocolVersion,
+          'v': baseProtocolVersion,
           'name': name,
           'answers': a != null,
           if (a != null) ...{
@@ -228,7 +228,7 @@ class ShelterServer {
             'version': a.package.version,
             'answered': answered,
           },
-          // Phones trust this key for the facts the shelter signs.
+          // Phones trust this key for the facts the base signs.
           'key': ?facts?.signer?.publicKeyText,
         });
       } else if (req.method == 'GET' && req.uri.path == '/facts') {
@@ -237,14 +237,14 @@ class ShelterServer {
         if (req.uri.queryParameters['compact'] == '1' && codec != null) {
           final FactSigner? signer = facts?.signer;
           _send(res, 200, {
-            'v': shelterProtocolVersion,
+            'v': baseProtocolVersion,
             'messages': signer == null
                 ? codec!.pack(all)
                 : await signer.packSigned(codec!, all),
           });
         } else {
           _send(res, 200, {
-            'v': shelterProtocolVersion,
+            'v': baseProtocolVersion,
             'facts': [for (final f in all) f.toJson()],
           });
         }
@@ -483,7 +483,7 @@ class ShelterServer {
     } on Object catch (e) {
       _log('blob_served_callback', e, req);
     }
-    // For whoever runs the shelter: what was passed on, to whom.
+    // For whoever runs the base: what was passed on, to whom.
     debugPrint(
       'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': to})}',
     );

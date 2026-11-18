@@ -2,8 +2,9 @@
 
 A base (「ベース」) is a computer with the desktop app that serves everyone
 on the same Wi-Fi: in an evacuation shelter, a mountain hut, a school or a
-camp. In the code and in older notes it is called a "shelter" or "shelter
-computer".
+camp. Older notes call it a "shelter" or "shelter computer"; the code
+says "base" since 2026-11-19. The `lychnion://shelter?…` links on QR
+codes keep the old word, so printed codes still work.
 
 How to set up and use a base, step by step:
 [help/en/05-base.md](../help/en/05-base.md). Sharing between phones
@@ -50,10 +51,10 @@ Old codes made with the code name (`fieldkit://`) still work.
 
 ## Code
 
-- `lib/shelter/`: the server, the data for the browser page, QR codes and
+- `lib/base/`: the server, the data for the browser page, QR codes and
   links.
-- `assets/web/shelter.html`: the browser page.
-- To start a base from the command line, see `SHELTER_SERVER` in
+- `assets/web/base.html`: the browser page.
+- To start a base from the command line, see `BASE_SERVER` in
   [dev-flags.md](dev-flags.md#base-and-current-information).
 
 ## Results

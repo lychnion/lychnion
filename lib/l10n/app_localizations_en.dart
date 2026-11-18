@@ -435,7 +435,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapMyLocation => 'My location';
 
   @override
-  String get mapShelterHint =>
+  String get mapBaseHint =>
       'Base: ✎ sets a site\'s status; long-press the map for a blocked road or water point.';
 
   @override
@@ -494,7 +494,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String answerShelterComputer(String name) {
+  String answerBaseComputer(String name) {
     return 'Base · $name';
   }
 
@@ -590,7 +590,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLanguageDevice => 'Device';
 
   @override
-  String get settingsShelter => 'Base';
+  String get settingsBase => 'Base';
 
   @override
   String settingsKeptAside(String files) {
@@ -733,7 +733,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askPhaseReady => 'Offline ready';
 
   @override
-  String get askPhaseShelter => 'Base';
+  String get askPhaseBase => 'Base';
 
   @override
   String get askPhaseServing => 'Sharing';
@@ -753,7 +753,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The AI runs on this device. No internet is needed.';
 
   @override
-  String get askExplainShelter =>
+  String get askExplainBase =>
       'A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.';
 
   @override
@@ -828,56 +828,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get packagesAddTooltip => 'Get more packages';
 
   @override
-  String get shelterNoAddress =>
+  String get baseNoAddress =>
       'No network address found. Connect this computer to Wi-Fi.';
 
   @override
-  String get shelterConnectPhones => 'Connect phones';
+  String get baseConnectPhones => 'Connect phones';
 
   @override
-  String shelterScanHint(String appName, String name) {
+  String baseScanHint(String appName, String name) {
     return 'On the same Wi-Fi, scan this code with the phone camera. $appName opens and connects to \"$name\".';
   }
 
   @override
-  String get shelterOrEnterAddress => 'Or enter the address:';
+  String get baseOrEnterAddress => 'Or enter the address:';
 
   @override
-  String shelterConnectTo(String name) {
+  String baseConnectTo(String name) {
     return 'Connect to $name?';
   }
 
   @override
-  String get shelterThisShelter => 'this base';
+  String get baseThisBase => 'this base';
 
   @override
-  String shelterConnectBody(String address) {
+  String baseConnectBody(String address) {
     return 'The base ($address) will answer your questions and share current information. Only connect to a base where you are.';
   }
 
   @override
-  String get shelterConnect => 'Connect';
+  String get baseConnect => 'Connect';
 
   @override
-  String get shelterAddress => 'Base address';
+  String get baseAddress => 'Base address';
 
   @override
-  String get shelterAddressHelper => 'Shown on the base, under the QR code.';
+  String get baseAddressHelper => 'Shown on the base, under the QR code.';
 
   @override
-  String get shelterConnectComputer => 'Connect to a base';
+  String get baseConnectComputer => 'Connect to a base';
 
   @override
-  String get shelterConnectComputerHint =>
+  String get baseConnectComputerHint =>
       'Scan the base\'s QR code, or enter its address. Answers come faster.';
 
   @override
-  String shelterAskedFirst(String address) {
+  String baseAskedFirst(String address) {
     return 'Asked first · $address';
   }
 
   @override
-  String get shelterDisconnect => 'Disconnect';
+  String get baseDisconnect => 'Disconnect';
 
   @override
   String get mapNoMap => 'No map yet';
@@ -989,13 +989,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webError => 'The base could not answer. Please try again.';
 
   @override
-  String get shelterWithApp => 'With the app';
+  String get baseWithApp => 'With the app';
 
   @override
-  String get shelterInBrowser => 'In the browser';
+  String get baseInBrowser => 'In the browser';
 
   @override
-  String get shelterBrowserHint =>
+  String get baseBrowserHint =>
       'For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.';
 
   @override
@@ -1676,17 +1676,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get shelterFoundTitle => 'Bases on this Wi-Fi';
+  String get baseFoundTitle => 'Bases on this Wi-Fi';
 
   @override
-  String get shelterFoundLooking => 'Looking…';
+  String get baseFoundLooking => 'Looking…';
 
   @override
-  String get shelterFoundNone =>
+  String get baseFoundNone =>
       'No base found yet. Enter its address below, or scan its QR code.';
 
   @override
-  String get shelterScanToTrust =>
+  String get baseScanToTrust =>
       'Scan the base\'s QR code to trust its notices.';
 
   @override
@@ -1738,7 +1738,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapLoadingSpoken => 'Loading the map';
 
   @override
-  String shelterQrSpoken(String name) {
+  String baseQrSpoken(String name) {
     return 'QR code to connect to $name';
   }
 

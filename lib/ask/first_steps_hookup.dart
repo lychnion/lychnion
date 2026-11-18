@@ -22,7 +22,7 @@ mixin _FirstStepsHookup on _AskPageBase {
     aiReady: const {
       AskPhase.loading,
       AskPhase.ready,
-      AskPhase.shelter,
+      AskPhase.base,
       AskPhase.serving,
     }.contains(_phase),
     mapReady: widget.map != null,

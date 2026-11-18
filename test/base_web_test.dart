@@ -3,7 +3,7 @@ import 'package:lychnion/facts/fact.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/knowledge/retriever.dart';
-import 'package:lychnion/shelter/shelter_web.dart';
+import 'package:lychnion/base/base_web.dart';
 
 void main() {
   final pkg = KnowledgePackage.open('assets/packages/jp.bousai.core.sqlite');
@@ -34,7 +34,7 @@ void main() {
     expect((w['texts'] as Map)['sources'], 'Sources');
   });
 
-  test('facts on the page name shelters, not their IDs', () {
+  test('facts on the page name bases, not their IDs', () {
     final now = DateTime(2026, 11, 18, 15);
     Fact f(FactKind kind, String subject, String value) => Fact(
       kind: kind,

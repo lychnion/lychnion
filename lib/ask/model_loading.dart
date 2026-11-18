@@ -168,11 +168,11 @@ mixin _ModelLoading on _AskPageBase {
       setState(() {
         _status =
             'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
-            '${_server != null ? ' · base server on port ${ShelterServer.defaultPort}' : ''}';
-        // A connected shelter still answers first.
+            '${_server != null ? ' · base server on port ${BaseServer.defaultPort}' : ''}';
+        // A connected base still answers first.
         _phase = _server != null
             ? AskPhase.serving
-            : (_shelterReady ? AskPhase.shelter : AskPhase.ready);
+            : (_baseReady ? AskPhase.base : AskPhase.ready);
       });
     } catch (e) {
       setState(() {

@@ -8,7 +8,7 @@ import 'package:lychnion/download/download_store.dart';
 import 'package:lychnion/download/publisher_list.dart';
 import 'package:lychnion/publish/local_publisher.dart';
 import 'package:lychnion/publish/publish.dart';
-import 'package:lychnion/shelter/shelter_library.dart';
+import 'package:lychnion/base/base_library.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -139,7 +139,7 @@ void main() {
       );
 
       // The base's catalog carries the record unchanged, and the file.
-      final lib = ShelterLibrary(store);
+      final lib = BaseLibrary(store);
       final records = lib.catalog()['records']! as List;
       expect(records.single, r.json);
       expect(lib.blob(r.files.single.sha256)!.existsSync(), isTrue);

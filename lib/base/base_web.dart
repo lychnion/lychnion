@@ -7,8 +7,8 @@ import '../knowledge/grounded_answer.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/answer_text.dart';
 
-/// Data for the page the shelter computer serves to phones without the
-/// app (assets/web/shelter.html): its texts in the browser's language,
+/// Data for the page the base computer serves to phones without the
+/// app (assets/web/base.html): its texts in the browser's language,
 /// taken from the app's ARB files (one place to translate), the current
 /// facts as display lines, and answers ready to show.
 AppLocalizations webTexts(String lang) => lookupAppLocalizations(
@@ -61,7 +61,7 @@ Map<String, Object?> webInfo({
         l.noticeAsk,
         l.noticeOffline,
       ],
-      'shelter': l.answerShelterComputer(name),
+      'base': l.answerBaseComputer(name),
       'error': l.webError,
     },
     'facts': [

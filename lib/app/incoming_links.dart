@@ -1,6 +1,6 @@
 part of 'app_shell.dart';
 
-/// Links opened from outside the app: a shelter's QR code, a catalog or
+/// Links opened from outside the app: a base's QR code, a catalog or
 /// publisher link, or a phone nearby that shares its downloads.
 mixin _IncomingLinks on State<AppShell> {
   DownloadManager? get _downloads;
@@ -48,22 +48,18 @@ mixin _IncomingLinks on State<AppShell> {
       }
       return;
     }
-    final link = ShelterLink.fromUri(uri);
+    final link = BaseLink.fromUri(uri);
     if (link == null || !mounted || _asking) return;
     // Already connected, and nothing new: a QR code with the key of a base
     // connected by address or found on the Wi-Fi pins that key.
-    if (link.url == widget.settings.shelterUrl &&
-        (link.key == null || link.key == widget.settings.shelterKey)) {
+    if (link.url == widget.settings.baseUrl &&
+        (link.key == null || link.key == widget.settings.baseKey)) {
       return;
     }
     _asking = true;
     try {
-      if (await confirmShelter(context, link)) {
-        await widget.settings.setShelter(
-          link.url,
-          name: link.name,
-          key: link.key,
-        );
+      if (await confirmBase(context, link)) {
+        await widget.settings.setBase(link.url, name: link.name, key: link.key);
         setState(() => _tab = 0);
       }
     } finally {
