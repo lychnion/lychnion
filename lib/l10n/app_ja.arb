@@ -335,6 +335,7 @@
   },
   "regionHint": "その地域の資料を少し優先します。位置情報はこの端末の外に出ません。",
   "regionJapan": "日本（都道府県を指定しない）",
+  "areaJapan": "日本",
   "publishersTitle": "発行元",
   "publishersHint": "インストールするガイドと地図に署名できる発行元",
   "publishersBuiltIn": "アプリに組み込み",

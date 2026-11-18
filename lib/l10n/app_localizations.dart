@@ -1856,6 +1856,12 @@ abstract class AppLocalizations {
   /// **'Japan (no prefecture)'**
   String get regionJapan;
 
+  /// Downloads: the area of an item made for all of Japan.
+  ///
+  /// In en, this message translates to:
+  /// **'Japan'**
+  String get areaJapan;
+
   /// No description provided for @publishersTitle.
   ///
   /// In en, this message translates to:

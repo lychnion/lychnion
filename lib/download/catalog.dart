@@ -65,6 +65,9 @@ class CatalogItem {
   final PackageRecord? record;
 
   int get size => files.fold(0, (a, f) => a + f.size);
+
+  /// Places the item is for ('JP', 'JP-30'); empty means anywhere.
+  List<String> get area => record?.area ?? const [];
   String title(String lang) => pick(titles, lang) ?? id;
   String note(String lang) => pick(notes, lang) ?? '';
 
@@ -331,4 +334,32 @@ String formatBytes(int b) {
   if (b >= 1e6) return '${(b / 1e6).toStringAsFixed(b >= 1e8 ? 0 : 1)} MB';
   if (b >= 1e3) return '${(b / 1e3).toStringAsFixed(0)} KB';
   return '$b B';
+}
+
+/// How well an item's [area] fits the user's [region] ('JP-30', or 'JP'
+/// when only the country is known): 3 made for that region, 2 for the
+/// whole country (or the region is unknown and the item is in the
+/// country), 1 anywhere (no area), 0 somewhere else.
+int areaRank(List<String> area, String region) {
+  if (area.isEmpty) return 1;
+  if (area.contains(region)) return 3;
+  final country = region.split('-').first;
+  if (area.contains(country)) return 2;
+  if (region == country && area.any((c) => c.startsWith('$country-'))) {
+    return 2;
+  }
+  return 0;
+}
+
+/// [items] with the best fit for [region] first; otherwise in catalog
+/// order.
+List<CatalogItem> byArea(List<CatalogItem> items, String? region) {
+  if (region == null) return items;
+  final order = [for (var i = 0; i < items.length; i++) i]
+    ..sort((a, b) {
+      final d =
+          areaRank(items[b].area, region) - areaRank(items[a].area, region);
+      return d != 0 ? d : a - b;
+    });
+  return [for (final i in order) items[i]];
 }

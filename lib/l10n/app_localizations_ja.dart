@@ -1065,6 +1065,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get regionJapan => '日本（都道府県を指定しない）';
 
   @override
+  String get areaJapan => '日本';
+
+  @override
   String get publishersTitle => '発行元';
 
   @override

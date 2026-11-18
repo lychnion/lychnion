@@ -90,6 +90,8 @@ void _writeString(StringBuffer out, String s) {
   out.write('"');
 }
 
+final _areaCode = RegExp(r'^[A-Z]{2}(-[A-Z0-9]{1,3})?$');
+
 final _versionPattern = RegExp(r'^\d{1,9}(\.\d{1,9}){0,3}$');
 
 /// Compares dotted version numbers ("2026.11.1" < "2026.11.10");
@@ -157,6 +159,14 @@ class PackageRecord {
   String get signature => json['signature']! as String;
   String get signed => json['signed']! as String;
   String get licence => json['licence'] as String? ?? '';
+
+  /// Places the item is for, as ISO 3166 codes: a country ('JP') or a
+  /// region ('JP-30'). Empty means anywhere. Codes of another form are
+  /// left out.
+  List<String> get area => [
+    for (final c in (json['area'] as List?) ?? const [])
+      if (c is String && _areaCode.hasMatch(c)) c,
+  ];
   String? get role => json['role'] as String?;
   bool get desktop => json['desktop'] as bool? ?? false;
 
