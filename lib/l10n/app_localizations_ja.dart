@@ -1472,4 +1472,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tourMenuText => '設定、近くの人と共有、そしてこのツアーはここから。';
+
+  @override
+  String get downloadsKeepAll => 'スマートフォン用にすべて保管';
+
+  @override
+  String get downloadsKeepAllHint =>
+      'このパソコンがカタログのすべてのガイドと地図をダウンロードし、最新に保ちます。近くのスマートフォンはここから受け取れます。項目を削除したままにするには、オフにしてください。';
+
+  @override
+  String get downloadsKeepModels => 'AI モデルも（数 GB）';
+
+  @override
+  String downloadsKeepAllMissing(String count, String size) {
+    return '未取得：$count 件、$size';
+  }
+
+  @override
+  String get downloadsKeepAllDone => 'すべてそろっています。';
 }
