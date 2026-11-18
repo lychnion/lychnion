@@ -1901,7 +1901,7 @@ abstract class AppLocalizations {
   /// No description provided for @publishersRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'Guides and maps signed by this publisher are no longer used. Their files stay on this device until you delete them in Downloads.'**
+  /// **'Its guides and maps are deleted from this device. To use them again, add the publisher again and download them.'**
   String get publishersRemoveBody;
 
   /// No description provided for @publishersAddTitle.

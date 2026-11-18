@@ -205,10 +205,20 @@ class PublisherList extends ChangeNotifier {
     return null;
   }
 
+  /// Additions and removals one after another: each checks and saves the
+  /// list as the one before left it.
+  Future<void> _last = Future.value();
+
+  Future<T> _serial<T>(Future<T> Function() f) {
+    final run = _last.then((_) => f());
+    _last = run.then<void>((_) {}, onError: (Object _) {});
+    return run;
+  }
+
   /// Adds [l] (after the user agreed). Throws [ArgumentError] when
   /// [problemWith] finds a problem, and the save's error when it cannot be
   /// saved (then nothing changed: not trusted, not in the list).
-  Future<void> add(PublisherLink l) async {
+  Future<void> add(PublisherLink l) => _serial(() async {
     if (problemWith(l) case final p?) throw ArgumentError(p.name);
     final next = {
       ..._added,
@@ -224,11 +234,11 @@ class PublisherList extends ChangeNotifier {
       ..clear()
       ..addAll(next);
     _changed();
-  }
+  });
 
   /// Removes [name]; throws the save's error when it cannot be saved (then
   /// it stays).
-  Future<void> remove(String name) async {
+  Future<void> remove(String name) => _serial(() async {
     if (!_added.containsKey(name)) return;
     await _save([
       for (final p in _added.values)
@@ -236,7 +246,7 @@ class PublisherList extends ChangeNotifier {
     ]);
     _added.remove(name);
     _changed();
-  }
+  });
 
   Future<void> _save(Iterable<Publisher> list) async {
     await file.parent.create(recursive: true);

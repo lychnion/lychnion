@@ -175,6 +175,16 @@ class DownloadManager extends ChangeNotifier {
     return c;
   }
 
+  /// Removes an added publisher and deletes what was installed from it, so
+  /// nothing of it stays in use or on the device. Throws when the list of
+  /// publishers cannot be saved (then nothing changed).
+  Future<void> removePublisher(String name) async {
+    await store.publishers.remove(name);
+    final n = await store.deleteFrom(name);
+    _log({'event': 'publisher_removed', 'name': name, 'deleted': n});
+    await publishersChanged();
+  }
+
   /// A publisher was added or removed: install records are checked again,
   /// and every catalog is read again, so the publisher's records show up
   /// (or go). Shelter catalogs are read from what they sent, no network.
@@ -461,7 +471,9 @@ class DownloadManager extends ChangeNotifier {
     final r = item.record;
     if (r == null || !await store.trust.verify(r)) return 'signature';
     if (store.isTaken(item)) return 'taken';
-    final have = store.installedVersion(item);
+    // Also what is on disk but no longer trusted: files are replaced while
+    // downloading, before the install is recorded.
+    final have = store.installedVersion(item) ?? store.recordedVersion(item);
     if (have != null && isOlder(item.version, have)) return 'older';
     return null;
   }

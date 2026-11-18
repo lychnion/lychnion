@@ -1093,7 +1093,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishersRemoveBody =>
-      'この発行元が署名したガイドと地図は使われなくなります。ファイルは「ダウンロード」で削除するまで、この端末に残ります。';
+      'この発行元のガイドと地図は、この端末から削除されます。もう一度使うには、発行元を追加し直してダウンロードしてください。';
 
   @override
   String get publishersAddTitle => 'この発行元を追加しますか？';
