@@ -360,6 +360,22 @@ class DownloadManager extends ChangeNotifier {
     _refreshStates();
   }
 
+  /// Whether a download or a check is running now.
+  bool get busy => _states.values.any((s) => s.status == ItemStatus.running);
+
+  /// Runs [work] (a load from a USB stick) while no download or check
+  /// starts: they would write the same files.
+  Future<T> withoutDownloads<T>(Future<T> Function() work) async {
+    _paused = true;
+    try {
+      return await work();
+    } finally {
+      _paused = false;
+    }
+  }
+
+  var _paused = false;
+
   /// Items whose last download by itself failed (or that the user stopped
   /// or deleted), and when.
   final _syncFailed = <String, DateTime>{};
@@ -737,7 +753,7 @@ class DownloadManager extends ChangeNotifier {
     bool auto = false,
   }) async {
     final s = stateOf(item);
-    if (s.status == ItemStatus.running) return;
+    if (s.status == ItemStatus.running || _paused) return;
     s.error = await _refusal(item) ?? await networkProblem(auto: auto);
     if (s.error != null) return notifyListeners();
     final dir = store.dirFor(item.kind);
@@ -895,6 +911,7 @@ class DownloadManager extends ChangeNotifier {
   /// them as installed if they match the catalog.
   Future<void> verifyExisting(CatalogItem item) async {
     final s = stateOf(item);
+    if (s.status == ItemStatus.running || _paused) return;
     s.error = await _refusal(item);
     if (s.error != null) return notifyListeners();
     final cancel = CancelToken();

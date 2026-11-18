@@ -1633,4 +1633,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String stickFailed(String detail) {
     return 'Could not finish: $detail';
   }
+
+  @override
+  String get stickBusy =>
+      'Wait until the downloads have finished, then load from the stick.';
+
+  @override
+  String stickUnreadable(String reason) {
+    return 'The Lychnion folder on this stick cannot be read ($reason). Nothing was changed.';
+  }
 }

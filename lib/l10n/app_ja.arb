@@ -476,5 +476,7 @@
   "stickLoaded": "新規 {added} 件、ここより新しくないもの {notNewer} 件、信頼できないもの {notTrusted} 件",
   "stickFailedItems": "完了できなかったもの（ファイルがないか変更されています）：{items}",
   "stickNoCatalog": "この USB メモリに Lychnion のフォルダがありません。",
-  "stickFailed": "完了できませんでした：{detail}"
+  "stickFailed": "完了できませんでした：{detail}",
+  "stickBusy": "ダウンロードが終わってから USB メモリから読み込んでください。",
+  "stickUnreadable": "この USB メモリの Lychnion フォルダを読み込めません（{reason}）。何も変更していません。"
 }

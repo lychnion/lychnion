@@ -156,4 +156,70 @@ void main() {
     expect(stickFolder(flat).path, flat.path);
     expect((await loadFromStick(store('there'), flat)).added, 1);
   });
+
+  test('a stick whose catalog cannot be read is not touched', () async {
+    final here = store('here');
+    await install(here, 'jp.a', '1', 'aaa');
+    final folder = Directory('${stick.path}/lychnion');
+    final blob = File('${folder.path}/blobs/sha256/${'0' * 64}');
+    await blob.create(recursive: true);
+    for (final text in ['{"format": 2, "records": [', '{"format": 3}']) {
+      File('${folder.path}/catalog.json').writeAsStringSync(text);
+      await expectLater(
+        copyToStick(here, stick),
+        throwsA(isA<UnreadableStick>()),
+      );
+      await expectLater(
+        loadFromStick(store('there'), stick),
+        throwsA(isA<UnreadableStick>()),
+      );
+      expect(File('${folder.path}/catalog.json').readAsStringSync(), text);
+      expect(blob.existsSync(), isTrue);
+    }
+  });
+
+  test('an untrusted record does not keep ours off the stick', () async {
+    final other = await Ed25519().newKeyPair();
+    final junk = await PackageRecord.sign({
+      'format': 1,
+      'id': 'jp.a',
+      'kind': 'package',
+      'version': '999',
+      'publisher': 'lychnion',
+      'title': {'en': 'junk'},
+      'files': [
+        {'name': 'jp.a.sqlite', 'size': 1, 'sha256': 'a' * 64},
+      ],
+      'signed': '2026-11-18T09:00:00+09:00',
+    }, other);
+    final folder = Directory('${stick.path}/lychnion')..createSync();
+    File('${folder.path}/catalog.json').writeAsStringSync(
+      jsonEncode({
+        'format': 2,
+        'records': [junk.json],
+      }),
+    );
+    final here = store('here');
+    await install(here, 'jp.a', '1', 'aaa');
+    final c = await copyToStick(here, stick);
+    expect(c.added, 1);
+    final l = await loadFromStick(store('there'), stick);
+    expect(l.added, 1);
+  });
+
+  test('a damaged file on the stick is copied again', () async {
+    final here = store('here');
+    final r = await install(here, 'jp.a', '1', 'aaa');
+    // Left by an earlier copy that was cut off: right size, wrong bytes.
+    File('${stick.path}/lychnion/blobs/sha256/${r.files.single.sha256}')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('xyz');
+    expect((await copyToStick(here, stick)).added, 1);
+    expect((await loadFromStick(store('there'), stick)).added, 1);
+  });
+
+  test('picking the lychnion folder itself works', () async {
+    final picked = Directory('${stick.path}/lychnion')..createSync();
+    expect(stickFolder(picked).path, picked.path);
+  });
 }

@@ -2707,6 +2707,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not finish: {detail}'**
   String stickFailed(String detail);
+
+  /// No description provided for @stickBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait until the downloads have finished, then load from the stick.'**
+  String get stickBusy;
+
+  /// No description provided for @stickUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The Lychnion folder on this stick cannot be read ({reason}). Nothing was changed.'**
+  String stickUnreadable(String reason);
 }
 
 class _AppLocalizationsDelegate

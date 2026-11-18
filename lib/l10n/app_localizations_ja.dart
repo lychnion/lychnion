@@ -1554,4 +1554,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String stickFailed(String detail) {
     return '完了できませんでした：$detail';
   }
+
+  @override
+  String get stickBusy => 'ダウンロードが終わってから USB メモリから読み込んでください。';
+
+  @override
+  String stickUnreadable(String reason) {
+    return 'この USB メモリの Lychnion フォルダを読み込めません（$reason）。何も変更していません。';
+  }
 }

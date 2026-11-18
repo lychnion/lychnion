@@ -163,11 +163,17 @@ Future<void> _stick(
   final l = sheet.l10n;
   final nav = Navigator.of(sheet);
   final messenger = ScaffoldMessenger.of(sheet);
+  final route = ModalRoute.of(sheet);
+  if (!copy && m.busy) {
+    messenger.showSnackBar(SnackBar(content: Text(l.stickBusy)));
+    return;
+  }
   final path = await getDirectoryPath(
     confirmButtonText: copy ? l.stickCopy : l.stickLoad,
   );
   if (path == null) return;
-  nav.pop(); // the settings sheet
+  // The settings sheet, if it is still open.
+  if (route != null && route.isActive) nav.removeRoute(route);
   final ctx = nav.context;
   if (!ctx.mounted) return;
   unawaited(
@@ -202,7 +208,8 @@ Future<void> _stick(
         text += '\n${l.stickFailedItems(r.failed.join(', '))}';
       }
     } else {
-      final r = await loadFromStick(m.store, dir);
+      if (m.busy) throw const _Busy();
+      final r = await m.withoutDownloads(() => loadFromStick(m.store, dir));
       m.installedChanged();
       text = l.stickLoaded(
         '${r.added}',
@@ -213,6 +220,10 @@ Future<void> _stick(
         text += '\n${l.stickFailedItems(r.failed.join(', '))}';
       }
     }
+  } on _Busy {
+    text = l.stickBusy;
+  } on UnreadableStick catch (e) {
+    text = l.stickUnreadable(e.reason);
   } on FileSystemException catch (e) {
     text = e.message == 'no catalog'
         ? l.stickNoCatalog
@@ -224,6 +235,10 @@ Future<void> _stick(
   messenger.showSnackBar(
     SnackBar(content: Text(text), duration: const Duration(seconds: 8)),
   );
+}
+
+class _Busy implements Exception {
+  const _Busy();
 }
 
 /// Lists models, knowledge packages and map areas: size, progress,

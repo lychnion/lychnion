@@ -121,10 +121,7 @@ Future<PullResult> _pull(
     final _Catalog cat;
     try {
       cat = local != null
-          ? _Catalog.parse(
-              await File('${local.path}/catalog.json').readAsString(),
-              local.uri,
-            )
+          ? _Catalog.parse(await _readLocal(local), local.uri)
           : _Catalog.parse(await fetchCatalogText(source), source);
     } on CatalogFetchError catch (e) {
       result.failed.add('${redactedUrl(source)}: ${e.code}');
@@ -284,6 +281,15 @@ Directory _localFolder(Uri source) {
   return File('${inner.path}/catalog.json').existsSync() ? inner : dir;
 }
 
+/// The catalog.json in [dir], at most [maxCatalogBytes] like a fetched one.
+Future<String> _readLocal(Directory dir) async {
+  final f = File('${dir.path}/catalog.json');
+  if (await f.length() > maxCatalogBytes) {
+    throw const FormatException('too large');
+  }
+  return f.readAsString();
+}
+
 /// Copies the files of [r] from the folder [from] into [folder], each
 /// checked by its hash before it is used.
 Future<bool> _copyFiles(
@@ -322,13 +328,20 @@ Future<bool> _copyFiles(
       return false;
     }
     final part = File('${blob.path}.copy');
-    await source.copy(part.path);
-    if (await _sha256(part) != f.sha256) {
-      await part.delete();
-      log?.call('${r.id} ${r.version}: ${f.name} does not match');
+    try {
+      await source.copy(part.path);
+      if (await _sha256(part) != f.sha256) {
+        log?.call('${r.id} ${r.version}: ${f.name} does not match');
+        return false;
+      }
+      await part.rename(blob.path);
+    } on FileSystemException catch (e) {
+      // The stick pulled out, or the disk full.
+      log?.call('${r.id} ${r.version}: ${f.name}: ${e.message}');
       return false;
+    } finally {
+      if (await part.exists()) await part.delete();
     }
-    await part.rename(blob.path);
     log?.call('${r.id} ${r.version}: ${f.name} (${f.size} bytes, copied)');
   }
   return true;

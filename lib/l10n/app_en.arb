@@ -1018,5 +1018,8 @@
   "@stickFailedItems": {"placeholders": {"items": {"type": "String"}}},
   "stickNoCatalog": "There is no Lychnion folder on this stick.",
   "stickFailed": "Could not finish: {detail}",
-  "@stickFailed": {"placeholders": {"detail": {"type": "String"}}}
+  "@stickFailed": {"placeholders": {"detail": {"type": "String"}}},
+  "stickBusy": "Wait until the downloads have finished, then load from the stick.",
+  "stickUnreadable": "The Lychnion folder on this stick cannot be read ({reason}). Nothing was changed.",
+  "@stickUnreadable": {"placeholders": {"reason": {"type": "String"}}}
 }
