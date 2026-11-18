@@ -269,5 +269,13 @@
   "drop_lines_containing": [
     "をYouTubeで再生",
     "別タブで開きます"
-  ]
+  ],
+  "notice": {
+    "ja": [
+      "避難するかどうかは、自治体の避難情報と気象庁の警報・注意報を優先して判断してください。"
+    ],
+    "en": [
+      "For evacuation, follow your city's evacuation information and the Japan Meteorological Agency's warnings first."
+    ]
+  }
 }

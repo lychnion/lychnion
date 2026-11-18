@@ -5,6 +5,7 @@ import '../download/download_manager.dart';
 import '../download/downloads_screen.dart';
 import 'settings.dart';
 import 'brand.dart';
+import 'notices.dart';
 
 /// Four groups: language, shelter, offline data, about (with developer
 /// options one level down).
@@ -189,7 +190,7 @@ class _AboutPage extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: Icon(icon, color: theme.colorScheme.primary),
       title: Text(title),
-      subtitle: Text(text),
+      subtitle: text.isEmpty ? null : Text(text),
     );
     return Scaffold(
       appBar: AppBar(
@@ -263,6 +264,8 @@ class _AboutPage extends StatelessWidget {
             _Group(
               title: _t('ご注意', 'Please note'),
               children: [
+                for (final (icon, text) in appNotice(en: en))
+                  point(icon, text, ''),
                 point(
                   Icons.science_outlined,
                   _t('試作版', 'Prototype'),

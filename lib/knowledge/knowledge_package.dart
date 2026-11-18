@@ -111,10 +111,58 @@ class Alert {
 }
 
 class PackageInfo {
-  const PackageInfo(this.id, this.title, this.version, this.passages);
+  const PackageInfo(
+    this.id,
+    this.title,
+    this.version,
+    this.passages, {
+    this.notice = const {},
+  });
   final String id, title, version;
   final int passages;
+
+  /// What the package is not for, per language ('ja', 'en'): shown before
+  /// people rely on it (see lib/app/notices.dart).
+  final Map<String, List<String>> notice;
+
+  List<String> noticeIn({required bool en}) =>
+      notice[en ? 'en' : 'ja'] ?? notice['ja'] ?? const [];
+
+  /// Changes when the notice text changes, so people see it again.
+  String get noticeKey => 'pkg:$id:${_fnv(jsonEncode(notice))}';
 }
+
+/// A hash that stays the same between app runs (String.hashCode may not).
+String _fnv(String s) {
+  var h = 0x811c9dc5;
+  for (final c in s.codeUnits) {
+    h = ((h ^ c) * 0x01000193) & 0xffffffff;
+  }
+  return h.toRadixString(16);
+}
+
+/// The notice from a package's meta table. Packages built before notices
+/// existed get the one from their manifest here, so the released file (and
+/// its checksum in the download catalog) can stay as it is until the next
+/// data release.
+Map<String, List<String>> parseNotice(String? json, {String? id}) {
+  final n = {
+    for (final e in (jsonDecode(json ?? '{}') as Map).entries)
+      e.key as String: List<String>.from(e.value as List),
+  };
+  return n.isEmpty ? (_noticesOfOlderPackages[id] ?? const {}) : n;
+}
+
+/// Copied from `tool/packages/<id>.json` ("notice").
+const _noticesOfOlderPackages = <String, Map<String, List<String>>>{
+  'jp.bousai.core': {
+    'ja': ['避難するかどうかは、自治体の避難情報と気象庁の警報・注意報を優先して判断してください。'],
+    'en': [
+      "For evacuation, follow your city's evacuation information and the "
+          "Japan Meteorological Agency's warnings first.",
+    ],
+  },
+};
 
 /// A knowledge package: one SQLite file built by tool/build_package.py.
 ///
@@ -130,7 +178,10 @@ class KnowledgePackage {
     this.synonyms,
     this.vectors, {
     List<PackageInfo>? parts,
-  }) : parts = parts ?? [PackageInfo(id, title, version, passages.length)];
+    Map<String, List<String>> notice = const {},
+  }) : parts =
+           parts ??
+           [PackageInfo(id, title, version, passages.length, notice: notice)];
 
   final String id, title, version;
 
@@ -197,6 +248,26 @@ class KnowledgePackage {
       vectors,
       parts: [for (final p in packages) ...p.parts],
     );
+  }
+
+  /// Only the name, version and notice of a package file (no passages).
+  static PackageInfo readInfo(String path) {
+    final db = sqlite3.open(path, mode: OpenMode.readOnly);
+    try {
+      final meta = {
+        for (final r in db.select('SELECT key, value FROM meta'))
+          r['key'] as String: r['value'] as String,
+      };
+      return PackageInfo(
+        meta['id']!,
+        meta['title'] ?? '',
+        meta['version'] ?? '',
+        0,
+        notice: parseNotice(meta['notice'], id: meta['id']),
+      );
+    } finally {
+      db.close();
+    }
   }
 
   /// Copies a bundled package out of the assets (SQLite needs a real file) and loads it.
@@ -287,6 +358,7 @@ class KnowledgePackage {
         alerts,
         synonyms,
         vectors,
+        notice: parseNotice(meta['notice'], id: meta['id']),
       );
     } finally {
       db.close();

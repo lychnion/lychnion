@@ -2,7 +2,7 @@
 """Builds a knowledge package (one SQLite file) from a JSON manifest.
 
     python3 -I tool/build_package.py tool/packages/jp.bousai.core.json [--max-chars N]
-        [--export-untranslated FILE]
+        [--export-untranslated FILE] [--meta-only]
 
 Downloads each source once into build/package-cache/ (or reads a saved text
 snapshot, for sites that refuse scripted downloads), extracts the text
@@ -249,6 +249,8 @@ def main(manifest_path, max_chars=MAX_CHARS):
     """)
     for k in ("id", "title", "language", "version", "note", "translation"):
         db.execute("INSERT INTO meta VALUES(?,?)", (k, manifest.get(k, "")))
+    # What the package is not for, shown to users before they rely on it.
+    db.execute("INSERT INTO meta VALUES('notice',?)", (json.dumps(manifest.get("notice", {}), ensure_ascii=False),))
     db.execute("INSERT INTO meta VALUES('gaps',?)", (json.dumps(manifest.get("gaps", []), ensure_ascii=False),))
     # Query expansion for keyword search, until vector search is added.
     db.execute("INSERT INTO meta VALUES('synonyms',?)", (json.dumps(manifest.get("synonyms", {}), ensure_ascii=False),))
@@ -280,6 +282,18 @@ if __name__ == "__main__":
         i = args.index("--max-chars")
         chars = int(args[i + 1])
         del args[i:i + 2]
+    if "--meta-only" in args:
+        # Update the notice, title and note of a built package without
+        # rebuilding it (keeps its passages and vectors).
+        args.remove("--meta-only")
+        m = json.loads(Path(args[0]).read_text(encoding="utf-8"))
+        db = sqlite3.connect(OUT / f"{m['id']}.sqlite")
+        for k, v in (("notice", json.dumps(m.get("notice", {}), ensure_ascii=False)),
+                     ("title", m.get("title", "")), ("note", m.get("note", ""))):
+            db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)", (k, v))
+        db.commit()
+        db.close()
+        sys.exit(0)
     if "--export-untranslated" in args:
         i = args.index("--export-untranslated")
         EXPORT = args[i + 1]

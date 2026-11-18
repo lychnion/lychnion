@@ -48,6 +48,7 @@ import 'ui/nearest_card.dart';
 import 'util/paths.dart';
 import 'app/brand.dart';
 import 'app/splash.dart';
+import 'app/notices.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
 ///
@@ -145,12 +146,30 @@ class LychnionApp extends StatelessWidget {
         // The splash stays at the top, so a language change keeps its state.
         return SplashOverlay(
           child: en
-              ? Theme(data: withEnglishHeadings(Theme.of(context)), child: shot)
-              : shot,
+              ? Theme(
+                  data: withEnglishHeadings(Theme.of(context)),
+                  child: _gate(shot),
+                )
+              : _gate(shot),
         );
       },
     ),
   );
+
+  /// First start: what the app can and cannot do, over the home page.
+  Widget _gate(Widget child) => NoticeGate(
+    settings: settings,
+    packages: _builtInPackageInfo,
+    child: child,
+  );
+}
+
+Future<List<PackageInfo>> _builtInPackageInfo() async {
+  final store = await DownloadStore.instance();
+  return [
+    for (final id in _bundledPackages)
+      KnowledgePackage.readInfo(await store.packagePath(id, '$id.sqlite')),
+  ];
 }
 
 /// Three tabs: ask, the offline map and settings (with downloads).
@@ -670,6 +689,12 @@ class _SpikePageState extends State<SpikePage> {
           'passages': pkg.passages.length,
         });
         _packages = pkg.parts;
+        if (mounted && widget.settings != null) {
+          final en = Localizations.localeOf(context).languageCode != 'ja';
+          unawaited(
+            showPackageNotices(context, widget.settings!, _packages, en: en),
+          );
+        }
       }
       _log({
         'event': 'loaded',

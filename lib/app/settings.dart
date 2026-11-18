@@ -32,6 +32,17 @@ class AppSettings extends ChangeNotifier {
   /// (then the key is taken on first connect).
   String? shelterKey;
 
+  /// Notices the user has acknowledged (`app:1`, `pkg:<id>:<hash>`).
+  Set<String> acknowledged = {};
+
+  bool hasAcknowledged(String key) => acknowledged.contains(key);
+
+  Future<void> acknowledge(Iterable<String> keys) async {
+    acknowledged.addAll(keys);
+    notifyListeners();
+    await _save();
+  }
+
   File? _file;
 
   Future<void> load() async {
@@ -47,6 +58,7 @@ class AppSettings extends ChangeNotifier {
       shelterUrl = j['shelter_url'] as String?;
       shelterName = j['shelter_name'] as String?;
       shelterKey = j['shelter_key'] as String?;
+      acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
     } on Object {
       // No file yet, or unreadable: keep defaults.
     }
@@ -81,6 +93,7 @@ class AppSettings extends ChangeNotifier {
       'shelter_url': ?shelterUrl,
       'shelter_name': ?shelterName,
       'shelter_key': ?shelterKey,
+      'acknowledged': acknowledged.toList()..sort(),
     }),
   );
 }
