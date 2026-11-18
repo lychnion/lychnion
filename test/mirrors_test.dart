@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_manager.dart';
 import 'package:lychnion/download/downloader.dart';
-import 'package:lychnion/download/record.dart';
+import 'package:lychnion_format/lychnion_format.dart';
 
 import 'download_test.dart' show TestServer, signedRecord;
 

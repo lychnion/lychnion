@@ -8,7 +8,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_store.dart';
 import 'package:lychnion/download/downloader.dart';
-import 'package:lychnion/download/record.dart';
+import 'package:lychnion_format/lychnion_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Signs a record for [id] with [key] (test publisher `lychnion`).

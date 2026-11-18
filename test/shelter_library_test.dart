@@ -7,7 +7,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_store.dart';
-import 'package:lychnion/download/record.dart';
+import 'package:lychnion_format/lychnion_format.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/llm/local_llm.dart';

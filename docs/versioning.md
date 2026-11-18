@@ -31,7 +31,7 @@ Knowledge packages, maps and models keep `YYYY.MM.N`, for example
   update), independent of app releases.
 - "Newer date, newer version" is what updates rely on: the app replaces a
   package only with a higher version (`compareVersions` in
-  `lib/download/record.dart`), never a lower one.
+  `packages/lychnion_format/lib/src/record.dart`), never a lower one.
 - A package version says nothing about which app can read it; the
   formats below do.
 
@@ -43,7 +43,7 @@ which ones it reads; data says which one it uses.
 | What | Number today | Where |
 |---|---|---|
 | Catalog | `format: 2` | `lib/download/catalog.dart` |
-| Signed record | `format: 1` | `lib/download/record.dart` |
+| Signed record | `format: 1` | `packages/lychnion_format/lib/src/record.dart` |
 | Base protocol (phones ↔ base) | `v: 1` | `lib/shelter/shelter_protocol.dart` |
 
 Rules:

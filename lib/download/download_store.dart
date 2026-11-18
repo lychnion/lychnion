@@ -6,8 +6,7 @@ import 'package:flutter/services.dart';
 import '../util/paths.dart';
 import 'catalog.dart';
 import 'downloader.dart';
-import 'publishers.dart';
-import 'record.dart';
+import 'package:lychnion_format/lychnion_format.dart';
 
 /// Record of a verified download, kept next to its files as
 /// `<id>.installed.json`: the publisher's signed record. Loaders only use

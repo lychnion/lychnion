@@ -51,8 +51,8 @@ Since 2026-11-18 the catalog is a list of **signed records** (format 2,
 see [distribution.md](distribution.md), step 1). Each record names one
 version of a model, package or map area: id, kind, version, title and note
 ja/en, licence, notices, and its files with name, size and SHA-256. The
-publisher signs it with Ed25519 (`lib/download/record.dart`); the app has
-Lychnion's public key built in (`lib/download/publishers.dart`). Records do
+publisher signs it with Ed25519 (`packages/lychnion_format/lib/src/record.dart`); the app has
+Lychnion's public key built in (`packages/lychnion_format/lib/src/publishers.dart`). Records do
 not say where a file is: the catalog's `urls` map (SHA-256 → address)
 names files hosted elsewhere (models on Hugging Face, files in older
 releases); all others are fetched by name next to the catalog, or from its

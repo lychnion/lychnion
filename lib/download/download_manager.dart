@@ -9,7 +9,7 @@ import 'package:flutter/services.dart';
 import 'catalog.dart';
 import 'download_store.dart';
 import 'downloader.dart';
-import 'record.dart';
+import 'package:lychnion_format/lychnion_format.dart';
 
 /// Dev flags: where the catalog and relative file URLs come from.
 const _catalogUrl = String.fromEnvironment('CATALOG_URL');

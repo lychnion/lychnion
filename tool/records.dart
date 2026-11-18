@@ -8,7 +8,7 @@
 //   dart run tool/records.dart keygen --1password \
 //     | op item create --vault Private -
 //
-//   # print the public key (goes into lib/download/publishers.dart)
+//   # print the public key (goes into packages/lychnion_format/lib/src/publishers.dart)
 //   op read op://Private/lychnion-package-signing-key/credential \
 //     | dart run tool/records.dart public --key -
 //
@@ -47,8 +47,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:lychnion/download/publishers.dart';
-import 'package:lychnion/download/record.dart';
+import 'package:lychnion_format/lychnion_format.dart';
 
 const _refresh =
     'https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json';
@@ -147,7 +146,7 @@ Future<void> _keygen(_Args args) async {
               'Ed25519 private seed (base64url) that signs Lychnion package '
               'records. Used by tool/records.dart in lychnion/lychnion. '
               'The public key is built into the app '
-              '(lib/download/publishers.dart). Never copy it to a node or '
+              '(packages/lychnion_format/lib/src/publishers.dart). Never copy it to a node or '
               'a repository.',
         },
       ],

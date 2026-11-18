@@ -32,6 +32,9 @@ dependencies:
   app_links: ^7.2.2
   url_launcher: ^6.3.3
   cryptography: ^2.9.0
+  # Signed records, shared with the data tools and nodes.
+  lychnion_format:
+    path: packages/lychnion_format
   intl: any
   wakelock_plus: ^1.8.0
 
