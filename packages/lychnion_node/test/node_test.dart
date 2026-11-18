@@ -182,6 +182,22 @@ void main() {
       expect(await folder.records(trust), isEmpty);
     });
 
+    test('a catalog with fields of the wrong type fails alone', () async {
+      final good = Source();
+      await good.start();
+      addTearDown(() => good.server.close(force: true));
+      final a = await offer('jp.a', '1', 'aaa', path: '');
+      good.files['jp.a.sqlite'] = utf8.encode('aaa');
+      good.catalog = {
+        'format': 2,
+        'records': [a.json],
+      };
+      src.catalog = {'format': 2, 'records': [], 'urls': []};
+      final r = await pull([src.url, good.url], folder, trust);
+      expect(r.failed.single, contains('invalid'));
+      expect(r.changed, ['jp.a 1']);
+    });
+
     test('a catalog that cannot be read changes nothing', () async {
       publish([await offer('jp.a', '1', 'aaa')]);
       await go();
@@ -256,6 +272,16 @@ void main() {
       expect(r.pruned, 0);
       expect(await folder.records(onlyCity), isEmpty);
       expect(folder.blob(c.files.single.sha256)!.existsSync(), isTrue);
+      // Also on the next run, and the next: set aside, not forgotten.
+      for (var i = 0; i < 2; i++) {
+        final again = await pull([src.url], folder, onlyCity);
+        expect(again.keptUntrusted, 1);
+        expect(again.pruned, 0);
+        expect(folder.blob(c.files.single.sha256)!.existsSync(), isTrue);
+      }
+      // With the key again, it is listed again.
+      await go();
+      expect((await folder.records(trust)).single.id, 'jp.c');
     });
 
     test('private and public hosts', () async {
@@ -267,6 +293,9 @@ void main() {
         '::1',
         'fd00::1',
       ]) {
+        expect(await isPrivateHost(h), isTrue, reason: h);
+      }
+      for (final h in ['::ffff:127.0.0.1', '::ffff:169.254.169.254']) {
         expect(await isPrivateHost(h), isTrue, reason: h);
       }
       for (final h in ['8.8.8.8', '2001:4860:4860::8888']) {

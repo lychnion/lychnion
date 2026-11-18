@@ -87,19 +87,28 @@ Future<PullResult> _pull(
   void Function(String line)? log,
 ) async {
   final result = PullResult();
-  final before = await folder.allRecords();
+  // Records here: the served catalog, and those set aside earlier because
+  // their publisher was not given (kept, with their files, until it is).
+  final before = [...await folder.allRecords(), ...await folder.keptRecords()];
   final have = <String, PackageRecord>{};
   // Files of records here that are no longer trusted are not deleted: a
   // publisher left out by mistake must not cost its downloads.
   final untrusted = <String>{};
+  final kept = <String, PackageRecord>{};
   for (final r in before) {
     if (await trust.verify(r)) {
+      if (have[r.id] case final o? when !isOlder(o.version, r.version)) {
+        continue;
+      }
       have[r.id] = r;
-    } else {
-      untrusted.addAll(r.files.map((f) => f.sha256));
-      result.keptUntrusted++;
+    } else if (kept[r.id] == null || isOlder(kept[r.id]!.version, r.version)) {
+      kept[r.id] = r;
     }
   }
+  for (final r in kept.values) {
+    untrusted.addAll(r.files.map((f) => f.sha256));
+  }
+  result.keptUntrusted = kept.length;
   final next = Map.of(have);
   final builtIn = builtInPublishers.publishers.toSet();
   final wanted = <String>{}; // hashes of every record looked at
@@ -124,7 +133,8 @@ Future<PullResult> _pull(
         continue;
       }
       if (kinds.isNotEmpty && !kinds.contains(r.kind)) continue;
-      final mine = next[r.id];
+      // A set-aside record still owns its id.
+      final mine = next[r.id] ?? kept[r.id];
       // Lychnion (built in) keeps its own ids; otherwise the publisher
       // that has an id here keeps it.
       final lychnionTakesBack =
@@ -148,7 +158,14 @@ Future<PullResult> _pull(
             if (sourcePrivate || !await private.isPrivate(u.host)) u,
         ];
       }
-      if (await _fetchFiles(folder, r, addresses, log)) {
+      if (await _fetchFiles(
+        folder,
+        r,
+        addresses,
+        log,
+        // Redirects too: never into a private network from the internet.
+        (u) async => sourcePrivate || !await private.isPrivate(u.host),
+      )) {
         next[r.id] = r;
         if (newer) result.changed.add('${r.id} ${r.version}');
       } else {
@@ -166,6 +183,10 @@ Future<PullResult> _pull(
         old,
   ];
   await folder.writeCatalog(listed);
+  await folder.writeKept([
+    for (final r in kept.values)
+      if (!listed.any((l) => l.id == r.id)) r,
+  ]);
 
   final keep = {
     for (final r in listed)
@@ -219,8 +240,16 @@ class _PrivateHosts {
   }
 
   static bool _private(InternetAddress a) {
+    var b = a.rawAddress;
+    // ::ffff:a.b.c.d reaches the IPv4 address a.b.c.d.
+    if (a.type == InternetAddressType.IPv6 &&
+        b.take(10).every((x) => x == 0) &&
+        b[10] == 0xff &&
+        b[11] == 0xff) {
+      a = InternetAddress.fromRawAddress(b.sublist(12));
+      b = a.rawAddress;
+    }
     if (a.isLoopback || a.isLinkLocal) return true;
-    final b = a.rawAddress;
     if (a.type == InternetAddressType.IPv4) {
       return b[0] == 10 ||
           (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
@@ -246,6 +275,7 @@ Future<bool> _fetchFiles(
   PackageRecord r,
   Map<RecordFile, List<Uri>> addresses,
   void Function(String line)? log,
+  Future<bool> Function(Uri url) allow,
 ) async {
   for (final f in r.files) {
     final blob = folder.blob(f.sha256)!;
@@ -260,6 +290,7 @@ Future<bool> _fetchFiles(
       return false;
     }
     final downloader = Downloader(
+      allowAddress: allow,
       onSourceFailed: (u, e) =>
           log?.call('  ${redactedUrl(u)}: ${sourceErrorText(e)}'),
     );
@@ -304,6 +335,11 @@ class _Catalog {
     final j = jsonDecode(text);
     if (j is! Map || j['format'] != 2 || j['records'] is! List) {
       throw const FormatException('not a format 2 catalog');
+    }
+    if ((j['urls'] != null && j['urls'] is! Map) ||
+        (j['mirrors'] != null && j['mirrors'] is! List) ||
+        (j['base'] != null && j['base'] is! String)) {
+      throw const FormatException('urls, mirrors or base of the wrong type');
     }
     final base = j['base'] is String
         ? (Uri.tryParse(j['base'] as String) ?? from)

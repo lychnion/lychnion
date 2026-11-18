@@ -83,10 +83,22 @@ class NodeServer {
       final path = req.uri.path;
       File? file;
       if (path == '/catalog.json') {
-        file = folder.catalogFile;
+        // Read at once: a pull may replace the file while it is sent.
+        final List<int> body;
+        try {
+          body = await folder.catalogFile.readAsBytes();
+        } on FileSystemException {
+          status = HttpStatus.notFound;
+          res.statusCode = status;
+          return;
+        }
         res.headers
           ..contentType = ContentType.json
-          ..set(HttpHeaders.cacheControlHeader, 'no-cache');
+          ..set(HttpHeaders.cacheControlHeader, 'no-cache')
+          ..contentLength = body.length;
+        bytes = body.length;
+        if (req.method == 'GET') res.add(body);
+        return;
       } else if (_blob.firstMatch(path) case final m?) {
         file = folder.blob(m[1]!);
         res.headers

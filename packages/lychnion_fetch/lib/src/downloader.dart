@@ -86,7 +86,13 @@ class Downloader {
     HttpClient? client,
     this.idleTimeout = const Duration(seconds: 30),
     this.onSourceFailed,
+    this.allowAddress,
   }) : _client = client ?? HttpClient();
+
+  /// Checked before every request, redirects included: false skips the
+  /// address (as unreachable). The headless node uses it to keep a
+  /// catalog from the internet away from its own network.
+  final Future<bool> Function(Uri url)? allowAddress;
 
   final HttpClient _client;
   final Duration idleTimeout;
@@ -359,6 +365,9 @@ class Downloader {
       if (cancel?.isCancelled ?? false) throw DownloadCancelled();
       if (!uri.isScheme('http') && !uri.isScheme('https')) {
         throw HttpException('Not an http(s) address', uri: uri);
+      }
+      if (allowAddress case final allow? when !await allow(uri)) {
+        throw HttpException('Address not allowed', uri: uri);
       }
       final HttpClientRequest req;
       try {

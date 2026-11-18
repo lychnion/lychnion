@@ -83,10 +83,14 @@ a host folder mounted at /data must be writable by user 65534 for
   64 wrong arguments, 74 a file problem (disk full, permissions),
   75 another pull is running.
 - Files of records from a publisher you no longer give with
-  `--publisher` are kept, not deleted; the record is left out of the
-  catalog until you give the key again.
-- Addresses a catalog gives on private or local networks are skipped,
-  unless the catalog itself is on such a network (a base).
+  `--publisher` are kept, not deleted: the record is set aside in
+  `.kept.json` (not served) and listed again once you give the key.
+  It still holds its id.
+- Addresses a catalog gives on private or local networks (also after
+  a redirect, also written as `::ffff:a.b.c.d`) are skipped, unless the
+  catalog itself is on such a network (a base). Names are looked up
+  once per pull; a name that changes its address between the lookup
+  and the download is not caught.
 - `pull` checks sizes; `check` also checks every hash. Run `check` now
   and then to find a damaged disk.
 - A record stays until a higher version replaces it; a publisher

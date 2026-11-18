@@ -67,4 +67,42 @@ void main() {
     );
     expect(f.readAsBytesSync(), data);
   });
+
+  test('Downloader: an address not allowed, also after a redirect, is '
+      'skipped', () async {
+    final data = List<int>.generate(100, (i) => i);
+    final sum = sha256.convert(data).toString();
+    handle = (r) {
+      if (r.uri.path == '/hop') {
+        r.response
+          ..statusCode = 302
+          ..headers.set(HttpHeaders.locationHeader, '/secret');
+      } else if (r.uri.path == '/good') {
+        r.response.add(data);
+      } else {
+        // /secret must never be asked for.
+        r.response.statusCode = 500;
+      }
+      r.response.close();
+    };
+    final asked = <String>[];
+    final f =
+        await Downloader(
+          allowAddress: (u) async {
+            asked.add(u.path);
+            return u.path != '/secret';
+          },
+        ).fetch(
+          FileSpec(
+            url: at('hop'),
+            fallbacks: [at('good')],
+            name: 'f.bin',
+            size: data.length,
+            sha256: sum,
+          ),
+          tmp,
+        );
+    expect(f.readAsBytesSync(), data);
+    expect(asked, ['/hop', '/secret', '/good']);
+  });
 }

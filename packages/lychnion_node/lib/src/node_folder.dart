@@ -60,6 +60,40 @@ class NodeFolder {
     ];
   }
 
+  /// Records set aside by `pull` because their publisher was not given:
+  /// not served, their files kept. `.kept.json` (not served).
+  File get keptFile => File('${dir.path}/.kept.json');
+
+  Future<List<PackageRecord>> keptRecords() async {
+    try {
+      final j = jsonDecode(await keptFile.readAsString()) as List;
+      return [for (final raw in j) ?_shape(raw)];
+    } on Object {
+      return const [];
+    }
+  }
+
+  static PackageRecord? _shape(Object? raw) {
+    try {
+      return PackageRecord.fromJson((raw as Map).cast());
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> writeKept(List<PackageRecord> records) async {
+    if (records.isEmpty) {
+      if (await keptFile.exists()) await keptFile.delete();
+      return;
+    }
+    final tmp = File('${keptFile.path}.$pid.tmp');
+    await tmp.writeAsString(
+      jsonEncode([for (final r in records) r.json]),
+      flush: true,
+    );
+    await tmp.rename(keptFile.path);
+  }
+
   /// Writes catalog.json (next to it, then renamed: a cut write leaves
   /// the old one). Every file is listed at its place in this folder.
   Future<void> writeCatalog(
