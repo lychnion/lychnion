@@ -354,18 +354,18 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_edge_ai
-      sha256: e768469f5bc6e59e40e9cc172327d2cbca9abf6b23cb4b154b7deebac1ff6c57
+      sha256: "6718574603a0f9afbc14603fa17335a814756079bd4c3220fbbc96277161cdd6"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.5"
+    version: "2.6.0"
   flutter_edge_ai_llama:
     dependency: "direct main"
     description:
       name: flutter_edge_ai_llama
-      sha256: "68f0a664686996c9614a9c785b63e8c0072fa07f7f5c446edfdba6451f8b0e87"
+      sha256: "3d19a9e815cbd4a1234603925f5a66adc99407fd8ec0afd535bfa1682239c923"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.5"
+    version: "0.1.0"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -617,18 +617,18 @@ packages:
     dependency: transitive
     description:
       name: llamadart
-      sha256: "5d0d5f06d1a38cd6252f3b622402862c79685f7ab5327f5b000c5ff38b62c87c"
+      sha256: "62d8a9081579c2dc176dc509502edb8fc5714be3797a49230a3738d64bfe48ca"
       url: "https://pub.dev"
     source: hosted
-    version: "0.15.1"
+    version: "0.17.5"
   llamadart_llama_cpp_flutter:
     dependency: "direct main"
     description:
       name: llamadart_llama_cpp_flutter
-      sha256: de9cdb6994015b122d96767708e0e08867f47a1ebb59d320e9bf6677260e0c46
+      sha256: "06bbe4302688c51d8bec1eb6bba4b9a7f5c37c766bef9933938a4d99cd5649bf"
       url: "https://pub.dev"
     source: hosted
-    version: "0.15.0"
+    version: "0.17.3"
   logger:
     dependency: transitive
     description:
