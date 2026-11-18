@@ -11,9 +11,16 @@ class FileSpec {
     required this.name,
     required this.size,
     required this.sha256,
+    this.fallbacks = const [],
   });
 
   final Uri url;
+
+  /// Other places with the same file (mirrors), tried in order when [url]
+  /// is unreachable, answers with an error, or sends a wrong file.
+  final List<Uri> fallbacks;
+
+  List<Uri> get urls => [url, ...fallbacks];
 
   /// File name in the target folder.
   final String name;
@@ -67,15 +74,32 @@ enum DownloadPhase { checkingPart, downloading, verifying }
 /// size and hash match is renamed to its final name, so loaders never see
 /// a partial or wrong file.
 ///
+/// A file can have several addresses ([FileSpec.fallbacks]). When one fails
+/// (unreachable, an HTTP error, the connection drops) the download goes on
+/// from the next one where it stopped: the part belongs to the hash, not
+/// to a server. When the finished file has the wrong hash, it starts again
+/// from the next address not used yet.
+///
 /// Use one instance per download: stopping closes its HTTP client.
 class Downloader {
   Downloader({
     HttpClient? client,
     this.idleTimeout = const Duration(seconds: 30),
+    this.onSourceFailed,
   }) : _client = client ?? HttpClient();
 
   final HttpClient _client;
   final Duration idleTimeout;
+
+  /// Called when an address fails and the next one is tried (for logs).
+  final void Function(Uri url, Object error)? onSourceFailed;
+
+  /// Errors after which another address may work.
+  static bool _sourceError(Object e) =>
+      e is SocketException ||
+      e is HttpException ||
+      e is TimeoutException ||
+      e is TlsException;
 
   static File partFile(Directory dir, String name) =>
       File('${dir.path}/$name.part');
@@ -132,31 +156,58 @@ class Downloader {
       await raf.close();
       throw DownloadBusy();
     }
-    var digest = _Sha256Sink();
+    final urls = spec.urls;
+    var next = 0; // first address not used yet
+    String? wrong; // hash of a wrong file, after every address was tried
     try {
-      // Hash what is already there, so the final check covers the whole file.
-      if (have > 0) {
-        var done = 0;
-        await for (final chunk in part.openRead(0, have)) {
-          if (cancel?.isCancelled ?? false) throw DownloadCancelled();
-          digest.add(chunk);
-          done += chunk.length;
-          onProgress?.call(DownloadPhase.checkingPart, done, have);
+      while (true) {
+        final p = _Part(have, _Sha256Sink());
+        // Hash what is already there, so the final check covers the whole
+        // file.
+        if (have > 0) {
+          var done = 0;
+          await for (final chunk in part.openRead(0, have)) {
+            if (cancel?.isCancelled ?? false) throw DownloadCancelled();
+            p.digest.add(chunk);
+            done += chunk.length;
+            onProgress?.call(DownloadPhase.checkingPart, done, have);
+          }
         }
-      }
-      if (have < spec.size) {
-        digest = await _receive(spec, raf, have, digest, onProgress, cancel);
+        while (p.have < spec.size) {
+          final url = urls[next];
+          try {
+            await _receive(spec, url, raf, p, onProgress, cancel);
+          } catch (e) {
+            if (cancel?.isCancelled ?? false) throw DownloadCancelled();
+            if (!_sourceError(e) || next + 1 >= urls.length) rethrow;
+            onSourceFailed?.call(url, e);
+            next++;
+          }
+        }
+        onProgress?.call(DownloadPhase.verifying, spec.size, spec.size);
+        final actual = p.digest.close();
+        if (actual == spec.sha256) break;
+        if (next + 1 >= urls.length) {
+          wrong = actual;
+          break;
+        }
+        // Wrong file: start again from the next address.
+        onSourceFailed?.call(
+          urls[next],
+          ChecksumError(spec.name, spec.sha256, actual),
+        );
+        next++;
+        have = 0;
+        await raf.truncate(0);
+        await raf.setPosition(0);
       }
     } finally {
       await raf.unlock();
       await raf.close();
     }
-
-    onProgress?.call(DownloadPhase.verifying, spec.size, spec.size);
-    final actual = digest.close();
-    if (actual != spec.sha256) {
+    if (wrong != null) {
       await deletePart(dir, spec.name);
-      throw ChecksumError(spec.name, spec.sha256, actual);
+      throw ChecksumError(spec.name, spec.sha256, wrong);
     }
     try {
       await part.rename(target.path); // replaces the old file (POSIX)
@@ -170,29 +221,30 @@ class Downloader {
     return target;
   }
 
-  /// Appends the rest of the file to [raf]. Returns the digest of the
-  /// whole file (a new one if the server sent everything again).
-  Future<_Sha256Sink> _receive(
+  /// Appends the rest of the file from [url] to [raf], keeping [p] (bytes
+  /// written and their hash) up to date even when it fails half-way, so
+  /// the next address can go on from there.
+  Future<void> _receive(
     FileSpec spec,
+    Uri url,
     RandomAccessFile raf,
-    int have,
-    _Sha256Sink digest,
+    _Part p,
     void Function(DownloadPhase phase, int bytes, int total)? onProgress,
     CancelToken? cancel,
   ) async {
-    final response = await _open(spec.url, have, cancel);
-    if (have > 0 && response.statusCode == HttpStatus.ok) {
+    final response = await _open(url, p.have, cancel);
+    if (p.have > 0 && response.statusCode == HttpStatus.ok) {
       // Server ignored the range: start again.
-      have = 0;
-      digest = _Sha256Sink();
+      p
+        ..have = 0
+        ..digest = _Sha256Sink();
       await raf.truncate(0);
       await raf.setPosition(0);
     } else if (response.statusCode != HttpStatus.ok &&
         response.statusCode != HttpStatus.partialContent) {
       await response.drain<void>();
-      throw HttpException('HTTP ${response.statusCode}', uri: spec.url);
+      throw HttpException('HTTP ${response.statusCode}', uri: url);
     }
-    var bytes = have;
     cancel?._onCancel(() {
       // Closing the connection ends the stream with an error below.
       _client.close(force: true);
@@ -200,13 +252,13 @@ class Downloader {
     try {
       await for (final chunk in response.timeout(idleTimeout)) {
         if (cancel?.isCancelled ?? false) throw DownloadCancelled();
-        await raf.writeFrom(chunk);
-        digest.add(chunk);
-        bytes += chunk.length;
-        if (bytes > spec.size) {
-          throw HttpException('More data than expected', uri: spec.url);
+        if (p.have + chunk.length > spec.size) {
+          throw HttpException('More data than expected', uri: url);
         }
-        onProgress?.call(DownloadPhase.downloading, bytes, spec.size);
+        await raf.writeFrom(chunk);
+        p.digest.add(chunk);
+        p.have += chunk.length;
+        onProgress?.call(DownloadPhase.downloading, p.have, spec.size);
       }
     } catch (e) {
       if (cancel?.isCancelled ?? false) throw DownloadCancelled();
@@ -215,13 +267,12 @@ class Downloader {
       await raf.flush();
     }
     if (cancel?.isCancelled ?? false) throw DownloadCancelled();
-    if (bytes < spec.size) {
+    if (p.have < spec.size) {
       throw HttpException(
-        'Connection ended at $bytes of ${spec.size} bytes',
-        uri: spec.url,
+        'Connection ended at ${p.have} of ${spec.size} bytes',
+        uri: url,
       );
     }
-    return digest;
   }
 
   /// GET with an optional Range header. Follows redirects by hand so the
@@ -272,6 +323,13 @@ Future<String> sha256OfFile(
     onProgress?.call(n);
   }
   return d.close();
+}
+
+/// The part file so far: bytes written and their running hash.
+class _Part {
+  _Part(this.have, this.digest);
+  int have;
+  _Sha256Sink digest;
 }
 
 class _Sha256Sink {

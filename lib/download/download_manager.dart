@@ -349,7 +349,14 @@ class DownloadManager extends ChangeNotifier {
         }
         final sw = Stopwatch()..start();
         var lastBytes = 0, lastMs = 0, lastUi = 0;
-        await Downloader().fetch(
+        await Downloader(
+          onSourceFailed: (url, e) => _log({
+            'event': 'download_source_failed',
+            'id': item.id,
+            'url': '$url',
+            'error': '$e',
+          }),
+        ).fetch(
           catalog.spec(f),
           dir,
           cancel: cancel,
