@@ -7,7 +7,8 @@ flutter run -d macos --dart-define=MIN_COS=0.75 --dart-define=START_TAB=2
 ```
 
 All are optional. Normal users never need them. The source of truth is
-the comment at the top of [lib/main.dart](../lib/main.dart).
+the comment on `DevFlags` in
+[lib/app/dev_flags.dart](../lib/app/dev_flags.dart).
 
 ## Models and answers
 

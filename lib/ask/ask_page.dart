@@ -1,0 +1,594 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+
+import '../app/dev_flags.dart';
+import '../app/lang.dart';
+import '../app/notices.dart';
+import '../app/region.dart';
+import '../app/settings.dart';
+import '../download/catalog.dart';
+import '../download/download_store.dart';
+import '../facts/compact_codec.dart';
+import '../facts/fact_store.dart';
+import '../knowledge/app_help.dart';
+import '../knowledge/bundled_packages.dart';
+import '../knowledge/grounded_answer.dart';
+import '../knowledge/hybrid_retriever.dart';
+import '../knowledge/knowledge_package.dart';
+import '../llm/local_embedder.dart';
+import '../llm/local_llm.dart';
+import '../map/map_state.dart';
+import '../shelter/base_discovery.dart';
+import '../shelter/share_nearby.dart';
+import '../shelter/shelter_client.dart';
+import '../shelter/shelter_library.dart';
+import '../shelter/shelter_panel.dart';
+import '../shelter/shelter_server.dart';
+import '../spike/bench_prompts.dart';
+import '../spike/eval_questions.dart';
+import '../ui/answer_card.dart';
+import '../ui/ask_view.dart';
+import '../ui/conversation_page.dart';
+import '../ui/first_steps.dart';
+import '../ui/guided_tour.dart';
+import '../ui/nearest_card.dart';
+import '../ui/package_row.dart';
+import '../ui/suggestions.dart';
+import '../ui/thread_list.dart';
+import '../ui/threads.dart';
+import '../util/paths.dart';
+
+part 'base_server.dart';
+part 'first_steps_hookup.dart';
+part 'model_loading.dart';
+part 'shelter_connection.dart';
+
+enum AskPageView { home, conversations }
+
+/// Home and the conversations: asks the shelter base or the model on
+/// this device, and shares this computer as a base.
+class AskPage extends StatefulWidget {
+  const AskPage({
+    super.key,
+    this.map,
+    this.onShowOnMap,
+    this.onDemoDone,
+    this.onShelterCatalog,
+    this.downloadChanges,
+    this.facts,
+    this.settings,
+    this.onOpenDownloads,
+    this.shelterUrls,
+    this.updates,
+    this.view = AskPageView.home,
+    this.onOpenSettings,
+    this.onShowAsk,
+    this.tourKeys,
+    this.onScreen = true,
+  });
+
+  /// Whether Home is the tab on screen (the map tab keeps it built).
+  final bool onScreen;
+
+  /// The parts of the screen the guided tour points at.
+  final TourKeys? tourKeys;
+
+  /// Home screen or the list of conversations (Ask tab).
+  final AskPageView view;
+  final VoidCallback? onOpenSettings;
+
+  /// "See all" on the home screen: switch to the Ask tab.
+  final VoidCallback? onShowAsk;
+
+  /// Set by the shelter computer: its addresses, for the QR code.
+  final ValueNotifier<List<String>>? shelterUrls;
+
+  /// New versions of installed downloads (badge on the ⋮ menu).
+  final ValueListenable<int>? updates;
+
+  final MapState? map;
+  final FactStore? facts;
+  final AppSettings? settings;
+  final VoidCallback? onOpenDownloads;
+
+  /// Fires when downloads change; the downloaded model is (re)loaded.
+  final Listenable? downloadChanges;
+  final void Function()? onShowOnMap;
+  final Future<void> Function(List<GroundedAnswer>)? onDemoDone;
+
+  /// Connected to a shelter: its catalog address, for Downloads.
+  final void Function(Uri catalog)? onShelterCatalog;
+
+  @override
+  State<AskPage> createState() => _AskPageState();
+}
+
+/// State shared by [_AskPageState] and its parts: the model, the
+/// conversations, and what the home screen shows.
+abstract class _AskPageBase extends State<AskPage> {
+  final _llm = LocalLlm();
+
+  final _threads = ThreadStore();
+
+  /// The open conversation; new questions go here.
+  Thread? _current;
+  List<GroundedAnswer> get _entries => _current?.entries ?? const [];
+
+  /// Bumped on every setState, so an open conversation page rebuilds.
+  final _tick = ValueNotifier<int>(0);
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _tick.value++;
+  }
+
+  GroundedAnswerer? _answerer;
+
+  String _status = 'No model loaded. / モデル未読み込み（「ダウンロード」から取得）';
+  AskPhase _phase = AskPhase.noModel;
+
+  /// The knowledge packages answers come from (shown on the home screen).
+  List<PackageInfo> _packages = const [];
+
+  /// Loading the phone's own model, and answering a question: separate,
+  /// so the shelter can answer while the phone's model still loads.
+  bool _loadingModel = false;
+  bool _answering = false;
+  bool get _busy => _loadingModel || _answering;
+
+  /// Phone side: the shelter computer to ask first (SHELTER_URL, or the
+  /// one saved in settings from a QR code or a typed address).
+  ShelterClient? _shelter;
+  bool _shelterReady = false;
+
+  /// Desktop side: answers phones on the local network.
+  ShelterServer? _server;
+
+  bool get _usesDownload =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
+  void _log(Map<String, Object?> data) =>
+      debugPrint('LYCHNION ${jsonEncode(data)}');
+
+  // Implemented by the state and its parts.
+  Thread _startThread();
+  void _answerWaiting();
+
+  /// Answers [question] in the open conversation. The state's version also
+  /// takes `into:`, a conversation to answer in instead.
+  Future<void> _ask(String question);
+  Future<void> _syncServer();
+}
+
+class _AskPageState extends _AskPageBase
+    with _ModelLoading, _BaseServer, _ShelterConnection, _FirstStepsHookup {
+  final _input = TextEditingController();
+  final _threadInput = TextEditingController();
+
+  /// Starts a conversation and shows it.
+  @override
+  Thread _startThread() {
+    final t = _threads.create();
+    _openThread(t);
+    return t;
+  }
+
+  void _openThread(Thread t) {
+    _current = t;
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (context) => ValueListenableBuilder(
+              valueListenable: _tick,
+              builder: (context, _, _) => _conversation(context, t),
+            ),
+          ),
+        )
+        .then((_) {
+          if (identical(_current, t)) _current = null;
+          setState(() {});
+        });
+  }
+
+  /// Questions asked before anything could answer them, shown in their
+  /// conversation, answered in order as soon as the shelter or the model
+  /// is ready. A tap is never lost.
+  final _waiting = <(Thread, String, GroundedAnswer)>[];
+
+  bool get _canAnswer => _llm.isLoaded || _shelterReady;
+
+  @override
+  void _answerWaiting() {
+    if (_waiting.isEmpty || _answering || !_canAnswer || !mounted) return;
+    final (thread, question, placeholder) = _waiting.removeAt(0);
+    thread.entries.remove(placeholder);
+    unawaited(_ask(question, into: thread));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_threads.load());
+    // Until packages load here (or when a shelter answers instead), show
+    // the built-in packages' names and suggestions.
+    unawaited(
+      builtInPackageInfo()
+          .then((p) {
+            if (mounted && _packages.isEmpty) setState(() => _packages = p);
+          })
+          .catchError((Object _) {}),
+    );
+    widget.settings?.addListener(_shelterChanged);
+    widget.settings?.addListener(_sharingChanged);
+    _shelterChanged();
+    _startModel();
+  }
+
+  @override
+  void dispose() {
+    widget.downloadChanges?.removeListener(_loadDownloaded);
+    _reloadLater?.cancel();
+    widget.settings?.removeListener(_shelterChanged);
+    widget.settings?.removeListener(_sharingChanged);
+    unawaited(_server?.stop());
+    unawaited(_announcer.dispose().catchError((Object _) {}));
+    _factsTimer?.cancel();
+    _retry?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Future<void> _ask(String question, {Thread? into}) async {
+    final thread = into ?? (_current ??= _threads.create());
+    final lang = appLang(context);
+    // Nothing can answer yet (the model is loading, or another question is
+    // being answered): show the question now, answer it when ready.
+    if (_answering || (!_canAnswer && _loadingModel)) {
+      final placeholder = GroundedAnswer(question, appLang: lang);
+      setState(() {
+        thread.entries.add(placeholder);
+        _waiting.add((thread, question, placeholder));
+      });
+      return;
+    }
+    // A shelter computer answers first: faster and better than a phone.
+    final shelter = _shelter;
+    if (shelter != null && _shelterReady) {
+      final placeholder = GroundedAnswer(question, appLang: lang)
+        ..answeredBy = shelter.name;
+      setState(() {
+        _answering = true;
+        thread.entries.add(placeholder);
+      });
+      try {
+        final remote = await shelter.ask(question)
+          ..answeredBy = shelter.name;
+        setState(
+          () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
+        );
+        unawaited(_threads.save());
+        _log({'event': 'answer', ...remote.toJson()});
+        setState(() => _answering = false);
+        _answerWaiting();
+        return;
+      } catch (e) {
+        _log({'event': 'shelter_failed', 'error': '$e'});
+        setState(() {
+          thread.entries.remove(placeholder);
+          _answering = false;
+        });
+        // The phone's own model is still loading: answer with it then.
+        if (!_llm.isLoaded && _loadingModel) {
+          final waiting = GroundedAnswer(question, appLang: lang);
+          setState(() {
+            thread.entries.add(waiting);
+            _waiting.add((thread, question, waiting));
+          });
+          return;
+        }
+        if (!_llm.isLoaded) {
+          if (!mounted) return;
+          final failed = GroundedAnswer(question, appLang: lang)
+            ..text = context.l10n.answerBaseUnreachable;
+          setState(() {
+            thread.entries.add(failed);
+            _answering = false;
+          });
+          return;
+        }
+      }
+    }
+    // Local sources rank a little higher: the region where the user is,
+    // from the real (or mock) position only, never from the map area alone.
+    final region = await UserRegion.current(
+      widget.settings,
+      widget.map,
+      mockLocation: DevFlags.mockLocation,
+    );
+    if (_answerer case final a? when a.userRegion != region) {
+      a.userRegion = region;
+      _log({'event': 'region', 'region': region});
+    }
+    final entry = GroundedAnswer(question, appLang: lang);
+    setState(() {
+      _answering = true;
+      thread.entries.add(entry);
+    });
+    try {
+      final answerer = _answerer;
+      if (answerer != null) {
+        await answerer.answer(entry, () => setState(() {}));
+      } else {
+        await for (final t in _llm.ask(
+          question,
+          onDone: (s) => entry.stats = s,
+        )) {
+          entry.text += t;
+          setState(() {});
+        }
+      }
+      _log({'event': 'answer', ...entry.toJson()});
+    } catch (e) {
+      entry.text += '\n[error: $e]';
+    } finally {
+      setState(() => _answering = false);
+      unawaited(_threads.save());
+      _answerWaiting();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Questions are taken while the model loads or another answer is
+    // written: they wait in their conversation (see _waiting).
+    final ready = _canAnswer || _loadingModel;
+    if (widget.view == AskPageView.conversations) {
+      return ConversationsView(
+        store: _threads,
+        onOpen: _openThread,
+        onOpenSettings: widget.onOpenSettings,
+        suggestions: SuggestionGroups(
+          packages: _packages,
+          onAsk: ready
+              ? (q) {
+                  _startThread();
+                  unawaited(_ask(q));
+                }
+              : null,
+        ),
+        bar: QuestionBar(
+          input: _input,
+          ready: ready,
+          loading: _phase == AskPhase.loading,
+          busy: _answering,
+          onSend: _sendNew,
+          onStop: _llm.stop,
+        ),
+      );
+    }
+    final settings = widget.settings;
+    return ListenableBuilder(
+      listenable: Listenable.merge([?settings, _threads]),
+      builder: (context, _) => _home(context, ready, settings),
+    );
+  }
+
+  Widget _home(BuildContext context, bool ready, AppSettings? settings) {
+    final steps = _firstSteps(settings);
+    final hidden = settings?.firstSteps.contains('hidden') ?? false;
+    final showSteps = settings != null && !steps.allDone && !hidden;
+    _maybeStartTour(steps, settings);
+    return AskView(
+      tourKeys: widget.tourKeys,
+      onTour: widget.tourKeys == null ? null : _startTour,
+      firstSteps: showSteps
+          ? FirstStepsCard(
+              steps: steps,
+              onDownloads: widget.onOpenDownloads,
+              onMap: widget.onShowOnMap,
+              onAsk: widget.onShowAsk,
+              onHide: () => unawaited(settings.markFirstStep('hidden')),
+            )
+          : null,
+      status: showSteps
+          ? null
+          : !steps.allDone && settings != null
+          ? ResumeStepsChip(
+              steps: steps,
+              onTap: () =>
+                  unawaited(settings.markFirstStep('hidden', on: false)),
+            )
+          : steps.readyOffline
+          ? ReadyOfflineChip(onTap: widget.onOpenDownloads)
+          : null,
+      onOpenSettings: widget.onOpenSettings,
+      phase: _phase,
+      detail: _status,
+      // Sharing: this computer's name; connected: the shelter's.
+      shelterName: _server != null
+          ? sharingName(widget.settings)
+          : _shelter?.name,
+      home: widget.map == null
+          ? null
+          : NearestSiteCard(
+              map: widget.map!,
+              onShowOnMap: widget.onShowOnMap,
+              onOpenDownloads: widget.onOpenDownloads,
+            ),
+      packageInfos: _packages,
+      updates: widget.updates,
+      onShareNearby: _usesDownload
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ShareNearbyScreen(),
+              ),
+            )
+          : null,
+      onShowNotice: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (c) => NoticeScreen(
+            packages: _packages,
+            onAccept: () => Navigator.of(c).pop(),
+          ),
+        ),
+      ),
+      packages: _packages.isEmpty
+          ? null
+          : PackageRow(packages: _packages, onAdd: widget.onOpenDownloads),
+      detailExtra: _server == null
+          ? null
+          : ShelterQrCard(
+              urls: widget.shelterUrls?.value ?? const [],
+              name: sharingName(widget.settings),
+              keyText: widget.facts?.signer?.publicKeyText,
+            ),
+      ready: ready,
+      busy: _answering,
+      input: _input,
+      onSend: _sendNew,
+      onAsk: (q) {
+        _startThread();
+        unawaited(_ask(q));
+      },
+      recent: ThreadList(
+        store: _threads,
+        onOpen: _openThread,
+        max: 3,
+        onSeeAll: widget.onShowAsk,
+      ),
+      onStop: _llm.stop,
+      onOpenDownloads: widget.onOpenDownloads,
+      devActions: [
+        // Phones get models from Downloads (signed); computers can also
+        // open a model file from disk for testing.
+        if (!_usesDownload)
+          DevAction(
+            'Open a model file…',
+            _busy ? null : _pickFile,
+            icon: Icons.folder_open_rounded,
+          ),
+        DevAction(
+          'Run test questions',
+          ready ? _bench : null,
+          icon: Icons.fact_check_outlined,
+        ),
+      ],
+    );
+  }
+
+  /// The conversation page for [t], rebuilt on every state change.
+  Widget _conversation(BuildContext context, Thread t) {
+    // Questions are taken while the model loads or another answer is
+    // written: they wait in their conversation (see _waiting).
+    final ready = _canAnswer || _loadingModel;
+    final l = context.l10n;
+    final settings = widget.settings;
+    return ConversationPage(
+      title: t.title,
+      actions: [
+        PopupMenuButton<String>(
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'archive',
+              child: ListTile(
+                leading: Icon(
+                  t.archived
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
+                ),
+                title: Text(
+                  t.archived ? l.conversationMoveBack : l.conversationArchive,
+                ),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: ListTile(
+                leading: const Icon(Icons.delete_outline_rounded),
+                title: Text(l.delete),
+              ),
+            ),
+          ],
+          onSelected: (v) async {
+            final nav = Navigator.of(context);
+            if (v == 'archive') {
+              _threads.setArchived(t, !t.archived);
+              nav.pop();
+            } else if (await _confirmDelete(context)) {
+              _threads.delete(t);
+              nav.pop();
+            }
+          },
+        ),
+      ],
+      itemCount: t.entries.length,
+      itemBuilder: (_, i) => ListenableBuilder(
+        // Rebuild when the map data, position or settings change.
+        listenable: Listenable.merge([
+          widget.map ?? ValueNotifier(0),
+          ?settings,
+        ]),
+        builder: (_, _) => AnswerCard(
+          answer: t.entries[i],
+          grounded: _answerer != null || t.entries[i].answeredBy != null,
+          done: !_busy || i < t.entries.length - 1,
+          map: widget.map,
+          onShowOnMap: widget.onShowOnMap,
+          showStats: settings?.showStats ?? false,
+        ),
+      ),
+      bar: QuestionBar(
+        input: _threadInput,
+        ready: ready,
+        loading: _phase == AskPhase.loading,
+        busy: _answering,
+        onSend: () {
+          final q = _threadInput.text.trim();
+          if (q.isEmpty) return;
+          _threadInput.clear();
+          _current = t;
+          unawaited(_ask(q));
+        },
+        onStop: _llm.stop,
+      ),
+    );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(c.l10n.conversationDeleteTitle),
+          content: Text(c.l10n.conversationDeleteBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(c.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(c.l10n.delete),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  /// Home screen: every question starts a new conversation.
+  void _sendNew() {
+    final q = _input.text.trim();
+    if (q.isEmpty) return;
+    _input.clear();
+    _startThread();
+    unawaited(_ask(q));
+  }
+}
