@@ -168,27 +168,13 @@ class LocalPublisher {
     Iterable<KeyStatement> more,
   ) async {
     final f = keysFileIn(dir);
-    final all = <KeyStatement>[];
-    try {
-      all.addAll(
-        await KeyStatement.checkAll(
-          (jsonDecode(await f.readAsString()) as Map)['keys'],
-        ),
-      );
-    } on Object {
-      // None yet, or unreadable: written anew.
-    }
-    for (final s in more) {
-      if (!all.contains(s)) all.add(s);
-    }
+    // None yet, or unreadable: written anew.
+    final have = await f.exists()
+        ? await KeysFile.parse(await f.readAsString())
+        : const <KeyStatement>[];
     await dir.create(recursive: true);
     final tmp = File('${f.path}.$pid.tmp');
-    await tmp.writeAsString(
-      '${const JsonEncoder.withIndent('  ').convert({
-        'keys': [for (final s in all) s.json],
-      })}\n',
-      flush: true,
-    );
+    await tmp.writeAsString(KeysFile.encode([...have, ...more]), flush: true);
     await tmp.rename(f.path);
   }
 

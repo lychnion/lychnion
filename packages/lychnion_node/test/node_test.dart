@@ -123,6 +123,44 @@ void main() {
       expect(await checkFolder(folder, trust), isEmpty);
     });
 
+    test('key statements count for records and are passed on', () async {
+      final next = await Ed25519().newKeyPair();
+      final ab = await KeyStatement.replace(
+        publisher: 'jp.city.test',
+        oldKey: city,
+        newKey: next,
+        signed: '2026-11-19',
+      );
+      // Junk about a key of its own is not kept.
+      final junk = await KeyStatement.revoke(
+        publisher: 'jp.city.test',
+        key: stranger,
+        signed: '2026-11-19',
+      );
+      final a = await offer('jp.a', '1', 'aaa', key: next);
+      publish([a]);
+      src.catalog['keys'] = [junk.json, ab.json];
+      final r = await go();
+      expect(r.changed, ['jp.a 1']);
+      final j = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+      expect(j['keys'], [ab.json]);
+      expect(await checkFolder(folder, trust), isEmpty);
+      // Served again: still trusted from the folder's own statements.
+      expect((await folder.records(trust)).single.id, 'jp.a');
+
+      // A revocation of the new key, learned later, drops the record.
+      final revoke = await KeyStatement.revoke(
+        publisher: 'jp.city.test',
+        key: next,
+        signed: '2026-11-20',
+      );
+      src.catalog['keys'] = [revoke.json];
+      await go();
+      expect(await folder.allRecords(), isEmpty);
+      expect((await folder.keptRecords()).single.id, 'jp.a');
+      expect(folder.blob(a.files.single.sha256)!.existsSync(), isTrue);
+    });
+
     test('again: nothing fetched twice', () async {
       publish([await offer('jp.a', '1', 'aaa')]);
       await go();

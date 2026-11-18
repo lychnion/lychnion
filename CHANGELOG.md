@@ -56,8 +56,9 @@ here should be relied on alone in an emergency. Source only; build it as
   protected by a passphrase, and restore from it. Replacing a key: the old
   key signs the new one, and phones that trust the old key accept the new
   one. Revoking a stolen key: phones stop using it and what it signed, and
-  add the publisher's new link. Phones learn of both from catalogs and
-  USB sticks, also offline.
+  add the publisher's new link. Phones learn of both from catalogs, USB
+  sticks, a base and phones nearby, also offline; the headless node
+  passes them on.
 - **Headless node** (`packages/lychnion_node`): serves, mirrors and keeps
   catalogs current on a server.
 - **Help inside the app**, in Japanese and English, readable and

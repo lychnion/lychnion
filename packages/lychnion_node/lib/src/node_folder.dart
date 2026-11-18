@@ -30,13 +30,10 @@ class NodeFolder {
   /// Every record in catalog.json by its shape, signature not checked
   /// (who had what here); empty when there is no catalog yet.
   Future<List<PackageRecord>> allRecords() async {
-    if (!await catalogFile.exists()) return const [];
-    final j = jsonDecode(await catalogFile.readAsString());
-    if (j is! Map || j['format'] != 2) {
-      throw FormatException('${catalogFile.path}: not a format 2 catalog');
-    }
+    final doc = await _document();
+    if (doc == null) return const [];
     final out = <PackageRecord>[];
-    for (final raw in (j['records'] as List?) ?? const []) {
+    for (final raw in doc.records) {
       try {
         out.add(PackageRecord.fromJson((raw as Map).cast()));
       } on Object {
@@ -49,15 +46,26 @@ class NodeFolder {
   /// The records in catalog.json that [trust] accepts (others are left
   /// out); empty when there is no catalog yet.
   Future<List<PackageRecord>> records(TrustedKeys trust) async {
-    if (!await catalogFile.exists()) return const [];
-    final j = jsonDecode(await catalogFile.readAsString());
-    if (j is! Map || j['format'] != 2) {
+    final doc = await _document();
+    if (doc == null) return const [];
+    final t = trust.withStatements(await relevantStatements(trust, doc.keys));
+    return [for (final raw in doc.records) ?await t.check(raw)];
+  }
+
+  /// The key statements in catalog.json that [trust] counts (see
+  /// relevantStatements); empty when there is no catalog yet.
+  Future<List<KeyStatement>> keys(TrustedKeys trust) async {
+    final doc = await _document();
+    return doc == null ? const [] : relevantStatements(trust, doc.keys);
+  }
+
+  Future<CatalogDocument?> _document() async {
+    if (!await catalogFile.exists()) return null;
+    try {
+      return CatalogDocument.parse(await catalogFile.readAsString());
+    } on FormatException {
       throw FormatException('${catalogFile.path}: not a format 2 catalog');
     }
-    return [
-      for (final raw in (j['records'] as List?) ?? const [])
-        ?await trust.check(raw),
-    ];
   }
 
   /// Records set aside by `pull` because their publisher was not given:
@@ -96,23 +104,20 @@ class NodeFolder {
 
   /// Writes catalog.json (next to it, then renamed: a cut write leaves
   /// the old one). Every file is listed at its place in this folder.
+  /// [keys]: key statements to pass on (replaced and revoked keys).
   Future<void> writeCatalog(
     List<PackageRecord> records, {
     List<String> mirrors = const [],
+    Iterable<KeyStatement> keys = const [],
   }) async {
     await dir.create(recursive: true);
-    final sorted = [...records]..sort((a, b) => a.id.compareTo(b.id));
+    final text = CatalogDocument.byHash(
+      records,
+      keys: keys.take(KeyStatement.maxPerSource),
+      mirrors: mirrors,
+    ).encode();
     final tmp = File('${catalogFile.path}.$pid.tmp');
-    await tmp.writeAsString(
-      '${const JsonEncoder.withIndent('  ').convert({
-        'format': 2,
-        'records': [for (final r in sorted) r.json],
-        'urls': {for (final r in sorted)
-          for (final f in r.files) f.sha256: 'blobs/sha256/${f.sha256}'},
-        if (mirrors.isNotEmpty) 'mirrors': mirrors,
-      })}\n',
-      flush: true,
-    );
+    await tmp.writeAsString(text, flush: true);
     await tmp.rename(catalogFile.path);
   }
 }

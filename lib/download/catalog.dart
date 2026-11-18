@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../knowledge/language.dart';
 import 'download_store.dart';
 import 'downloader.dart';
@@ -157,8 +155,7 @@ class Catalog {
     TrustedKeys? trust,
     bool ownFilesOnly = false,
   }) async {
-    final j = jsonDecode(json) as Map<String, Object?>;
-    if (j['format'] != 2) throw FormatException('Unknown catalog format');
+    final doc = CatalogDocument.parse(json);
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
     if (ownFilesOnly && fetchedFrom == null) {
       throw ArgumentError('ownFilesOnly needs fetchedFrom');
@@ -170,21 +167,17 @@ class Catalog {
     }
 
     final urls = <String, List<String>>{
-      for (final e in ((j['urls'] as Map?) ?? const {}).entries)
-        if (e.key is String &&
-            e.value is String &&
-            e.value != '' &&
-            own(e.value as String))
-          e.key as String: [e.value as String],
+      for (final e in doc.urls.entries)
+        if (own(e.value)) e.key: [e.value],
     };
     // Key statements first: records signed by a successor key the
     // catalog announces are accepted at once. Older apps ignore `keys`.
     final given = trust ?? builtInPublishers;
-    final statements = await relevantStatements(given, j['keys']);
+    final statements = await relevantStatements(given, doc.keys);
     final keys = given.withStatements(statements);
     final items = <CatalogItem>[];
     final rejected = <String>[];
-    final raw = j['records']! as List;
+    final raw = doc.records;
     for (var n = 0; n < raw.length; n++) {
       final r = await keys.check(raw[n]);
       final id = raw[n] is Map ? (raw[n] as Map)['id'] : null;
@@ -203,14 +196,14 @@ class Catalog {
     // A base's own `base` and `refresh` are not followed either.
     final base = ownFilesOnly
         ? fetchedFrom
-        : baseOverride ?? uri(j['base']) ?? fetchedFrom;
+        : baseOverride ?? uri(doc.base) ?? fetchedFrom;
     return Catalog(
       items,
       base: base,
-      refreshUrl: ownFilesOnly ? null : uri(j['refresh']),
+      refreshUrl: ownFilesOnly ? null : uri(doc.refresh),
       statements: statements,
       mirrors: [
-        for (final m in _mirrors(j['mirrors'], fetchedFrom ?? base))
+        for (final m in _mirrors(doc.mirrors, fetchedFrom ?? base))
           if (!ownFilesOnly || _sameOrigin(m, fetchedFrom!)) m,
       ],
     )..rejected.addAll(rejected);

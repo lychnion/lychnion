@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/base/base_library.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_store.dart';
 import 'package:lychnion/download/publisher_list.dart';
@@ -305,6 +306,22 @@ void main() {
         'records': [r.json],
       });
       expect((await Catalog.parse(without, trust: p.trust)).items, isEmpty);
+    });
+
+    test('from a base, which serves them in its catalog', () async {
+      await publishOne('2026.11.1');
+      final next = await me.replaceKey(pubDir);
+      await adoptNewKey(desk, pubDir, next);
+      final cat = BaseLibrary(desk).catalog();
+      expect(cat['keys'], [next.statements.single.json]);
+      final p = await phone('phone', me.link);
+      final c = await Catalog.parse(
+        jsonEncode(cat),
+        fetchedFrom: Uri.parse('http://192.168.1.2:8080/catalog.json'),
+        trust: p.trust,
+        ownFilesOnly: true,
+      );
+      expect(c.items.single.record!.keyId, next.keyId);
     });
 
     test('from a stick, which carries them on', () async {

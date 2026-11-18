@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:lychnion_format/lychnion_format.dart';
 
@@ -13,17 +11,19 @@ Future<List<String>> checkFolder(NodeFolder folder, TrustedKeys trust) async {
   if (!await folder.catalogFile.exists()) {
     return ['${folder.catalogFile.path}: missing'];
   }
-  final Object? j;
+  final CatalogDocument doc;
   try {
-    j = jsonDecode(await folder.catalogFile.readAsString());
-  } on FormatException {
-    return ['${folder.catalogFile.path}: not JSON'];
+    doc = CatalogDocument.parse(await folder.catalogFile.readAsString());
+  } on FormatException catch (e) {
+    return [
+      '${folder.catalogFile.path}: '
+          '${e.message.endsWith('not JSON') ? 'not JSON' : 'not a format 2 catalog'}',
+    ];
   }
-  if (j is! Map || j['format'] != 2 || j['records'] is! List) {
-    return ['${folder.catalogFile.path}: not a format 2 catalog'];
-  }
-  for (final raw in j['records'] as List) {
-    final r = await trust.check(raw);
+  // Records of a successor key count when the catalog says so.
+  final keys = trust.withStatements(await relevantStatements(trust, doc.keys));
+  for (final raw in doc.records) {
+    final r = await keys.check(raw);
     if (r == null) {
       final id = raw is Map ? raw['id'] : null;
       problems.add('${id ?? '?'}: not signed by a trusted publisher');

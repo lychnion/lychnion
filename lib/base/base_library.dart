@@ -3,6 +3,8 @@ import 'dart:io';
 import '../download/catalog.dart';
 import '../download/download_store.dart';
 
+import 'package:lychnion_format/lychnion_format.dart';
+
 /// What a base computer passes on to phones on its Wi-Fi: everything it
 /// has installed from Downloads, as a catalog of the publishers' signed
 /// records with the files addressed by their hash
@@ -19,20 +21,18 @@ class BaseLibrary {
     for (final k in ItemKind.values) ...store.allInstalled(k),
   ];
 
-  /// A format-2 catalog: the signed records unchanged, and for each file
-  /// its address on this base, relative to the catalog's own URL.
+  /// A format-2 catalog: the signed records unchanged, for each file its
+  /// address on this base (relative to the catalog's own URL), and the
+  /// key statements this computer knows, so phones learn of replaced and
+  /// revoked publisher keys here too.
   Map<String, Object?> catalog() {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.
     _remember(all);
-    return {
-      'format': 2,
-      'records': [for (final i in all) i.record.json],
-      'urls': {
-        for (final i in all)
-          for (final f in i.record.files) f.sha256: 'blobs/sha256/${f.sha256}',
-      },
-    };
+    return CatalogDocument.byHash(
+      [for (final i in all) i.record],
+      keys: store.publishers.statements.take(KeyStatement.maxPerSource),
+    ).toJson();
   }
 
   /// The installed file with this SHA-256, or null. Only files listed in a

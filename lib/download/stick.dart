@@ -173,20 +173,15 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
     }
   }
 
-  final records = onStick.values.toList()..sort((a, b) => a.id.compareTo(b.id));
-  final text =
-      '${const JsonEncoder.withIndent('  ').convert({
-        'format': 2,
-        'records': [for (final r in records) r.json],
-        if (statements.isNotEmpty) 'keys': [for (final s in statements) s.json],
-        'urls': {for (final r in records)
-          for (final f in r.files) f.sha256: 'blobs/sha256/${f.sha256}'},
-      })}\n';
-  final bytes = utf8.encode(text);
-  // Larger, and no device would read the stick any more.
-  if (bytes.length > maxCatalogBytes) {
+  final records = onStick.values.toList();
+  final String text;
+  try {
+    text = CatalogDocument.byHash(records, keys: statements).encode();
+  } on CatalogTooLarge {
+    // Larger, and no device would read the stick any more.
     throw const FileSystemException('catalog.json would be over 2 MB');
   }
+  final bytes = utf8.encode(text);
   final tmp = File('${folder.path}/catalog.json.copy');
   _clear(tmp);
   await tmp.writeAsBytes(bytes, flush: true);
@@ -434,29 +429,19 @@ File? _blobOnStick(Directory folder, RecordFile f, Object? listed) {
 
 /// The records and `urls` of the catalog in [folder]; null when there is
 /// none. Throws [UnreadableStick] when it is there but cannot be read.
-Future<({List<Object?> records, Map<Object?, Object?> urls, Object? keys})?>
-_readCatalog(Directory folder) async {
+Future<CatalogDocument?> _readCatalog(Directory folder) async {
   final file = File('${folder.path}/catalog.json');
   if (!file.existsSync()) return null;
   if (file.lengthSync() > maxCatalogBytes) {
     throw const UnreadableStick('too large');
   }
-  final Object? j;
   try {
-    j = jsonDecode(await file.readAsString());
-  } on FormatException {
-    throw const UnreadableStick('not JSON');
+    return CatalogDocument.parse(await file.readAsString());
+  } on FormatException catch (e) {
+    throw UnreadableStick(
+      e.message.endsWith('not JSON') ? 'not JSON' : 'not a format 2 catalog',
+    );
   }
-  if (j is! Map || j['format'] != 2 || j['records'] is! List) {
-    throw const UnreadableStick('not a format 2 catalog');
-  }
-  return (
-    records: j['records'] as List<Object?>,
-    urls: j['urls'] is Map
-        ? j['urls'] as Map<Object?, Object?>
-        : const <Object?, Object?>{},
-    keys: j['keys'],
-  );
 }
 
 PackageRecord? _shape(Object? raw) {
