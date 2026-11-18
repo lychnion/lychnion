@@ -158,6 +158,31 @@ lychnion-data 2026.11.5. Raw results:
 - **Decided 2026-11-18: keep 4 passages everywhere.** `TOP_K=3` stays
   available for slow phones.
 
+## Pixel 5a: CPU again, and the GPU (2026-11-18)
+
+Gemma 4 E2B, release build, 4 passages, packages of lychnion-data
+2026.11.5. Raw results: `spike-results/pixel5a-e2b-cpu-2026-11-18.jsonl`.
+
+| Question | Tokens read | First word | Whole answer |
+|---|---|---|---|
+| Earthquake indoors | 759 | 36.7 s | 49.5 s |
+| Tsunami near the sea | 1047 | 58.7 s | 70.2 s |
+| Drinking water | 628 | 31.0 s | 43.4 s |
+
+- Same as on 2026-11-05: reading about 18–21 tokens/s, writing about
+  5 tokens/s; reading is about three quarters of the time.
+- **GPU: not available.** With `--dart-define=LLM_BACKEND=gpu` the model
+  does not load: llama.cpp's Vulkan backend needs Vulkan 1.2 or later, and
+  the Pixel 5a's driver is older. Phones of this class stay on the CPU;
+  newer phones with Vulkan 1.2 can try the GPU.
+- Prompt prefix reuse (llamadart `reusePromptPrefix`, on by default): the
+  three answers fit about 190 tokens skipped per question, which matches
+  the instructions; three points, so likely but not proven.
+- Only 3 of 8 questions finished before the run's time limit; the phone
+  still had an unreachable base saved, which the app tries first.
+- So for phones like this: the base (a computer on the same Wi-Fi) is the
+  way to fast answers.
+
 ## iPhone simulator (2026-11-05)
 
 The app builds and runs on the iPhone 17 simulator (Xcode 27.2, Apple

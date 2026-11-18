@@ -85,6 +85,7 @@ import 'l10n/app_localizations.dart';
 ///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with SHELTER_SERVER)
 ///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
+///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: engine decides)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
 ///                                                            screenshots of the answers and the map

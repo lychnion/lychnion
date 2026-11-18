@@ -40,6 +40,16 @@ class AnswerStats {
 ///
 /// Kept small on purpose so the engine (flutter_edge_ai + llama.cpp today)
 /// can be swapped without touching the UI.
+/// Developer flag `--dart-define=LLM_BACKEND=cpu|gpu`: which processor
+/// runs the answer model. Unset: the engine decides (as before). A GPU the
+/// device lacks falls back to the CPU; `backend` says what was used.
+const _llmBackend = String.fromEnvironment('LLM_BACKEND');
+final _preferredBackend = switch (_llmBackend) {
+  'cpu' => edge.PreferredBackend.cpu,
+  'gpu' => edge.PreferredBackend.gpu,
+  _ => null,
+};
+
 class LocalLlm {
   edge.InferenceModel? _model;
   edge.InferenceChat? _chat;
@@ -82,7 +92,10 @@ class LocalLlm {
       fileType: edge.ModelFileType.gguf,
     );
     await source(installation).install();
-    _model = await edge.FlutterEdgeAi.getActiveModel(maxTokens: contextTokens);
+    _model = await edge.FlutterEdgeAi.getActiveModel(
+      maxTokens: contextTokens,
+      preferredBackend: _preferredBackend,
+    );
     lastLoadTime = sw.elapsed;
   }
 
