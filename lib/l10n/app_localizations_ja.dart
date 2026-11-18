@@ -578,6 +578,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsShelter => 'ベース';
 
   @override
+  String settingsKeptAside(String files) {
+    return '保存データの一部を使えませんでした。コピーを残しました：$files';
+  }
+
+  @override
   String get settingsOfflineData => 'オフラインデータ';
 
   @override

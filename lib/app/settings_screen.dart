@@ -11,6 +11,7 @@ import '../download/downloads_screen.dart';
 import '../download/publishers_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../knowledge/knowledge_package.dart' show PackageInfo;
+import '../util/versioned_file.dart';
 import 'settings.dart';
 import 'versions.dart';
 import 'brand.dart';
@@ -71,6 +72,15 @@ class SettingsScreen extends StatelessWidget {
         builder: (context, _) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
           children: [
+            ValueListenableBuilder(
+              valueListenable: keptAside,
+              builder: (context, files, _) => files.isEmpty
+                  ? const SizedBox.shrink()
+                  : ListTile(
+                      leading: const Icon(Icons.info_outline_rounded),
+                      title: Text(l.settingsKeptAside(files.join(', '))),
+                    ),
+            ),
             _Group(
               title: l.settingsLanguage,
               children: [

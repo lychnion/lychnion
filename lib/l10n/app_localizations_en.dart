@@ -593,6 +593,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsShelter => 'Base';
 
   @override
+  String settingsKeptAside(String files) {
+    return 'Some saved data could not be used. A copy was kept: $files';
+  }
+
+  @override
   String get settingsOfflineData => 'Offline data';
 
   @override

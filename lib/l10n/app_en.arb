@@ -465,6 +465,11 @@
   "settingsLanguage": "Language",
   "settingsLanguageDevice": "Device",
   "settingsShelter": "Base",
+  "settingsKeptAside": "Some saved data could not be used. A copy was kept: {files}",
+  "@settingsKeptAside": {
+    "description": "Settings: saved files that were broken or from a newer app version were copied aside (lib/util/versioned_file.dart).",
+    "placeholders": {"files": {"type": "String", "example": "settings.json.newer"}}
+  },
   "settingsOfflineData": "Offline data",
   "settingsDownloadsHint": "AI models, safety guides and maps",
   "settingsAboutGroup": "About",

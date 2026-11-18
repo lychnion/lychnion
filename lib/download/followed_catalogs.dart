@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 
+import '../util/versioned_file.dart';
 import 'publisher_list.dart' show cleanShownText;
 
 export 'package:lychnion_fetch/lychnion_fetch.dart'
@@ -111,30 +112,36 @@ class FollowedCatalogs extends ChangeNotifier {
 
   bool follows(Uri url) => _list.any((c) => c.url == url);
 
+  /// Format of catalogs.json (see versioned_file.dart). 0: the same
+  /// fields without a format number.
+  static const format = 1;
+
   Future<void> load() async {
     _list.clear();
-    try {
-      final j = jsonDecode(await _file.readAsString()) as Map;
-      for (final e in (j['catalogs'] as List?) ?? const []) {
-        try {
-          final m = e as Map;
-          final url = CatalogLink.normalize(m['url'] as String);
-          if (url == null || follows(url) || _list.length >= max) continue;
-          _list.add(
-            FollowedCatalog(
-              url,
-              name: CatalogLink._cleanName(m['name'] as String?),
-              added:
-                  DateTime.tryParse(m['added'] as String? ?? '') ??
-                  DateTime.now(),
-            ),
-          );
-        } on Object {
-          continue;
-        }
+    // No file yet, a broken one or a newer one: no followed catalogs (a
+    // broken or newer file is kept as a copy first).
+    final entries = await readVersioned(
+      _file,
+      format,
+      (json, _) => ((json! as Map)['catalogs'] as List?) ?? const [],
+    );
+    for (final e in entries ?? const []) {
+      try {
+        final m = e as Map;
+        final url = CatalogLink.normalize(m['url'] as String);
+        if (url == null || follows(url) || _list.length >= max) continue;
+        _list.add(
+          FollowedCatalog(
+            url,
+            name: CatalogLink._cleanName(m['name'] as String?),
+            added:
+                DateTime.tryParse(m['added'] as String? ?? '') ??
+                DateTime.now(),
+          ),
+        );
+      } on Object {
+        continue;
       }
-    } on Object {
-      // No file yet, or a broken one: no followed catalogs.
     }
     // Copies of catalogs no longer followed (a crash between steps) and
     // half-written copies are removed.
@@ -199,6 +206,7 @@ class FollowedCatalogs extends ChangeNotifier {
     final tmp = File('${_file.path}.tmp');
     await tmp.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
+        'format': format,
         'catalogs': [for (final c in list) c.toJson()],
       }),
       flush: true,

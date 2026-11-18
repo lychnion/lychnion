@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../llm/local_embedder.dart';
@@ -56,10 +57,15 @@ class HybridRetriever {
       '${dir.path}/${package.id}-${package.version}-${embedder.modelName}.vectors.json',
     );
     if (await cache.exists()) {
-      final data = jsonDecode(await cache.readAsString()) as List;
-      if (data.length == package.passages.length) {
-        _vectors = [for (final v in data) List<double>.from(v as List)];
-        return;
+      // A cache: one that cannot be read is made again.
+      try {
+        final data = jsonDecode(await cache.readAsString()) as List;
+        if (data.length == package.passages.length) {
+          _vectors = [for (final v in data) List<double>.from(v as List)];
+          return;
+        }
+      } on Object catch (e) {
+        debugPrint('vectors cache not read, made again: $e');
       }
     }
     _vectors = await embedder.documents([

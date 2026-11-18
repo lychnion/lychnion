@@ -968,6 +968,12 @@ abstract class AppLocalizations {
   /// **'Base'**
   String get settingsShelter;
 
+  /// Settings: saved files that were broken or from a newer app version were copied aside (lib/util/versioned_file.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Some saved data could not be used. A copy was kept: {files}'**
+  String settingsKeptAside(String files);
+
   /// No description provided for @settingsOfflineData.
   ///
   /// In en, this message translates to:

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 
+import '../util/versioned_file.dart';
 import 'compact_codec.dart';
 import 'fact.dart';
 
@@ -34,11 +35,21 @@ class FactSigner {
 
   /// Loads the key from [file], or creates and saves one. The file holds
   /// the 32-byte private seed; it never leaves the device.
+  ///
+  /// A key that cannot be read is kept as `<name>.broken` and a new one is
+  /// made: the device then signs with a new key, and phones need its QR
+  /// code again.
   static Future<FactSigner> loadOrCreate(File file) async {
     if (await file.exists()) {
-      final seed = _unb64((await file.readAsString()).trim());
-      final pair = await _ed25519.newKeyPairFromSeed(seed);
-      return FactSigner._(pair, (await pair.extractPublicKey()).bytes);
+      try {
+        final seed = _unb64((await file.readAsString()).trim());
+        if (seed.length != 32) throw const FormatException('seed length');
+        final pair = await _ed25519.newKeyPairFromSeed(seed);
+        return FactSigner._(pair, (await pair.extractPublicKey()).bytes);
+      } on Object {
+        // Never written over without a copy.
+        if (await keepAside(file, 'broken') == null) rethrow;
+      }
     }
     final pair = await _ed25519.newKeyPair();
     await file.writeAsString(_b64(await pair.extractPrivateKeyBytes()));
@@ -77,24 +88,29 @@ class TrustList extends ChangeNotifier {
   bool trusts(String keyId) => _keys.containsKey(keyId);
   String? nameOf(String keyId) => _keys[keyId]?.name;
 
+  /// Format of trusted_keys.json (see versioned_file.dart). 0: key id →
+  /// {key, name} at the top; 1: `{"format": 1, "keys": {...}}`.
+  static const format = 1;
+
+  /// Reads [file]. A broken file means no trusted keys, not a crash at
+  /// start: keys are added again from the shelter QR. A broken entry is
+  /// skipped.
   Future<void> load(File file) async {
     _file = file;
-    final f = file;
-    if (!await f.exists()) return;
-    // An empty or broken file (a write cut short) means no trusted keys,
-    // not a crash at start: keys are added again from the shelter QR.
-    final Map<String, dynamic> j;
-    try {
-      j = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
-    } on FormatException {
-      return;
-    }
-    for (final e in j.entries) {
-      final v = e.value as Map<String, dynamic>;
-      _keys[e.key] = (
-        key: _unb64(v['key'] as String),
-        name: v['name'] as String,
-      );
+    final keys = await readVersioned(file, format, (json, f) {
+      final m = (f == 0 ? json : (json! as Map)['keys'])! as Map;
+      return m.cast<String, Object?>();
+    });
+    for (final e in (keys ?? const {}).entries) {
+      try {
+        final v = e.value! as Map;
+        _keys[e.key] = (
+          key: _unb64(v['key'] as String),
+          name: v['name'] as String,
+        );
+      } on Object {
+        continue;
+      }
     }
     notifyListeners();
   }
@@ -120,8 +136,11 @@ class TrustList extends ChangeNotifier {
     if (f == null) return;
     await f.writeAsString(
       jsonEncode({
-        for (final e in _keys.entries)
-          e.key: {'key': _b64(e.value.key), 'name': e.value.name},
+        'format': format,
+        'keys': {
+          for (final e in _keys.entries)
+            e.key: {'key': _b64(e.value.key), 'name': e.value.name},
+        },
       }),
     );
   }

@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../util/versioned_file.dart';
+
 /// User settings kept on the device (settings.json in app support).
 class AppSettings extends ChangeNotifier {
   /// App language as a code ('ja', 'en', …); null: follow the device.
@@ -54,11 +56,16 @@ class AppSettings extends ChangeNotifier {
 
   File? _file;
 
-  Future<void> load() async {
-    final dir = await getApplicationSupportDirectory();
+  /// Format of settings.json (see versioned_file.dart). 0: before format
+  /// numbers, same fields.
+  static const format = 1;
+
+  /// Reads settings.json from app support, or from [dir] (tests).
+  Future<void> load({Directory? dir}) async {
+    dir ??= await getApplicationSupportDirectory();
     _file = File('${dir.path}/settings.json');
-    try {
-      final j = jsonDecode(await _file!.readAsString()) as Map;
+    await readVersioned(_file!, format, (json, _) {
+      final j = json! as Map;
       // Older files wrote 'system' for "follow the device".
       final lang = j['language'];
       language = lang is String && lang.isNotEmpty && lang != 'system'
@@ -73,9 +80,7 @@ class AppSettings extends ChangeNotifier {
       sharingName = j['sharing_name'] as String?;
       acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
       firstSteps = {...?(j['first_steps'] as List?)?.cast<String>()};
-    } on Object {
-      // No file yet, or unreadable: keep defaults.
-    }
+    });
     notifyListeners();
   }
 
@@ -119,6 +124,7 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> _save() async => _file?.writeAsString(
     jsonEncode({
+      'format': format,
       'language': ?language,
       'show_stats': showStats,
       'shelter_url': ?shelterUrl,
