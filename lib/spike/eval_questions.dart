@@ -58,10 +58,13 @@ const evalQuestions = <EvalQuestion>[
   ),
   // Not covered by the package: the right answer is "no source".
   EvalQuestion('火山が噴火したらどうすればいいですか？', ['kantei-funka']),
-  EvalQuestion('熱中症の応急手当を教えてください。', []),
-  EvalQuestion('マムシに噛まれたらどうすればいいですか？', []),
+  // Covered since intl.firstaid.basics (US first aid, translated; 2026-11-18).
+  EvalQuestion('熱中症の応急手当を教えてください。', ['army-atp-4-02-11']),
+  EvalQuestion('マムシに噛まれたらどうすればいいですか？', ['army-atp-4-02-11']),
   EvalQuestion('台風が近づいているとき、窓の対策は？', []),
-  EvalQuestion('How do I treat a snake bite?', [], lang: 'en'),
+  EvalQuestion('How do I treat a snake bite?', [
+    'army-atp-4-02-11',
+  ], lang: 'en'),
   EvalQuestion('What should I pack for a day hike?', [
     'gov-online-yama',
   ], lang: 'en'),

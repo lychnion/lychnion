@@ -63,10 +63,23 @@ String? foreignLabel(Source s, String user, {required bool en}) {
 }
 
 class Passage {
-  Passage(this.id, this.source, this.heading, this.text);
+  Passage(
+    this.id,
+    this.source,
+    this.heading,
+    this.text, {
+    this.original,
+    this.originalHeading,
+  });
   final int id;
   final Source source;
   final String heading, text;
+
+  /// For a passage translated when the package was built (foreign sources):
+  /// the source's own text. [text] is then our translation (not official).
+  final String? original, originalHeading;
+
+  bool get translated => original != null;
 }
 
 /// A fixed safety line, quoted word for word from its source.
@@ -147,7 +160,16 @@ class KnowledgePackage {
     for (final pkg in packages) {
       sources.addAll(pkg.sources);
       for (final p in pkg.passages) {
-        passages.add(Passage(passages.length + 1, p.source, p.heading, p.text));
+        passages.add(
+          Passage(
+            passages.length + 1,
+            p.source,
+            p.heading,
+            p.text,
+            original: p.original,
+            originalHeading: p.originalHeading,
+          ),
+        );
       }
       pkg.synonyms.forEach((word, alts) {
         final all = synonyms[word] ??= [];
@@ -205,15 +227,20 @@ class KnowledgePackage {
             region: (hasRegion ? r['region'] as String? : null) ?? 'JP',
           ),
       };
+      final passageRows = db.select('SELECT * FROM passages ORDER BY id');
+      // Packages built before translations existed have no such columns.
+      final hasOriginal = passageRows.columnNames.contains('original');
       final passages = [
-        for (final r in db.select(
-          'SELECT id, source_id, heading, text FROM passages ORDER BY id',
-        ))
+        for (final r in passageRows)
           Passage(
             r['id'],
             sources[r['source_id']]!,
             r['heading'] ?? '',
             r['text'],
+            original: hasOriginal ? r['original'] as String? : null,
+            originalHeading: hasOriginal
+                ? r['original_heading'] as String?
+                : null,
           ),
       ];
       List<List<String>> groups(Object? json) => [

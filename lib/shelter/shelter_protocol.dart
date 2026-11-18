@@ -52,6 +52,9 @@ Map<String, Object?> answerToWire(GroundedAnswer a) => {
           'id': h.passage.id,
           'heading': h.passage.heading,
           'text': h.passage.text,
+          if (h.passage.original != null) 'original': h.passage.original,
+          if (h.passage.originalHeading != null)
+            'original_heading': h.passage.originalHeading,
           'source': sourceToWire(h.passage.source),
         },
       },
@@ -90,6 +93,8 @@ GroundedAnswer answerFromWire(Map<String, dynamic> j) {
           ),
           (h['passage'] as Map)['heading'] as String,
           (h['passage'] as Map)['text'] as String,
+          original: (h['passage'] as Map)['original'] as String?,
+          originalHeading: (h['passage'] as Map)['original_heading'] as String?,
         ),
         (h['score'] as num).toDouble(),
       ),

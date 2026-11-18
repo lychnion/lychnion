@@ -272,6 +272,19 @@ sources may fill gaps where Japan has no usable source.
   where they disagree, take no phone numbers, laws or services from
   foreign sources.
 - **Labelled:** 「海外の資料（英国）」 next to the source.
+- **Translated when the package is built, never on the phone.** The phone
+  model turned "snug but not too tight" (snakebite bandage) into
+  「しっかりと縛って」. So foreign passages get a translation once, stored in
+  `tool/packages/translations/<id>.<lang>.json` (reviewed by a person
+  before release), and the package keeps the original next to it: Japanese
+  questions use the translation, English ones the original, and the
+  sources sheet shows 「Lychnionによる翻訳（公式の訳ではありません）」 with the
+  original one tap away.
+- **First foreign package:** `intl.firstaid.basics` (2026-11-18), US Army
+  ATP 4-02.11 (bites, snakebite, ticks, heat, altitude) and TC 21-3 (cold
+  injuries), public domain; sources picked with the vetted list of the
+  Survival LLM project. Left out: rabies (Japan has none), US species
+  identification, 911, and the jellyfish advice (looks outdated).
 - **Licences:** the data licence is independent of the app's (AGPL). For
   the general packages, sources that allow any reuse with credit: PDL1.0,
   CC BY, UK Open Government Licence, US federal public domain. Sources

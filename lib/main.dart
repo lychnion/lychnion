@@ -84,7 +84,11 @@ const _bare = bool.fromEnvironment('BARE');
 
 /// Knowledge packages built into the app (`assets/packages/<id>.sqlite`).
 /// A newer download from the catalog replaces the built-in copy.
-const _bundledPackages = ['jp.bousai.core', 'jp.outdoor.hiking'];
+const _bundledPackages = [
+  'jp.bousai.core',
+  'jp.outdoor.hiking',
+  'intl.firstaid.basics',
+];
 const _embedPath = String.fromEnvironment('EMBED_MODEL_PATH');
 const _minCos = String.fromEnvironment('MIN_COS', defaultValue: '0.70');
 const _mapPmtiles = String.fromEnvironment('MAP_PMTILES_PATH');

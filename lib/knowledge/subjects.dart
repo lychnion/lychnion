@@ -8,7 +8,7 @@ import 'retriever.dart';
 const _animals = <String, (List<String> ja, List<String> en)>{
   'snake': (
     ['ヘビ', '蛇', 'へび', 'マムシ', 'まむし', 'ハブ', 'ヤマカガシ'],
-    ['snake', 'viper', 'adder'],
+    ['snake', 'snakebite', 'viper', 'adder'],
   ),
   'tick': (['ダニ'], ['tick']),
   'bee': (['ハチ', '蜂'], ['bee', 'wasp', 'hornet']),

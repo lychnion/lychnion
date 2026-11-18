@@ -2,6 +2,7 @@
 """Builds a knowledge package (one SQLite file) from a JSON manifest.
 
     python3 -I tool/build_package.py tool/packages/jp.bousai.core.json [--max-chars N]
+        [--export-untranslated FILE]
 
 Downloads each source once into build/package-cache/ (or reads a saved text
 snapshot, for sites that refuse scripted downloads), extracts the text
@@ -11,11 +12,14 @@ into short passages and writes assets/packages/<id>.sqlite.
 Per source, optional: skip_headings, skip_heading_prefixes,
 drop_lines_containing, end_marker (drop the menu or footer after the
 content), min_japanese_ratio (drop tables of numbers). Per manifest:
-skip_headings_all, drop_lines_containing, drop_lines (exact lines).
+skip_headings_all, drop_lines_containing, drop_lines (exact lines),
+drop_lines_matching (regular expressions for whole lines, e.g. page
+numbers), region (ISO 3166 for all sources).
 
 Every fixed safety line ("alert") must appear word for word in its source,
 otherwise the build fails.
 """
+import hashlib
 import json
 import re
 import sqlite3
@@ -139,6 +143,14 @@ def passages(lines, max_chars=MAX_CHARS):
     return [(h, t) for h, t in out if len(t) >= 25]
 
 
+def passage_key(text):
+    """Stable key of an original passage, for its stored translation."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+EXPORT = None
+
+
 def squash(s):
     return re.sub(r"\s+", "", s)
 
@@ -161,6 +173,7 @@ def main(manifest_path, max_chars=MAX_CHARS):
             skip |= set(manifest.get("skip_headings_all", []))
         drop = manifest.get("drop_lines_containing", []) + src.get("drop_lines_containing", [])
         exact = set(manifest.get("drop_lines", []))
+        patterns = [re.compile(x) for x in manifest.get("drop_lines_matching", [])]
         lines = clean_lines(text)
         if src.get("end_marker"):
             # Page footer or site menu after the content.
@@ -168,7 +181,8 @@ def main(manifest_path, max_chars=MAX_CHARS):
             if end is None:
                 sys.exit(f"{src['id']}: end_marker not found: {src['end_marker']}")
             lines = lines[:end]
-        lines = [l for l in lines if l not in exact and not any(d in l for d in drop)]
+        lines = [l for l in lines if l not in exact and not any(d in l for d in drop)
+                 and not any(p.fullmatch(l) for p in patterns)]
         prefixes = tuple(src.get("skip_heading_prefixes", []))
         # Tables of numbers (statistics) carry no guidance: optional cut-off
         # for the share of Japanese letters in a passage.
@@ -180,6 +194,35 @@ def main(manifest_path, max_chars=MAX_CHARS):
             sys.exit(f"no text extracted from {src['id']}")
         rows += [(src["id"], h, t) for h, t in ps]
         print(f"{src['id']}: {len(ps)} passages")
+
+    # Foreign sources: the phone model must never translate safety advice
+    # itself (it turned "snug but not too tight" into 「しっかりと縛って」).
+    # Each passage gets a translation made once, stored in the repository
+    # (translations/<id>.<lang>.json, checked by a person), and the original
+    # is kept next to it.
+    originals = {}
+    lang = manifest.get("translate_to")
+    if lang:
+        tpath = Path(manifest_path).parent / "translations" / f"{manifest['id']}.{lang}.json"
+        tr = json.loads(tpath.read_text(encoding="utf-8")) if tpath.exists() else {"headings": {}, "passages": {}}
+        missing = [{"key": passage_key(t), "heading": h, "text": t} for _, h, t in rows
+                   if passage_key(t) not in tr["passages"]]
+        missing_h = sorted({h for _, h, _ in rows if h and h not in tr["headings"]})
+        if EXPORT:
+            Path(EXPORT).write_text(json.dumps({"headings": missing_h, "passages": missing},
+                                               ensure_ascii=False, indent=1), encoding="utf-8")
+            sys.exit(f"exported {len(missing)} passages and {len(missing_h)} headings to {EXPORT}")
+        if missing or missing_h:
+            sys.exit(f"{len(missing)} passages and {len(missing_h)} headings have no {lang} translation "
+                     f"in {tpath.relative_to(ROOT)}; export them with --export-untranslated FILE")
+        translated = []
+        for sid, h, t in rows:
+            e = tr["passages"][passage_key(t)]
+            originals[len(translated)] = (h, t)
+            translated.append((sid, tr["headings"].get(h, h) if h else h, e["text"]))
+        rows = translated
+        reviewed = sum(1 for e in tr["passages"].values() if e.get("reviewed"))
+        manifest["translation"] = f"{lang}: Lychnion translation, not official; reviewed {reviewed}/{len(rows)}"
 
     for alert in manifest.get("alerts", []):
         # Each sentence of a fixed safety line must be in the source as written.
@@ -196,14 +239,15 @@ def main(manifest_path, max_chars=MAX_CHARS):
                              licence TEXT, licence_url TEXT, attribution TEXT,
                              region TEXT NOT NULL DEFAULT 'JP');
         CREATE TABLE passages(id INTEGER PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
-                              heading TEXT, text TEXT NOT NULL);
+                              heading TEXT, text TEXT NOT NULL,
+                              original_heading TEXT, original TEXT);
         CREATE VIRTUAL TABLE passages_fts USING fts5(heading, text, content='passages',
                               content_rowid='id', tokenize='trigram');
         CREATE TABLE alerts(id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
                             text TEXT NOT NULL, match_all TEXT NOT NULL,
                             text_en TEXT, match_all_en TEXT);
     """)
-    for k in ("id", "title", "language", "version", "note"):
+    for k in ("id", "title", "language", "version", "note", "translation"):
         db.execute("INSERT INTO meta VALUES(?,?)", (k, manifest.get(k, "")))
     db.execute("INSERT INTO meta VALUES('gaps',?)", (json.dumps(manifest.get("gaps", []), ensure_ascii=False),))
     # Query expansion for keyword search, until vector search is added.
@@ -215,7 +259,8 @@ def main(manifest_path, max_chars=MAX_CHARS):
                    [{**{k: s.get(k) for k in ("id", "title", "publisher", "url", "licence", "licence_url", "attribution")},
                      "region": s.get("region", region)}
                     for s in manifest["sources"]])
-    db.executemany("INSERT INTO passages(source_id,heading,text) VALUES(?,?,?)", rows)
+    db.executemany("INSERT INTO passages(source_id,heading,text,original_heading,original) VALUES(?,?,?,?,?)",
+                   [(sid, h, t, *originals.get(i, (None, None))) for i, (sid, h, t) in enumerate(rows)])
     db.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')")
     # text_en is our translation, shown next to the official Japanese text.
     db.executemany("INSERT INTO alerts VALUES(?,?,?,?,?,?)",
@@ -234,6 +279,10 @@ if __name__ == "__main__":
     if "--max-chars" in args:
         i = args.index("--max-chars")
         chars = int(args[i + 1])
+        del args[i:i + 2]
+    if "--export-untranslated" in args:
+        i = args.index("--export-untranslated")
+        EXPORT = args[i + 1]
         del args[i:i + 2]
     if len(args) != 1:
         sys.exit(__doc__)

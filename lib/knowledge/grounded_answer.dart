@@ -16,7 +16,7 @@ const noSourceText = '資料に答えがありません';
 
 const groundedSystemInstructionEn =
     'You answer questions about disaster preparedness and outdoor safety in Japan. '
-    'Use only what the given sources say. The sources are in Japanese; answer in plain English, '
+    'Use only what the given sources say. The sources are mostly in Japanese; answer in plain English, '
     'in at most three short sentences, most important first. '
     'End each sentence with the number of the source you used, like [1]. '
     'If the sources do not answer the question, reply only: "$noSourceTextEn". '
@@ -242,12 +242,14 @@ class GroundedAnswerer {
       final p = hits[i].passage;
       final label = foreignLabel(p.source, userRegion, en: en);
       foreign |= label != null;
+      // English questions read a translated passage in its original.
+      final heading = en ? (p.originalHeading ?? p.heading) : p.heading;
       b.writeln(
         '[${i + 1}] ${p.source.publisher}「${p.source.title}」'
-        '${p.heading.isEmpty ? '' : ' / ${p.heading}'}'
+        '${heading.isEmpty ? '' : ' / $heading'}'
         '${label == null ? '' : ' [$label]'}',
       );
-      b.writeln(p.text);
+      b.writeln(en ? (p.original ?? p.text) : p.text);
       b.writeln();
     }
     if (foreign) {

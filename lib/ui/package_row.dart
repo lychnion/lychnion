@@ -11,6 +11,11 @@ const _known = <String, (IconData, String, String)>{
     'バックカントリー',
     'Backcountry',
   ),
+  'intl.firstaid.basics': (
+    Icons.medical_services_outlined,
+    '応急手当',
+    'First aid',
+  ),
   'jp.outdoor.sailing': (Icons.sailing_rounded, 'セーリング', 'Sailing'),
 };
 

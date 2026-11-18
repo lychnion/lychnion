@@ -292,7 +292,32 @@ class AnswerCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            SelectableText(p.text, style: theme.textTheme.bodyMedium),
+            // English readers see a translated passage in its original;
+            // Japanese readers see our translation, the original one tap away.
+            SelectableText(
+              en ? (p.original ?? p.text) : p.text,
+              style: theme.textTheme.bodyMedium,
+            ),
+            if (p.translated && !en)
+              Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: const EdgeInsets.only(bottom: 8),
+                  title: Text(
+                    '${Brand.nameJa}による翻訳です（公式の訳ではありません）。原文を見る',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  children: [
+                    SelectableText(
+                      p.original!,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 10),
             SourceLink(
               source: p.source,
