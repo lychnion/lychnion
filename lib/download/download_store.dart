@@ -49,7 +49,8 @@ class Installed {
 /// a download.
 /// What the app does with new versions of installed downloads.
 enum UpdateMode {
-  /// Download new versions by themselves, on Wi-Fi only.
+  /// Download new versions by themselves: on phones on Wi-Fi only, on a
+  /// computer on any connection.
   auto,
 
   /// Check at start and show a badge (default).
@@ -380,6 +381,13 @@ class DownloadStore {
       UpdateMode.values.asNameMap()[_settings()['updates']] ??
       UpdateMode.notify;
   Future<void> setUpdateMode(UpdateMode v) => _set('updates', v.name);
+
+  /// A base keeps every guide and map for phones (step 5), and the models
+  /// too with [keepModels].
+  bool get keepAll => _settings()['keep_all'] == true;
+  Future<void> setKeepAll(bool v) => _set('keep_all', v);
+  bool get keepModels => _settings()['keep_models'] == true;
+  Future<void> setKeepModels(bool v) => _set('keep_models', v);
 
   /// The chat model the user picked, if any.
   String? get chatModelId => _settings()['chat_model'] as String?;

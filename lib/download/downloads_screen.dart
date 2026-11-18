@@ -95,6 +95,36 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
                     onSelectionChanged: (s) => m.setUpdateMode(s.first),
                   ),
                 ),
+                if (DownloadManager.isDesktop) ...[
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l.downloadsKeepAll),
+                    subtitle: Text(
+                      [
+                        l.downloadsKeepAllHint,
+                        if (m.keepAll)
+                          switch (m.keepAllMissing) {
+                            (count: 0, bytes: _) => l.downloadsKeepAllDone,
+                            final x => l.downloadsKeepAllMissing(
+                              '${x.count}',
+                              formatBytes(x.bytes),
+                            ),
+                          },
+                      ].join('\n'),
+                    ),
+                    value: m.keepAll,
+                    onChanged: m.setKeepAll,
+                  ),
+                  if (m.keepAll)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(l.downloadsKeepModels),
+                      value: m.keepModels,
+                      onChanged: (v) => m.setKeepModels(v ?? false),
+                    ),
+                ],
                 const SizedBox(height: 20),
                 Text(l.downloadsFooter, style: Theme.of(c).textTheme.bodySmall),
               ],

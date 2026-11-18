@@ -1548,4 +1548,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tourMenuText =>
       'Settings, sharing with people nearby, and this tour.';
+
+  @override
+  String get downloadsKeepAll => 'Keep everything for phones';
+
+  @override
+  String get downloadsKeepAllHint =>
+      'This computer downloads every guide and map from the catalogs and keeps them current, so phones nearby get them here. To remove items for good, turn this off.';
+
+  @override
+  String get downloadsKeepModels => 'Also the AI models (several GB)';
+
+  @override
+  String downloadsKeepAllMissing(String count, String size) {
+    return 'Still to fetch: $count items, $size';
+  }
+
+  @override
+  String get downloadsKeepAllDone => 'Everything is here.';
 }

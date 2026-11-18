@@ -10,6 +10,7 @@ import 'catalog.dart';
 import 'download_store.dart';
 import 'downloader.dart';
 import 'followed_catalogs.dart';
+import 'sync_plan.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
 /// Dev flags: where the catalog and relative file URLs come from.
@@ -229,28 +230,119 @@ class DownloadManager extends ChangeNotifier {
   /// With automatic updates: downloads new versions of installed items,
   /// one after another, only on Wi-Fi or a cable (never mobile data,
   /// whatever the mobile data setting says).
-  Future<void> _autoUpdate() async {
-    if (updateMode != UpdateMode.auto || _updating) return;
-    final now = await Connectivity().checkConnectivity();
-    final wifi = now.any(
-      (c) => c == ConnectivityResult.wifi || c == ConnectivityResult.ethernet,
+  /// A computer (macOS, Windows, Linux): a base, usually on a cable or
+  /// the shelter's own network. Phones fetch by themselves on Wi-Fi only.
+  static bool get isDesktop =>
+      Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+
+  bool get keepAll => store.keepAll;
+  bool get keepModels => store.keepModels;
+
+  Future<void> setKeepAll(bool v) async {
+    await store.setKeepAll(v);
+    notifyListeners();
+    if (v) unawaited(refreshCatalog());
+  }
+
+  Future<void> setKeepModels(bool v) async {
+    await store.setKeepModels(v);
+    notifyListeners();
+    if (v) unawaited(_autoUpdate());
+  }
+
+  /// What keeping everything would still fetch, for the switch's text.
+  ({int count, int bytes}) get keepAllMissing {
+    final items = itemsToSync(
+      catalog,
+      status: (i) => stateOf(i).status,
+      error: (i) => stateOf(i).error,
+      updates: false,
+      keepAll: true,
+      keepModels: keepModels,
     );
-    if (!wifi) return;
+    return (count: items.length, bytes: items.fold(0, (a, i) => a + i.size));
+  }
+
+  /// Fetches by itself what [itemsToSync] says (new versions with
+  /// automatic updates; everything on a base that keeps a full set), one
+  /// after another, and again while new work turns up.
+  Future<void> _autoUpdate() async {
+    if (_updating) return;
+    final updates = updateMode == UpdateMode.auto;
+    if (!updates && !keepAll) return;
+    if (!syncAllowed(
+      await Connectivity().checkConnectivity(),
+      desktop: isDesktop,
+    )) {
+      return;
+    }
     _updating = true;
     try {
-      for (final item in [...catalog.items]) {
-        if (stateOf(item).status == ItemStatus.update) {
-          _log({
-            'event': 'auto_update',
-            'id': item.id,
-            'version': item.version,
-          });
-          await download(item);
+      // A failed item waits 30 minutes before it is tried again by itself
+      // (a missing file must not be asked for in a loop).
+      final now = DateTime.now();
+      _syncFailed.removeWhere(
+        (_, t) => now.difference(t) > const Duration(minutes: 30),
+      );
+      final tried = {..._syncFailed.keys};
+      while (true) {
+        final next = itemsToSync(
+          catalog,
+          status: (i) => stateOf(i).status,
+          error: (i) => stateOf(i).error,
+          updates: updates,
+          keepAll: keepAll,
+          keepModels: keepModels,
+        ).where((i) => !tried.contains('${i.id}@${i.version}')).toList();
+        if (next.isEmpty) break;
+        final item = next.first;
+        tried.add('${item.id}@${item.version}');
+        _log({
+          'event': 'auto_update',
+          'id': item.id,
+          'version': item.version,
+          'keep_all': keepAll,
+        });
+        await download(item);
+        if (stateOf(item).error != null) {
+          _syncFailed['${item.id}@${item.version}'] = DateTime.now();
         }
       }
     } finally {
       _updating = false;
     }
+  }
+
+  /// Items whose last download by itself failed, and when.
+  final _syncFailed = <String, DateTime>{};
+
+  /// Short internet windows: when the connection comes back, and every
+  /// 30 minutes while the app runs, catalogs are read again (and new
+  /// versions fetched by [_autoUpdate]).
+  StreamSubscription<List<ConnectivityResult>>? _connection;
+  Timer? _every;
+  bool _online = true;
+
+  void _watchConnection() {
+    _connection = Connectivity().onConnectivityChanged.listen(
+      (now) {
+        final online = isOnline(now);
+        final back = online && !_online;
+        _online = online;
+        if (back && (updateMode != UpdateMode.off || keepAll)) {
+          _log({'event': 'connection_back'});
+          unawaited(refreshCatalog());
+        }
+      },
+      onError: (Object _) {
+        // No connectivity events on this platform: the timer still runs.
+      },
+    );
+    _every = Timer.periodic(const Duration(minutes: 30), (_) {
+      if (updateMode != UpdateMode.off || keepAll) {
+        unawaited(refreshCatalog());
+      }
+    });
   }
 
   Future<void> _init() async {
@@ -260,10 +352,11 @@ class DownloadManager extends ChangeNotifier {
     _refreshStates();
     if (_autoDownload.isNotEmpty) {
       unawaited(_runAuto());
-    } else if (updateMode != UpdateMode.off) {
+    } else if (updateMode != UpdateMode.off || keepAll) {
       // New versions: look once at start (offline is fine).
       unawaited(refreshCatalog());
     }
+    _watchConnection();
   }
 
   Future<void> _runAuto() async {
@@ -500,7 +593,7 @@ class DownloadManager extends ChangeNotifier {
       for (final i in catalog.items)
         if (stateOf(i).status == ItemStatus.update) i,
     ].length;
-    if (updates.value > 0) unawaited(_autoUpdate());
+    if (updates.value > 0 || keepAll) unawaited(_autoUpdate());
     notifyListeners();
   }
 
@@ -688,7 +781,11 @@ class DownloadManager extends ChangeNotifier {
   static bool _diskFull(OSError? e) =>
       e != null && (e.errorCode == 28 || e.errorCode == 112);
 
-  void stop(CatalogItem item) => stateOf(item).cancel?.cancel();
+  void stop(CatalogItem item) {
+    // Stopped by hand: not started again by itself for a while.
+    _syncFailed['${item.id}@${item.version}'] = DateTime.now();
+    stateOf(item).cancel?.cancel();
+  }
 
   Future<void> delete(CatalogItem item) async {
     stop(item);
@@ -749,6 +846,8 @@ class DownloadManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _connection?.cancel();
+    _every?.cancel();
     changes.dispose();
     super.dispose();
   }

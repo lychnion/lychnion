@@ -2569,6 +2569,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings, sharing with people nearby, and this tour.'**
   String get tourMenuText;
+
+  /// No description provided for @downloadsKeepAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep everything for phones'**
+  String get downloadsKeepAll;
+
+  /// No description provided for @downloadsKeepAllHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This computer downloads every guide and map from the catalogs and keeps them current, so phones nearby get them here. To remove items for good, turn this off.'**
+  String get downloadsKeepAllHint;
+
+  /// No description provided for @downloadsKeepModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Also the AI models (several GB)'**
+  String get downloadsKeepModels;
+
+  /// No description provided for @downloadsKeepAllMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Still to fetch: {count} items, {size}'**
+  String downloadsKeepAllMissing(String count, String size);
+
+  /// No description provided for @downloadsKeepAllDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is here.'**
+  String get downloadsKeepAllDone;
 }
 
 class _AppLocalizationsDelegate
