@@ -256,6 +256,9 @@ class PublisherList extends ChangeNotifier {
   });
 
   Future<void> _save(Iterable<Publisher> list) async {
+    if (!mayReplace(file)) {
+      throw FileSystemException('kept as it is', file.path);
+    }
     await file.parent.create(recursive: true);
     // Written next to the file, then renamed: a cut write leaves the old list.
     final tmp = File('${file.path}.tmp');

@@ -144,7 +144,9 @@ class FollowedCatalogs extends ChangeNotifier {
       }
     }
     // Copies of catalogs no longer followed (a crash between steps) and
-    // half-written copies are removed.
+    // half-written copies are removed; not when the list could not be
+    // read (broken or newer): the copies are then all there is offline.
+    if (entries == null && await _file.exists()) return notifyListeners();
     try {
       final keep = {for (final c in _list) cacheFile(c.url).path};
       for (final f in _cache.listSync().whereType<File>()) {
@@ -202,6 +204,9 @@ class FollowedCatalogs extends ChangeNotifier {
   });
 
   Future<void> _save(List<FollowedCatalog> list) async {
+    if (!mayReplace(_file)) {
+      throw FileSystemException('kept as it is', _file.path);
+    }
     await dir.create(recursive: true);
     final tmp = File('${_file.path}.tmp');
     await tmp.writeAsString(

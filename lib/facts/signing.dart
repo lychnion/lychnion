@@ -133,7 +133,7 @@ class TrustList extends ChangeNotifier {
 
   Future<void> _save() async {
     final f = _file;
-    if (f == null) return;
+    if (f == null || !mayReplace(f)) return;
     await f.writeAsString(
       jsonEncode({
         'format': format,

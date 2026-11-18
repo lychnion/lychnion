@@ -75,6 +75,30 @@ void main() {
       expect(file('a.json.broken').existsSync(), isTrue);
     });
 
+    test('a failed copy: the file must not be replaced, retried', () async {
+      file('a.json').writeAsStringSync('{"format":2}');
+      // A folder where the copy should go makes the copy fail.
+      Directory('${tmp.path}/a.json.newer').createSync();
+      expect(await read(file('a.json')), isNull);
+      expect(mayReplace(file('a.json')), isFalse);
+      expect(keptAside.value, isEmpty);
+
+      Directory('${tmp.path}/a.json.newer').deleteSync();
+      expect(await read(file('a.json')), isNull);
+      expect(file('a.json.newer').existsSync(), isTrue);
+      expect(mayReplace(file('a.json')), isTrue);
+    });
+
+    test('two readers wait for the same copy', () async {
+      file('a.json').writeAsStringSync('{');
+      final both = await Future.wait([
+        keepAside(file('a.json'), 'broken'),
+        keepAside(file('a.json'), 'broken'),
+      ]);
+      expect(both.every((f) => f != null), isTrue);
+      expect(keptAside.value, ['a.json.broken']);
+    });
+
     test('sync reading does the same', () {
       file('a.json').writeAsStringSync('{"format":9}');
       expect(readVersionedSync(file('a.json'), 1, (j, _) => j), isNull);
@@ -105,6 +129,16 @@ void main() {
       expect(s.region, isNull);
       await s.setShowStats(true);
       expect(file('settings.json.newer').readAsStringSync(), newer);
+    });
+
+    test('newer and the copy fails: a save leaves the file', () async {
+      const newer = '{"format":99,"region":"JP-30"}';
+      file('settings.json').writeAsStringSync(newer);
+      Directory('${tmp.path}/settings.json.newer').createSync();
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      await s.setShowStats(true);
+      expect(file('settings.json').readAsStringSync(), newer);
     });
 
     test('corrupt: defaults, kept as .broken', () async {
@@ -217,6 +251,30 @@ void main() {
       expect(lines, hasLength(2));
     });
 
+    test('facts added at the same time are all kept', () async {
+      file('facts.jsonl').writeAsStringSync('${line(fact('old'))}\n');
+      final s = FactStore(clock: () => now);
+      final loading = s.load(dir: tmp);
+      await Future.wait([
+        loading,
+        s.addAll([fact('a')]),
+        s.addAll([fact('b')]),
+      ]);
+      final again = FactStore(clock: () => now);
+      await again.load(dir: tmp);
+      expect(again.all.map((f) => f.value).toSet(), {'old', 'a', 'b'});
+    });
+
+    test('newer and the copy fails: the file is left as it is', () async {
+      const newer = '{"format":2}\n{"something":"new"}\n';
+      file('facts.jsonl').writeAsStringSync(newer);
+      Directory('${tmp.path}/facts.jsonl.newer').createSync();
+      final s = FactStore(clock: () => now);
+      await s.load(dir: tmp);
+      await s.addAll([fact('open')]);
+      expect(file('facts.jsonl').readAsStringSync(), newer);
+    });
+
     test('the first fact in a new file gets the first line', () async {
       final s = FactStore(clock: () => now);
       await s.load(dir: tmp);
@@ -302,6 +360,15 @@ void main() {
       await followed.load();
       expect(followed.all, isEmpty);
       expect(File('${c.path}.newer').existsSync(), isTrue);
+    });
+
+    test('an unreadable catalogs.json keeps the offline copies', () async {
+      final cache = File('${tmp.path}/downloads/followed/x.json')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('{}');
+      File('${tmp.path}/downloads/catalogs.json').writeAsStringSync('{');
+      await FollowedCatalogs(Directory('${tmp.path}/downloads')).load();
+      expect(cache.existsSync(), isTrue);
     });
 
     test('downloads/settings.json: old read, newer kept aside', () async {
@@ -501,6 +568,20 @@ void main() {
       await s.markInstalled(i);
       expect(File('${marker(s).path}.newer').readAsStringSync(), newer);
       expect(s.installed(ItemKind.model, id), isNotNull);
+    });
+
+    test('a newer marker still blocks older versions', () async {
+      final s = DownloadStore(tmp, trust: trust);
+      final v2 = await item(version: '2');
+      s.dirFor(ItemKind.model).createSync(recursive: true);
+      marker(
+        s,
+      ).writeAsStringSync(jsonEncode({'format': 3, 'record': v2.record!.json}));
+      expect(s.recordedVersionOf(ItemKind.model, id), '2');
+      await expectLater(
+        s.markInstalled(await item()),
+        throwsA(isA<OlderVersion>()),
+      );
     });
 
     test('deleting an item also removes its old marker', () async {

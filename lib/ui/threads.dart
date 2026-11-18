@@ -101,7 +101,7 @@ class ThreadStore extends ChangeNotifier {
   /// Saves finished answers (call after an answer is complete).
   Future<void> save() async {
     final file = _file;
-    if (file == null) return;
+    if (file == null || !mayReplace(file)) return;
     await file.writeAsString(
       jsonEncode({
         'format': format,

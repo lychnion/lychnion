@@ -122,19 +122,23 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
-  Future<void> _save() async => _file?.writeAsString(
-    jsonEncode({
-      'format': format,
-      'language': ?language,
-      'show_stats': showStats,
-      'shelter_url': ?shelterUrl,
-      'shelter_name': ?shelterName,
-      'shelter_key': ?shelterKey,
-      'sharing': sharing,
-      'sharing_name': ?sharingName,
-      'region': ?region,
-      'acknowledged': acknowledged.toList()..sort(),
-      'first_steps': firstSteps.toList()..sort(),
-    }),
-  );
+  Future<void> _save() async {
+    final f = _file;
+    if (f == null || !mayReplace(f)) return;
+    await f.writeAsString(
+      jsonEncode({
+        'format': format,
+        'language': ?language,
+        'show_stats': showStats,
+        'shelter_url': ?shelterUrl,
+        'shelter_name': ?shelterName,
+        'shelter_key': ?shelterKey,
+        'sharing': sharing,
+        'sharing_name': ?sharingName,
+        'region': ?region,
+        'acknowledged': acknowledged.toList()..sort(),
+        'first_steps': firstSteps.toList()..sort(),
+      }),
+    );
+  }
 }

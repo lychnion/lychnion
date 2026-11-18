@@ -181,10 +181,12 @@ class DownloadStore {
     }
   }
 
-  /// The marker [text] as JSON if this build reads its format (1 or 2).
-  static Map<String, Object?>? _markerJson(String text) {
+  /// The marker [text] as JSON if this build reads its format (1 or 2),
+  /// or with [newer] also a newer format (only for its record, see
+  /// [_onDisk]).
+  static Map<String, Object?>? _markerJson(String text, {bool newer = false}) {
     final f = _markerFormatOf(text);
-    if (f == null || f < 1 || f > markerFormat) return null;
+    if (f == null || f < 1 || (f > markerFormat && !newer)) return null;
     return (jsonDecode(text) as Map).cast<String, Object?>();
   }
 
@@ -306,10 +308,12 @@ class DownloadStore {
 
   /// The record in the install marker of [id], read without checking its
   /// signature: who installed it and which version, also after its
-  /// publisher was removed.
+  /// publisher was removed. Also from a newer build's marker when its
+  /// record can be read: the checks for other publishers' items and
+  /// older versions must hold for those too.
   PackageRecord? _onDisk(ItemKind kind, String id) {
     try {
-      final j = _markerJson(_marker(kind, id).readAsStringSync())!;
+      final j = _markerJson(_marker(kind, id).readAsStringSync(), newer: true)!;
       return PackageRecord.fromJson((j['record'] as Map).cast());
     } on Object {
       return null;
@@ -494,6 +498,9 @@ class DownloadStore {
       {};
 
   Future<void> _set(String key, Object? value) async {
+    if (!mayReplace(_settingsFile)) {
+      throw FileSystemException('kept as it is', _settingsFile.path);
+    }
     final s = _settings()
       ..[key] = value
       ..['format'] = settingsFormat;

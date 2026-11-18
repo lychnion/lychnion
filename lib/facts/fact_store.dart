@@ -44,6 +44,24 @@ class FactStore extends ChangeNotifier {
   Future<void> load({Directory? dir}) async {
     dir ??= await getApplicationSupportDirectory();
     final file = _file = File('${dir.path}/facts.jsonl');
+    await _serial(() => _loadFrom(file));
+    // Keys trusted since the facts were saved (a base's QR code scanned
+    // after its facts came): checked again at every start.
+    await reverify();
+    notifyListeners();
+  }
+
+  /// Reading, upgrading and adding to the file go one after another: an
+  /// upgrade must not drop facts added meanwhile.
+  Future<void> _io = Future.value();
+
+  Future<void> _serial(Future<void> Function() step) {
+    final next = _io.then((_) => step());
+    _io = next.catchError((Object _) {});
+    return next;
+  }
+
+  Future<void> _loadFrom(File file) async {
     if (await file.exists()) {
       var lines = const <String>[];
       try {
@@ -82,14 +100,11 @@ class FactStore extends ChangeNotifier {
         }
       }
       if (good.length < lines.length) await keepAside(file, 'broken');
-      if (f != format || good.length < lines.length) {
+      // Not when a copy could not be made: the file stays as it is.
+      if (mayReplace(file) && (f != format || good.length < lines.length)) {
         await _rewrite(file, good);
       }
     }
-    // Keys trusted since the facts were saved (a base's QR code scanned
-    // after its facts came): checked again at every start.
-    await reverify();
-    notifyListeners();
   }
 
   /// Writes [lines] under the current header, next to the file first.
@@ -120,12 +135,14 @@ class FactStore extends ChangeNotifier {
     }
     _facts.addAll(fresh);
     final file = _file;
-    if (file != null) {
-      if (!await file.exists()) await _rewrite(file, const []);
-      await file.writeAsString(
-        '${fresh.map((f) => jsonEncode({...f.toJson(), 'v_ok': f.verified})).join('\n')}\n',
-        mode: FileMode.append,
-      );
+    if (file != null && mayReplace(file)) {
+      await _serial(() async {
+        if (!await file.exists()) await _rewrite(file, const []);
+        await file.writeAsString(
+          '${fresh.map((f) => jsonEncode({...f.toJson(), 'v_ok': f.verified})).join('\n')}\n',
+          mode: FileMode.append,
+        );
+      });
     }
     notifyListeners();
     return fresh.length;

@@ -12,7 +12,8 @@ import 'package:flutter/foundation.dart';
 /// - unreadable file: copied to `<name>.broken`, then nothing;
 /// - format newer than this build knows (a newer build wrote it): copied
 ///   to `<name>.newer`, then nothing. The caller's next save replaces the
-///   file, the copy stays.
+///   file, the copy stays. If the copy fails, saves must not replace the
+///   file in this run: writers check [mayReplace].
 ///
 /// Older formats are given to the caller to read; its next save writes
 /// the current format.
@@ -25,35 +26,64 @@ int formatOf(Object? json) => switch (json) {
 /// line in Settings.
 final keptAside = ValueNotifier<List<String>>(const []);
 
+/// Copies made in this run (only finished ones), and copies under way.
 final _asideDone = <String>{};
+final _asidePending = <String, Future<File?>>{};
+
+/// Files whose copy failed: the app must not write over them in this
+/// run, or the only copy of their data would be lost (see [mayReplace]).
+final _mustKeep = <String>{};
 
 /// Copies [file] to `<name>.[why]` once per run and notes it in
-/// [keptAside]. Returns the copy, or null when nothing could be copied.
-Future<File?> keepAside(File file, String why) async {
+/// [keptAside]. Returns the copy, or null when nothing could be copied:
+/// then [mayReplace] is false for [file] for the rest of the run.
+Future<File?> keepAside(File file, String why) {
   final to = '${file.path}.$why';
-  if (!_asideDone.add(to)) return File(to);
+  if (_asideDone.contains(to)) return Future.value(File(to));
+  return _asidePending[to] ??= () async {
+    try {
+      final copy = await file.copy(to);
+      _done(file, why);
+      return copy;
+    } on Object catch (e) {
+      _failed(file, e);
+      return null;
+    } finally {
+      // A failed copy is tried again next time. (This runs after the
+      // first await, so after the entry was stored.)
+      _asidePending.removeWhere((k, _) => k == to);
+    }
+  }();
+}
+
+/// [keepAside] for code that cannot wait. A copy under way elsewhere
+/// counts as not made yet.
+File? keepAsideSync(File file, String why) {
+  final to = '${file.path}.$why';
+  if (_asideDone.contains(to)) return File(to);
   try {
-    final copy = await file.copy(to);
-    _note(file, why);
+    final copy = file.copySync(to);
+    _done(file, why);
     return copy;
   } on Object catch (e) {
-    debugPrint('could not keep ${file.path} aside: $e');
+    _failed(file, e);
     return null;
   }
 }
 
-/// [keepAside] for code that cannot wait.
-File? keepAsideSync(File file, String why) {
-  final to = '${file.path}.$why';
-  if (!_asideDone.add(to)) return File(to);
-  try {
-    final copy = file.copySync(to);
-    _note(file, why);
-    return copy;
-  } on Object catch (e) {
-    debugPrint('could not keep ${file.path} aside: $e');
-    return null;
-  }
+/// False while [file] holds data that could not be copied aside: a save
+/// must then leave it as it is.
+bool mayReplace(File file) => !_mustKeep.contains(file.path);
+
+void _done(File file, String why) {
+  _asideDone.add('${file.path}.$why');
+  _mustKeep.remove(file.path);
+  _note(file, why);
+}
+
+void _failed(File file, Object e) {
+  _mustKeep.add(file.path);
+  debugPrint('could not keep ${file.path} aside, not writing over it: $e');
 }
 
 void _note(File file, String why) {
@@ -68,6 +98,8 @@ void _note(File file, String why) {
 @visibleForTesting
 void resetKeptAside() {
   _asideDone.clear();
+  _asidePending.clear();
+  _mustKeep.clear();
   keptAside.value = const [];
 }
 
