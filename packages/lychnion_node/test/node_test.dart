@@ -192,6 +192,89 @@ void main() {
     });
   });
 
+  group('review fixes', () {
+    test('a second pull on the same folder at the same time stops', () async {
+      publish([await offer('jp.a', '1', 'aaa')]);
+      await go();
+      // Another process holds the lock (file locks are per process).
+      final script = File('${tmp.path}/hold.dart')
+        ..writeAsStringSync(
+          "import 'dart:io';\n"
+          'Future<void> main(List<String> a) async {\n'
+          '  final f = await File(a[0]).open(mode: FileMode.write);\n'
+          '  await f.lock(FileLock.exclusive);\n'
+          "  stdout.writeln('locked');\n"
+          '  await Future<void>.delayed(const Duration(seconds: 20));\n'
+          '}\n',
+        );
+      final p = await Process.start(Platform.resolvedExecutable, [
+        script.path,
+        '${folder.dir.path}/.pull.lock',
+      ]);
+      addTearDown(p.kill);
+      await p.stdout.first;
+      await expectLater(go(), throwsA(isA<PullBusy>()));
+    });
+
+    test('Lychnion keeps its own ids', () async {
+      final lychnionKey = await Ed25519().newKeyPair();
+      final t = builtInPublishers.plus({
+        'lychnion': [await publicKeyOf(lychnionKey)],
+        'jp.city.test': [await publicKeyOf(city)],
+      });
+      publish([await offer('jp.a', '5', 'city')]);
+      await pull([src.url], folder, t);
+      publish([
+        await offer(
+          'jp.a',
+          '1',
+          'ours',
+          key: lychnionKey,
+          publisher: 'lychnion',
+        ),
+      ]);
+      final r = await pull([src.url], folder, t);
+      expect(r.changed, ['jp.a 1']);
+      expect((await folder.records(t)).single.publisher, 'lychnion');
+    });
+
+    test('a publisher left out: its record goes, its files stay', () async {
+      final c = await offer(
+        'jp.c',
+        '1',
+        'club',
+        key: club,
+        publisher: 'jp.club.test',
+      );
+      publish([c]);
+      await go();
+      final onlyCity = builtInPublishers.plus({
+        'jp.city.test': [await publicKeyOf(city)],
+      });
+      final r = await pull([src.url], folder, onlyCity);
+      expect(r.keptUntrusted, 1);
+      expect(r.pruned, 0);
+      expect(await folder.records(onlyCity), isEmpty);
+      expect(folder.blob(c.files.single.sha256)!.existsSync(), isTrue);
+    });
+
+    test('private and public hosts', () async {
+      for (final h in [
+        '127.0.0.1',
+        '10.1.2.3',
+        '192.168.1.20',
+        '169.254.169.254',
+        '::1',
+        'fd00::1',
+      ]) {
+        expect(await isPrivateHost(h), isTrue, reason: h);
+      }
+      for (final h in ['8.8.8.8', '2001:4860:4860::8888']) {
+        expect(await isPrivateHost(h), isFalse, reason: h);
+      }
+    });
+  });
+
   group('serve', () {
     late NodeServer server;
     late HttpClient client;
@@ -257,8 +340,32 @@ void main() {
         expect((await call(p)).$1, 404, reason: p);
       }
       expect((await call('/catalog.json', method: 'POST')).$1, 405);
+      // Ranges this server does not use: the whole file.
+      for (final r in ['bytes=0-1,5-6', 'bytes=5-2', 'items=0-1']) {
+        final (st, body, _) = await call('/blobs/sha256/$sha', range: r);
+        expect((st, body.length), (200, 10), reason: r);
+      }
       expect((await call('/blobs/sha256/$sha', range: 'bytes=20-')).$1, 416);
     });
+  });
+
+  test('more requests than allowed get 503', () async {
+    publish([await offer('jp.a', '1', 'aaa')]);
+    await go();
+    final busy = NodeServer(
+      folder,
+      port: 0,
+      address: InternetAddress.loopbackIPv4,
+      maxConnections: 0,
+    );
+    await busy.start();
+    addTearDown(busy.stop);
+    final c = HttpClient();
+    addTearDown(() => c.close(force: true));
+    final res = await (await c.getUrl(
+      Uri.parse('http://127.0.0.1:${busy.boundPort}/catalog.json'),
+    )).close();
+    expect(res.statusCode, 503);
   });
 
   test('check finds a file that does not match', () async {

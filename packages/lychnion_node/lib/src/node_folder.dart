@@ -27,6 +27,25 @@ class NodeFolder {
   File? blob(String sha256) =>
       _hex64.hasMatch(sha256) ? File('${blobs.path}/$sha256') : null;
 
+  /// Every record in catalog.json by its shape, signature not checked
+  /// (who had what here); empty when there is no catalog yet.
+  Future<List<PackageRecord>> allRecords() async {
+    if (!await catalogFile.exists()) return const [];
+    final j = jsonDecode(await catalogFile.readAsString());
+    if (j is! Map || j['format'] != 2) {
+      throw FormatException('${catalogFile.path}: not a format 2 catalog');
+    }
+    final out = <PackageRecord>[];
+    for (final raw in (j['records'] as List?) ?? const []) {
+      try {
+        out.add(PackageRecord.fromJson((raw as Map).cast()));
+      } on Object {
+        continue;
+      }
+    }
+    return out;
+  }
+
   /// The records in catalog.json that [trust] accepts (others are left
   /// out); empty when there is no catalog yet.
   Future<List<PackageRecord>> records(TrustedKeys trust) async {
@@ -49,7 +68,7 @@ class NodeFolder {
   }) async {
     await dir.create(recursive: true);
     final sorted = [...records]..sort((a, b) => a.id.compareTo(b.id));
-    final tmp = File('${catalogFile.path}.tmp');
+    final tmp = File('${catalogFile.path}.$pid.tmp');
     await tmp.writeAsString(
       '${const JsonEncoder.withIndent('  ').convert({
         'format': 2,

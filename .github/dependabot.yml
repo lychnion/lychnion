@@ -52,6 +52,15 @@ updates:
       node-minor-patch:
         update-types: [minor, patch]
 
+  - package-ecosystem: docker
+    directory: /packages/lychnion_node
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 14
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

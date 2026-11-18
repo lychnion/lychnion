@@ -23,19 +23,37 @@ class PullResult {
 
   /// Files deleted because no record lists them any more.
   var pruned = 0;
+
+  /// Records here whose publisher is not trusted in this run (left out
+  /// of the catalog; their files are kept).
+  var keptUntrusted = 0;
+}
+
+/// Another pull is working on this folder (cron runs overlapping).
+class PullBusy implements Exception {
+  @override
+  String toString() => 'Another pull is running on this folder';
 }
 
 /// Pulls the catalogs at [sources] into [folder]: keeps the records
 /// [trust] accepts, fetches their files by hash (resumable, from every
 /// address a catalog gives, the hash decides), and writes the folder's
 /// catalog.json. Versions only go up, an id stays with the publisher that
-/// has it here, and a record is listed only once all its files are here.
-/// Files no record lists any more are deleted afterwards.
+/// has it here (except that Lychnion, built in, always keeps its own
+/// ids), and a record is listed only once all its files are here.
+/// Afterwards files no record needs any more are deleted; files of
+/// records no longer trusted (a `--publisher` left out) are kept.
 ///
+/// One pull per folder at a time: a second one throws [PullBusy].
 /// Run it again and again (cron): what is current is not fetched again.
 ///
 /// [kinds] (`package`, `map`, `model`): only those; empty means all.
 /// Models are large (gigabytes), so a node may leave them out.
+///
+/// Addresses a catalog gives for files on private, loopback or link-local
+/// networks are skipped unless the catalog itself is on such a network
+/// (a base on the local Wi-Fi), so a catalog from the internet cannot
+/// make the node probe its own network.
 Future<PullResult> pull(
   List<Uri> sources,
   NodeFolder folder,
@@ -43,22 +61,62 @@ Future<PullResult> pull(
   Set<String> kinds = const {},
   void Function(String line)? log,
 }) async {
-  final result = PullResult();
-  final have = {for (final r in await folder.records(trust)) r.id: r};
-  final next = Map.of(have);
   await folder.blobs.create(recursive: true);
+  final lock = await File(
+    '${folder.dir.path}/.pull.lock',
+  ).open(mode: FileMode.write);
+  try {
+    await lock.lock(FileLock.exclusive);
+  } on FileSystemException {
+    await lock.close();
+    throw PullBusy();
+  }
+  try {
+    return await _pull(sources, folder, trust, kinds, log);
+  } finally {
+    await lock.unlock();
+    await lock.close();
+  }
+}
+
+Future<PullResult> _pull(
+  List<Uri> sources,
+  NodeFolder folder,
+  TrustedKeys trust,
+  Set<String> kinds,
+  void Function(String line)? log,
+) async {
+  final result = PullResult();
+  final before = await folder.allRecords();
+  final have = <String, PackageRecord>{};
+  // Files of records here that are no longer trusted are not deleted: a
+  // publisher left out by mistake must not cost its downloads.
+  final untrusted = <String>{};
+  for (final r in before) {
+    if (await trust.verify(r)) {
+      have[r.id] = r;
+    } else {
+      untrusted.addAll(r.files.map((f) => f.sha256));
+      result.keptUntrusted++;
+    }
+  }
+  final next = Map.of(have);
+  final builtIn = builtInPublishers.publishers.toSet();
+  final wanted = <String>{}; // hashes of every record looked at
+  final private = _PrivateHosts();
 
   for (final source in sources) {
     final _Catalog cat;
     try {
       cat = _Catalog.parse(await fetchCatalogText(source), source);
     } on CatalogFetchError catch (e) {
-      result.failed.add('$source: ${e.code}');
+      result.failed.add('${redactedUrl(source)}: ${e.code}');
       continue;
     } on FormatException {
-      result.failed.add('$source: invalid');
+      result.failed.add('${redactedUrl(source)}: invalid');
       continue;
     }
+    final sourcePrivate = await private.isPrivate(source.host);
     for (final raw in cat.records) {
       final r = await trust.check(raw);
       if (r == null) {
@@ -67,15 +125,30 @@ Future<PullResult> pull(
       }
       if (kinds.isNotEmpty && !kinds.contains(r.kind)) continue;
       final mine = next[r.id];
-      if (mine != null && mine.publisher != r.publisher) {
+      // Lychnion (built in) keeps its own ids; otherwise the publisher
+      // that has an id here keeps it.
+      final lychnionTakesBack =
+          mine != null &&
+          builtIn.contains(r.publisher) &&
+          !builtIn.contains(mine.publisher);
+      if (mine != null && mine.publisher != r.publisher && !lychnionTakesBack) {
         result.taken.add(r.id);
         continue;
       }
-      final newer = mine == null || isOlder(mine.version, r.version);
+      wanted.addAll(r.files.map((f) => f.sha256));
+      final newer =
+          mine == null || lychnionTakesBack || isOlder(mine.version, r.version);
       final same = mine != null && mine.version == r.version;
       // Same version with files missing here (deleted by hand): fetch them.
       if (!newer && !(same && !await _complete(folder, mine))) continue;
-      if (await _fetchFiles(folder, r, cat, log)) {
+      final addresses = <RecordFile, List<Uri>>{};
+      for (final f in r.files) {
+        addresses[f] = [
+          for (final u in cat.addressesOf(f))
+            if (sourcePrivate || !await private.isPrivate(u.host)) u,
+        ];
+      }
+      if (await _fetchFiles(folder, r, addresses, log)) {
         next[r.id] = r;
         if (newer) result.changed.add('${r.id} ${r.version}');
       } else {
@@ -97,15 +170,66 @@ Future<PullResult> pull(
   final keep = {
     for (final r in listed)
       for (final f in r.files) f.sha256,
+    ...untrusted,
   };
   for (final f in folder.blobs.listSync().whereType<File>()) {
     final name = f.uri.pathSegments.last;
-    if (folder.blob(name) != null && !keep.contains(name)) {
+    if (folder.blob(name) != null) {
+      if (!keep.contains(name)) {
+        f.deleteSync();
+        result.pruned++;
+      }
+      continue;
+    }
+    // Half-downloaded files of versions nobody offers any more.
+    final hash = name.split('.').first;
+    if (folder.blob(hash) != null &&
+        (name.endsWith('.part') || name.endsWith('.part.json')) &&
+        !keep.contains(hash) &&
+        !wanted.contains(hash)) {
       f.deleteSync();
-      result.pruned++;
     }
   }
   return result;
+}
+
+/// Whether [host] is on a private, loopback or link-local network (a
+/// name that cannot be looked up counts as private).
+Future<bool> isPrivateHost(String host) => _PrivateHosts().isPrivate(host);
+
+/// Whether a host is on a private, loopback or link-local network (looked
+/// up once per host; a name that cannot be looked up counts as private).
+class _PrivateHosts {
+  final _known = <String, bool>{};
+
+  Future<bool> isPrivate(String host) async {
+    if (_known[host] case final v?) return v;
+    List<InternetAddress> addresses;
+    if (InternetAddress.tryParse(host) case final a?) {
+      addresses = [a];
+    } else {
+      try {
+        addresses = await InternetAddress.lookup(host);
+      } on Object {
+        addresses = const [];
+      }
+    }
+    final v = addresses.isEmpty || addresses.any(_private);
+    return _known[host] = v;
+  }
+
+  static bool _private(InternetAddress a) {
+    if (a.isLoopback || a.isLinkLocal) return true;
+    final b = a.rawAddress;
+    if (a.type == InternetAddressType.IPv4) {
+      return b[0] == 10 ||
+          (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
+          (b[0] == 192 && b[1] == 168) ||
+          (b[0] == 100 && b[1] >= 64 && b[1] < 128) ||
+          b[0] == 0;
+    }
+    return (b[0] & 0xfe) == 0xfc; // fc00::/7
+  }
 }
 
 /// Whether every file of [r] is here at its size.
@@ -120,7 +244,7 @@ Future<bool> _complete(NodeFolder folder, PackageRecord r) async {
 Future<bool> _fetchFiles(
   NodeFolder folder,
   PackageRecord r,
-  _Catalog cat,
+  Map<RecordFile, List<Uri>> addresses,
   void Function(String line)? log,
 ) async {
   for (final f in r.files) {
@@ -130,13 +254,17 @@ Future<bool> _fetchFiles(
         await _sha256(blob) == f.sha256) {
       continue;
     }
-    final urls = cat.addressesOf(f);
-    if (urls.isEmpty) return false;
+    final urls = addresses[f] ?? const [];
+    if (urls.isEmpty) {
+      log?.call('${r.id} ${r.version}: ${f.name}: no usable address');
+      return false;
+    }
+    final downloader = Downloader(
+      onSourceFailed: (u, e) =>
+          log?.call('  ${redactedUrl(u)}: ${sourceErrorText(e)}'),
+    );
     try {
-      await Downloader(
-        onSourceFailed: (u, e) =>
-            log?.call('  ${redactedUrl(u)}: ${sourceErrorText(e)}'),
-      ).fetch(
+      await downloader.fetch(
         FileSpec(
           url: urls.first,
           fallbacks: urls.skip(1).toList(),
@@ -152,6 +280,8 @@ Future<bool> _fetchFiles(
         '${r.id} ${r.version}: ${f.name} failed: ${sourceErrorText(e)}',
       );
       return false;
+    } finally {
+      downloader.close();
     }
   }
   return true;

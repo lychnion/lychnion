@@ -39,6 +39,19 @@ Future<void> main(List<String> argv) async {
     };
   } on _Usage catch (e) {
     exitCode = _bad(e.message);
+  } on PullBusy catch (e) {
+    // Not an error for cron: the running pull does the work.
+    stderr.writeln(e);
+    exitCode = 75;
+  } on FileSystemException catch (e) {
+    stderr.writeln('${e.path ?? ''}: ${e.osError?.message ?? e.message}');
+    exitCode = 74;
+  } on SocketException catch (e) {
+    stderr.writeln('network: ${e.osError?.message ?? e.message}');
+    exitCode = 1;
+  } on FormatException catch (e) {
+    stderr.writeln(e.message);
+    exitCode = 1;
   }
 }
 
@@ -75,6 +88,9 @@ TrustedKeys _trust(List<String> args) {
   for (final p in _opts(args, '--publisher')) {
     final i = p.indexOf('=');
     if (i <= 0) throw _Usage('--publisher wants NAME=KEY');
+    if (builtInPublishers.publishers.contains(p.substring(0, i))) {
+      throw _Usage('${p.substring(0, i)} is built in; its key cannot be added');
+    }
     more.putIfAbsent(p.substring(0, i), () => []).add(p.substring(i + 1));
   }
   try {
@@ -93,8 +109,19 @@ Future<int> _serve(List<String> args) async {
   final port = int.tryParse(
     _opt(args, '--port') ?? '${NodeServer.defaultPort}',
   );
-  if (port == null) throw _Usage('--port wants a number');
+  if (port == null || port < 0 || port > 65535) {
+    throw _Usage('--port wants a number from 0 to 65535');
+  }
   final host = _opt(args, '--host');
+  InternetAddress? address;
+  if (host != null) {
+    address = InternetAddress.tryParse(host);
+    if (address == null) {
+      final found = await InternetAddress.lookup(host);
+      if (found.isEmpty) throw _Usage('--host: $host not found');
+      address = found.first;
+    }
+  }
   final folder = NodeFolder(_dir(args));
   if (!await folder.catalogFile.exists()) {
     stderr.writeln('${folder.catalogFile.path} is missing (run pull first)');
@@ -103,7 +130,7 @@ Future<int> _serve(List<String> args) async {
   final server = NodeServer(
     folder,
     port: port,
-    address: host == null ? null : InternetAddress(host),
+    address: address,
     log: (l) =>
         stdout.writeln('${DateTime.now().toUtc().toIso8601String()} $l'),
   );
@@ -157,6 +184,12 @@ Future<int> _pull(List<String> args) async {
   }
   for (final f in r.failed) {
     stderr.writeln('failed: $f');
+  }
+  if (r.keptUntrusted > 0) {
+    stdout.writeln(
+      '${r.keptUntrusted} records here are from publishers not given now: '
+      'left out of the catalog, their files kept',
+    );
   }
   stdout.writeln(
     '${r.changed.length} new, ${r.notTrusted} not trusted, '

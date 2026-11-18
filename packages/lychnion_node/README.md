@@ -71,7 +71,28 @@ docker run --rm -v /srv/lychnion:/data lychnion-node \
 ```
 
 The image holds only the compiled program and its runtime files, and
-runs as an unprivileged user (65534): the data folder must be writable
-by it for `pull`.
+runs as an unprivileged user (65534). A named volume is writable by it;
+a host folder mounted at /data must be writable by user 65534 for
+`pull`.
+
+## Operating it
+
+- `pull` takes a lock on the folder: a second run while one is still
+  working (a long download) ends at once with exit code 75.
+- Exit codes: 0 done, 1 something failed (the last good state stays),
+  64 wrong arguments, 74 a file problem (disk full, permissions),
+  75 another pull is running.
+- Files of records from a publisher you no longer give with
+  `--publisher` are kept, not deleted; the record is left out of the
+  catalog until you give the key again.
+- Addresses a catalog gives on private or local networks are skipped,
+  unless the catalog itself is on such a network (a base).
+- `pull` checks sizes; `check` also checks every hash. Run `check` now
+  and then to find a damaged disk.
+- A record stays until a higher version replaces it; a publisher
+  cannot withdraw a version from nodes yet (to be decided with step 5).
+- `serve` takes at most 64 requests at a time and closes idle
+  connections after 30 seconds. On the open internet, put it behind a
+  reverse proxy (TLS, rate limits).
 
 Licence: AGPL-3.0, as the app.
