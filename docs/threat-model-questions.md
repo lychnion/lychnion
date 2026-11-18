@@ -62,10 +62,22 @@ adapted from the skill's reference bank (its number in brackets).
 - May a followed catalog send the app to any host? May a base's catalog?
 - Is a USB stick a trusted source?
 
+### Key statements and backups (§1.10, §1.11, §1.12)
+
+- Which keys do replacement and revocation statements cover: added
+  publishers, the desktop's own publisher, the built-in Lychnion key, base
+  keys?
+- What may the holder of an old or stolen key do with statements, and is
+  that in model?
+- What does a key backup promise (passphrase, restore guards), and what does
+  it leave to the operator?
+- Can a carrier withhold statements, and what does that cost?
+
 ### Deep links and QR codes (§1.7, §1.10, §1.11)
 
-- For each link kind (`shelter`, `share`, `publisher`, `catalog`, and the old
-  `fieldkit://`), what may it do before and after the dialog?
+- For each link kind (`base` and its older host `shelter`, `share`,
+  `publisher`, `catalog`, and the legacy `fieldkit://` scheme), what may it
+  do before and after the dialog?
 - Does a link opened from a web page or message count as "checked in
   person", like a QR code scanned at the base?
 - Is a fake QR code posted in person at a shelter in model?
@@ -116,9 +128,10 @@ adapted from the skill's reference bank (its number in brackets).
 
 ## Ruling record (2026-11-19)
 
-The first model, bound to commit `6ee5dea`, asked Q1 to Q20 one at a time,
-each with selectable answers. The maintainer chose the proposed answer every
-time.
+The first model asked Q1 to Q20 one at a time, each with selectable
+answers, against commit `6ee5dea`. After re-binding to `be565e8` it asked
+Q32 and Q33 about the key statements that had landed in between. The
+maintainer chose the proposed answer every time.
 
 | Q | Question | Ruling |
 | --- | --- | --- |
@@ -142,5 +155,8 @@ time.
 | Q18 | Wi-Fi limits | Disclaimed: confidentiality on the Wi-Fi, browser-page integrity, signature stripping before the first signed answer, cross-site requests while bases are offline. |
 | Q19 | Files after install | Trusted after install; a half-failed multi-file update is a correctness bug; parser defects go upstream. |
 | Q20 | Side effects | The inventory in §1.5 is right, including the assumption that native libraries do not use the network. |
+
+| Q32 | Lychnion's key and key statements | Statements for the built-in `lychnion` key are claimed and verified like any publisher's; theft of the key itself stays out of model. |
+| Q33 | Old keys and backups | Claimed: a backup's key is readable only with the passphrase; restore never brings back a revoked or replaced key. Disclaimed: denial by an old-key holder, offline guessing of a weak passphrase, where the backup is kept. |
 
 Still open in §1.18 of the model: Q21 to Q31.

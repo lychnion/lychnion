@@ -2,14 +2,14 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:c3d02e5f13dc5e17cafdf7f08d1a931f9fd4fb686aba983cb5a93356378aaf91
+prose_version: threat-model.md@sha256:cd48015f89897c5be23cb9d7b7a5c913327ed21410dd922d2048bb7307b6c25b
 model_status: under-review
 triage_policy: strict
 confidence:
-  documented: 109
-  maintainer: 103
+  documented: 120
+  maintainer: 108
   inferred: 6
-  assumption: 32
+  assumption: 31
 generation:
   model: Claude Opus 5.5 (claude-opus-5-5)
   effort: low
@@ -165,6 +165,14 @@ host_side_effects:
   - device-data
   conditions: llama.cpp (llamadart, flutter_edge_ai), bonsoir, geolocator
   provenance: *id001
+- effect: key-backup-file
+  stance: conditional
+  components:
+  - publishing
+  conditions: written only where the operator saves it; Argon2id (at most 128 MiB) in a background isolate
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
 - effect: node-sockets-files-signals
   stance: present
   components:
@@ -237,6 +245,29 @@ entry_points:
     provenance:
       kind: documented
       source: 'docs/distribution.md "Storage: files by hash, any server"'
+- id: relevantStatements
+  component: records
+  parameters:
+  - name: keys statements from any catalog, stick, base, phone or node
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: none — key-statement-verification
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Backing up and replacing the key"
+- id: KeyBackup.open
+  component: publishing
+  parameters:
+  - name: backup file and passphrase
+    attacker_controllable: false
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: keep the backup offline and the passphrase strong
+    provenance:
+      kind: maintainer
+      date: 2026-11
+    obligation_id: keep-the-backup-offline-and-the-passphrase-strong
 - id: fetchCatalogText
   component: downloads
   parameters:
@@ -516,10 +547,10 @@ entry_points:
       kind: documented
       source: docs/distribution.md "Sync between nodes"
     obligation_id: the-user-confirms-one-base
-- id: lychnion://shelter link
+- id: lychnion://base link (also shelter)
   component: base-client
   parameters:
-  - name: url, name, key
+  - name: url, name, key, s
     attacker_controllable: true
     control_kinds:
     - data
@@ -579,7 +610,7 @@ entry_points:
 - id: node pull
   component: node
   parameters:
-  - name: catalog body, file responses, hosts it names
+  - name: catalog body with key statements, file responses, hosts it names
     attacker_controllable: true
     control_kinds:
     - serialized-state
@@ -713,11 +744,11 @@ contract_dimensions:
 - component: downloads
   dimension: reference-lifecycle
   status: claimed
-  conditions: removing a publisher deletes its items
+  conditions: a revoked key's items stop being used; removing a publisher deletes its items (publisher-removal-deletes)
   provenance:
     kind: documented
-    source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
-  property_id: publisher-removal-deletes
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: revocation-unloads
 - component: downloads
   dimension: concurrency-reentrancy
   status: claimed
@@ -775,11 +806,12 @@ contract_dimensions:
   property_id: signed-install-only
 - component: records
   dimension: reference-lifecycle
-  status: not-applicable
-  conditions: records are immutable values
+  status: claimed
+  conditions: trusted keys change only through verified key statements
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: key-statement-verification
 - component: records
   dimension: concurrency-reentrancy
   status: not-applicable
@@ -790,10 +822,10 @@ contract_dimensions:
 - component: records
   dimension: resource-complexity
   status: claimed
-  conditions: one signature check per record, bounded by the catalog cap
+  conditions: one signature check per record; key statements capped per list and per publisher
   provenance:
     kind: documented
-    source: docs/distribution.md "Following catalogs"
+    source: docs/distribution.md "Backing up and replacing the key"
   property_id: client-response-limits
 - component: publishing
   dimension: numeric-domain
@@ -835,12 +867,12 @@ contract_dimensions:
   property_id: publisher-key-local
 - component: publishing
   dimension: reference-lifecycle
-  status: disclaimed
-  conditions: no key backup, replacement or revocation
+  status: claimed
+  conditions: backup, restore, replacement and revocation of the desktop key
   provenance:
     kind: documented
-    source: docs/distribution.md "Publishers and keys"
-  property_id: key-revocation
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: key-backup-confidentiality
 - component: publishing
   dimension: concurrency-reentrancy
   status: not-applicable
@@ -1138,7 +1170,7 @@ contract_dimensions:
 - component: node
   dimension: reference-lifecycle
   status: disclaimed
-  conditions: a publisher cannot withdraw a version from nodes yet
+  conditions: a publisher cannot withdraw one version; revoking a key sets aside what it signed
   provenance:
     kind: documented
     source: packages/lychnion_node/README.md "Operating"
@@ -1216,85 +1248,107 @@ outputs:
   - id: base-answer-and-its-signature-not-assumed
     statement: That a signed answer is true or grounded in the phone's own packages
     provenance: *id006
-- component: base-server
-  channel: browser-page
-  taint: same-as-input
+- component: records
+  channel: catalog-keys-list
+  taint: constrained
   taint_provenance: &id007
-    kind: maintainer
-    date: 2026-11
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
   invariants: []
   downstream_must_not_assume:
-  - id: browser-page-not-assumed
-    statement: 'Integrity: a device on the Wi-Fi can change it'
+  - id: catalog-keys-list-not-assumed
+    statement: 'That the list is complete or current: a carrier can drop statements'
     provenance: *id007
-- component: base-server
-  channel: catalog-json-blobs-from-a-base-phone-or-node
-  taint: same-as-input
+- component: publishing
+  channel: key-backup-file
+  taint: constrained
   taint_provenance: &id008
     kind: documented
-    source: docs/distribution.md "Security"
+    source: docs/distribution.md "Backing up and replacing the key"
   invariants: []
   downstream_must_not_assume:
-  - id: catalog-json-blobs-from-a-base-phone-or-node-not-assumed
-    statement: That the server checked the bytes; readers check signature and hash
+  - id: key-backup-file-not-assumed
+    statement: 'That the file is harmless without the passphrase: anyone with it can revoke the key'
     provenance: *id008
-- component: facts
-  channel: facts-on-screen
+- component: base-server
+  channel: browser-page
   taint: same-as-input
   taint_provenance: &id009
     kind: maintainer
     date: 2026-11
   invariants: []
   downstream_must_not_assume:
+  - id: browser-page-not-assumed
+    statement: 'Integrity: a device on the Wi-Fi can change it'
+    provenance: *id009
+- component: base-server
+  channel: catalog-json-blobs-from-a-base-phone-or-node
+  taint: same-as-input
+  taint_provenance: &id010
+    kind: documented
+    source: docs/distribution.md "Security"
+  invariants: []
+  downstream_must_not_assume:
+  - id: catalog-json-blobs-from-a-base-phone-or-node-not-assumed
+    statement: That the server checked the bytes; readers check signature and hash
+    provenance: *id010
+- component: facts
+  channel: facts-on-screen
+  taint: same-as-input
+  taint_provenance: &id011
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
   - id: facts-on-screen-not-assumed
     statement: That "official" means true, or that the signer is responsible for that shelter
-    provenance: *id009
+    provenance: *id011
 - component: facts
   channel: map-suggestion-and-route
   taint: constrained
-  taint_provenance: &id010
+  taint_provenance: &id012
     kind: maintainer
     date: 2026-11
   invariants:
   - id: map-suggestion-and-route-invariant
     statement: only verified facts change it (unverified-facts-not-acted-on)
     property_id: unverified-facts-not-acted-on
-    provenance: *id010
+    provenance: *id012
   downstream_must_not_assume: []
 - component: device-data
   channel: system-log
   taint: constrained
-  taint_provenance: &id011
+  taint_provenance: &id013
     kind: maintainer
     date: 2026-11
   invariants:
   - id: system-log-invariant
     statement: release builds do not log questions, answers or position (device-egress)
     property_id: device-egress
-    provenance: *id011
+    provenance: *id013
   downstream_must_not_assume: []
 - component: node
   channel: node-stdout
   taint: same-as-input
-  taint_provenance: &id012
+  taint_provenance: &id014
     kind: assumption
     question_id: Q30
   invariants: []
   downstream_must_not_assume:
   - id: node-stdout-not-assumed
     statement: That it holds no personal data
-    provenance: *id012
+    provenance: *id014
 - component: downloads
   channel: files-in-the-app-folder
   taint: constrained
-  taint_provenance: &id013
+  taint_provenance: &id015
     kind: maintainer
     date: 2026-11
   invariants: []
   downstream_must_not_assume:
   - id: files-in-the-app-folder-not-assumed
     statement: That a half-failed multi-file update is consistent
-    provenance: *id013
+    provenance: *id015
 adversaries:
 - name: device-on-the-same-wi-fi
   scope: in
@@ -1340,8 +1394,10 @@ adversaries:
   capabilities:
   - Serve any bytes, old signed records, redirects
   - delay or withhold
+  - drop or replay key statements
   excluded_capabilities:
   - Signing records
+  - forging a key statement
   - making a wrong file install
   goals:
   - Install a tampered file, hide updates, learn what users download
@@ -1362,9 +1418,10 @@ adversaries:
 - name: publisher-the-user-added
   scope: in
   capabilities:
-  - Sign any record and content for its name, including text that steers the model
+  - Sign any record, content and key statement for its name, including text that steers the model
   excluded_capabilities:
-  - Signing for lychnion or another name
+  - Signing records or statements for lychnion or another name
+  - naming a successor key it does not hold
   - shipping models
   - supplying the official safety line
   goals:
@@ -1372,6 +1429,20 @@ adversaries:
   provenance:
     kind: maintainer
     date: 2026-11
+- name: holder-of-an-old-or-stolen-publisher-key
+  scope: in
+  capabilities:
+  - Sign records and statements for that name
+  - revoke the key
+  - name a second successor
+  excluded_capabilities:
+  - Keys it does not hold
+  - the user's dialogs
+  goals:
+  - Impersonate the publisher, or make phones drop it
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
 - name: operator-of-a-qr-pinned-base
   scope: out
   capabilities:
@@ -1410,7 +1481,7 @@ adversaries:
     date: 2026-11
 dependency_policy:
   zero_runtime_dependencies: false
-  provenance: &id014
+  provenance: &id016
     kind: maintainer
     date: 2026-11
 dependencies:
@@ -1422,7 +1493,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: sqlite3
   relied_on_for: opening package files read-only
   relied_on_properties: []
@@ -1431,7 +1502,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: cryptography
   relied_on_for: Ed25519 signatures for records, facts and answers
   relied_on_properties: []
@@ -1440,7 +1511,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: crypto
   relied_on_for: SHA-256 of files and requests
   relied_on_properties: []
@@ -1449,7 +1520,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: Dart dart:io
   relied_on_for: HttpServer, HttpClient, header parsing
   relied_on_properties: []
@@ -1458,7 +1529,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: bonsoir
   relied_on_for: mDNS announce and browse
   relied_on_properties: []
@@ -1467,7 +1538,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: app_links, url_launcher
   relied_on_for: receiving links, opening source links
   relied_on_properties: []
@@ -1476,7 +1547,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: vector_map_tiles, vector_map_tiles_pmtiles, flutter_map
   relied_on_for: rendering downloaded map files
   relied_on_properties: []
@@ -1485,7 +1556,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: geolocator
   relied_on_for: one position fix on request
   relied_on_properties: []
@@ -1494,7 +1565,7 @@ dependencies:
   outputs_consumed: []
   covered_here: false
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 - name: Gemma and EmbeddingGemma model files from Hugging Face
   relied_on_for: the answer and search models
   relied_on_properties: []
@@ -1503,10 +1574,10 @@ dependencies:
   outputs_consumed: []
   covered_here: true
   violation_disposition: 'OUT-OF-MODEL: dependency-contract'
-  provenance: *id014
+  provenance: *id016
 build_policy:
   security_relevant_flags_present: true
-  provenance: *id014
+  provenance: *id016
 build_flags:
 - name: --dart-define dev flags
   default: unset
@@ -1612,7 +1683,8 @@ properties_claimed:
   - base-client
   tier: security-critical
   conditions: a file from any source is installed or served onward only when its record verifies against
-    a trusted key for that publisher name and the file's size and SHA-256 match.
+    a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in
+    or added key, or a successor named by a valid key statement, and not revoked.
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1626,7 +1698,7 @@ properties_claimed:
   - node
   tier: security-critical
   conditions: an added publisher never replaces Lychnion's items or files, or another publisher's ids,
-    also not by upper or lower case.
+    also not by upper or lower case, and its key statements count only for its own name.
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1652,8 +1724,10 @@ properties_claimed:
   - downloads
   - base-client
   tier: security-critical
-  conditions: a publisher key or base key becomes trusted only after the user says yes, and a base key
-    gets fact trust only from an in-person QR scan.
+  conditions: 'a publisher key or base key becomes trusted only after the user says yes, and a base key
+    gets fact trust only from an in-person QR scan. Two exceptions come from the publisher''s own statements:
+    a successor named by a trusted key''s replacement is trusted without a dialog, and a revoked publisher''s
+    new link replaces its entry after a dialog.'
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1703,8 +1777,9 @@ properties_claimed:
   tier: security-critical
   conditions: with a pinned key, the phone accepts a base answer only when its Ed25519 signature covers
     the phone's nonce, a hash of the request and the exact body; once that base has signed, unsigned answers
-    are refused. An answer from a base without a pinned key, or an unsigned one, carries a note saying
-    so.
+    are refused. A QR code with `s=1` says the base signs, so unsigned answers are refused from the first
+    one. A late answer from a previous base is ignored. An answer from a base without a pinned key, or
+    an unsigned one, carries a note saying so.
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1769,8 +1844,8 @@ properties_claimed:
   - node
   tier: security-critical
   conditions: 'what a phone or node accepts is capped: 16 KiB for a base''s `/info`, 1 MiB for facts and
-    answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s. A hostile response
-    does not crash or hang the reader.'
+    answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements
+    per list and 1000 kept. A hostile response does not crash or hang the reader.'
   violation_symptoms:
   - unbounded-allocation
   - crash
@@ -1857,7 +1932,8 @@ properties_claimed:
   components:
   - publishing
   tier: security-critical
-  conditions: the desktop publisher key stays in the app folder and is never served or shared.
+  conditions: the plain desktop publisher key stays in the app folder and is never served or shared. The
+    only copy that leaves it is the passphrase-encrypted backup the operator saves.
   violation_symptoms:
   - info-leak
   provenance:
@@ -1886,6 +1962,47 @@ properties_claimed:
   provenance:
     kind: documented
     source: packages/lychnion_node/README.md "Operating"
+- id: key-statement-verification
+  kind: authentication
+  components:
+  - records
+  - downloads
+  - node
+  tier: security-critical
+  conditions: a replacement counts only when the old key signed it and the new key countersigned it; a
+    revocation only when the revoked key signed it; and only when the old key is trusted for that publisher
+    at that moment. A revoked key, a key with two successors, and any key reached only through them is
+    not trusted. This holds for the `lychnion` key too.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- id: revocation-unloads
+  kind: integrity
+  components:
+  - downloads
+  tier: security-critical
+  conditions: once a revocation is learned, items whose record the revoked key signed are no longer used.
+    Their files stay on disk, and their version still blocks a downgrade.
+  violation_symptoms:
+  - bad-data-accepted
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- id: key-backup-confidentiality
+  kind: confidentiality
+  components:
+  - publishing
+  tier: security-critical
+  conditions: the private key in a backup is readable only with the passphrase (Argon2id, then AES-256-GCM;
+    name and public key bound). Restore never replaces a key, never restores a key this computer knows
+    as revoked or replaced, and writes nothing on a wrong passphrase or a damaged file.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: maintainer
+    date: 2026-11
 properties_disclaimed:
 - id: ai-wording-correctness
   components:
@@ -1935,8 +2052,9 @@ properties_disclaimed:
   components:
   - downloads
   - node
-  conditions: Protection against being kept on old data. No expiry on records; catalogs unsigned; also
-    after delete, publisher removal, reinstall or on a fresh node
+  conditions: Protection against being kept on old data. No expiry on records or key statements; catalogs
+    unsigned; a carrier can withhold a revocation; older apps ignore statements; also after delete, publisher
+    removal, reinstall or on a fresh node
   tier: security-critical
   false_friend: false
   provenance:
@@ -1944,18 +2062,39 @@ properties_disclaimed:
     date: 2026-11
 - id: key-revocation
   components:
-  - records
-  - downloads
-  - publishing
   - facts
   - base-client
-  conditions: Rotation or revocation of the Lychnion key, publisher keys or base keys; backup of a publisher
-    key. All builds today
+  conditions: Rotation, revocation or removal of base (fact) keys. Publisher keys, Lychnion's included,
+    have signed replacement and revocation (key-statement-verification)
   tier: security-critical
   false_friend: false
   provenance:
     kind: documented
-    source: docs/distribution.md "Security"
+    source: docs/facts-results.md "Signed facts (2026-11-05
+- id: old-key-denial
+  components:
+  - records
+  - downloads
+  - node
+  conditions: Protection against the holder of an old or stolen publisher key who revokes it or names
+    a second successor. Phones that added that key drop it and its successors until the user adds the
+    new link
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: backup-passphrase-and-storage
+  components:
+  - publishing
+  conditions: Resistance of a key backup to offline guessing of a weak passphrase; protection of the backup
+    file where the operator keeps it. Passphrase of at least 12 characters; the operator chooses where
+    to save
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
 - id: lan-confidentiality
   components:
   - base-server
@@ -1979,8 +2118,8 @@ properties_disclaimed:
 - id: first-signature-strip
   components:
   - base-client
-  conditions: Protection against stripping signatures before a pinned base has signed once. Until the
-    first signed answer; the "unsigned" note is the defence
+  conditions: Protection against stripping signatures before a pinned base has signed once. Only for a
+    QR code without s=1 (older codes), until the first signed answer; the "unsigned" note is the defence
   tier: security-critical
   false_friend: false
   provenance:
@@ -2126,17 +2265,19 @@ downstream_responsibilities:
   statement: Keep the base offline while serving, or accept cross-site requests.
   enforces:
   - keep-bases-offline-1-12-cross-site-requests
-  provenance: &id015
+  provenance: &id017
     kind: maintainer
     date: 2026-11
 - id: publisher-key-offline-copy
   component: publishing
-  statement: Keep a copy of the publisher key offline; treat the key file as a secret of that account.
+  statement: Save a passphrase backup of the key and keep it offline; restore only the newest backup;
+    keep backups of replaced keys as safe as the newest one.
   enforces:
   - publisher-key-local
+  - keep-the-backup-offline-and-the-passphrase-strong
   provenance:
     kind: documented
-    source: help/en/07-publishers.md "How do I publish my own guides?"
+    source: docs/distribution.md "Backing up and replacing the key"
 - id: node-operator-duties
   component: node
   statement: Check each --publisher key out of band, use a reverse proxy on the internet, pull a USB stick
@@ -2144,13 +2285,13 @@ downstream_responsibilities:
   enforces:
   - the-operator-checks-the-key
   - reverse-proxy-on-the-internet
-  provenance: *id015
+  provenance: *id017
 - id: release-without-dev-flags
   component: answers
   statement: Build releases without --dart-define dev flags.
   enforces:
   - signed-install-only
-  provenance: *id015
+  provenance: *id017
 - id: source-for-recipients
   component: base-server
   statement: Give every recipient the source, also for a base.
@@ -2191,13 +2332,13 @@ known_misuses:
   - downloads
   pattern: shipping a build with dev flags such as DEV_MENU=true
   safer_alternative: build releases without --dart-define
-  provenance: *id015
+  provenance: *id017
 - id: serve-usb-stick
   components:
   - node
   pattern: serving a USB stick with lychnion_node serve
   safer_alternative: pull the stick into the node folder
-  provenance: *id015
+  provenance: *id017
 known_non_findings:
 - id: unsigned-mirrors
   components:
@@ -2225,6 +2366,20 @@ known_non_findings:
   provenance:
     kind: documented
     source: docs/data-packages.md "Signing and trust"
+- id: unsigned-key-list
+  components:
+  - downloads
+  - records
+  - node
+  symptom: integrity-bypass
+  tool_pattern: The catalog keys list is unsigned, so a host can inject key statements
+  conditions: The injected statements are not signed by a key the device trusts for that publisher, and
+    are not kept
+  discharged_by:
+  - key-statement-verification
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
 - id: ai-wrong-advice
   components:
   - answers

@@ -4,8 +4,10 @@
 
 - **Project**: Lychnion (リクニオン), an offline safety assistant for Japan.
   Repository `lychnion/lychnion`.
-- **Version binding**: commit `6ee5dea` on `main` (2026-11-19), app version
-  `0.1.0+1`, not tagged yet. A report against a later commit is triaged
+- **Version binding**: commit `be565e8` on `main` (2026-11-19), app version
+  `0.1.0+1`, not tagged yet. The draft was first written against `6ee5dea`
+  and re-bound after thirteen commits added key statements, key backups,
+  `lychnion://base` links and `packages/lychnion_guide`. A report against a later commit is triaged
   against the model as it stood at that commit, not against HEAD.
 - **Date and authors**: 2026-11-19. Drafted with AI assistance for the
   Lychnion authors; the maintainer answers were given in the drafting session.
@@ -21,8 +23,9 @@
   §1.3 or §1.12 rule out are closed by citing this document. `SECURITY.md`
   keeps a short summary; where the two differ, this model wins
   *(maintainer, 2026-11)*.
-- **Status**: under maintainer review, 2026-11-19. Twenty maintainer questions
-  are answered; the questions left in §1.18 are open. An **inferred** claim may
+- **Status**: under maintainer review, 2026-11-19. Twenty-two maintainer
+  questions are answered (Q1 to Q20, Q32, Q33); the questions left in §1.18
+  are open. An **inferred** claim may
   escalate a report but never close it, and an **assumption** closes nothing
   under the declared policy.
 - **Triage policy**: `strict`. An **assumption** escalates like an
@@ -42,17 +45,18 @@
   records and files; the headless node is `packages/lychnion_node`. A *record*
   is the small signed JSON that names a package version and its files by
   SHA-256. *Pinning* a key means the phone remembers it as the base's key.
-- **Draft confidence**: 109 documented / 103 maintainer / 6 inferred / 32 assumption.
-- **Backtest note**: routed a 38-item corpus in 14 clusters across all 9
+- **Draft confidence**: 120 documented / 108 maintainer / 6 inferred / 31 assumption.
+- **Backtest note**: routed a 41-item corpus in 15 clusters across all 9
   component families and all 8 contract dimensions. 15 items carry a real
   historical outcome: 13 security fixes in the git history and 2 acknowledged
-  open items of issue 36. 23 are synthesized, built from defects this review
-  found in the code. Dispositions: 27 `VALID`, 5
-  `BY-DESIGN: property-disclaimed`, 3 `OUT-OF-MODEL: adversary-not-in-scope`,
-  1 `OUT-OF-MODEL: non-default-build`, 1 `OUT-OF-MODEL: dependency-contract`,
-  1 `KNOWN-NON-FINDING`, 0 `MODEL-GAP`. All 13 historically-fixed items route
-  `VALID`, so the fail-safe figure is 0. 11 of 38 items take a closing route
-  (29%): 10 close and 1 escalates on Q21. No contradiction with a historical
+  open items of issue 36. 26 are synthesized, built from defects this review
+  found in the code and from the key statements added before the re-bind.
+  Dispositions: 28 `VALID`, 6 `BY-DESIGN: property-disclaimed`, 3
+  `OUT-OF-MODEL: adversary-not-in-scope`, 1 `OUT-OF-MODEL: non-default-build`,
+  1 `OUT-OF-MODEL: dependency-contract`, 2 `KNOWN-NON-FINDING`, 0
+  `MODEL-GAP`. All 13 historically-fixed items route `VALID`, so the
+  fail-safe figure is 0. 13 of 41 items take a closing route (32%): 12 close
+  and 1 escalates on Q21. No contradiction with a historical
   call; the two open items of issue 36 now close on maintainer rulings (Q12,
   Q18). Routing added the "not checked" note to `base-answer-signature` and
   the crash outcome to `client-response-limits`.
@@ -139,8 +143,8 @@ One model covers everything this repository ships *(maintainer, 2026-11)*.
 | --- | --- | --- | --- | --- |
 | `answers`: retrieval, LLM, safety lines, source links | `GroundedAnswerer.answer` | no (reads package files) | in | *(maintainer, 2026-11)* |
 | `downloads`: catalogs, downloads, install store, publishers, followed catalogs, USB stick; `packages/lychnion_fetch` as used by the app | `DownloadManager.download` | network, file system | in | *(maintainer, 2026-11)* |
-| `records`: `packages/lychnion_format` | `TrustedKeys.check` | no | in | *(maintainer, 2026-11)* |
-| `publishing`: desktop publisher key and signing | `publish` | file system | in | *(maintainer, 2026-11)* |
+| `records`: `packages/lychnion_format`: records, key statements, key backups, catalog document | `TrustedKeys.check`, `KeyStatement.check` | no | in | *(maintainer, 2026-11)* |
+| `publishing`: desktop publisher key, its backup, replacement and revocation, signing; `packages/lychnion_guide` (guide check before signing) | `publish`, `restoreKey` | file system | in | *(maintainer, 2026-11)* |
 | `base-server`: base and Share nearby server, browser page, mDNS announcement | `BaseServer._handle` | listening socket, mDNS | in | *(maintainer, 2026-11)* |
 | `base-client`: phone side of a base, discovery, deep links | `BaseClient.ask`, `_openLink` | network, mDNS | in | *(maintainer, 2026-11)* |
 | `facts`: signed current facts and their use on the map | `FactStore.addAll` | file system | in | *(maintainer, 2026-11)* |
@@ -162,8 +166,9 @@ One model covers everything this repository ships *(maintainer, 2026-11)*.
   install *(maintainer, 2026-11)*.
 - **The Lychnion signing key and the maintainers' accounts.** A stolen
   Lychnion key, a compromised maintainer GitHub account or build machine is
-  out of model; there is no key rotation or revocation yet *(maintainer,
-  2026-11)*.
+  out of model *(maintainer, 2026-11)*. Key statements that replace or revoke
+  the `lychnion` key are in model and verified like any publisher's
+  *(maintainer, 2026-11)*.
 - **Release and CI machinery.** CI only analyzes and tests, with read-only
   permissions and no secrets; release builds are made on a maintainer's
   machine. A CI report that cannot reach a shipped build or a secret is a
@@ -211,19 +216,24 @@ Trust transitions:
 
 1. **Bytes to record.** Any catalog, stick, base or phone delivers JSON. A
    record becomes trusted only when its Ed25519 signature checks out against
-   the built-in Lychnion key or a key the user added for that publisher name.
-   *Trust the signature, not the source* *(documented, docs/distribution.md
-   "Principles")*.
-2. **Record to file.** A file becomes trusted only when its size and SHA-256
+   the built-in Lychnion key or a key the user added for that publisher name,
+   or a successor of one named by a valid key statement, and no statement
+   revoked it. *Trust the signature, not the source* *(documented,
+   docs/distribution.md "Principles")*.
+2. **Statement to key.** Catalogs, sticks, bases, nearby phones and nodes
+   also carry key statements. A statement changes trust only when a key the
+   device already trusts for that publisher signed it *(documented,
+   docs/distribution.md "Backing up and replacing the key")*.
+3. **Record to file.** A file becomes trusted only when its size and SHA-256
    match the signed record *(documented, docs/data-packages.md "Signing and
    trust")*.
-3. **Installed file to answer.** Package passages go into the model prompt.
+4. **Installed file to answer.** Package passages go into the model prompt.
    The model's text is shown with the sources and the safety line.
-4. **Base to phone.** A base is trusted for facts and signed answers only
+5. **Base to phone.** A base is trusted for facts and signed answers only
    after an in-person QR scan pins its key *(maintainer, 2026-11)*. Before
    that, its answers carry a "not checked" note and its facts show as
    unconfirmed *(documented, CHANGELOG.md "Security")*.
-5. **Link to setting.** A `lychnion://` link changes nothing before the user
+6. **Link to setting.** A `lychnion://` link changes nothing before the user
    says yes in a dialog *(documented, docs/base.md "QR codes")*.
 
 Reachability preconditions:
@@ -236,7 +246,8 @@ Reachability preconditions:
   or 8643. Reaching it from outside the local Wi-Fi or hotspot is itself a
   violation (§1.11 `lan-only-exposure`).
 - `base-client`: in model if reachable from a base's responses, an mDNS
-  record, or a `lychnion://` / `fieldkit://` link.
+  record, or a `lychnion://` / `fieldkit://` link (`base`, `shelter`,
+  `share`, `publisher`, `catalog`).
 - `facts`: in model if reachable from facts a base serves.
 - `device-data`: in model if data leaves the app sandbox: network, the system
   log, or shared storage.
@@ -272,6 +283,11 @@ No-surprise side-effects inventory, confirmed by the maintainer
 | Outbound HTTP(S) | present | catalog, mirror, model and base addresses only |
 | Native libraries' own network use | absent | llama.cpp (`llamadart`, `flutter_edge_ai`), bonsoir, geolocator |
 
+The desktop also writes a key backup file only where the operator saves
+it, and derives the backup key with Argon2id (at most 128 MiB) in a
+background isolate *(documented, docs/distribution.md "Backing up and
+replacing the key")*.
+
 The headless node opens one listening socket (default `0.0.0.0:8642`), makes
 outbound HTTP(S) to catalog and file hosts, writes only inside its folder,
 handles SIGINT and SIGTERM, reads no environment variables, starts no child
@@ -296,7 +312,9 @@ process, and logs client IP addresses to stdout *(assumption, Q30)*.
 Inputs reach the app from five places: package files, catalogs and file
 servers, the local Wi-Fi, links, and the user. The table has one row per
 security-relevant operand of every network route, link kind and loader. It
-covers 7 of 7 base routes, 3 of 3 phone-to-base calls, 4 of 4 link kinds,
+covers 7 of 7 base routes, 3 of 3 phone-to-base calls, 4 of 4 link kinds
+(the base kind has two hosts, `base` and `shelter`), key statements, the key
+backup,
 mDNS discovery, the catalog parser, the downloader, the stick reader, the
 answer pipeline, the fact store and the node's 3 commands. UI widgets are
 covered only where they show input.
@@ -309,6 +327,8 @@ covered only where they show input.
 | `PackageRecord.fromJson` | `version` | yes; replay of older signed versions by anyone | data | none — `no-downgrade-installed` | *(documented, docs/versioning.md "Data: calendar versions")* |
 | `PackageRecord.fromJson` | `files[].size` | yes, by a trusted publisher | size | disk space | *(documented, docs/distribution.md "Security")* |
 | `Catalog.parse` | `urls`, `mirrors`, `base`, `refresh` (unsigned) | yes | resource-name | none — `signed-install-only` | *(documented, docs/distribution.md "Storage: files by hash, any server")* |
+| `relevantStatements` | `keys` statements from any catalog, stick, base, phone or node | yes | serialized-state | none — `key-statement-verification` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
+| `KeyBackup.open` | backup file and passphrase | the operator only | serialized-state | keep the backup offline and the passphrase strong | *(maintainer, 2026-11)* |
 | `fetchCatalogText` | response body, length, timing | yes | size, rate | none — `client-response-limits` | *(documented, docs/distribution.md "Following catalogs")* |
 | `fetchCatalogText` | redirect target | yes | resource-name | accept that catalogs may point anywhere | *(documented, docs/distribution.md "Following catalogs")* |
 | `Downloader.fetch` | status, `Content-Length`, `Content-Range`, body | yes | data, size | none — `atomic-file-install` | *(documented, docs/distribution.md "Storage: files by hash, any server")* |
@@ -334,18 +354,20 @@ covered only where they show input.
 | `BaseClient.info`, `.facts`, `.ask` | response status, body, size | yes, any host at the base address | data, size | none — `client-response-limits` | *(documented, CHANGELOG.md "Security")* |
 | `BaseClient.ask` | `x-lychnion-signature`, or its absence | yes, by a man in the middle | data | none — `base-answer-signature` | *(documented, docs/shelter-results.md "How it works")* |
 | `BaseFinder` | mDNS name, addresses, TXT key | yes | data | the user confirms one base | *(documented, docs/distribution.md "Sync between nodes")* |
-| `lychnion://shelter` link | `url`, `name`, `key` | yes, from any app, web page or message | data, resource-name | none — `key-consent` | *(maintainer, 2026-11)* |
+| `lychnion://base` link (also `shelter`) | `url`, `name`, `key`, `s` | yes, from any app, web page or message | data, resource-name | none — `key-consent` | *(maintainer, 2026-11)* |
 | `lychnion://share` link | `url` | yes | resource-name | the user confirms | *(documented, help/en/06-share-nearby.md "What does the other phone do?")* |
 | `FactStore.addAll` | facts from a base (≤500 per pull) | yes, any base or a man in the middle | data, size | none — `fact-verification` | *(documented, docs/facts-results.md "Signed facts (2026-11-05)")* |
 | `FactStore.current` | `observedAt`, `expiresAt` | yes | data | none — `fact-time-bounds` | *(maintainer, 2026-11)* |
 | node `serve` | path, method, `Range`, connections | yes, any client | resource-name, rate | reverse proxy on the internet | *(documented, packages/lychnion_node/README.md "Operating")* |
-| node `pull` | catalog body, file responses, hosts it names | yes, a non-publisher host | serialized-state, resource-name | none — `signed-install-only` | *(maintainer, 2026-11)* |
+| node `pull` | catalog body with key statements, file responses, hosts it names | yes, a non-publisher host | serialized-state, resource-name | none — `signed-install-only` | *(maintainer, 2026-11)* |
 | node `pull` | `--publisher NAME=KEY` | operator only | collaborator-implementation | the operator checks the key | *(maintainer, 2026-11)* |
 | node `pull` from a folder | stick contents | yes | serialized-state | none — `signed-install-only` | *(documented, packages/lychnion_node/README.md "Commands")* |
 
 Size and shape: catalogs are capped at 2 MB while they arrive; at most 20
 followed catalogs; at most 10 mirrors *(documented, docs/distribution.md
-"Following catalogs")*. A file is never larger than its signed size. There is
+"Following catalogs")*. A phone keeps at most 1000 key statements and 50
+replacements per publisher *(documented, docs/distribution.md "Backing up
+and replacing the key")*. A file is never larger than its signed size. There is
 no overall time limit per download and no disk quota *(documented,
 docs/distribution.md "Security")*.
 
@@ -367,7 +389,7 @@ dimension.
 | downloads | recursive/cyclic topology | unresolved | deeply nested JSON in a catalog | §1.18 Q31 | *(inferred, Q31)* |
 | downloads | callback execution | N/A | no caller code; progress callbacks are internal | §1.7 | *(assumption, Q30)* |
 | downloads | serialization/reconstruction | claimed | signed record and hash decide | §1.11 `signed-install-only` | *(documented, docs/data-packages.md "Signing and trust")* |
-| downloads | reference lifecycle | claimed | removing a publisher deletes its items | §1.11 `publisher-removal-deletes` | *(documented, help/en/07-publishers.md "How do I add a publisher, such as my city?")* |
+| downloads | reference lifecycle | claimed | a revoked key's items stop being used; removing a publisher deletes its items (`publisher-removal-deletes`) | §1.11 `revocation-unloads` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | downloads | concurrency/reentrancy | claimed | only a matching file is renamed, also under races | §1.11 `atomic-file-install` | *(documented, packages/lychnion_fetch/lib/src/downloader.dart `Downloader` doc comment)* |
 | downloads | resource complexity | disclaimed | no overall download deadline, no disk quota | §1.12 `download-time-and-disk` | *(documented, docs/distribution.md "Security")* |
 | records | numeric domain | claimed | versions 1–4 parts of ≤9 digits; missing parts count as 0 | §1.11 `no-downgrade-installed` | *(documented, packages/lychnion_format/lib/src/record.dart `compareVersions` comment)* |
@@ -375,15 +397,15 @@ dimension.
 | records | recursive/cyclic topology | unresolved | canonical JSON recurses without a depth limit | §1.18 Q31 | *(inferred, Q31)* |
 | records | callback execution | N/A | pure functions | §1.7 | *(assumption, Q30)* |
 | records | serialization/reconstruction | claimed | any JSON formatting of a record verifies the same | §1.11 `signed-install-only` | *(documented, packages/lychnion_format/lib/src/record.dart `canonicalJson` comment)* |
-| records | reference lifecycle | N/A | records are immutable values | §1.7 | *(assumption, Q30)* |
+| records | reference lifecycle | claimed | trusted keys change only through verified key statements | §1.11 `key-statement-verification` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | records | concurrency/reentrancy | N/A | no shared mutable state | §1.7 | *(assumption, Q30)* |
-| records | resource complexity | claimed | one signature check per record, bounded by the catalog cap | §1.11 `client-response-limits` | *(documented, docs/distribution.md "Following catalogs")* |
+| records | resource complexity | claimed | one signature check per record; key statements capped per list and per publisher | §1.11 `client-response-limits` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | publishing | numeric domain | claimed | a version must be higher than any signed or installed | §1.11 `no-downgrade-installed` | *(documented, docs/distribution.md "Publishers and keys")* |
 | publishing | failure atomicity | claimed | the signed record is kept first; leftover copies are removed | §1.11 `atomic-file-install` | *(documented, lib/publish/publish.dart `publish` step comments)* |
 | publishing | recursive/cyclic topology | N/A | the operator picks single files | §1.7 | *(assumption, Q30)* |
 | publishing | callback execution | N/A | no callbacks | §1.7 | *(assumption, Q30)* |
 | publishing | serialization/reconstruction | claimed | the key file stays on the computer, never served | §1.11 `publisher-key-local` | *(documented, docs/distribution.md "Publishers and keys")* |
-| publishing | reference lifecycle | disclaimed | no key backup, replacement or revocation | §1.12 `key-revocation` | *(documented, docs/distribution.md "Publishers and keys")* |
+| publishing | reference lifecycle | claimed | backup, restore, replacement and revocation of the desktop key | §1.11 `key-backup-confidentiality` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | publishing | concurrency/reentrancy | N/A | one operator; a lock file guards key creation | §1.7 | *(assumption, Q30)* |
 | publishing | resource complexity | N/A | operator-chosen files | §1.7 | *(assumption, Q30)* |
 | base-server | numeric domain | claimed | 500 characters, 8 KB body | §1.11 `base-request-limits` | *(documented, docs/shelter-results.md "How it works")* |
@@ -423,7 +445,7 @@ dimension.
 | node | recursive/cyclic topology | unresolved | deeply nested JSON in a catalog | §1.18 Q31 | *(inferred, Q31)* |
 | node | callback execution | N/A | no caller code | §1.7 | *(assumption, Q30)* |
 | node | serialization/reconstruction | claimed | records are carried unchanged | §1.11 `signed-install-only` | *(documented, docs/distribution.md "Node")* |
-| node | reference lifecycle | disclaimed | a publisher cannot withdraw a version from nodes yet | §1.12 `freshness` | *(documented, packages/lychnion_node/README.md "Operating")* |
+| node | reference lifecycle | disclaimed | a publisher cannot withdraw one version; revoking a key sets aside what it signed | §1.12 `freshness` | *(documented, packages/lychnion_node/README.md "Operating")* |
 | node | concurrency/reentrancy | claimed | one pull per folder | §1.11 `atomic-file-install` | *(documented, packages/lychnion_node/README.md "Operating")* |
 | node | resource complexity | disclaimed | at most 64 requests; flooding a directly exposed node is out | §1.12 `node-internet-dos` | *(maintainer, 2026-11)* |
 
@@ -435,7 +457,9 @@ dimension.
 | Citation marks `[n]` | `answers` | The app checks only that each number points to a passage the model was given | That the cited passage supports the sentence | *(maintainer, 2026-11)* |
 | Fixed safety line | `answers` | Word for word from a package's alerts table | That the app checked the quote against the official page; lychnion-data checks it at build time | *(maintainer, 2026-11)* |
 | Source link | `answers` | `http` or `https` address from the package or base | That the label is the destination | *(assumption, Q26)* |
-| Base answer and its signature | `base-server`, `base-client` | Signed answers prove which base sent them | That a signed answer is true or grounded in the phone's own packages | *(maintainer, 2026-11)* |
+| Base answer and its signature | `base-server`, `base-client` | Signed answers prove which base sent them; a refused answer is noted on the phone's own answer | That a signed answer is true or grounded in the phone's own packages | *(maintainer, 2026-11)* |
+| Catalog `keys` list | `records` | Each statement is signed; the list is not | That the list is complete or current: a carrier can drop statements | *(documented, docs/distribution.md "Backing up and replacing the key")* |
+| Key backup file | `publishing` | Encrypted private key, plus a readable revocation | That the file is harmless without the passphrase: anyone with it can revoke the key | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | Browser page | `base-server` | Plain http, unsigned | Integrity: a device on the Wi-Fi can change it | *(maintainer, 2026-11)* |
 | `/catalog.json`, blobs from a base, phone or node | `base-server`, `node` | Signed records and hash-named files; the server does not vouch | That the server checked the bytes; readers check signature and hash | *(documented, docs/distribution.md "Security")* |
 | Facts on screen | `facts` | Value, note and source name as received; "unconfirmed" when not verified | That "official" means true, or that the signer is responsible for that shelter | *(maintainer, 2026-11)* |
@@ -475,9 +499,10 @@ plus phones that also use the internet when they can.
 | Device on the same Wi-Fi | yes | Send any request to a base or a sharing phone; announce a fake base; read and change plain http; flood connections | Holding a pinned base's private key; getting its own QR code scanned in person as a base's (Q21); tapping dialogs for the user | Fake facts or answers, read questions, crash or hang a base or phone | *(maintainer, 2026-11)* |
 | Host outside the local Wi-Fi | yes | Reach a port the base or a sharing phone opened on another interface | Reaching a port that is bound only to the Wi-Fi | Use the base or read installed items | *(maintainer, 2026-11)* |
 | Sender of links (web page, message, other app, printed QR) | yes | Open `lychnion://` and `fieldkit://` links with any parameters | Confirming the dialog for the user; being scanned in person as a base's QR code | Get a key trusted, follow a hostile catalog, point the phone at a hostile base | *(maintainer, 2026-11)* |
-| Catalog, mirror or file host that is not a publisher | yes | Serve any bytes, old signed records, redirects; delay or withhold | Signing records; making a wrong file install | Install a tampered file, hide updates, learn what users download | *(maintainer, 2026-11)* |
+| Catalog, mirror or file host that is not a publisher | yes | Serve any bytes, old signed records, redirects; delay or withhold; drop or replay key statements | Signing records; forging a key statement; making a wrong file install | Install a tampered file, hide updates, learn what users download | *(maintainer, 2026-11)* |
 | USB stick author | yes | Any catalog, files and links on the stick | Signing records | Install a tampered or squatting item | *(documented, docs/distribution.md "Sync between nodes")* |
-| Publisher the user added | yes, for its own name | Sign any record and content for its name, including text that steers the model | Signing for `lychnion` or another name; shipping models; supplying the official safety line | Replace Lychnion's items or files, make its lines look official | *(maintainer, 2026-11)* |
+| Publisher the user added | yes, for its own name | Sign any record, content and key statement for its name, including text that steers the model | Signing records or statements for `lychnion` or another name; naming a successor key it does not hold; shipping models; supplying the official safety line | Replace Lychnion's items or files, make its lines look official | *(maintainer, 2026-11)* |
+| Holder of an old or stolen publisher key | yes, for that name until revoked | Sign records and statements for that name; revoke the key; name a second successor | Keys it does not hold; the user's dialogs | Impersonate the publisher, or make phones drop it | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | Operator of a QR-pinned base | no, for content | Sign facts and answers that phones trust | — | — | *(maintainer, 2026-11)* |
 | Lychnion key holder, maintainers, build machines | no | Sign anything as Lychnion, ship builds | — | — | *(maintainer, 2026-11)* |
 | Someone controlling the device | no | Read and change app files and memory | — | — | *(documented, SECURITY.md "Out of scope")* |
@@ -488,35 +513,42 @@ plus phones that also use the internet when they can.
 - **`signed-install-only`** (`downloads`, `records`, `node`, `base-client`):
   a file from any source is installed or served onward only when its record
   verifies against a trusted key for that publisher name and the file's size
-  and SHA-256 match. *Violation symptom*: integrity-bypass. *Tier*:
+  and SHA-256 match. A trusted key is a built-in or added key, or a successor
+  named by a valid key statement, and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:22`,
   `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:108`, and "Open a model
   file…" at `lib/ask/model_loading.dart:216`. Bundled guides are trusted by
-  the app signature, not a record (`lib/download/download_store.dart:608`).
+  the app signature, not a record (`lib/download/download_store.dart:612`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
-  ids, also not by upper or lower case. *Violation symptom*: integrity-bypass.
+  ids, also not by upper or lower case, and its key statements count only
+  for its own name. *Violation symptom*: integrity-bypass.
   *Tier*: security-critical. *Voided by*: no switch. Known gap: a stick record
   for a Lychnion id not installed yet passes, because the owner check only
-  looks at installed markers (`lib/download/download_store.dart:577`).
+  looks at installed markers (`lib/download/download_store.dart:581`).
   *(documented, docs/distribution.md "Publishers and keys")*
 - **`no-downgrade-installed`** (`downloads`, `records`, `publishing`, `node`): an
   installed item is never replaced with an older version.
   *Violation symptom*: bad-data-accepted. *Tier*: security-critical. *Voided by*:
-  deleting the item (`lib/download/download_store.dart:455`), removing its
+  deleting the item (`lib/download/download_store.dart:459`), removing its
   publisher (`lib/download/download_manager.dart:540`), reinstalling the app,
   or a fresh node folder. After that an older signed version is accepted
-  again (§1.12 `freshness`). *(documented, docs/distribution.md
+  again (§1.12 `freshness`). After a revocation a node lists the version it
+  listed before, never one below it. *(documented, docs/distribution.md
   "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
-  trust only from an in-person QR scan. *Violation symptom*: integrity-bypass.
+  trust only from an in-person QR scan. Two exceptions come from the
+  publisher's own statements: a successor named by a trusted key's
+  replacement is trusted without a dialog, and a revoked publisher's new
+  link replaces its entry after a dialog. *Violation symptom*:
+  integrity-bypass.
   *Tier*: security-critical. *Voided by*: `BASE_URL` connects without a link
-  (`lib/ask/base_connection.dart:9`). Known violation: any `lychnion://shelter`
-  link, from a web page too, pins its key after one tap
-  (`lib/app/incoming_links.dart:62`). *(maintainer, 2026-11)*
+  (`lib/ask/base_connection.dart:9`). Known violation: any `lychnion://base`
+  or `lychnion://shelter` link, from a web page too, pins its key after one
+  tap (`lib/app/incoming_links.dart:67`). *(maintainer, 2026-11)*
 - **`grounded-answer-presentation`** (`answers`): an answer is built only
   from installed guides and shows its sources; an answer whose citations do
   not check out carries a warning; the app never shows bare-model text as an
@@ -524,29 +556,31 @@ plus phones that also use the internet when they can.
   security-critical. *Voided by*: `BARE` skips the packages
   (`lib/ask/model_loading.dart:83`). Known violation: when loading fails after
   the model is up, the warning is drawn only if `grounded` is true
-  (`lib/ask/ask_page.dart:580`). *(documented, SECURITY.md "In scope")*
+  (`lib/ask/ask_page.dart:587`). *(documented, SECURITY.md "In scope")*
 - **`safety-line-lychnion-only`** (`answers`): when a hazard question matches,
   the fixed safety line from a Lychnion-signed package is shown word for word
   above the AI text; no other publisher supplies it. *Violation symptom*:
   x-missing-or-forged-safety-line. *Tier*: security-critical. *Voided by*:
   questions routed to the app help skip the line
-  (`lib/knowledge/grounded_answer.dart:236`). Known violation: alerts of every
-  installed package match (`lib/knowledge/grounded_answer.dart:247`).
+  (`lib/knowledge/grounded_answer.dart:242`). Known violation: alerts of every
+  installed package match (`lib/knowledge/grounded_answer.dart:253`).
   *(maintainer, 2026-11)*
 - **`models-lychnion-only`** (`downloads`, `answers`): only models signed by
   Lychnion are installed and loaded. *Violation symptom*: integrity-bypass.
   *Tier*: security-critical. *Voided by*: the dev loaders under
   `signed-install-only`. Known violation: any trusted publisher's record kind
-  is accepted (`lib/download/catalog.dart:179`). *(maintainer, 2026-11)*
+  is accepted (`lib/download/catalog.dart:186`). *(maintainer, 2026-11)*
 - **`base-answer-signature`** (`base-client`, `base-server`): with a pinned
   key, the phone accepts a base answer only when its Ed25519 signature covers
   the phone's nonce, a hash of the request and the exact body; once that base
-  has signed, unsigned answers are refused. An answer from a base without a
+  has signed, unsigned answers are refused. A QR code with `s=1` says the
+  base signs, so unsigned answers are refused from the first one. A late
+  answer from a previous base is ignored. An answer from a base without a
   pinned key, or an unsigned one, carries a note saying so. *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: no pinned key
-  (`lib/base/base_client.dart:96`); the first answers before the base has
-  signed (`lib/base/base_checks.dart:74`); pinning another key
-  (`lib/app/settings.dart:122`); a base without a signer
+  (`lib/base/base_client.dart:96`); for a QR code without `s=1`, the first
+  answers before the base has signed (`lib/base/base_checks.dart:78`);
+  pinning another key (`lib/app/settings.dart:129`); a base without a signer
   (`lib/base/base_server.dart:581`). *(documented, docs/shelter-results.md
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
@@ -580,14 +614,14 @@ plus phones that also use the internet when they can.
 - **`client-response-limits`** (`base-client`, `downloads`, `records`,
   `facts`, `node`): what a phone or node accepts is capped: 16 KiB for a
   base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000
-  kept, 2 MB per catalog read within 45 s. A hostile response does not crash
-  or hang the reader. *Violation symptom*: unbounded-allocation, crash, hang.
+  kept, 2 MB per catalog read within 45 s, 500 key statements per list and
+  1000 kept. A hostile response does not crash or hang the reader. *Violation symptom*: unbounded-allocation, crash, hang.
   *Tier*: security-critical. *Voided by*: nothing.
   Caps are constants or constructor defaults
   (`lib/base/base_client.dart:31`,
   `packages/lychnion_fetch/lib/src/catalog_fetch.dart:17`). Search:
-  `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts' lib packages` — no
-  setting or dev flag sets them. *(documented, CHANGELOG.md "Security")*
+  `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
+  — no setting or dev flag sets them. *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
   reachable only from the local Wi-Fi or hotspot. *Violation symptom*:
   info-leak. *Tier*: security-critical. *Voided by*: no switch. Known
@@ -612,7 +646,7 @@ plus phones that also use the internet when they can.
   never leaves; release builds do not log questions, answers or position.
   *Violation symptom*: info-leak. *Tier*: security-critical. *Voided by*: no
   switch. Known violations: a base link may name any host
-  (`lib/base/base_link.dart:67`), and answers and the region go to the system
+  (`lib/base/base_link.dart:93`), and answers and the region go to the system
   log (`lib/ask/ask_page.dart:164`). *(maintainer, 2026-11)*
 - **`lan-device-same-origin`** (`downloads`): from a base or a nearby phone,
   the app downloads only files on that device, never from other addresses
@@ -629,10 +663,11 @@ plus phones that also use the internet when they can.
   `packages/lychnion_fetch/lib/src/downloader.dart:251`). Multi-file items
   are not atomic (§1.12). *(documented, packages/lychnion_node/README.md
   "Operating")*
-- **`publisher-key-local`** (`publishing`): the desktop publisher key stays
-  in the app folder and is never served or shared. *Violation symptom*:
+- **`publisher-key-local`** (`publishing`): the plain desktop publisher key
+  stays in the app folder and is never served or shared. The only copy that
+  leaves it is the passphrase-encrypted backup the operator saves. *Violation symptom*:
   info-leak. *Tier*: security-critical. *Voided by*: on Windows the app does
-  not restrict the file (`lib/publish/local_publisher.dart:148`); macOS
+  not restrict the file (`lib/publish/local_publisher.dart:258`); macOS
   relies on the sandbox. *(documented, docs/distribution.md "Publishers and
   keys")*
 - **`publisher-removal-deletes`** (`downloads`): removing a publisher deletes
@@ -645,14 +680,42 @@ plus phones that also use the internet when they can.
   is on such a network. DNS rebinding is not caught. *Violation symptom*:
   x-request-forgery. *Tier*: correctness-only (assumption, Q22). *Voided
   by*: a catalog on a private network or a folder
-  (`packages/lychnion_node/lib/src/pull.dart:136`). *(documented,
+  (`packages/lychnion_node/lib/src/pull.dart:138`). *(documented,
   packages/lychnion_node/README.md "Operating")*
+
+- **`key-statement-verification`** (`records`, `downloads`, `node`): a
+  replacement counts only when the old key signed it and the new key
+  countersigned it; a revocation only when the revoked key signed it; and
+  only when the old key is trusted for that publisher at that moment. A
+  revoked key, a key with two successors, and any key reached only through
+  them is not trusted. This holds for the `lychnion` key too. *Violation
+  symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: no
+  switch; only `KeyStatement.check` admits a statement, at
+  `packages/lychnion_format/lib/src/key_statement.dart:101` and
+  `packages/lychnion_format/lib/src/key_statement.dart:105`.
+  *(documented, docs/distribution.md "Backing up and replacing the key")*
+- **`revocation-unloads`** (`downloads`): once a revocation is learned,
+  items whose record the revoked key signed are no longer used. Their files
+  stay on disk, and their version still blocks a downgrade. *Violation
+  symptom*: bad-data-accepted. *Tier*: security-critical. *Voided by*: no
+  switch; every trust change re-checks the install records
+  (`lib/download/download_manager.dart:574`). *(documented,
+  docs/distribution.md "Backing up and replacing the key")*
+- **`key-backup-confidentiality`** (`publishing`): the private key in a
+  backup is readable only with the passphrase (Argon2id, then AES-256-GCM;
+  name and public key bound). Restore never replaces a key, never restores
+  a key this computer knows as revoked or replaced, and writes nothing on a
+  wrong passphrase or a damaged file. *Violation symptom*: info-leak. *Tier*:
+  security-critical. *Voided by*: no switch. A file may ask for weaker
+  Argon2id settings within limits
+  (`packages/lychnion_format/lib/src/key_backup.dart:234`); weak passphrases
+  are §1.12 `backup-passphrase-and-storage`. *(maintainer, 2026-11)*
 
 ### Worked routing examples
 
 | Reported | Sink | Attacker needs | Symptom | Routes to | Licensed by |
 | --- | --- | --- | --- | --- | --- |
-| A web page opens a base link; after one tap its facts show as official | `lychnion://shelter` link | a link the user taps | integrity-bypass | `VALID` | `key-consent` |
+| A web page opens a base link; after one tap its facts show as official | `lychnion://base` link | a link the user taps | integrity-bypass | `VALID` | `key-consent` |
 | Base downloads go over plain http, so a man in the middle could swap files | base blobs | a device on the Wi-Fi | integrity-bypass | `KNOWN-NON-FINDING` **(closed)** | `plain-http-file-tamper` |
 | A pinned base posts a false "shelter open" fact | `FactStore.addAll` | the pinned base's own key | bad-data-accepted | `OUT-OF-MODEL: adversary-not-in-scope` **(closed)** | §1.10 pinned base operator |
 | Someone on the Wi-Fi reads the questions phones send to the base | `POST /ask` | passive Wi-Fi access | info-leak | `BY-DESIGN: property-disclaimed` **(closed)** | `lan-confidentiality` |
@@ -669,11 +732,13 @@ proves origin, not truth.
 | `citation-means-support` | Proof that a cited passage supports the sentence | `[n]` means only "this passage was given to the model" | security-critical | **yes** | *(maintainer, 2026-11)* |
 | `signed-means-true` | Truth of signed content, or the signer's authority over a shelter | Records, facts and answers; a signature proves origin | security-critical | **yes** | *(documented, docs/facts-results.md "Signed facts (2026-11-05)")* |
 | `publisher-content` | Vetting of an added publisher's guides, including text that steers the model, synonyms and vectors | Only under that publisher's own name; not its safety lines or models | security-critical | no | *(maintainer, 2026-11)* |
-| `freshness` | Protection against being kept on old data | No expiry on records; catalogs unsigned; also after delete, publisher removal, reinstall or on a fresh node | security-critical | no | *(maintainer, 2026-11)* |
-| `key-revocation` | Rotation or revocation of the Lychnion key, publisher keys or base keys; backup of a publisher key | All builds today | security-critical | no | *(documented, docs/distribution.md "Security")* |
+| `freshness` | Protection against being kept on old data | No expiry on records or key statements; catalogs unsigned; a carrier can withhold a revocation; older apps ignore statements; also after delete, publisher removal, reinstall or on a fresh node | security-critical | no | *(maintainer, 2026-11)* |
+| `key-revocation` | Rotation, revocation or removal of base (fact) keys | Publisher keys, Lychnion's included, have signed replacement and revocation (`key-statement-verification`) | security-critical | no | *(documented, docs/facts-results.md "Signed facts (2026-11-05)")* |
+| `old-key-denial` | Protection against the holder of an old or stolen publisher key who revokes it or names a second successor | Phones that added that key drop it and its successors until the user adds the new link | security-critical | no | *(maintainer, 2026-11)* |
+| `backup-passphrase-and-storage` | Resistance of a key backup to offline guessing of a weak passphrase; protection of the backup file where the operator keeps it | Passphrase of at least 12 characters; the operator chooses where to save | security-critical | no | *(maintainer, 2026-11)* |
 | `lan-confidentiality` | Confidentiality on the Wi-Fi of questions, answers, facts and the list of installed packages | Plain http on the local network; packages are public data | security-critical | no | *(maintainer, 2026-11)* |
 | `browser-page-integrity` | Integrity of the browser page for phones without the app | Plain http, unsigned | security-critical | no | *(maintainer, 2026-11)* |
-| `first-signature-strip` | Protection against stripping signatures before a pinned base has signed once | Until the first signed answer; the "unsigned" note is the defence | security-critical | no | *(maintainer, 2026-11)* |
+| `first-signature-strip` | Protection against stripping signatures before a pinned base has signed once | Only for a QR code without `s=1` (older codes), until the first signed answer; the "unsigned" note is the defence | security-critical | no | *(maintainer, 2026-11)* |
 | `cross-site-requests` | Defence against cross-site requests and DNS rebinding from a web page | While bases run without internet; in scope again if bases are meant to have internet | security-critical | no | *(maintainer, 2026-11)* |
 | `lan-availability` | Availability of a base against a device on the Wi-Fi that floods connections or questions | Per-request limits still hold (`base-request-limits`) | security-critical | no | *(maintainer, 2026-11)* |
 | `node-internet-dos` | Availability of a node exposed to the internet without a reverse proxy | Unsupported setup (§1.6) | correctness-only | no | *(maintainer, 2026-11)* |
@@ -703,9 +768,11 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
   Wi-Fi as readable by everyone on it *(maintainer, 2026-11)*. Keep the base
   offline while serving, or accept §1.12 `cross-site-requests`
   *(maintainer, 2026-11)*.
-- **Publishers**: keep a copy of the key offline *(documented,
-  help/en/07-publishers.md "How do I publish my own guides?")*. Treat the key
-  file as a secret of that user account *(maintainer, 2026-11)*.
+- **Publishers**: save a passphrase backup of the key and keep it offline;
+  restore only the newest backup; keep backups of replaced keys as safe as
+  the newest one *(documented, docs/distribution.md "Backing up and
+  replacing the key")*. Treat the key file as a secret of that user account
+  *(maintainer, 2026-11)*.
 - **Node operators**: check each `--publisher` key out of band; put a node
   behind a reverse proxy before exposing it to the internet; pull a USB stick
   into the node folder instead of serving it *(maintainer, 2026-11)*.
@@ -738,14 +805,17 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
 | --- | --- | --- | --- | --- | --- | --- |
 | `unsigned-mirrors` | `downloads`, `node` | integrity-bypass | "Catalog `urls` and `mirrors` are unsigned, so an attacker can point downloads at their server" | The app or node contacts the host, and the file is installed only if its size and SHA-256 match the signed record | `signed-install-only` | *(documented, docs/distribution.md "Storage: files by hash, any server")* |
 | `plain-http-file-tamper` | `downloads`, `base-client`, `node` | integrity-bypass | "Downloads from a base, phone or node use plain http, so files can be swapped" | Tampered bytes fail the hash and are not installed | `signed-install-only` | *(documented, docs/data-packages.md "Signing and trust")* |
+| `unsigned-key-list` | `downloads`, `records`, `node` | integrity-bypass | "The catalog `keys` list is unsigned, so a host can inject key statements" | The injected statements are not signed by a key the device trusts for that publisher, and are not kept | `key-statement-verification` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | `ai-wrong-advice` | `answers` | wrong-output | "The model gave wrong or unsafe advice" | The answer shows its sources and the safety line where one matches; no forged citation or missing warning | `ai-wording-correctness` | *(maintainer, 2026-11)* |
 
 ## 1.16 Conditions that would change this model
 
 - A new transport (Android Nearby, Bluetooth, peer to peer between nodes).
 - Bases meant to have internet while serving (re-opens `cross-site-requests`).
-- Signed catalogs with timestamps, key rotation or revocation (changes
-  `freshness` and `key-revocation`).
+- Signed catalogs with timestamps, or statements with an expiry (changes
+  `freshness`). The key-statement trigger fired before this binding and is
+  folded in.
+- Rotation or revocation of base keys (changes `key-revocation`).
 - Publishers allowed to ship models or safety lines.
 - A release built in CI, or app store and desktop signing written down.
 - Telemetry or issue reports from the app (issue 18).
@@ -803,8 +873,8 @@ finding keeps its disposition and goes to the maintainer; it is not a
 
 ## 1.18 Open questions for the maintainers
 
-Questions Q1 to Q20 were answered on 2026-11-19 and are recorded in
-`docs/threat-model-questions.md`.
+Questions Q1 to Q20, Q32 and Q33 were answered on 2026-11-19 and are
+recorded in `docs/threat-model-questions.md`.
 
 - **Q21** — Is a fake QR code put up in person at a shelter, posing as the
   base's, out of model?
@@ -855,11 +925,12 @@ Questions Q1 to Q20 were answered on 2026-11-19 and are recorded in
   §1.8.
   - Proposed answer: yes, as written.
   - Lands in: §1.5, §1.7, §1.8.
-- **Q31** — Is deeply nested JSON from any untrusted source (catalog, record,
-  base response) rejected without a crash?
-  - Proposed answer: claim it. A stack overflow is caught when a record is
-    verified, and responses are capped in size. A crash or hang from nesting
-    is a bug against `client-response-limits`.
+- **Q31** — Is deeply nested JSON from any untrusted source (catalog,
+  record, key statement, base response) rejected without a crash?
+  - Proposed answer: claim it. Responses are capped in size, and a stack
+    overflow is caught when a record is verified. A crash, a hang, or a node
+    pull that aborts on a nested `keys` entry is a bug against
+    `client-response-limits`.
   - Lands in: §1.11 `client-response-limits`.
 
 ## 1.19 Machine-readable companions

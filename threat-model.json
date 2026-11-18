@@ -1,13 +1,13 @@
 {
   "spec_version": 1,
   "repository": "https://github.com/lychnion/lychnion",
-  "commit": "6ee5deac2fd03cb1429f1115e9f6ae49c0b445b1",
+  "commit": "be565e8aeb473ee036b169dc11a010ba65437b82",
   "date": "2026-11-19",
   "scope_subpath": null,
   "description": "Lychnion is an offline safety assistant for Japan. A phone or computer runs a small language model over installed, signed knowledge packages and shows sources and fixed official safety lines. Packages, maps and models come from signed catalogs over the internet, a base computer on the local Wi-Fi, a nearby phone, a USB stick or a headless node. A base also shares signed current facts such as shelter status.",
   "confidence": {
-    "documented": 212,
-    "inferred": 38
+    "documented": 228,
+    "inferred": 37
   },
   "components": [
     {
@@ -47,7 +47,8 @@
       "entry_points": [
         "TrustedKeys.check",
         "TrustedKeys.verify",
-        "PackageRecord.fromJson"
+        "PackageRecord.fromJson",
+        "relevantStatements"
       ],
       "touches": [],
       "in_scope": true,
@@ -56,7 +57,9 @@
     },
     {
       "name": "publishing",
-      "entry_points": [],
+      "entry_points": [
+        "KeyBackup.open"
+      ],
       "touches": [
         "child_processes"
       ],
@@ -84,7 +87,7 @@
         "BaseClient.info, .facts, .ask",
         "BaseClient.ask",
         "BaseFinder",
-        "lychnion://shelter link",
+        "lychnion://base link (also shelter)",
         "lychnion://share link"
       ],
       "touches": [],
@@ -177,7 +180,7 @@
     },
     {
       "component": "base-client",
-      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` / `fieldkit://` link.",
+      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` / `fieldkit://` link (`base`, `shelter`, `share`, `publisher`, `catalog`).",
       "provenance": "documented",
       "reachability_precondition": "reachable from a base's responses, an mDNS record, or a lychnion:// or fieldkit:// link"
     },
@@ -195,7 +198,7 @@
     },
     {
       "component": "node",
-      "boundary": "`downloads`, `records`, `node`: in model if reachable from the bytes of a catalog, record, file response, redirect or stick folder.",
+      "boundary": "**Statement to key.** Catalogs, sticks, bases, nearby phones and nodes also carry key statements. A statement changes trust only when a key the device already trusts for that publisher signed it.",
       "provenance": "documented",
       "reachability_precondition": "reachable from requests to the node port, or from catalogs, file hosts and folders it pulls"
     }
@@ -254,6 +257,24 @@
       "caller_must_enforce": "none — signed-install-only",
       "provenance": "documented",
       "source": "docs/distribution.md \"Storage: files by hash, any server\""
+    },
+    {
+      "entry_point": "relevantStatements",
+      "parameter": "keys statements from any catalog, stick, base, phone or node",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "none — key-statement-verification",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
+    },
+    {
+      "entry_point": "KeyBackup.open",
+      "parameter": "backup file and passphrase",
+      "attacker_controllable": "no",
+      "component": "publishing",
+      "caller_must_enforce": "keep the backup offline and the passphrase strong",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     },
     {
       "entry_point": "fetchCatalogText",
@@ -481,8 +502,8 @@
       "source": "docs/distribution.md \"Sync between nodes\""
     },
     {
-      "entry_point": "lychnion://shelter link",
-      "parameter": "url, name, key",
+      "entry_point": "lychnion://base link (also shelter)",
+      "parameter": "url, name, key, s",
       "attacker_controllable": "yes",
       "component": "base-client",
       "caller_must_enforce": "none — key-consent",
@@ -527,7 +548,7 @@
     },
     {
       "entry_point": "node pull",
-      "parameter": "catalog body, file responses, hosts it names",
+      "parameter": "catalog body with key statements, file responses, hosts it names",
       "attacker_controllable": "yes",
       "component": "node",
       "caller_must_enforce": "none — signed-install-only",
@@ -648,7 +669,8 @@
       "sender-of-links-web-page-message-other-a",
       "catalog-mirror-or-file-host-that-is-not",
       "usb-stick-author",
-      "publisher-the-user-added"
+      "publisher-the-user-added",
+      "holder-of-an-old-or-stolen-publisher-key"
     ],
     "out_of_scope": [
       "operator-of-a-qr-pinned-base",
@@ -663,7 +685,7 @@
       "property": "signed-install-only",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a file from any source is installed or served onward only when its record verifies against a trusted key for that publisher name and the file's size and SHA-256 match.",
+      "conditions": "a file from any source is installed or served onward only when its record verifies against a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in or added key, or a successor named by a valid key statement, and not revoked.",
       "provenance": "documented",
       "source": "docs/data-packages.md \"Signing and trust\""
     },
@@ -671,7 +693,7 @@
       "property": "publisher-namespace",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case.",
+      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case, and its key statements count only for its own name.",
       "provenance": "documented",
       "source": "docs/distribution.md \"Publishers and keys\""
     },
@@ -687,7 +709,7 @@
       "property": "key-consent",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a publisher key or base key becomes trusted only after the user says yes, and a base key gets fact trust only from an in-person QR scan.",
+      "conditions": "a publisher key or base key becomes trusted only after the user says yes, and a base key gets fact trust only from an in-person QR scan. Two exceptions come from the publisher's own statements: a successor named by a trusted key's replacement is trusted without a dialog, and a revoked publisher's new link replaces its entry after a dialog.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
@@ -719,7 +741,7 @@
       "property": "base-answer-signature",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "with a pinned key, the phone accepts a base answer only when its Ed25519 signature covers the phone's nonce, a hash of the request and the exact body; once that base has signed, unsigned answers are refused. An answer from a base without a pinned key, or an unsigned one, carries a note saying so.",
+      "conditions": "with a pinned key, the phone accepts a base answer only when its Ed25519 signature covers the phone's nonce, a hash of the request and the exact body; once that base has signed, unsigned answers are refused. A QR code with `s=1` says the base signs, so unsigned answers are refused from the first one. A late answer from a previous base is ignored. An answer from a base without a pinned key, or an unsigned one, carries a note saying so.",
       "provenance": "documented",
       "source": "docs/shelter-results.md\n  \"How it works\""
     },
@@ -759,7 +781,7 @@
       "property": "client-response-limits",
       "violation_symptom": "unbounded-allocation, crash, hang",
       "severity_tier": "security",
-      "conditions": "what a phone or node accepts is capped: 16 KiB for a base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s. A hostile response does not crash or hang the reader.",
+      "conditions": "what a phone or node accepts is capped: 16 KiB for a base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements per list and 1000 kept. A hostile response does not crash or hang the reader.",
       "provenance": "documented",
       "source": "CHANGELOG.md \"Security\""
     },
@@ -815,7 +837,7 @@
       "property": "publisher-key-local",
       "violation_symptom": "info-leak",
       "severity_tier": "security",
-      "conditions": "the desktop publisher key stays in the app folder and is never served or shared.",
+      "conditions": "the plain desktop publisher key stays in the app folder and is never served or shared. The only copy that leaves it is the passphrase-encrypted backup the operator saves.",
       "provenance": "documented",
       "source": "docs/distribution.md \"Publishers and\n  keys\""
     },
@@ -834,6 +856,30 @@
       "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network. DNS rebinding is not caught.",
       "provenance": "documented",
       "source": "packages/lychnion_node/README.md \"Operating\""
+    },
+    {
+      "property": "key-statement-verification",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "a replacement counts only when the old key signed it and the new key countersigned it; a revocation only when the revoked key signed it; and only when the old key is trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached only through them is not trusted. This holds for the `lychnion` key too.",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
+    },
+    {
+      "property": "revocation-unloads",
+      "violation_symptom": "bad-data-accepted",
+      "severity_tier": "security",
+      "conditions": "once a revocation is learned, items whose record the revoked key signed are no longer used. Their files stay on disk, and their version still blocks a downgrade.",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
+    },
+    {
+      "property": "key-backup-confidentiality",
+      "violation_symptom": "info-leak",
+      "severity_tier": "security",
+      "conditions": "the private key in a backup is readable only with the passphrase (Argon2id, then AES-256-GCM; name and public key bound). Restore never replaces a key, never restores a key this computer knows as revoked or replaced, and writes nothing on a wrong passphrase or a damaged file.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     }
   ],
   "properties_not_provided": [
@@ -867,17 +913,31 @@
     },
     {
       "property": "freshness",
-      "reason": "Protection against being kept on old data. No expiry on records; catalogs unsigned; also after delete, publisher removal, reinstall or on a fresh node",
+      "reason": "Protection against being kept on old data. No expiry on records or key statements; catalogs unsigned; a carrier can withhold a revocation; older apps ignore statements; also after delete, publisher removal, reinstall or on a fresh node",
       "false_friend": false,
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
     {
       "property": "key-revocation",
-      "reason": "Rotation or revocation of the Lychnion key, publisher keys or base keys; backup of a publisher key. All builds today",
+      "reason": "Rotation, revocation or removal of base (fact) keys. Publisher keys, Lychnion's included, have signed replacement and revocation (key-statement-verification)",
       "false_friend": false,
       "provenance": "documented",
-      "source": "docs/distribution.md \"Security\""
+      "source": "docs/facts-results.md \"Signed facts (2026-11-05"
+    },
+    {
+      "property": "old-key-denial",
+      "reason": "Protection against the holder of an old or stolen publisher key who revokes it or names a second successor. Phones that added that key drop it and its successors until the user adds the new link",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "backup-passphrase-and-storage",
+      "reason": "Resistance of a key backup to offline guessing of a weak passphrase; protection of the backup file where the operator keeps it. Passphrase of at least 12 characters; the operator chooses where to save",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     },
     {
       "property": "lan-confidentiality",
@@ -895,7 +955,7 @@
     },
     {
       "property": "first-signature-strip",
-      "reason": "Protection against stripping signatures before a pinned base has signed once. Until the first signed answer; the \"unsigned\" note is the defence",
+      "reason": "Protection against stripping signatures before a pinned base has signed once. Only for a QR code without s=1 (older codes), until the first signed answer; the \"unsigned\" note is the defence",
       "false_friend": false,
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
@@ -984,14 +1044,15 @@
     "Get a key trusted, follow a hostile catalog, point the phone at a hostile base",
     "Install a tampered file, hide updates, learn what users download",
     "Install a tampered or squatting item",
-    "Replace Lychnion's items or files, make its lines look official"
+    "Replace Lychnion's items or files, make its lines look official",
+    "Impersonate the publisher, or make phones drop it"
   ],
   "downstream_responsibilities": [
     "Add only publishers you know.",
     "Follow official warnings first.",
     "Run the base on a Wi-Fi you control; treat it as readable by everyone on it.",
     "Keep the base offline while serving, or accept cross-site requests.",
-    "Keep a copy of the publisher key offline; treat the key file as a secret of that account.",
+    "Save a passphrase backup of the key and keep it offline; restore only the newest backup; keep backups of replaced keys as safe as the newest one.",
     "Check each --publisher key out of band, use a reverse proxy on the internet, pull a USB stick instead of serving it.",
     "Build releases without --dart-define dev flags.",
     "Give every recipient the source, also for a base."
@@ -1035,6 +1096,12 @@
       "why_safe": "Covers downloads, base-client, node; symptom 'integrity-bypass'. Exact-match conditions (§1.15): Tampered bytes fail the hash and are not installed.",
       "cites": "properties_provided[0]",
       "suppression": "Tampered bytes fail the hash and are not installed"
+    },
+    {
+      "reported_as": "The catalog keys list is unsigned, so a host can inject key statements",
+      "why_safe": "Covers downloads, records, node; symptom 'integrity-bypass'. Exact-match conditions (§1.15): The injected statements are not signed by a key the device trusts for that publisher, and are not kept.",
+      "cites": "properties_provided[22]",
+      "suppression": "The injected statements are not signed by a key the device trusts for that publisher, and are not kept"
     },
     {
       "reported_as": "The model gave wrong or unsafe advice",
@@ -1106,9 +1173,9 @@
       "proposed": "yes, as written."
     },
     {
-      "claim": "Q31: Is deeply nested JSON from any untrusted source (catalog, record, base response) rejected without a crash?",
+      "claim": "Q31: Is deeply nested JSON from any untrusted source (catalog, record, key statement, base response) rejected without a crash?",
       "field": "properties_provided",
-      "proposed": "claim it. A stack overflow is caught when a record is verified, and responses are capped in size. A crash or hang from nesting is a bug against `client-response-limits`."
+      "proposed": "claim it. Responses are capped in size, and a stack overflow is caught when a record is verified. A crash, a hang, or a node pull that aborts on a nested `keys` entry is a bug against `client-response-limits`."
     }
   ]
 }
