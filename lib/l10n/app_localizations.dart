@@ -2623,6 +2623,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All help'**
   String get helpAllTopics;
+
+  /// No description provided for @nearestOutsideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You are outside this map\'s area'**
+  String get nearestOutsideTitle;
+
+  /// No description provided for @nearestOutsideText.
+  ///
+  /// In en, this message translates to:
+  /// **'Download a map of where you are, and the nearest evacuation site shows here.'**
+  String get nearestOutsideText;
 }
 
 class _AppLocalizationsDelegate

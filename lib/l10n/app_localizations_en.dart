@@ -1579,4 +1579,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get helpAllTopics => 'All help';
+
+  @override
+  String get nearestOutsideTitle => 'You are outside this map\'s area';
+
+  @override
+  String get nearestOutsideText =>
+      'Download a map of where you are, and the nearest evacuation site shows here.';
 }

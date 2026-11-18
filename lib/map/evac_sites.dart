@@ -113,6 +113,18 @@ class EvacSites {
     return LatLng((c[0] as num).toDouble(), (c[1] as num).toDouble());
   }
 
+  /// Whether [p] lies in this map area (its bounding box, plus [margin]
+  /// degrees, about 5 km). Files without a box cover everywhere.
+  bool covers(LatLng p, {double margin = 0.05}) {
+    final raw = meta['bbox'];
+    if (raw == null) return true;
+    final b = [for (final v in jsonDecode(raw) as List) (v as num).toDouble()];
+    return p.longitude >= b[0] - margin &&
+        p.latitude >= b[1] - margin &&
+        p.longitude <= b[2] + margin &&
+        p.latitude <= b[3] + margin;
+  }
+
   String get notice => meta['sites_notice'] ?? '';
   String get attribution => meta['sites_attribution'] ?? '';
   String get basemapAttribution => meta['basemap_attribution'] ?? '';

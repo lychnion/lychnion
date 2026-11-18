@@ -999,5 +999,7 @@
   "helpTitle": "Help",
   "helpSearch": "Search help",
   "helpNoResults": "Nothing found. Try other words, or ask in the question field.",
-  "helpAllTopics": "All help"
+  "helpAllTopics": "All help",
+  "nearestOutsideTitle": "You are outside this map's area",
+  "nearestOutsideText": "Download a map of where you are, and the nearest evacuation site shows here."
 }

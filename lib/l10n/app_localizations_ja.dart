@@ -1502,4 +1502,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get helpAllTopics => 'すべてのヘルプ';
+
+  @override
+  String get nearestOutsideTitle => 'いる場所は、この地図の範囲外です';
+
+  @override
+  String get nearestOutsideText => 'いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。';
 }

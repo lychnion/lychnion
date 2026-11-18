@@ -1433,7 +1433,11 @@ class _SpikePageState extends State<SpikePage> {
           : _shelter?.name,
       home: widget.map == null
           ? null
-          : NearestSiteCard(map: widget.map!, onShowOnMap: widget.onShowOnMap),
+          : NearestSiteCard(
+              map: widget.map!,
+              onShowOnMap: widget.onShowOnMap,
+              onOpenDownloads: widget.onOpenDownloads,
+            ),
       packageInfos: _packages,
       updates: widget.updates,
       onShareNearby: _usesDownload

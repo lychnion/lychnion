@@ -10,10 +10,22 @@ import '../map/map_state.dart';
 /// Home screen: active warnings and the nearest evacuation site that can
 /// take people, before any question is asked.
 class NearestSiteCard extends StatelessWidget {
-  const NearestSiteCard({super.key, required this.map, this.onShowOnMap});
+  const NearestSiteCard({
+    super.key,
+    required this.map,
+    this.onShowOnMap,
+    this.onOpenDownloads,
+  });
 
   final MapState map;
   final VoidCallback? onShowOnMap;
+
+  /// "Choose a map", when the user is outside the downloaded area.
+  final VoidCallback? onOpenDownloads;
+
+  /// A nearest site farther than this is not "near": the map is of
+  /// another area.
+  static const farMeters = 30000.0;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -37,6 +49,12 @@ class NearestSiteCard extends StatelessWidget {
       }
       final facts = map.facts;
       final warnings = facts?.currentOf({FactKind.warning}) ?? const <Fact>[];
+      // Outside the downloaded area: a site 100 km away is no help. Say so
+      // and offer the right map instead.
+      final here = map.here;
+      final outside =
+          (here != null && map.sites?.covers(here) == false) ||
+          (near.isNotEmpty && near.first.meters > farMeters);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -75,7 +93,56 @@ class NearestSiteCard extends StatelessWidget {
                 ],
               ),
             ),
-          if (near.isNotEmpty)
+          if (outside)
+            Card(
+              color: scheme.secondaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: scheme.secondary,
+                      child: Icon(
+                        Icons.wrong_location_outlined,
+                        color: scheme.onSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.nearestOutsideTitle,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: scheme.onSecondaryContainer,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l.nearestOutsideText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSecondaryContainer,
+                            ),
+                          ),
+                          if (onOpenDownloads != null) ...[
+                            const SizedBox(height: 8),
+                            FilledButton(
+                              onPressed: onOpenDownloads,
+                              child: Text(l.firstStepMapAction),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (near.isNotEmpty)
             Card(
               color: scheme.secondaryContainer,
               child: InkWell(
