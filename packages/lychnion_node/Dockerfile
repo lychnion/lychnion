@@ -7,7 +7,7 @@
 # Only the three pure-Dart packages go into the build; the program runs
 # alone on a minimal base (no shell, no Dart SDK).
 # Pinned by digest; Dependabot (docker) proposes updates.
-FROM dart:3.12.2@sha256:5ac89dbcae4327278b257920e2786df0f22c87adc630017266b67cfcceef8348 AS build
+FROM dart:3.13.6@sha256:bf07cd831c34d7cef047bcd50803fa38e3af59664a276440893ca9db77014ca0 AS build
 WORKDIR /src
 COPY packages/lychnion_format packages/lychnion_format
 COPY packages/lychnion_fetch packages/lychnion_fetch
