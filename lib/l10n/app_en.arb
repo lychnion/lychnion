@@ -1001,5 +1001,11 @@
   "helpNoResults": "Nothing found. Try other words, or ask in the question field.",
   "helpAllTopics": "All help",
   "nearestOutsideTitle": "You are outside this map's area",
-  "nearestOutsideText": "Download a map of where you are, and the nearest evacuation site shows here."
+  "nearestOutsideText": "Download a map of where you are, and the nearest evacuation site shows here.",
+  "aboutVersion": "Version",
+  "aboutVersionValue": "{version} (build {build})",
+  "@aboutVersionValue": {"placeholders": {"version": {"type": "String"}, "build": {"type": "String"}}},
+  "aboutData": "Installed data",
+  "aboutCopyHint": "Long press to copy (for reports)",
+  "aboutCopied": "Copied"
 }

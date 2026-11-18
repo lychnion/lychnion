@@ -464,5 +464,10 @@
   "helpNoResults": "見つかりませんでした。ほかの言葉で探すか、質問欄で聞いてください。",
   "helpAllTopics": "すべてのヘルプ",
   "nearestOutsideTitle": "いる場所は、この地図の範囲外です",
-  "nearestOutsideText": "いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。"
+  "nearestOutsideText": "いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。",
+  "aboutVersion": "バージョン",
+  "aboutVersionValue": "{version}（ビルド {build}）",
+  "aboutData": "入っているデータ",
+  "aboutCopyHint": "長押しでコピー（問い合わせ用）",
+  "aboutCopied": "コピーしました"
 }

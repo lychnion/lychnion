@@ -1586,4 +1586,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get nearestOutsideText =>
       'Download a map of where you are, and the nearest evacuation site shows here.';
+
+  @override
+  String get aboutVersion => 'Version';
+
+  @override
+  String aboutVersionValue(String version, String build) {
+    return '$version (build $build)';
+  }
+
+  @override
+  String get aboutData => 'Installed data';
+
+  @override
+  String get aboutCopyHint => 'Long press to copy (for reports)';
+
+  @override
+  String get aboutCopied => 'Copied';
 }

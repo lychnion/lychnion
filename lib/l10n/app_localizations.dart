@@ -2635,6 +2635,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download a map of where you are, and the nearest evacuation site shows here.'**
   String get nearestOutsideText;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get aboutVersion;
+
+  /// No description provided for @aboutVersionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{version} (build {build})'**
+  String aboutVersionValue(String version, String build);
+
+  /// No description provided for @aboutData.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed data'**
+  String get aboutData;
+
+  /// No description provided for @aboutCopyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press to copy (for reports)'**
+  String get aboutCopyHint;
+
+  /// No description provided for @aboutCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get aboutCopied;
 }
 
 class _AppLocalizationsDelegate

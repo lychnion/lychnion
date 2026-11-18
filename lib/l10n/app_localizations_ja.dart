@@ -1508,4 +1508,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get nearestOutsideText => 'いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。';
+
+  @override
+  String get aboutVersion => 'バージョン';
+
+  @override
+  String aboutVersionValue(String version, String build) {
+    return '$version（ビルド $build）';
+  }
+
+  @override
+  String get aboutData => '入っているデータ';
+
+  @override
+  String get aboutCopyHint => '長押しでコピー（問い合わせ用）';
+
+  @override
+  String get aboutCopied => 'コピーしました';
 }

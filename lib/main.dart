@@ -507,6 +507,7 @@ class _HomePageState extends State<HomePage> {
           map: _map,
           mockLocation: _mockLocation,
         ),
+        bundledPackages: _builtInPackageInfo,
         userRegion: () => UserRegion.current(
           widget.settings,
           _map,

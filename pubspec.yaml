@@ -40,6 +40,8 @@ dependencies:
     path: packages/lychnion_fetch
   intl: any
   wakelock_plus: ^1.8.0
+  # The app's version for Settings → About.
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:

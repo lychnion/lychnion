@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable, kReleaseMode;
 import 'package:flutter/material.dart';
 import '../app/brand.dart';
 import '../app/lang.dart';
@@ -7,6 +7,11 @@ import 'breathing_light.dart';
 import 'guided_tour.dart';
 import 'help_screen.dart';
 import '../knowledge/knowledge_package.dart' show PackageInfo;
+
+/// The "Developer" part of the ⋮ menu (status details, test questions):
+/// in debug and profile builds, and in release builds made with
+/// `--dart-define=DEV_MENU=true` (for testers who report problems).
+const showDevMenu = !kReleaseMode || bool.fromEnvironment('DEV_MENU');
 
 /// Where the Ask screen stands: shown as a small status pill.
 enum AskPhase { noModel, loading, ready, shelter, serving, failed }
@@ -157,14 +162,16 @@ class _AskViewState extends State<AskView> {
             onShowNotice: widget.onShowNotice,
             onShareNearby: widget.onShareNearby,
             updates: widget.updates,
-            devActions: [
-              DevAction(
-                'Status details',
-                () => _showDetail(context),
-                icon: Icons.monitor_heart_outlined,
-              ),
-              ...widget.devActions,
-            ],
+            devActions: showDevMenu
+                ? [
+                    DevAction(
+                      'Status details',
+                      () => _showDetail(context),
+                      icon: Icons.monitor_heart_outlined,
+                    ),
+                    ...widget.devActions,
+                  ]
+                : const [],
           ),
           const SizedBox(width: 8),
         ],
