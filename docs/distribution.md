@@ -1,6 +1,7 @@
 # Distribution: apps and data packages
 
-Design note, 2026-11-18. Status: agreed direction, nothing built yet.
+Design note, 2026-11-18. Status: agreed direction; step 1 built
+(records and app checks, see [download-results.md](download-results.md#catalog)).
 Not over-engineered on purpose: every step below works on its own.
 
 ## The situation we design for

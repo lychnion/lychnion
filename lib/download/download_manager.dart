@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'catalog.dart';
 import 'download_store.dart';
 import 'downloader.dart';
+import 'record.dart';
 
 /// Dev flags: where the catalog and relative file URLs come from.
 const _catalogUrl = String.fromEnvironment('CATALOG_URL');
@@ -65,13 +66,16 @@ class DownloadManager extends ChangeNotifier {
     final bundled = await rootBundle.loadString(
       'assets/downloads/catalog.json',
     );
-    catalog = _parse(bundled, null);
+    catalog = await _parse(bundled, null);
     // A catalog fetched earlier wins over the bundled one.
     try {
       final f = store.cachedCatalog;
       if (await f.exists()) {
         final j = jsonDecode(await f.readAsString()) as Map;
-        catalog = _parse(j['body'] as String, Uri.parse(j['url'] as String));
+        catalog = await _parse(
+          j['body'] as String,
+          Uri.parse(j['url'] as String),
+        );
       }
     } catch (_) {}
     _refreshStates();
@@ -110,11 +114,19 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  Catalog _parse(String json, Uri? from) => Catalog.parse(
-    json,
-    fetchedFrom: from,
-    baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
-  );
+  /// Records with a bad signature are left out of the catalog and logged.
+  Future<Catalog> _parse(String json, Uri? from) async {
+    final c = await Catalog.parse(
+      json,
+      fetchedFrom: from,
+      baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
+      trust: store.trust,
+    );
+    for (final r in c.rejected) {
+      _log({'event': 'catalog_rejected', 'record': r, 'from': '$from'});
+    }
+    return c;
+  }
 
   /// Fetches the newest catalog (dev flag CATALOG_URL, else the catalog's
   /// `refresh` URL). Offline is fine: the current one stays.
@@ -133,7 +145,7 @@ class DownloadManager extends ChangeNotifier {
       final res = await req.close().timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
       final body = await res.transform(utf8.decoder).join();
-      catalog = _parse(body, url);
+      catalog = await _parse(body, url);
       await store.cachedCatalog.parent.create(recursive: true);
       await store.cachedCatalog.writeAsString(
         jsonEncode({'url': '$url', 'body': body}),
@@ -155,7 +167,9 @@ class DownloadManager extends ChangeNotifier {
       s.installedVersion = inst?.version;
       s.total = item.size;
       if (inst != null) {
-        s.status = inst.version == item.version
+        // A catalog with an older version is no update: versions only go up.
+        s.status =
+            inst.version == item.version || isOlder(item.version, inst.version)
             ? ItemStatus.installed
             : ItemStatus.update;
         s.bytes = item.size;
@@ -204,7 +218,7 @@ class DownloadManager extends ChangeNotifier {
   Future<void> download(CatalogItem item, {bool force = false}) async {
     final s = stateOf(item);
     if (s.status == ItemStatus.running) return;
-    s.error = await networkProblem();
+    s.error = await _refusal(item) ?? await networkProblem();
     if (s.error != null) return notifyListeners();
     final dir = store.dirFor(item.kind);
     final cancel = CancelToken();
@@ -284,9 +298,21 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
+  /// Error code when [item] must not be installed: no valid signature
+  /// (`signature`) or older than the installed version (`older`).
+  Future<String?> _refusal(CatalogItem item) async {
+    final r = item.record;
+    if (r == null || !await store.trust.verify(r)) return 'signature';
+    final have = store.installedVersion(item);
+    if (have != null && isOlder(item.version, have)) return 'older';
+    return null;
+  }
+
   /// Short code for the screen (see DownloadsScreen), or null if stopped.
   static String? _errorCode(Object e) => switch (e) {
     DownloadCancelled() => null,
+    UnsignedItem() => 'signature',
+    OlderVersion() => 'older',
     ChecksumError() => 'checksum',
     DownloadBusy() => 'busy',
     SocketException(:final osError) =>
@@ -317,6 +343,8 @@ class DownloadManager extends ChangeNotifier {
   /// them as installed if they match the catalog.
   Future<void> verifyExisting(CatalogItem item) async {
     final s = stateOf(item);
+    s.error = await _refusal(item);
+    if (s.error != null) return notifyListeners();
     final cancel = CancelToken();
     s
       ..status = ItemStatus.running

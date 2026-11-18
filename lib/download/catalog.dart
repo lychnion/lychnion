@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'downloader.dart';
+import 'publishers.dart';
+import 'record.dart';
 
 enum ItemKind { model, package, map }
 
@@ -11,13 +13,6 @@ class CatalogFile {
   final int size;
   final String sha256;
   final String url;
-
-  factory CatalogFile.fromJson(Map<String, Object?> j) => CatalogFile(
-    j['name']! as String,
-    (j['size']! as num).toInt(),
-    (j['sha256']! as String).toLowerCase(),
-    j['url']! as String,
-  );
 }
 
 /// Something the app can download: a model, a knowledge package or a map
@@ -35,6 +30,7 @@ class CatalogItem {
     this.desktop = false,
     this.noteJa = '',
     this.noteEn = '',
+    this.record,
   });
 
   final String id;
@@ -49,30 +45,36 @@ class CatalogItem {
   final String noteJa, noteEn;
   final List<CatalogFile> files;
 
+  /// The signed record this item comes from. Only items with a verified
+  /// record can be installed.
+  final PackageRecord? record;
+
   int get size => files.fold(0, (a, f) => a + f.size);
   String title(bool en) => en ? titleEn : titleJa;
   String note(bool en) => en ? noteEn : noteJa;
 
-  factory CatalogItem.fromJson(Map<String, Object?> j) {
-    final title = j['title']! as Map;
-    final note = (j['note'] as Map?) ?? const {};
-    return CatalogItem(
-      id: j['id']! as String,
-      kind: ItemKind.values.byName(j['kind']! as String),
-      titleJa: title['ja'] as String,
-      titleEn: title['en'] as String,
-      version: j['version']! as String,
-      licence: j['licence'] as String? ?? '',
-      role: j['role'] as String?,
-      desktop: j['desktop'] as bool? ?? false,
-      noteJa: note['ja'] as String? ?? '',
-      noteEn: note['en'] as String? ?? '',
-      files: [
-        for (final f in j['files']! as List)
-          CatalogFile.fromJson((f as Map).cast()),
-      ],
-    );
-  }
+  /// [urls]: file SHA-256 → download address (absolute, or relative to
+  /// the catalog). Files not listed there are fetched by name.
+  factory CatalogItem.fromRecord(
+    PackageRecord r, [
+    Map<String, String> urls = const {},
+  ]) => CatalogItem(
+    id: r.id,
+    kind: ItemKind.values.byName(r.kind),
+    titleJa: r.text('title', 'ja'),
+    titleEn: r.text('title', 'en'),
+    version: r.version,
+    licence: r.licence,
+    role: r.role,
+    desktop: r.desktop,
+    noteJa: r.text('note', 'ja'),
+    noteEn: r.text('note', 'en'),
+    record: r,
+    files: [
+      for (final f in r.files)
+        CatalogFile(f.name, f.size, f.sha256, urls[f.sha256] ?? f.name),
+    ],
+  );
 }
 
 /// The list of downloads. Bundled with the app (assets/downloads/catalog.json)
@@ -88,20 +90,47 @@ class Catalog {
   final Uri? base;
   final Uri? refreshUrl;
 
+  /// Records whose shape or signature is wrong, or whose publisher is not
+  /// trusted, are left out and listed here (id or position, and why).
+  final List<String> rejected = [];
+
+  /// Parses a catalog (format 2: signed records, see tool/records.dart).
+  ///
   /// [baseOverride] (dev flag DOWNLOAD_BASE_URL) wins over the catalog's own
   /// `base`; a catalog fetched from the network defaults to its own URL.
-  factory Catalog.parse(String json, {Uri? fetchedFrom, Uri? baseOverride}) {
+  /// [trust] defaults to the publishers built into the app.
+  static Future<Catalog> parse(
+    String json, {
+    Uri? fetchedFrom,
+    Uri? baseOverride,
+    TrustedKeys? trust,
+  }) async {
     final j = jsonDecode(json) as Map<String, Object?>;
-    if (j['format'] != 1) throw FormatException('Unknown catalog format');
+    if (j['format'] != 2) throw FormatException('Unknown catalog format');
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
+    final urls = ((j['urls'] as Map?) ?? const {}).cast<String, String>();
+    final keys = trust ?? builtInPublishers;
+    final items = <CatalogItem>[];
+    final rejected = <String>[];
+    final raw = j['records']! as List;
+    for (var n = 0; n < raw.length; n++) {
+      final r = await keys.check(raw[n]);
+      final id = raw[n] is Map ? (raw[n] as Map)['id'] : null;
+      if (r == null) {
+        rejected.add('${id ?? '#$n'}: bad signature or record');
+      } else if (!ItemKind.values.any((k) => k.name == r.kind)) {
+        rejected.add('${r.id}: unknown kind ${r.kind}');
+      } else if (items.any((i) => i.id == r.id)) {
+        rejected.add('${r.id}: listed twice');
+      } else {
+        items.add(CatalogItem.fromRecord(r, urls));
+      }
+    }
     return Catalog(
-      [
-        for (final i in j['items']! as List)
-          CatalogItem.fromJson((i as Map).cast()),
-      ],
+      items,
       base: baseOverride ?? uri(j['base']) ?? fetchedFrom,
       refreshUrl: uri(j['refresh']),
-    );
+    )..rejected.addAll(rejected);
   }
 
   CatalogItem? byId(String id) {

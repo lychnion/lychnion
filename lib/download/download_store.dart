@@ -6,37 +6,26 @@ import 'package:flutter/services.dart';
 import '../util/paths.dart';
 import 'catalog.dart';
 import 'downloader.dart';
+import 'publishers.dart';
+import 'record.dart';
 
 /// Record of a verified download, kept next to its files as
-/// `<id>.installed.json`. Loaders only use files that have one.
+/// `<id>.installed.json`: the publisher's signed record. Loaders only use
+/// files that have one whose signature still checks out.
 class Installed {
-  Installed(this.id, this.kind, this.version, this.role, this.files);
+  Installed(this.record)
+    : id = record.id,
+      kind = ItemKind.values.byName(record.kind),
+      files = {for (final f in record.files) f.name: f.size};
 
+  final PackageRecord record;
   final String id;
   final ItemKind kind;
-  final String version;
-  final String? role;
+  String get version => record.version;
+  String? get role => record.role;
 
   /// File name → size.
   final Map<String, int> files;
-
-  Map<String, Object?> toJson() => {
-    'id': id,
-    'kind': kind.name,
-    'version': version,
-    'role': role,
-    'files': files,
-  };
-
-  factory Installed.fromJson(Map<String, Object?> j) => Installed(
-    j['id']! as String,
-    ItemKind.values.byName(j['kind']! as String),
-    j['version']! as String,
-    j['role'] as String?,
-    (j['files']! as Map).map(
-      (k, v) => MapEntry(k as String, (v as num).toInt()),
-    ),
-  );
 
   /// First file with this extension, e.g. `.pmtiles`.
   String? fileEnding(String ext) {
@@ -58,13 +47,42 @@ class Installed {
 /// Bundled assets are copied to `bundled/` instead, so they never overwrite
 /// a download.
 class DownloadStore {
-  DownloadStore(this.root);
+  DownloadStore(this.root, {TrustedKeys? trust})
+    : trust = trust ?? builtInPublishers;
 
   final Directory root;
 
-  static DownloadStore? _instance;
-  static Future<DownloadStore> instance() async =>
-      _instance ??= DownloadStore(await appSupportDirectory());
+  /// Publishers whose records are accepted.
+  final TrustedKeys trust;
+
+  /// Install records checked in this run, as canonical JSON (the whole
+  /// record, so an edit after the check does not pass). Checking is async,
+  /// [installed] is not: [verifyInstalled] and [markInstalled] check,
+  /// [installed] only accepts records checked here.
+  final _verified = <String>{};
+
+  static Future<DownloadStore>? _instance;
+  static Future<DownloadStore> instance() => _instance ??= () async {
+    final s = DownloadStore(await appSupportDirectory());
+    await s.verifyInstalled();
+    return s;
+  }();
+
+  /// Checks the signatures of all install records (once per app start).
+  Future<void> verifyInstalled() async {
+    for (final kind in ItemKind.values) {
+      final dir = dirFor(kind);
+      if (!await dir.exists()) continue;
+      await for (final f in dir.list()) {
+        if (f is! File || !f.path.endsWith('.installed.json')) continue;
+        try {
+          final j = jsonDecode(await f.readAsString()) as Map;
+          final r = await trust.check(j['record']);
+          if (r != null) _verified.add(canonicalJson(r.json));
+        } catch (_) {}
+      }
+    }
+  }
 
   Directory dirFor(ItemKind kind) => Directory(
     '${root.path}/${switch (kind) {
@@ -77,14 +95,19 @@ class DownloadStore {
   File _marker(ItemKind kind, String id) =>
       File('${dirFor(kind).path}/$id.installed.json');
 
-  /// The install record, if every file is still there at its size.
+  /// The install record, if its signature checks out and every file is
+  /// still there at its size. Records from before signing (no `record`)
+  /// count as not installed: the files then show as unverified and are
+  /// checked again against a signed record.
   Installed? installed(ItemKind kind, String id) {
     final m = _marker(kind, id);
     if (!m.existsSync()) return null;
     try {
-      final i = Installed.fromJson(
-        (jsonDecode(m.readAsStringSync()) as Map).cast(),
-      );
+      final j = jsonDecode(m.readAsStringSync()) as Map;
+      final r = PackageRecord.fromJson((j['record'] as Map).cast());
+      if (!_verified.contains(canonicalJson(r.json))) return null;
+      if (r.id != id || r.kind != kind.name) return null;
+      final i = Installed(r);
       for (final e in i.files.entries) {
         final f = File('${dirFor(kind).path}/${e.key}');
         if (!f.existsSync() || f.lengthSync() != e.value) return null;
@@ -111,16 +134,27 @@ class DownloadStore {
 
   String path(Installed i, String file) => '${dirFor(i.kind).path}/$file';
 
+  /// Records [item] as installed. Call only after every file was checked
+  /// against the item's SHA-256. Throws [UnsignedItem] for an item without
+  /// a verified record.
   Future<void> markInstalled(CatalogItem item) async {
+    final r = item.record;
+    if (r == null || !await trust.verify(r)) throw UnsignedItem(item.id);
+    final have = installedVersion(item);
+    if (have != null && isOlder(r.version, have)) {
+      throw OlderVersion(item.id, r.version, have);
+    }
     await dirFor(item.kind).create(recursive: true);
-    await _marker(item.kind, item.id).writeAsString(
-      jsonEncode(
-        Installed(item.id, item.kind, item.version, item.role, {
-          for (final f in item.files) f.name: f.size,
-        }).toJson(),
-      ),
-    );
+    await _marker(
+      item.kind,
+      item.id,
+    ).writeAsString(jsonEncode({'record': r.json}));
+    _verified.add(canonicalJson(r.json));
   }
+
+  /// Version of [item] installed now, if any.
+  String? installedVersion(CatalogItem item) =>
+      installed(item.kind, item.id)?.version;
 
   /// Removes the files, any partial download and the record.
   Future<void> delete(CatalogItem item) async {
@@ -248,4 +282,20 @@ class DownloadStore {
     await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
     return file.path;
   }
+}
+
+/// The item has no record signed by a trusted publisher.
+class UnsignedItem implements Exception {
+  UnsignedItem(this.id);
+  final String id;
+  @override
+  String toString() => 'No valid signature for $id';
+}
+
+/// The item is older than the installed version (versions only go up).
+class OlderVersion implements Exception {
+  OlderVersion(this.id, this.version, this.installed);
+  final String id, version, installed;
+  @override
+  String toString() => '$id $version is older than installed $installed';
 }

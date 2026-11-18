@@ -1,139 +1,286 @@
 {
-  "format": 1,
-  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/",
+  "format": 2,
+  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/",
   "refresh": "https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json",
-  "items": [
+  "records": [
     {
+      "format": 1,
       "id": "model.gemma-4-e2b-q4_0",
       "kind": "model",
-      "role": "chat",
+      "version": "2026.11.0",
+      "publisher": "lychnion",
       "title": {
         "ja": "回答モデル Gemma 4 E2B",
         "en": "Answer model Gemma 4 E2B"
       },
-      "version": "Q4_0",
-      "licence": "Apache 2.0 (Google Gemma 4)",
       "note": {
         "ja": "スマートフォン・タブレット向け",
         "en": "For phones and tablets"
       },
+      "licence": "Apache 2.0 (Google Gemma 4)",
+      "role": "chat",
       "files": [
         {
           "name": "gemma-4-E2B-it-Q4_0.gguf",
           "size": 2841481184,
-          "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52",
-          "url": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf"
+          "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52"
         }
-      ]
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "FAgGC3JZkFAWavuJ3RjA4M1Neg2rfr2s8lfeZuL88_welI3iId21VrEuapxxb-wKhWXFmIg_jQ_wH6Btt0mAAQ"
     },
     {
+      "format": 1,
       "id": "model.gemma-4-e4b-q4_0",
       "kind": "model",
-      "role": "chat",
-      "desktop": true,
+      "version": "2026.11.0",
+      "publisher": "lychnion",
       "title": {
         "ja": "回答モデル Gemma 4 E4B",
         "en": "Answer model Gemma 4 E4B"
       },
-      "version": "Q4_0",
-      "licence": "Apache 2.0 (Google Gemma 4)",
       "note": {
         "ja": "パソコン向け：回答がより良く、速度は半分",
         "en": "For computers: better answers, half the speed"
       },
+      "licence": "Apache 2.0 (Google Gemma 4)",
+      "role": "chat",
+      "desktop": true,
       "files": [
         {
           "name": "gemma-4-E4B-it-Q4_0.gguf",
           "size": 4590807392,
-          "sha256": "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2",
-          "url": "https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_0.gguf"
+          "sha256": "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2"
         }
-      ]
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "KVKKHhhqKJG7EtiQlC1y48RKB0JQqHxj5B1WbeLThaLyk--7gnnN-oMC87oNKpJ6nbN5NnDLqKLEmHiUMoZ8AA"
     },
     {
+      "format": 1,
       "id": "model.embeddinggemma-2-q8_0",
       "kind": "model",
-      "role": "embed",
+      "version": "2026.11.0",
+      "publisher": "lychnion",
       "title": {
         "ja": "検索モデル EmbeddingGemma 2",
         "en": "Search model EmbeddingGemma 2"
       },
-      "version": "Q8_0",
-      "licence": "Apache 2.0 (Google EmbeddingGemma 2)",
       "note": {
         "ja": "意味で資料を探す（日本語・英語）",
         "en": "Finds passages by meaning (Japanese and English)"
       },
+      "licence": "Apache 2.0 (Google EmbeddingGemma 2)",
+      "role": "embed",
       "files": [
         {
           "name": "embeddinggemma-2-Q8_0.gguf",
           "size": 309855456,
-          "sha256": "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135",
-          "url": "https://huggingface.co/ggml-org/embeddinggemma-2-GGUF/resolve/main/embeddinggemma-2-Q8_0.gguf"
+          "sha256": "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135"
         }
-      ]
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "A-xvOBAUdscnBOy6TKx8WmJVz-BRungcQNI_5HIy8oEFgrSLVQfaBmv3qh9R7m3h5_y38KGE2JR91Clw6333Bg"
     },
     {
+      "format": 1,
       "id": "jp.bousai.core",
       "kind": "package",
+      "version": "2026.11.1",
+      "publisher": "lychnion",
       "title": {
         "ja": "防災（基本）",
         "en": "Disaster preparedness (basics)"
       },
-      "version": "2026.11.1",
-      "licence": "PDL 1.0（出典は各回答に表示）",
       "note": {
         "ja": "アプリ内蔵版より新しい版があれば更新",
         "en": "Updates the copy built into the app"
+      },
+      "licence": "PDL 1.0（出典は各回答に表示）",
+      "notice": {
+        "ja": [
+          "避難するかどうかは、自治体の避難情報と気象庁の警報・注意報を優先して判断してください。"
+        ],
+        "en": [
+          "For evacuation, follow your city's evacuation information and the Japan Meteorological Agency's warnings first."
+        ]
       },
       "files": [
         {
           "name": "jp.bousai.core.sqlite",
           "size": 1028096,
-          "sha256": "7640033841c441878444fececeaf6a7da55847fcf93aa5324031a0ab5555e044",
-          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.bousai.core.sqlite"
+          "sha256": "7640033841c441878444fececeaf6a7da55847fcf93aa5324031a0ab5555e044"
         }
-      ]
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "Lb45VH6KfTjt2-9RLxESr2AMy6MlqR3dRFvu3M1GK-Ot97u-7UDX2m7GT70tpfK2HYXlr1_MRE0Qc9tuhcabBw"
     },
     {
+      "format": 1,
       "id": "jp.map.nishinomiya",
       "kind": "map",
+      "version": "2026.11.1",
+      "publisher": "lychnion",
       "title": {
         "ja": "地図：西宮周辺",
         "en": "Map: Nishinomiya area"
       },
-      "version": "2026.11.1",
-      "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ・標高タイル; 国土数値情報（津波浸水想定）CC BY 4.0",
       "note": {
         "ja": "神戸東部〜大阪西部、避難場所・徒歩ルート・津波浸水想定つき",
         "en": "Eastern Kobe to western Osaka, with evacuation sites, walking routes and tsunami inundation areas"
       },
+      "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ・標高タイル; 国土数値情報（津波浸水想定）CC BY 4.0",
       "files": [
         {
           "name": "jp.map.nishinomiya.pmtiles",
           "size": 26211536,
-          "sha256": "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25",
-          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.pmtiles"
+          "sha256": "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25"
         },
         {
           "name": "jp.map.nishinomiya.sites.sqlite",
           "size": 401408,
-          "sha256": "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371",
-          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.sites.sqlite"
+          "sha256": "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371"
         },
         {
           "name": "jp.map.nishinomiya.routes.bin",
           "size": 11541028,
-          "sha256": "94a5f22980f5fbba04facec8f6c169a4c8ab70cfc2cc6263a372130de71a725d",
-          "url": "jp.map.nishinomiya.routes.bin"
+          "sha256": "94a5f22980f5fbba04facec8f6c169a4c8ab70cfc2cc6263a372130de71a725d"
         },
         {
           "name": "jp.map.nishinomiya.inundation.mbtiles",
           "size": 1462272,
-          "sha256": "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8",
-          "url": "jp.map.nishinomiya.inundation.mbtiles"
+          "sha256": "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8"
         }
-      ]
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "IqaNAwLlJOQ5HChlzXOdqNuI49iDA_0v0sXB7tC_fTbEx1Mr_MGwCKG0nOx_aWkRHqrEtxhH_QiFAfzl-R-UCQ"
+    },
+    {
+      "format": 1,
+      "id": "jp.outdoor.hiking",
+      "kind": "package",
+      "version": "2026.11.0",
+      "publisher": "lychnion",
+      "title": {
+        "ja": "登山（基本）",
+        "en": "Hiking (basics)"
+      },
+      "note": {
+        "ja": "アプリ内蔵版より新しい版があれば更新",
+        "en": "Updates the copy built into the app"
+      },
+      "licence": "PDL 1.0（出典は各回答に表示）",
+      "notice": {
+        "ja": [
+          "登山計画や、天気・火山・登山道の状況の判断の代わりにはなりません。出発前に最新の公式情報を確認してください。",
+          "雪崩の危険度の判断には使えません。"
+        ],
+        "en": [
+          "Not a substitute for planning your hike or judging weather, volcanoes and trail conditions. Check current official information before you go.",
+          "Not suitable for judging avalanche risk."
+        ]
+      },
+      "files": [
+        {
+          "name": "jp.outdoor.hiking.sqlite",
+          "size": 450560,
+          "sha256": "3d94d77427c80f762179fdd75c51d49224468a8f4a22085ddc33b38ad23a58f2"
+        }
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "Xrb4Xlrar39ZwA-0uZBJLs2IWEQ-IUrwyiXMbRRVcHUzrLxGJSYohEWbrF0tSN_RU5lNU2UC6wuwkVnhyYJXBQ"
+    },
+    {
+      "format": 1,
+      "id": "intl.firstaid.basics",
+      "kind": "package",
+      "version": "2026.11.0",
+      "publisher": "lychnion",
+      "title": {
+        "ja": "応急手当（海外の資料）",
+        "en": "First aid (foreign sources)"
+      },
+      "note": {
+        "ja": "アプリ内蔵版より新しい版があれば更新",
+        "en": "Updates the copy built into the app"
+      },
+      "licence": "Public domain (U.S. government works); Japanese translation by Lychnion",
+      "notice": {
+        "ja": [
+          "医師の診断や治療の代わりにはなりません。",
+          "米国政府の資料をLychnionが翻訳したものです。公式の訳ではなく、まだ専門家の確認を受けていません。"
+        ],
+        "en": [
+          "Does not replace a doctor's diagnosis or treatment.",
+          "Translated from US government manuals by Lychnion: not an official translation, not yet checked by an expert."
+        ]
+      },
+      "files": [
+        {
+          "name": "intl.firstaid.basics.sqlite",
+          "size": 638976,
+          "sha256": "86bfddec18758857162dd744249d502dbb7833680d7356b72b9b905f40240439"
+        }
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "IToM1mtEhPysoZK7eWbwVNJhBXBi_CGMwmDnA6S0KJQpDwTDZ1gA9i_his4BoPKPxPAyggMDTNNVH4WSDebJBQ"
+    },
+    {
+      "format": 1,
+      "id": "jp.map.kushimoto",
+      "kind": "map",
+      "version": "2026.11.0",
+      "publisher": "lychnion",
+      "title": {
+        "ja": "地図：串本町（和歌山県）",
+        "en": "Map: Kushimoto (Wakayama)"
+      },
+      "note": {
+        "ja": "串本町と周辺、避難場所・徒歩ルート・津波浸水想定つき",
+        "en": "Kushimoto and around, with evacuation sites, walking routes and tsunami inundation areas"
+      },
+      "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ・標高タイル; 国土数値情報（津波浸水想定）CC BY 4.0",
+      "files": [
+        {
+          "name": "jp.map.kushimoto.pmtiles",
+          "size": 1838588,
+          "sha256": "4ae3d25c19a3489c99653beee432d57344093411664315b0a46d1e9d6e3cd651"
+        },
+        {
+          "name": "jp.map.kushimoto.sites.sqlite",
+          "size": 90112,
+          "sha256": "b145b475ed0bca4a5be79b1910e2be604daa1a8e9f23e67a910090a8f9857cd2"
+        },
+        {
+          "name": "jp.map.kushimoto.routes.bin",
+          "size": 713476,
+          "sha256": "82d0f8f448907f94347a1b0424e10f77f11f586dd3c5a5bcb0b2cf1c8ada4ce4"
+        },
+        {
+          "name": "jp.map.kushimoto.inundation.mbtiles",
+          "size": 606208,
+          "sha256": "c73441a12d360cabc42f7aa67fc80ad0e97869bb694d1307fbd60ac2866de456"
+        }
+      ],
+      "signed": "2026-11-18T11:40:40+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "L248tg-hNjcrUvgwdYWd12I_eOz12hnphfNNLGwpXShavWYFUYgELgpvUcIHerCURpiGwlc7TwKBoVHNY_kLCw"
     }
-  ]
+  ],
+  "urls": {
+    "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf",
+    "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2": "https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_0.gguf",
+    "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135": "https://huggingface.co/ggml-org/embeddinggemma-2-GGUF/resolve/main/embeddinggemma-2-Q8_0.gguf",
+    "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.pmtiles",
+    "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.sites.sqlite",
+    "94a5f22980f5fbba04facec8f6c169a4c8ab70cfc2cc6263a372130de71a725d": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.routes.bin",
+    "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.inundation.mbtiles"
+  }
 }

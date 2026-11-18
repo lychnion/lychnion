@@ -47,33 +47,56 @@ Storage (app support folder, the same folders as before):
 
 ## Catalog
 
-`assets/downloads/catalog.json` lists the items (id, kind, title ja/en,
-version, licence, note, files with name, size, sha256, url). The app can
-fetch a newer catalog from the URL in its `refresh` field (or the dev flag
-`CATALOG_URL`) and keeps the last one it got; a higher package version then
-shows **Update**. Relative file URLs resolve against `base` (or the
-catalog's own URL, or `DOWNLOAD_BASE_URL`).
+Since 2026-11-18 the catalog is a list of **signed records** (format 2,
+see [distribution.md](distribution.md), step 1). Each record names one
+version of a model, package or map area: id, kind, version, title and note
+ja/en, licence, notices, and its files with name, size and SHA-256. The
+publisher signs it with Ed25519 (`lib/download/record.dart`); the app has
+Lychnion's public key built in (`lib/download/publishers.dart`). Records do
+not say where a file is: the catalog's `urls` map (SHA-256 → address)
+names files hosted elsewhere (models on Hugging Face, files in older
+releases); all others are fetched by name next to the catalog, or from its
+`base` (or `DOWNLOAD_BASE_URL`).
 
-Models point to Hugging Face. Package and map files are release assets of
-the public repo [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data)
-(its README lists sources and licences, including the GSI notes). The
-bundled catalog uses `base` = the `2026.11.0` release; `refresh` is
-`…/releases/latest/download/catalog.json`, so a new release with a new
-catalog reaches the app the next time the Downloads tab opens online.
-GitHub redirects release downloads to its file servers, which honour Range
-(checked: `206`, `content-range` correct). A private repo would not work:
-its release files need a token.
+The app:
 
-To publish a new package or map version:
+- leaves out records with a bad signature or an unknown publisher, also in
+  the bundled and the cached catalog;
+- installs a file only after its size and SHA-256 match the signed record,
+  and keeps the signed record in `<id>.installed.json`;
+- checks those install records again on every start; records from before
+  signing count as not installed, so their files show as "unverified" and
+  are checked once more against a signed record;
+- never installs an older version than the installed one (`older`), and
+  shows no update for one. A record without a valid signature fails with
+  `signature`.
+
+Bundled packages are not affected. The refresh URL is
+`…/releases/latest/download/catalog.json` of the public repo
+[lychnion/lychnion-data](https://github.com/lychnion/lychnion-data) (its
+README lists sources and licences, including the GSI notes). Apps from
+before format 2 cannot read the new catalog and keep their old one.
+
+To publish a new package or map version: build it, raise its `version`
+in [tool/items.json](../tool/items.json) (packages: the same as in the
+package's meta), then sign and assemble with the key from 1Password:
 
 ```bash
-python3 -I tool/catalog.py assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
-# bump the item's "version" and "base" (new tag) in the catalog, then:
+op read op://Private/lychnion-package-signing-key/credential | dart run tool/records.dart sign --key - --items tool/items.json --records ../lychnion-data/records jp.bousai.core
+```
+
+```bash
+dart run tool/records.dart catalog --items tool/items.json --records ../lychnion-data/records --base https://github.com/lychnion/lychnion-data/releases/download/<tag>/ --out assets/downloads/catalog.json
+```
+
+```bash
 gh release create <tag> -R lychnion/lychnion-data assets/downloads/catalog.json assets/packages/jp.bousai.core.sqlite
 ```
 
-Upload unchanged files of other items again too, or keep their absolute
-URLs of the older release in the catalog.
+The signing tool refuses a version that is lower than one already signed,
+and the same version with other content. Files that did not change stay
+in their old release: give them a `url` in `tool/items.json`. Commit the
+new records to lychnion-data.
 
 ## Test on macOS
 
