@@ -1,0 +1,1140 @@
+{
+  "spec_version": 1,
+  "repository": "https://github.com/lychnion/lychnion",
+  "commit": "be565e8aeb473ee036b169dc11a010ba65437b82",
+  "date": "2026-11-19",
+  "scope_subpath": null,
+  "description": "Lychnion is an offline safety assistant for Japan. A phone or computer runs a small language model over installed, signed knowledge packages and shows sources and fixed official safety lines. Packages, maps and models come from signed catalogs over the internet, a base computer on the local Wi-Fi, a nearby phone, a USB stick or a headless node. A base also shares signed current facts such as shelter status.",
+  "confidence": {
+    "documented": 270,
+    "inferred": 0
+  },
+  "components": [
+    {
+      "name": "answers",
+      "entry_points": [
+        "_prompt",
+        "package alerts",
+        "package vectors, synonyms",
+        "KnowledgePackage.open",
+        "LocalLlm.loadFile",
+        "GroundedAnswerer.answer",
+        "SourceLink._open"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "downloads",
+      "entry_points": [
+        "Catalog.parse",
+        "fetchCatalogText",
+        "Downloader.fetch",
+        "Downloader._open",
+        "loadFromStick",
+        "PublisherList.add",
+        "FollowedCatalogs.add"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "records",
+      "entry_points": [
+        "TrustedKeys.check",
+        "TrustedKeys.verify",
+        "PackageRecord.fromJson",
+        "relevantStatements"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "publishing",
+      "entry_points": [
+        "KeyBackup.open"
+      ],
+      "touches": [
+        "child_processes"
+      ],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "base-server",
+      "entry_points": [
+        "base TCP accept",
+        "base POST /ask",
+        "base POST /ask, GET /info, /facts",
+        "base GET /blobs/sha256/<hash>",
+        "browser page"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "base-client",
+      "entry_points": [
+        "BaseClient.info, .facts, .ask",
+        "BaseClient.ask",
+        "BaseFinder",
+        "lychnion://base link (also shelter)",
+        "lychnion://share link"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "facts",
+      "entry_points": [
+        "FactStore.addAll",
+        "FactStore.current"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "device-data",
+      "entry_points": [],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "node",
+      "entry_points": [
+        "node serve",
+        "node pull",
+        "node pull from a folder"
+      ],
+      "touches": [],
+      "in_scope": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    }
+  ],
+  "out_of_scope": [
+    {
+      "item": "spike-and-tools",
+      "reason": "dev-only, per §1.3",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "item": "release-and-ci",
+      "reason": "trusted maintainer machinery, per §1.3",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "item": "radio-codec",
+      "reason": "radio message reader not wired into the app, per §1.3",
+      "provenance": "inferred",
+      "source": "open question Q29"
+    }
+  ],
+  "trust_boundaries": [
+    {
+      "component": "answers",
+      "boundary": "`answers`: in model if reachable from an installed package (any trusted publisher), a question, or a base answer.",
+      "provenance": "documented",
+      "reachability_precondition": "reachable from an installed package of any trusted publisher, a question, or a base answer"
+    },
+    {
+      "component": "downloads",
+      "boundary": "`downloads`, `records`, `node`: in model if reachable from the bytes of a catalog, record, file response, redirect or stick folder.",
+      "provenance": "documented",
+      "reachability_precondition": "reachable from the bytes of a catalog, record, file response, redirect or USB stick folder"
+    },
+    {
+      "component": "records",
+      "boundary": "`downloads`, `records`, `node`: in model if reachable from the bytes of a catalog, record, file response, redirect or stick folder.",
+      "provenance": "documented",
+      "reachability_precondition": "reachable from the bytes of a record from any catalog, stick, base or marker file"
+    },
+    {
+      "component": "publishing",
+      "boundary": "`publishing`: in model only for what crosses to phones; the operator's own files are trusted.",
+      "provenance": "documented",
+      "reachability_precondition": "only what crosses to phones; the operator's own files are trusted"
+    },
+    {
+      "component": "base-server",
+      "boundary": "`base-server`: in model if reachable by a client that can reach port 8642 or 8643. Reaching it from outside the local Wi-Fi or hotspot is itself a violation (§1.11 `lan-only-exposure`).",
+      "provenance": "documented",
+      "reachability_precondition": "reachable by a client that can reach port 8642 or 8643"
+    },
+    {
+      "component": "base-client",
+      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` link (`base`, `shelter`, `share`, `publisher`, `catalog`) or a legacy `fieldkit://` base link.",
+      "provenance": "documented",
+      "reachability_precondition": "reachable from a base's responses, an mDNS record, or a lychnion:// or fieldkit:// link"
+    },
+    {
+      "component": "facts",
+      "boundary": "`facts`: in model if reachable from facts a base serves.",
+      "provenance": "documented",
+      "reachability_precondition": "reachable from facts a base serves"
+    },
+    {
+      "component": "device-data",
+      "boundary": "`device-data`: in model if data leaves the app sandbox: network, the system log, or shared storage.",
+      "provenance": "documented",
+      "reachability_precondition": "data leaving the app sandbox: network, system log, shared storage"
+    },
+    {
+      "component": "node",
+      "boundary": "**Statement to key.** Catalogs, sticks, bases, nearby phones and nodes also carry key statements. A statement changes trust only when a key the device already trusts for that publisher signed it.",
+      "provenance": "documented",
+      "reachability_precondition": "reachable from requests to the node port, or from catalogs, file hosts and folders it pulls"
+    }
+  ],
+  "entry_points": [
+    {
+      "entry_point": "TrustedKeys.check",
+      "parameter": "record JSON from any catalog, stick, base or marker",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "none — signed-install-only",
+      "provenance": "documented",
+      "source": "docs/data-packages.md \"Signing and trust\""
+    },
+    {
+      "entry_point": "TrustedKeys.verify",
+      "parameter": "publisher, key, signature",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "none — signed-install-only",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Publishers and keys\""
+    },
+    {
+      "entry_point": "PackageRecord.fromJson",
+      "parameter": "id, files[].name",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "none — publisher-namespace",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "PackageRecord.fromJson",
+      "parameter": "version",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "none — no-downgrade-installed",
+      "provenance": "documented",
+      "source": "docs/versioning.md \"Data: calendar versions\""
+    },
+    {
+      "entry_point": "PackageRecord.fromJson",
+      "parameter": "files[].size",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "disk space",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Security\", \"A bad mirror costs time, not safety\"; \"Sync between nodes\", \"a full disk ends the run\""
+    },
+    {
+      "entry_point": "Catalog.parse",
+      "parameter": "urls, mirrors, base, refresh (unsigned)",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "none — signed-install-only",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Storage: files by hash, any server\""
+    },
+    {
+      "entry_point": "relevantStatements",
+      "parameter": "keys statements from any catalog, stick, base, phone or node",
+      "attacker_controllable": "yes",
+      "component": "records",
+      "caller_must_enforce": "none — key-statement-verification",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
+    },
+    {
+      "entry_point": "KeyBackup.open",
+      "parameter": "backup file and passphrase",
+      "attacker_controllable": "no",
+      "component": "publishing",
+      "caller_must_enforce": "keep the backup offline and the passphrase strong",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "fetchCatalogText",
+      "parameter": "response body, length, timing",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "none — client-response-limits",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Following catalogs\""
+    },
+    {
+      "entry_point": "fetchCatalogText",
+      "parameter": "redirect target",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "accept that catalogs may point anywhere",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Following catalogs\""
+    },
+    {
+      "entry_point": "Downloader.fetch",
+      "parameter": "status, Content-Length, Content-Range, body",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "none — atomic-file-install",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Storage: files by hash, any server\""
+    },
+    {
+      "entry_point": "Downloader.fetch",
+      "parameter": "trickle rate of a file host",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "accept slow downloads",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Security\", \"A bad mirror costs time, not safety\"; \"Sync between nodes\", \"a full disk ends the run\""
+    },
+    {
+      "entry_point": "Downloader._open",
+      "parameter": "redirect from a base or nearby phone",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "none — lan-device-same-origin",
+      "provenance": "documented",
+      "source": "CHANGELOG.md \"Security\""
+    },
+    {
+      "entry_point": "loadFromStick",
+      "parameter": "stick catalog.json, urls, files, links",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "none — signed-install-only",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Sync between nodes\""
+    },
+    {
+      "entry_point": "PublisherList.add",
+      "parameter": "lychnion://publisher name, key, title",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "the user confirms only publishers they know",
+      "provenance": "documented",
+      "source": "help/en/07-publishers.md \"How do I add a publisher, such as my city?\""
+    },
+    {
+      "entry_point": "FollowedCatalogs.add",
+      "parameter": "lychnion://catalog url, name",
+      "attacker_controllable": "yes",
+      "component": "downloads",
+      "caller_must_enforce": "the user confirms; following trusts no key",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Following catalogs\""
+    },
+    {
+      "entry_point": "_prompt",
+      "parameter": "passage text, heading, publisher, title",
+      "attacker_controllable": "yes",
+      "component": "answers",
+      "caller_must_enforce": "none — publisher content is trusted (§1.12 publisher-content)",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "package alerts",
+      "parameter": "safety line text and trigger words",
+      "attacker_controllable": "yes",
+      "component": "answers",
+      "caller_must_enforce": "none — safety-line-lychnion-only",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "package vectors, synonyms",
+      "parameter": "retrieval data",
+      "attacker_controllable": "yes",
+      "component": "answers",
+      "caller_must_enforce": "none — publisher content is trusted",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "KnowledgePackage.open",
+      "parameter": "SQLite bytes",
+      "attacker_controllable": "yes",
+      "component": "answers",
+      "caller_must_enforce": "none; parser defects go to sqlite3",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "LocalLlm.loadFile",
+      "parameter": "GGUF bytes, chat template",
+      "attacker_controllable": "no",
+      "component": "answers",
+      "caller_must_enforce": "none — models-lychnion-only",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "GroundedAnswerer.answer",
+      "parameter": "the user's question",
+      "attacker_controllable": "no",
+      "component": "answers",
+      "caller_must_enforce": "none; no limit on the device",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "SourceLink._open",
+      "parameter": "source.url, attribution label",
+      "attacker_controllable": "yes",
+      "component": "answers",
+      "caller_must_enforce": "the reader checks the address in the browser",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "base TCP accept",
+      "parameter": "connections per address",
+      "attacker_controllable": "yes",
+      "component": "base-server",
+      "caller_must_enforce": "accept flooding",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "base TCP accept",
+      "parameter": "the network a client comes from",
+      "attacker_controllable": "yes",
+      "component": "base-server",
+      "caller_must_enforce": "none — lan-only-exposure",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "base POST /ask",
+      "parameter": "body (≤8 KiB, ≤10 s), question (≤500 characters)",
+      "attacker_controllable": "yes",
+      "component": "base-server",
+      "caller_must_enforce": "none — base-request-limits",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"How it works\""
+    },
+    {
+      "entry_point": "base POST /ask",
+      "parameter": "nonce",
+      "attacker_controllable": "yes",
+      "component": "base-server",
+      "caller_must_enforce": "none — base-answer-signature",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"How it works\""
+    },
+    {
+      "entry_point": "base POST /ask, GET /info, /facts",
+      "parameter": "Host, Origin, Content-Type",
+      "attacker_controllable": "yes",
+      "component": "base-server",
+      "caller_must_enforce": "keep bases offline (§1.12 cross-site-requests)",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "base GET /blobs/sha256/<hash>",
+      "parameter": "path, Range",
+      "attacker_controllable": "yes",
+      "component": "base-server",
+      "caller_must_enforce": "none — blob-serving-by-hash",
+      "provenance": "documented",
+      "source": "CHANGELOG.md \"Security\""
+    },
+    {
+      "entry_point": "browser page",
+      "parameter": "/web.json and /ask text",
+      "attacker_controllable": "no",
+      "component": "base-server",
+      "caller_must_enforce": "none — browser-page-text-only",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"Sharing switch and browser page (2026-11-18"
+    },
+    {
+      "entry_point": "BaseClient.info, .facts, .ask",
+      "parameter": "response status, body, size",
+      "attacker_controllable": "yes",
+      "component": "base-client",
+      "caller_must_enforce": "none — client-response-limits",
+      "provenance": "documented",
+      "source": "CHANGELOG.md \"Security\""
+    },
+    {
+      "entry_point": "BaseClient.ask",
+      "parameter": "x-lychnion-signature, or its absence",
+      "attacker_controllable": "yes",
+      "component": "base-client",
+      "caller_must_enforce": "none — base-answer-signature",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"How it works\""
+    },
+    {
+      "entry_point": "BaseFinder",
+      "parameter": "mDNS name, addresses, TXT key",
+      "attacker_controllable": "yes",
+      "component": "base-client",
+      "caller_must_enforce": "the user confirms one base",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Security\", row \"Fake base announced on the Wi-Fi\""
+    },
+    {
+      "entry_point": "lychnion://base link (also shelter)",
+      "parameter": "url, name, key, s",
+      "attacker_controllable": "yes",
+      "component": "base-client",
+      "caller_must_enforce": "none — key-consent",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "lychnion://share link",
+      "parameter": "url",
+      "attacker_controllable": "yes",
+      "component": "base-client",
+      "caller_must_enforce": "the user confirms",
+      "provenance": "documented",
+      "source": "help/en/06-share-nearby.md \"What does the other phone do?\""
+    },
+    {
+      "entry_point": "FactStore.addAll",
+      "parameter": "facts from a base",
+      "attacker_controllable": "yes",
+      "component": "facts",
+      "caller_must_enforce": "none — fact-verification",
+      "provenance": "documented",
+      "source": "docs/facts-results.md \"Signed facts (2026-11-05"
+    },
+    {
+      "entry_point": "FactStore.current",
+      "parameter": "observedAt, expiresAt",
+      "attacker_controllable": "yes",
+      "component": "facts",
+      "caller_must_enforce": "none — fact-time-bounds",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "node serve",
+      "parameter": "path, method, Range, connections",
+      "attacker_controllable": "yes",
+      "component": "node",
+      "caller_must_enforce": "reverse proxy on the internet",
+      "provenance": "documented",
+      "source": "packages/lychnion_node/README.md \"Operating\""
+    },
+    {
+      "entry_point": "node pull",
+      "parameter": "catalog body with key statements, file responses, hosts it names",
+      "attacker_controllable": "yes",
+      "component": "node",
+      "caller_must_enforce": "none — signed-install-only",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "node pull",
+      "parameter": "--publisher NAME=KEY",
+      "attacker_controllable": "no",
+      "component": "node",
+      "caller_must_enforce": "the operator checks the key",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "entry_point": "node pull from a folder",
+      "parameter": "stick contents",
+      "attacker_controllable": "yes",
+      "component": "node",
+      "caller_must_enforce": "none — signed-install-only",
+      "provenance": "documented",
+      "source": "packages/lychnion_node/README.md \"Commands\""
+    }
+  ],
+  "environment": {
+    "assumes": [
+      "**Platforms**: Android, iOS, macOS and Windows from one Flutter codebase. The headless node runs as a program or container on a server.",
+      "**Network**: a base needs a Wi-Fi that lets devices reach each other; the safest is a hotspot or router the shelter controls. The base page uses plain http.",
+      "**OS protections**: the app folder is private to the app (sandbox on macOS, iOS and Android; per-user AppData on Windows). The desktop publisher key relies on them.",
+      "**Files after install** are trusted. The app checks size and SHA-256 at install and only the signed record and the size at load."
+    ],
+    "does_not": [
+      "no analytics-crash-reporting-telemetry (answers, downloads, base-server, base-client, facts, device-data)",
+      "no environment-variables-at-run-time (answers, downloads, base-server, base-client, facts, device-data)",
+      "no native-libraries-own-network-use (answers, base-server, base-client, device-data)"
+    ],
+    "provenance": "inferred"
+  },
+  "build_variants": [
+    {
+      "name": "--dart-define dev flags",
+      "default": "unset",
+      "effect": "voids signed-install-only; voids grounded-answer-presentation; voids fact-verification",
+      "discouraged": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "DEV_MENU=true tester builds, and debug builds",
+      "default": "off in release",
+      "effect": "voids signed-install-only; voids models-lychnion-only",
+      "discouraged": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "Base switch",
+      "default": "off",
+      "effect": "preserves base-request-limits",
+      "discouraged": false,
+      "provenance": "documented",
+      "source": "help/en/05-base.md \"How do I make my computer a base?\""
+    },
+    {
+      "name": "Keep everything for phones",
+      "default": "off",
+      "effect": "no effect on claimed properties",
+      "discouraged": false,
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Sync between nodes\""
+    },
+    {
+      "name": "Android usesCleartextTraffic",
+      "default": "on",
+      "effect": "narrows device-egress",
+      "discouraged": false,
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"How it works\""
+    },
+    {
+      "name": "Android release without the upload key",
+      "default": "n/a",
+      "effect": "no effect on claimed properties",
+      "discouraged": true,
+      "provenance": "documented",
+      "source": "docs/release-builds.md \"Signing\""
+    },
+    {
+      "name": "Node --publisher NAME=KEY",
+      "default": "none",
+      "effect": "narrows signed-install-only",
+      "discouraged": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "Node directly on the internet",
+      "default": "n/a",
+      "effect": "preserves blob-serving-by-hash",
+      "discouraged": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "name": "Node serve on a folder it did not pull",
+      "default": "n/a",
+      "effect": "voids blob-serving-by-hash",
+      "discouraged": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    }
+  ],
+  "adversaries": {
+    "in_scope": [
+      "device-on-the-same-wi-fi",
+      "host-outside-the-local-wi-fi",
+      "sender-of-links-web-page-message-other-a",
+      "catalog-mirror-or-file-host-that-is-not",
+      "usb-stick-author",
+      "publisher-the-user-added",
+      "holder-of-an-old-or-stolen-publisher-key"
+    ],
+    "out_of_scope": [
+      "operator-of-a-qr-pinned-base",
+      "lychnion-key-holder-maintainers-build-ma",
+      "someone-controlling-the-device",
+      "the-user-asking"
+    ],
+    "provenance": "documented"
+  },
+  "properties_provided": [
+    {
+      "property": "signed-install-only",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "a file from any source is installed or served onward only when its record verifies against a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in or added key, or a successor named by a valid key statement, and not revoked.",
+      "provenance": "documented",
+      "source": "docs/data-packages.md \"Signing and trust\""
+    },
+    {
+      "property": "publisher-namespace",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case, and its key statements count only for its own name.",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Publishers and keys\""
+    },
+    {
+      "property": "no-downgrade-installed",
+      "violation_symptom": "bad-data-accepted",
+      "severity_tier": "security",
+      "conditions": "an installed item is never replaced with an older version.",
+      "provenance": "documented",
+      "source": "docs/distribution.md\n  \"Principles\""
+    },
+    {
+      "property": "key-consent",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "a publisher key or base key becomes trusted only after the user says yes, and a base key gets fact trust only from an in-person QR scan. Two exceptions come from the publisher's own statements: a successor named by a trusted key's replacement is trusted without a dialog, and a revoked publisher's new link replaces its entry after a dialog.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "grounded-answer-presentation",
+      "violation_symptom": "x-ungrounded-answer",
+      "severity_tier": "security",
+      "conditions": "an answer is built only from installed guides and shows its sources; an answer whose citations do not check out carries a warning; the app never shows bare-model text as an answer.",
+      "provenance": "documented",
+      "source": "SECURITY.md \"In scope\""
+    },
+    {
+      "property": "safety-line-lychnion-only",
+      "violation_symptom": "x-missing-or-forged-safety-line",
+      "severity_tier": "security",
+      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher supplies it.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "models-lychnion-only",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "only models signed by Lychnion are installed and loaded.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "base-answer-signature",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "with a pinned key, the phone accepts a base answer only when its Ed25519 signature covers the phone's nonce, a hash of the request and the exact body; once that base has signed, unsigned answers are refused. A QR code with `s=1` says the base signs, so unsigned answers are refused from the first one. A late answer from a previous base is ignored. An answer from a base without a pinned key, or an unsigned one, carries a note saying so.",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md\n  \"How it works\""
+    },
+    {
+      "property": "fact-verification",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "an official or sensor fact shows as verified only with a signature from a trusted key; others count as resident reports and are labelled. Signed fields never contain control characters, so a signature never fits a different split of the fields *(maintainer, 2026-11)*.",
+      "provenance": "documented",
+      "source": "docs/facts-results.md\n  \"Signed facts (2026-11-05"
+    },
+    {
+      "property": "unverified-facts-not-acted-on",
+      "violation_symptom": "bad-data-accepted",
+      "severity_tier": "security",
+      "conditions": "only verified facts change the suggested evacuation site or walking route.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "fact-time-bounds",
+      "violation_symptom": "bad-data-accepted",
+      "severity_tier": "security",
+      "conditions": "a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "base-request-limits",
+      "violation_symptom": "hang, unbounded-allocation",
+      "severity_tier": "security",
+      "conditions": "every request has limits: 100 connections in all, body 8 KiB within 10 s, question 500 characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"How it works\"; lib/base/base_server.dart\n  `BaseServer` doc comment"
+    },
+    {
+      "property": "client-response-limits",
+      "violation_symptom": "unbounded-allocation, crash, hang",
+      "severity_tier": "security",
+      "conditions": "what a phone or node accepts is capped: 16 KiB for a base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements per list and 1000 kept. A hostile response does not crash or hang the reader, and deeply nested JSON from any of these sources is rejected *(maintainer, 2026-11)*.",
+      "provenance": "documented",
+      "source": "CHANGELOG.md \"Security\""
+    },
+    {
+      "property": "lan-only-exposure",
+      "violation_symptom": "info-leak",
+      "severity_tier": "security",
+      "conditions": "the base and Share nearby are reachable only from the local Wi-Fi or hotspot.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "blob-serving-by-hash",
+      "violation_symptom": "info-leak",
+      "severity_tier": "security",
+      "conditions": "servers answer only fixed routes and serve files only by SHA-256 from verified records or the node folder; no request part becomes a path.",
+      "provenance": "documented",
+      "source": "CHANGELOG.md \"Security\""
+    },
+    {
+      "property": "browser-page-text-only",
+      "violation_symptom": "x-script-injection",
+      "severity_tier": "security",
+      "conditions": "the browser page shows all data as text, never as HTML.",
+      "provenance": "documented",
+      "source": "docs/shelter-results.md \"Sharing switch and browser\n  page (2026-11-18"
+    },
+    {
+      "property": "device-egress",
+      "violation_symptom": "info-leak",
+      "severity_tier": "security",
+      "conditions": "questions leave the device only to a base the user connected to on the local network; position never leaves; release builds do not log questions, answers or position.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "lan-device-same-origin",
+      "violation_symptom": "info-leak",
+      "severity_tier": "correctness",
+      "conditions": "from a base or a nearby phone, the app downloads only files on that device, never from other addresses its catalog names or redirects to.",
+      "provenance": "documented",
+      "source": "CHANGELOG.md \"Security\""
+    },
+    {
+      "property": "atomic-file-install",
+      "violation_symptom": "bad-data-accepted",
+      "severity_tier": "security",
+      "conditions": "a file gets its final name only after its size and hash match; on failure the last good file stays.",
+      "provenance": "documented",
+      "source": "packages/lychnion_node/README.md\n  \"Operating\""
+    },
+    {
+      "property": "publisher-key-local",
+      "violation_symptom": "info-leak",
+      "severity_tier": "security",
+      "conditions": "the plain desktop publisher key stays in the app folder and is never served or shared. The only copy that leaves it is the passphrase-encrypted backup the operator saves.",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Publishers and\n  keys\""
+    },
+    {
+      "property": "publisher-removal-deletes",
+      "violation_symptom": "wrong-output",
+      "severity_tier": "correctness",
+      "conditions": "removing a publisher deletes and unloads its items.",
+      "provenance": "documented",
+      "source": "help/en/07-publishers.md \"How do I add a publisher, such as my city?\""
+    },
+    {
+      "property": "node-private-address-filter",
+      "violation_symptom": "x-request-forgery",
+      "severity_tier": "correctness",
+      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network. DNS rebinding is not caught.",
+      "provenance": "documented",
+      "source": "packages/lychnion_node/README.md \"Operating\""
+    },
+    {
+      "property": "key-statement-verification",
+      "violation_symptom": "integrity-bypass",
+      "severity_tier": "security",
+      "conditions": "a replacement counts only when the old key signed it and the new key countersigned it; a revocation only when the revoked key signed it; and only when the old key is trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached only through them is not trusted. This holds for the `lychnion` key too.",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
+    },
+    {
+      "property": "revocation-unloads",
+      "violation_symptom": "bad-data-accepted",
+      "severity_tier": "security",
+      "conditions": "once a revocation is learned, items whose record the revoked key signed are no longer used. Their files stay on disk, and their version still blocks a downgrade.",
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
+    },
+    {
+      "property": "key-backup-confidentiality",
+      "violation_symptom": "info-leak",
+      "severity_tier": "security",
+      "conditions": "the private key in a backup is readable only with the passphrase (Argon2id, then AES-256-GCM; name and public key bound). Restore never replaces a key, never restores a key this computer knows as revoked or replaced, and writes nothing on a wrong passphrase or a damaged file.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "answers-never-mix",
+      "violation_symptom": "wrong-output",
+      "severity_tier": "correctness",
+      "conditions": "while a computer serves phones, answers to phones and to its own Ask page never mix, and a phone that leaves stops only its own answer.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    }
+  ],
+  "properties_not_provided": [
+    {
+      "property": "ai-wording-correctness",
+      "reason": "Correct or complete wording of AI answers. Source and safety line are shown; stated limit, not silence",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "citation-means-support",
+      "reason": "Proof that a cited passage supports the sentence. [n] means only \"this passage was given to the model\"",
+      "false_friend": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "signed-means-true",
+      "reason": "Truth of signed content, or the signer's authority over a shelter. Records, facts and answers; a signature proves origin",
+      "false_friend": true,
+      "provenance": "documented",
+      "source": "docs/facts-results.md \"Signed facts (2026-11-05"
+    },
+    {
+      "property": "publisher-content",
+      "reason": "Vetting of an added publisher's guides, including text that steers the model, synonyms and vectors. Only under that publisher's own name; not its safety lines or models",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "freshness",
+      "reason": "Protection against being kept on old data. No expiry on records or key statements; catalogs unsigned; a carrier can withhold a revocation; older apps ignore statements; also after delete, publisher removal, reinstall or on a fresh node",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "key-revocation",
+      "reason": "Rotation, revocation or removal of base (fact) keys. Publisher keys, Lychnion's included, have signed replacement and revocation (key-statement-verification)",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "docs/facts-results.md \"Signed facts (2026-11-05"
+    },
+    {
+      "property": "old-key-denial",
+      "reason": "Protection against the holder of an old or stolen publisher key who revokes it or names a second successor. Phones that added that key drop it and its successors until the user adds the new link",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "backup-passphrase-and-storage",
+      "reason": "Resistance of a key backup to offline guessing of a weak passphrase; protection of the backup file where the operator keeps it. Passphrase of at least 12 characters; the operator chooses where to save",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "lan-confidentiality",
+      "reason": "Confidentiality on the Wi-Fi of questions, answers, facts and the list of installed packages. Plain http on the local network; packages are public data",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "browser-page-integrity",
+      "reason": "Integrity of the browser page for phones without the app. Plain http, unsigned",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "first-signature-strip",
+      "reason": "Protection against stripping signatures before a pinned base has signed once. Only for a QR code without s=1 (older codes), until the first signed answer; the \"unsigned\" note is the defence",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "cross-site-requests",
+      "reason": "Defence against cross-site requests and DNS rebinding from a web page. While bases run without internet; in scope again if bases are meant to have internet",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "lan-availability",
+      "reason": "Availability of a base against a device on the Wi-Fi that floods connections or questions. Per-request limits still hold (base-request-limits)",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "node-internet-dos",
+      "reason": "Availability of a node exposed to the internet without a reverse proxy. Unsupported setup (§1.6)",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "download-time-and-disk",
+      "reason": "A time limit per download, or a disk quota. Size and hash still decide; a bad mirror costs time; a full disk ends a run",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Security\", \"A bad mirror costs time, not safety\"; \"Sync between nodes\", \"a full disk ends the run\""
+    },
+    {
+      "property": "catalog-network-reach",
+      "reason": "Limits on which hosts a followed or main catalog sends the app to. Not for catalogs from a base or nearby phone (lan-device-same-origin)",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "docs/distribution.md \"Following catalogs\""
+    },
+    {
+      "property": "multi-file-update-atomicity",
+      "reason": "All-or-nothing network updates of items with several files. Each file still matches a signed hash; the USB stick path is atomic",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "on-disk-integrity",
+      "reason": "Re-checking hashes of installed files at load. Changing app files needs device control",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "native-parser-safety",
+      "reason": "Safety of llama.cpp, sqlite3 and map renderers on crafted files. Files from Lychnion or a trusted publisher; defects go upstream",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "os-backup",
+      "reason": "Exclusion of app data from OS backups. The user's own backup choice",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "local-resource-bounds",
+      "reason": "Limits on a question typed on the device. Input against the user's own device",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "base-key-id-collision",
+      "reason": "Protection against a 48-bit key-id collision that replaces a trusted base key. Denial of service only; the attacker cannot sign as the base",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "source-label-destination",
+      "reason": "That a source link's label names its destination, or that it uses https. Links from packages or bases",
+      "false_friend": true,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    }
+  ],
+  "attack_classes": [
+    "Fake facts or answers, read questions, crash or hang a base or phone",
+    "Use the base or read installed items",
+    "Get a key trusted, follow a hostile catalog, point the phone at a hostile base",
+    "Install a tampered file, hide updates, learn what users download",
+    "Install a tampered or squatting item",
+    "Replace Lychnion's items or files, make its lines look official",
+    "Impersonate the publisher, or make phones drop it"
+  ],
+  "downstream_responsibilities": [
+    "Add only publishers you know.",
+    "Follow official warnings first.",
+    "Run the base on a Wi-Fi you control; treat it as readable by everyone on it.",
+    "Keep the base offline while serving, or accept cross-site requests.",
+    "Save a passphrase backup of the key and keep it offline; restore only the newest backup; keep backups of replaced keys as safe as the newest one.",
+    "Check each --publisher key out of band, use a reverse proxy on the internet, pull a USB stick instead of serving it.",
+    "Build releases without --dart-define dev flags.",
+    "Give every recipient the source, also for a base."
+  ],
+  "known_misuse": [
+    {
+      "pattern": "running a base on guest or office Wi-Fi",
+      "why_unsafe": "**A base on guest or office Wi-Fi.** It looks like any network will do. Others on it can read and change traffic, and client isolation often blocks phones anyway. Use a hotspot the shelter controls.",
+      "instead": "use a hotspot or router the shelter controls"
+    },
+    {
+      "pattern": "adding a publisher from an unknown link",
+      "why_unsafe": "**Adding a publisher from an unknown link.** The dialog looks routine, but the publisher's guides then appear as answers with its name. Add only publishers you know.",
+      "instead": "add only publishers you know"
+    },
+    {
+      "pattern": "treating signed as official and true",
+      "why_unsafe": "**Treating \"signed\" as \"official and true\".** A signature says who vouches, not that it is right \")*.",
+      "instead": "read a signature as who vouches, not as correctness"
+    },
+    {
+      "pattern": "shipping a build with dev flags such as DEV_MENU=true",
+      "why_unsafe": "**Shipping a build with dev flags**, for example `DEV_MENU=true` to users: it loads unchecked models.",
+      "instead": "build releases without --dart-define"
+    },
+    {
+      "pattern": "serving a USB stick with lychnion_node serve",
+      "why_unsafe": "**Serving a USB stick with `lychnion_node serve`** instead of pulling it.",
+      "instead": "pull the stick into the node folder"
+    }
+  ],
+  "known_non_findings": [
+    {
+      "reported_as": "Catalog urls and mirrors are unsigned, so an attacker can point downloads at their server",
+      "why_safe": "Covers downloads, node; symptom 'integrity-bypass'. Exact-match conditions (§1.15): The app or node contacts the host, and the file is installed only if its size and SHA-256 match the signed record.",
+      "cites": "properties_provided[0]",
+      "suppression": "The app or node contacts the host, and the file is installed only if its size and SHA-256 match the signed record"
+    },
+    {
+      "reported_as": "Downloads from a base, phone or node use plain http, so files can be swapped",
+      "why_safe": "Covers downloads, base-client, node; symptom 'integrity-bypass'. Exact-match conditions (§1.15): Tampered bytes fail the hash and are not installed.",
+      "cites": "properties_provided[0]",
+      "suppression": "Tampered bytes fail the hash and are not installed"
+    },
+    {
+      "reported_as": "The catalog keys list is unsigned, so a host can inject key statements",
+      "why_safe": "Covers downloads, records, node; symptom 'integrity-bypass'. Exact-match conditions (§1.15): The injected statements are not signed by a key the device trusts for that publisher, and are not kept.",
+      "cites": "properties_provided[22]",
+      "suppression": "The injected statements are not signed by a key the device trusts for that publisher, and are not kept"
+    },
+    {
+      "reported_as": "The model gave wrong or unsafe advice",
+      "why_safe": "Covers answers; symptom 'wrong-output'. Exact-match conditions (§1.15): The answer shows its sources and the safety line where one matches; no forged citation or missing warning.",
+      "cites": "properties_not_provided[0]",
+      "suppression": "The answer shows its sources and the safety line where one matches; no forged citation or missing warning"
+    }
+  ],
+  "dispositions": [
+    "valid",
+    "valid_hardening",
+    "out_of_model_trusted_input",
+    "out_of_model_adversary",
+    "out_of_model_unsupported_component",
+    "out_of_model_non_default_build",
+    "by_design_disclaimed",
+    "known_non_finding",
+    "model_gap"
+  ],
+  "open_questions": []
+}

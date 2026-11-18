@@ -46,3 +46,6 @@ app.*.map.json
 
 # Model files are downloaded, never committed
 *.gguf
+
+# Threat-model backtest corpus (producer side, not published)
+.threat-model/

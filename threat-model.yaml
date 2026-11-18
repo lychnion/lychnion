@@ -1,0 +1,2471 @@
+# threat-model.yaml — derived index; the prose threat model (threat-model.md) is canonical.
+# Regenerate after every change to threat-model.md.
+schema: threat-model-sidecar/v2
+project: lychnion
+prose_version: threat-model.md@sha256:9c84bda57e82e5a4737cad46a285fb0a0ec60dd095fb4b7b9bcf08ecd9c289ef
+model_status: accepted
+triage_policy: strict
+confidence:
+  documented: 120
+  maintainer: 150
+  inferred: 0
+  assumption: 0
+generation:
+  model: Claude Opus 5.5 (claude-opus-5-5)
+  effort: low
+  plugins:
+  - threat-model
+  - threat-model-recon
+  - threat-model-surface
+  - threat-model-interview
+  - threat-model-authoring
+  - threat-model-backtest
+  - threat-model-sidecar
+components:
+- name: answers
+  scope: in
+  reachability_precondition: reachable from an installed package of any trusted publisher, a question,
+    or a base answer
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: downloads
+  scope: in
+  reachability_precondition: reachable from the bytes of a catalog, record, file response, redirect or
+    USB stick folder
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: records
+  scope: in
+  reachability_precondition: reachable from the bytes of a record from any catalog, stick, base or marker
+    file
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: publishing
+  scope: in
+  reachability_precondition: only what crosses to phones; the operator's own files are trusted
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: base-server
+  scope: in
+  reachability_precondition: reachable by a client that can reach port 8642 or 8643
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: base-client
+  scope: in
+  reachability_precondition: reachable from a base's responses, an mDNS record, or a lychnion:// or fieldkit://
+    link
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: facts
+  scope: in
+  reachability_precondition: reachable from facts a base serves
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: device-data
+  scope: in
+  reachability_precondition: 'data leaving the app sandbox: network, system log, shared storage'
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: node
+  scope: in
+  reachability_precondition: reachable from requests to the node port, or from catalogs, file hosts and
+    folders it pulls
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: spike-and-tools
+  scope: out
+  reason: dev-only, per §1.3
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: release-and-ci
+  scope: out
+  reason: trusted maintainer machinery, per §1.3
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: radio-codec
+  scope: out
+  reason: radio message reader not wired into the app, per §1.3
+  provenance:
+    kind: assumption
+    question_id: Q29
+host_side_effects:
+- effect: analytics-crash-reporting-telemetry
+  stance: absent
+  components:
+  - answers
+  - downloads
+  - base-server
+  - base-client
+  - facts
+  - device-data
+  conditions: all components
+  provenance: &id001
+    kind: maintainer
+    date: 2026-11
+- effect: environment-variables-at-run-time
+  stance: absent
+  components:
+  - answers
+  - downloads
+  - base-server
+  - base-client
+  - facts
+  - device-data
+  conditions: app; only --dart-define at build
+  provenance: *id001
+- effect: child-processes
+  stance: conditional
+  components:
+  - publishing
+  conditions: chmod for the publisher key, on desktops other than Windows
+  provenance: *id001
+- effect: listening-sockets
+  stance: conditional
+  components:
+  - base-server
+  conditions: base on 8642 (desktop) and Share nearby on 8643 (phone), only while switched on
+  provenance: *id001
+- effect: mdns
+  stance: conditional
+  components:
+  - base-server
+  - base-client
+  conditions: announce _lychnion._tcp while a base serves; browse while a phone lists bases
+  provenance: *id001
+- effect: wake-lock
+  stance: conditional
+  components:
+  - base-server
+  conditions: only on the Share nearby screen
+  provenance: *id001
+- effect: outbound-http-s
+  stance: present
+  components:
+  - downloads
+  - base-client
+  conditions: catalog, mirror, model and base addresses only
+  provenance: *id001
+- effect: native-libraries-own-network-use
+  stance: absent
+  components:
+  - answers
+  - base-server
+  - base-client
+  - device-data
+  conditions: llama.cpp (flutter_edge_ai, llamadart_llama_cpp_flutter), bonsoir, geolocator
+  provenance: *id001
+- effect: key-backup-file
+  stance: conditional
+  components:
+  - publishing
+  conditions: written only where the operator saves it; Argon2id (at most 128 MiB) in a background isolate
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- effect: node-sockets-files-signals
+  stance: present
+  components:
+  - node
+  conditions: one listening socket (default 0.0.0.0:8642); outbound HTTP(S) to catalog and file hosts;
+    writes only inside its folder; SIGINT and SIGTERM handlers; no environment reads, no child process;
+    client IPs logged to stdout
+  provenance:
+    kind: assumption
+    question_id: Q30
+entry_points:
+- id: TrustedKeys.check
+  component: records
+  parameters:
+  - name: record JSON from any catalog, stick, base or marker
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: none — signed-install-only
+    provenance:
+      kind: documented
+      source: docs/data-packages.md "Signing and trust"
+- id: TrustedKeys.verify
+  component: records
+  parameters:
+  - name: publisher, key, signature
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — signed-install-only
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Publishers and keys"
+- id: PackageRecord.fromJson
+  component: records
+  parameters:
+  - name: id, files[].name
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: none — publisher-namespace
+    provenance:
+      kind: maintainer
+      date: 2026-11
+  - name: version
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — no-downgrade-installed
+    provenance:
+      kind: documented
+      source: 'docs/versioning.md "Data: calendar versions"'
+  - name: files[].size
+    attacker_controllable: true
+    control_kinds:
+    - size
+    caller_must_enforce: disk space
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+        "a full disk ends the run"
+    obligation_id: disk-space
+- id: Catalog.parse
+  component: downloads
+  parameters:
+  - name: urls, mirrors, base, refresh (unsigned)
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: none — signed-install-only
+    provenance:
+      kind: documented
+      source: 'docs/distribution.md "Storage: files by hash, any server"'
+- id: relevantStatements
+  component: records
+  parameters:
+  - name: keys statements from any catalog, stick, base, phone or node
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: none — key-statement-verification
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Backing up and replacing the key"
+- id: KeyBackup.open
+  component: publishing
+  parameters:
+  - name: backup file and passphrase
+    attacker_controllable: false
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: keep the backup offline and the passphrase strong
+    provenance:
+      kind: maintainer
+      date: 2026-11
+    obligation_id: keep-the-backup-offline-and-the-passphrase-strong
+- id: fetchCatalogText
+  component: downloads
+  parameters:
+  - name: response body, length, timing
+    attacker_controllable: true
+    control_kinds:
+    - size
+    - rate
+    caller_must_enforce: none — client-response-limits
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Following catalogs"
+  - name: redirect target
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: accept that catalogs may point anywhere
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Following catalogs"
+    obligation_id: accept-that-catalogs-may-point-anywhere
+- id: Downloader.fetch
+  component: downloads
+  parameters:
+  - name: status, Content-Length, Content-Range, body
+    attacker_controllable: true
+    control_kinds:
+    - data
+    - size
+    caller_must_enforce: none — atomic-file-install
+    provenance:
+      kind: documented
+      source: 'docs/distribution.md "Storage: files by hash, any server"'
+  - name: trickle rate of a file host
+    attacker_controllable: true
+    control_kinds:
+    - rate
+    caller_must_enforce: accept slow downloads
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+        "a full disk ends the run"
+    obligation_id: accept-slow-downloads
+- id: Downloader._open
+  component: downloads
+  parameters:
+  - name: redirect from a base or nearby phone
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: none — lan-device-same-origin
+    provenance:
+      kind: documented
+      source: CHANGELOG.md "Security"
+- id: loadFromStick
+  component: downloads
+  parameters:
+  - name: stick catalog.json, urls, files, links
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    - resource-name
+    caller_must_enforce: none — signed-install-only
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Sync between nodes"
+- id: PublisherList.add
+  component: downloads
+  parameters:
+  - name: lychnion://publisher name, key, title
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: the user confirms only publishers they know
+    provenance:
+      kind: documented
+      source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
+    obligation_id: the-user-confirms-only-publishers-they-know
+- id: FollowedCatalogs.add
+  component: downloads
+  parameters:
+  - name: lychnion://catalog url, name
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: the user confirms; following trusts no key
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Following catalogs"
+    obligation_id: the-user-confirms-following-trusts-no-key
+- id: _prompt
+  component: answers
+  parameters:
+  - name: passage text, heading, publisher, title
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — publisher content is trusted (§1.12 publisher-content)
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: package alerts
+  component: answers
+  parameters:
+  - name: safety line text and trigger words
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — safety-line-lychnion-only
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: package vectors, synonyms
+  component: answers
+  parameters:
+  - name: retrieval data
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — publisher content is trusted
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: KnowledgePackage.open
+  component: answers
+  parameters:
+  - name: SQLite bytes
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: none; parser defects go to sqlite3
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: LocalLlm.loadFile
+  component: answers
+  parameters:
+  - name: GGUF bytes, chat template
+    attacker_controllable: false
+    control_kinds:
+    - serialized-state
+    - callback-code
+    caller_must_enforce: none — models-lychnion-only
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: GroundedAnswerer.answer
+  component: answers
+  parameters:
+  - name: the user's question
+    attacker_controllable: false
+    control_kinds:
+    - data
+    - size
+    caller_must_enforce: none; no limit on the device
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: SourceLink._open
+  component: answers
+  parameters:
+  - name: source.url, attribution label
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: the reader checks the address in the browser
+    provenance:
+      kind: maintainer
+      date: 2026-11
+    obligation_id: the-reader-checks-the-address-in-the-browser
+- id: base TCP accept
+  component: base-server
+  parameters:
+  - name: connections per address
+    attacker_controllable: true
+    control_kinds:
+    - rate
+    caller_must_enforce: accept flooding
+    provenance:
+      kind: maintainer
+      date: 2026-11
+    obligation_id: accept-flooding
+  - name: the network a client comes from
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: none — lan-only-exposure
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: base POST /ask
+  component: base-server
+  parameters:
+  - name: body (≤8 KiB, ≤10 s), question (≤500 characters)
+    attacker_controllable: true
+    control_kinds:
+    - data
+    - size
+    caller_must_enforce: none — base-request-limits
+    provenance:
+      kind: documented
+      source: docs/shelter-results.md "How it works"
+  - name: nonce
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — base-answer-signature
+    provenance:
+      kind: documented
+      source: docs/shelter-results.md "How it works"
+- id: base POST /ask, GET /info, /facts
+  component: base-server
+  parameters:
+  - name: Host, Origin, Content-Type
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: keep bases offline (§1.12 cross-site-requests)
+    provenance:
+      kind: maintainer
+      date: 2026-11
+    obligation_id: keep-bases-offline-1-12-cross-site-requests
+- id: base GET /blobs/sha256/<hash>
+  component: base-server
+  parameters:
+  - name: path, Range
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    - size
+    caller_must_enforce: none — blob-serving-by-hash
+    provenance:
+      kind: documented
+      source: CHANGELOG.md "Security"
+- id: browser page
+  component: base-server
+  parameters:
+  - name: /web.json and /ask text
+    attacker_controllable: false
+    control_kinds:
+    - data
+    caller_must_enforce: none — browser-page-text-only
+    provenance:
+      kind: documented
+      source: docs/shelter-results.md "Sharing switch and browser page (2026-11-18
+- id: BaseClient.info, .facts, .ask
+  component: base-client
+  parameters:
+  - name: response status, body, size
+    attacker_controllable: true
+    control_kinds:
+    - data
+    - size
+    caller_must_enforce: none — client-response-limits
+    provenance:
+      kind: documented
+      source: CHANGELOG.md "Security"
+- id: BaseClient.ask
+  component: base-client
+  parameters:
+  - name: x-lychnion-signature, or its absence
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — base-answer-signature
+    provenance:
+      kind: documented
+      source: docs/shelter-results.md "How it works"
+- id: BaseFinder
+  component: base-client
+  parameters:
+  - name: mDNS name, addresses, TXT key
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: the user confirms one base
+    provenance:
+      kind: documented
+      source: docs/distribution.md "Security", row "Fake base announced on the Wi-Fi"
+    obligation_id: the-user-confirms-one-base
+- id: lychnion://base link (also shelter)
+  component: base-client
+  parameters:
+  - name: url, name, key, s
+    attacker_controllable: true
+    control_kinds:
+    - data
+    - resource-name
+    caller_must_enforce: none — key-consent
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: lychnion://share link
+  component: base-client
+  parameters:
+  - name: url
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    caller_must_enforce: the user confirms
+    provenance:
+      kind: documented
+      source: help/en/06-share-nearby.md "What does the other phone do?"
+    obligation_id: the-user-confirms
+- id: FactStore.addAll
+  component: facts
+  parameters:
+  - name: facts from a base
+    attacker_controllable: true
+    control_kinds:
+    - data
+    - size
+    caller_must_enforce: none — fact-verification
+    provenance:
+      kind: documented
+      source: docs/facts-results.md "Signed facts (2026-11-05
+- id: FactStore.current
+  component: facts
+  parameters:
+  - name: observedAt, expiresAt
+    attacker_controllable: true
+    control_kinds:
+    - data
+    caller_must_enforce: none — fact-time-bounds
+    provenance:
+      kind: maintainer
+      date: 2026-11
+- id: node serve
+  component: node
+  parameters:
+  - name: path, method, Range, connections
+    attacker_controllable: true
+    control_kinds:
+    - resource-name
+    - rate
+    caller_must_enforce: reverse proxy on the internet
+    provenance:
+      kind: documented
+      source: packages/lychnion_node/README.md "Operating"
+    obligation_id: reverse-proxy-on-the-internet
+- id: node pull
+  component: node
+  parameters:
+  - name: catalog body with key statements, file responses, hosts it names
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    - resource-name
+    caller_must_enforce: none — signed-install-only
+    provenance:
+      kind: maintainer
+      date: 2026-11
+  - name: --publisher NAME=KEY
+    attacker_controllable: false
+    control_kinds:
+    - collaborator-implementation
+    caller_must_enforce: the operator checks the key
+    provenance:
+      kind: maintainer
+      date: 2026-11
+    obligation_id: the-operator-checks-the-key
+- id: node pull from a folder
+  component: node
+  parameters:
+  - name: stick contents
+    attacker_controllable: true
+    control_kinds:
+    - serialized-state
+    caller_must_enforce: none — signed-install-only
+    provenance:
+      kind: documented
+      source: packages/lychnion_node/README.md "Commands"
+contract_dimensions:
+- component: answers
+  dimension: numeric-domain
+  status: disclaimed
+  conditions: package vectors and cut-off scores come from the publisher
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: publisher-content
+- component: answers
+  dimension: failure-atomicity
+  status: claimed
+  conditions: a failed load never leaves an unmarked bare-model answer
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: grounded-answer-presentation
+- component: answers
+  dimension: recursive-cyclic-topology
+  status: not-applicable
+  conditions: passages are flat rows
+  provenance:
+    kind: documented
+    source: docs/data-packages.md "Data packages and trust"
+- component: answers
+  dimension: callback-execution
+  status: claimed
+  conditions: the GGUF chat template runs in the engine; only Lychnion models
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: models-lychnion-only
+- component: answers
+  dimension: serialization-reconstruction
+  status: disclaimed
+  conditions: SQLite and GGUF parse in native code
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: native-parser-safety
+- component: answers
+  dimension: reference-lifecycle
+  status: not-applicable
+  conditions: no caller-held references; the answerer is replaced whole
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: answers
+  dimension: concurrency-reentrancy
+  status: claimed
+  conditions: answers to phones and to the base computer's own Ask page never mix
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: answers-never-mix
+- component: answers
+  dimension: resource-complexity
+  status: disclaimed
+  conditions: no limit on a question typed on the device
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: local-resource-bounds
+- component: downloads
+  dimension: numeric-domain
+  status: claimed
+  conditions: catalog ≤2 MB; file ≤ signed size
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Following catalogs"
+  property_id: client-response-limits
+- component: downloads
+  dimension: failure-atomicity
+  status: disclaimed
+  conditions: per file atomic; a multi-file network update is not
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: multi-file-update-atomicity
+- component: downloads
+  dimension: recursive-cyclic-topology
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
+- component: downloads
+  dimension: callback-execution
+  status: not-applicable
+  conditions: no caller code; progress callbacks are internal
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: downloads
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: signed record and hash decide
+  provenance:
+    kind: documented
+    source: docs/data-packages.md "Signing and trust"
+  property_id: signed-install-only
+- component: downloads
+  dimension: reference-lifecycle
+  status: claimed
+  conditions: a revoked key's items stop being used; removing a publisher deletes its items (publisher-removal-deletes)
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: revocation-unloads
+- component: downloads
+  dimension: concurrency-reentrancy
+  status: claimed
+  conditions: only a file whose size and hash match is renamed
+  provenance:
+    kind: documented
+    source: packages/lychnion_fetch/lib/src/downloader.dart `Downloader` doc comment
+  property_id: atomic-file-install
+- component: downloads
+  dimension: resource-complexity
+  status: disclaimed
+  conditions: no overall download deadline, no disk quota
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+      "a full disk ends the run"
+  property_id: download-time-and-disk
+- component: records
+  dimension: numeric-domain
+  status: claimed
+  conditions: versions 1–4 parts of ≤9 digits; missing parts count as 0
+  provenance:
+    kind: documented
+    source: packages/lychnion_format/lib/src/record.dart `compareVersions` comment
+  property_id: no-downgrade-installed
+- component: records
+  dimension: failure-atomicity
+  status: claimed
+  conditions: a record that fails is ignored
+  provenance:
+    kind: documented
+    source: packages/lychnion_format/lib/src/record.dart `TrustedKeys.check` doc comment
+  property_id: signed-install-only
+- component: records
+  dimension: recursive-cyclic-topology
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
+- component: records
+  dimension: callback-execution
+  status: not-applicable
+  conditions: pure functions
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: records
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: any JSON formatting of a record verifies the same
+  provenance:
+    kind: documented
+    source: packages/lychnion_format/lib/src/record.dart `canonicalJson` comment
+  property_id: signed-install-only
+- component: records
+  dimension: reference-lifecycle
+  status: claimed
+  conditions: trusted keys change only through verified key statements
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: key-statement-verification
+- component: records
+  dimension: concurrency-reentrancy
+  status: not-applicable
+  conditions: no shared mutable state
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: records
+  dimension: resource-complexity
+  status: claimed
+  conditions: one signature check per record; key statements capped per list and per publisher
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: client-response-limits
+- component: publishing
+  dimension: numeric-domain
+  status: claimed
+  conditions: a version must be higher than any signed or installed
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Publishers and keys"
+  property_id: no-downgrade-installed
+- component: publishing
+  dimension: failure-atomicity
+  status: claimed
+  conditions: the signed record is kept first; leftover copies are removed
+  provenance:
+    kind: documented
+    source: lib/publish/publish.dart `publish` step comments
+  property_id: atomic-file-install
+- component: publishing
+  dimension: recursive-cyclic-topology
+  status: not-applicable
+  conditions: the operator picks single files
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: publishing
+  dimension: callback-execution
+  status: not-applicable
+  conditions: no callbacks
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: publishing
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: the key file stays on the computer, never served
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Publishers and keys"
+  property_id: publisher-key-local
+- component: publishing
+  dimension: reference-lifecycle
+  status: claimed
+  conditions: backup, restore, replacement and revocation of the desktop key
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  property_id: key-backup-confidentiality
+- component: publishing
+  dimension: concurrency-reentrancy
+  status: not-applicable
+  conditions: one operator; a lock file guards key creation
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: publishing
+  dimension: resource-complexity
+  status: not-applicable
+  conditions: operator-chosen files
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: base-server
+  dimension: numeric-domain
+  status: claimed
+  conditions: 500 characters, 8 KB body
+  provenance:
+    kind: documented
+    source: docs/shelter-results.md "How it works"
+  property_id: base-request-limits
+- component: base-server
+  dimension: failure-atomicity
+  status: not-applicable
+  conditions: no route writes state from the network
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: base-server
+  dimension: recursive-cyclic-topology
+  status: not-applicable
+  conditions: body ≤8 KB; three fields read
+  provenance:
+    kind: documented
+    source: docs/shelter-results.md "How it works"
+- component: base-server
+  dimension: callback-execution
+  status: claimed
+  conditions: the model is shared with the base computer's Ask page; answers never mix
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: answers-never-mix
+- component: base-server
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: the signature covers the exact bytes sent
+  provenance:
+    kind: documented
+    source: docs/shelter-results.md "How it works"
+  property_id: base-answer-signature
+- component: base-server
+  dimension: reference-lifecycle
+  status: claimed
+  conditions: an answer stops when its phone leaves
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+  property_id: base-request-limits
+- component: base-server
+  dimension: concurrency-reentrancy
+  status: claimed
+  conditions: one question per phone; questions answered one after another
+  provenance:
+    kind: documented
+    source: docs/shelter-results.md "How it works"; lib/base/base_server.dart `BaseServer` doc comment
+  property_id: base-request-limits
+- component: base-server
+  dimension: resource-complexity
+  status: claimed
+  conditions: per-request limits hold; flooding is disclaimed
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: base-request-limits
+- component: base-client
+  dimension: numeric-domain
+  status: claimed
+  conditions: 16 KiB info, 1 MiB facts and answers
+  provenance:
+    kind: documented
+    source: lib/base/base_client.dart `maxInfoBytes` comment
+  property_id: client-response-limits
+- component: base-client
+  dimension: failure-atomicity
+  status: claimed
+  conditions: an answer that does not check out is dropped; the phone answers itself
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+  property_id: base-answer-signature
+- component: base-client
+  dimension: recursive-cyclic-topology
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
+- component: base-client
+  dimension: callback-execution
+  status: not-applicable
+  conditions: no caller code
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: base-client
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: wrong protocol version or too many hits are refused
+  provenance:
+    kind: documented
+    source: lib/base/base_protocol.dart `answerFromWire` comment
+  property_id: client-response-limits
+- component: base-client
+  dimension: reference-lifecycle
+  status: claimed
+  conditions: the signing memory lasts until another key or a disconnect
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+  property_id: base-answer-signature
+- component: base-client
+  dimension: concurrency-reentrancy
+  status: not-applicable
+  conditions: each request has its own timeout
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: base-client
+  dimension: resource-complexity
+  status: claimed
+  conditions: time and size caps per call
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+  property_id: client-response-limits
+- component: facts
+  dimension: numeric-domain
+  status: claimed
+  conditions: no fact from the future, no endless lifetime
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: fact-time-bounds
+- component: facts
+  dimension: failure-atomicity
+  status: not-applicable
+  conditions: the store is a local file; its failures cross no boundary
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: facts
+  dimension: recursive-cyclic-topology
+  status: not-applicable
+  conditions: flat records
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: facts
+  dimension: callback-execution
+  status: not-applicable
+  conditions: no callbacks
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: facts
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: changing any field breaks the signature
+  provenance:
+    kind: documented
+    source: docs/facts-results.md "Signed facts (2026-11-05
+  property_id: fact-verification
+- component: facts
+  dimension: reference-lifecycle
+  status: disclaimed
+  conditions: trusted keys cannot be revoked
+  provenance:
+    kind: documented
+    source: docs/facts-results.md "Signed facts (2026-11-05
+  property_id: key-revocation
+- component: facts
+  dimension: concurrency-reentrancy
+  status: not-applicable
+  conditions: writes are queued on one device
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: facts
+  dimension: resource-complexity
+  status: claimed
+  conditions: ≤5,000 facts kept, ≤500 per pull
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"; lib/base/base_client.dart `maxFacts` comment
+  property_id: client-response-limits
+- component: device-data
+  dimension: numeric-domain
+  status: not-applicable
+  conditions: no numeric input from outside
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: device-data
+  dimension: failure-atomicity
+  status: not-applicable
+  conditions: local files; tampering needs device control
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: device-data
+  dimension: recursive-cyclic-topology
+  status: not-applicable
+  conditions: flat JSON written by the app
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: device-data
+  dimension: callback-execution
+  status: not-applicable
+  conditions: no callbacks
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: device-data
+  dimension: serialization-reconstruction
+  status: not-applicable
+  conditions: read back only by the app
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: device-data
+  dimension: reference-lifecycle
+  status: disclaimed
+  conditions: OS backup may copy app data
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: os-backup
+- component: device-data
+  dimension: concurrency-reentrancy
+  status: not-applicable
+  conditions: saves wait for the load
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: device-data
+  dimension: resource-complexity
+  status: not-applicable
+  conditions: grows only with the user's own use
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: node
+  dimension: numeric-domain
+  status: claimed
+  conditions: catalog ≤2 MB; Range numbers ≤18 digits
+  provenance:
+    kind: documented
+    source: packages/lychnion_fetch/lib/src/catalog_fetch.dart `maxCatalogBytes` comment
+  property_id: client-response-limits
+- component: node
+  dimension: failure-atomicity
+  status: claimed
+  conditions: the last good state stays
+  provenance:
+    kind: documented
+    source: packages/lychnion_node/README.md "Operating"
+  property_id: atomic-file-install
+- component: node
+  dimension: recursive-cyclic-topology
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
+- component: node
+  dimension: callback-execution
+  status: not-applicable
+  conditions: no caller code
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- component: node
+  dimension: serialization-reconstruction
+  status: claimed
+  conditions: records are carried unchanged
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Node"
+  property_id: signed-install-only
+- component: node
+  dimension: reference-lifecycle
+  status: disclaimed
+  conditions: a publisher cannot withdraw one version; revoking a key sets aside what it signed
+  provenance:
+    kind: documented
+    source: packages/lychnion_node/README.md "Operating"
+  property_id: freshness
+- component: node
+  dimension: concurrency-reentrancy
+  status: claimed
+  conditions: one pull per folder
+  provenance:
+    kind: documented
+    source: packages/lychnion_node/README.md "Operating"
+  property_id: atomic-file-install
+- component: node
+  dimension: resource-complexity
+  status: disclaimed
+  conditions: at most 64 requests; flooding a directly exposed node is out
+  provenance:
+    kind: maintainer
+    date: 2026-11
+  property_id: node-internet-dos
+outputs:
+- component: answers
+  channel: answer-text
+  taint: same-as-input
+  taint_provenance: &id002
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: answer-text-not-assumed
+    statement: That it is correct. "Shows its source" is not "is right"
+    provenance: *id002
+- component: answers
+  channel: citation-marks-n
+  taint: constrained
+  taint_provenance: &id003
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: citation-marks-n-not-assumed
+    statement: That the cited passage supports the sentence
+    provenance: *id003
+- component: answers
+  channel: fixed-safety-line
+  taint: same-as-input
+  taint_provenance: &id004
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: fixed-safety-line-not-assumed
+    statement: That the app checked the quote against the official page; lychnion-data checks it at build
+      time
+    provenance: *id004
+- component: answers
+  channel: source-link
+  taint: constrained
+  taint_provenance: &id005
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: source-link-not-assumed
+    statement: That the label is the destination
+    provenance: *id005
+- component: base-server
+  channel: base-answer-and-its-signature
+  taint: same-as-input
+  taint_provenance: &id006
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: base-answer-and-its-signature-not-assumed
+    statement: That a signed answer is true or grounded in the phone's own packages
+    provenance: *id006
+- component: records
+  channel: catalog-keys-list
+  taint: constrained
+  taint_provenance: &id007
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  invariants: []
+  downstream_must_not_assume:
+  - id: catalog-keys-list-not-assumed
+    statement: 'That the list is complete or current: a carrier can drop statements'
+    provenance: *id007
+- component: publishing
+  channel: key-backup-file
+  taint: constrained
+  taint_provenance: &id008
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+  invariants: []
+  downstream_must_not_assume:
+  - id: key-backup-file-not-assumed
+    statement: 'That the file is harmless without the passphrase: anyone with it can revoke the key'
+    provenance: *id008
+- component: base-server
+  channel: browser-page
+  taint: same-as-input
+  taint_provenance: &id009
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: browser-page-not-assumed
+    statement: 'Integrity: a device on the Wi-Fi can change it'
+    provenance: *id009
+- component: base-server
+  channel: catalog-json-blobs-from-a-base-phone-or-node
+  taint: same-as-input
+  taint_provenance: &id010
+    kind: documented
+    source: docs/distribution.md "Security"
+  invariants: []
+  downstream_must_not_assume:
+  - id: catalog-json-blobs-from-a-base-phone-or-node-not-assumed
+    statement: That the server checked the bytes; readers check signature and hash
+    provenance: *id010
+- component: facts
+  channel: facts-on-screen
+  taint: same-as-input
+  taint_provenance: &id011
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: facts-on-screen-not-assumed
+    statement: That "official" means true, or that the signer is responsible for that shelter
+    provenance: *id011
+- component: facts
+  channel: map-suggestion-and-route
+  taint: constrained
+  taint_provenance: &id012
+    kind: maintainer
+    date: 2026-11
+  invariants:
+  - id: map-suggestion-and-route-invariant
+    statement: only verified facts change it (unverified-facts-not-acted-on)
+    property_id: unverified-facts-not-acted-on
+    provenance: *id012
+  downstream_must_not_assume: []
+- component: device-data
+  channel: system-log
+  taint: constrained
+  taint_provenance: &id013
+    kind: maintainer
+    date: 2026-11
+  invariants:
+  - id: system-log-invariant
+    statement: release builds do not log questions, answers or position (device-egress)
+    property_id: device-egress
+    provenance: *id013
+  downstream_must_not_assume: []
+- component: node
+  channel: node-stdout
+  taint: same-as-input
+  taint_provenance: &id014
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: node-stdout-not-assumed
+    statement: That it holds no personal data
+    provenance: *id014
+- component: downloads
+  channel: files-in-the-app-folder
+  taint: constrained
+  taint_provenance: &id015
+    kind: maintainer
+    date: 2026-11
+  invariants: []
+  downstream_must_not_assume:
+  - id: files-in-the-app-folder-not-assumed
+    statement: That a half-failed multi-file update is consistent
+    provenance: *id015
+adversaries:
+- name: device-on-the-same-wi-fi
+  scope: in
+  capabilities:
+  - Send any request to a base or a sharing phone
+  - announce a fake base
+  - read and change plain http
+  - flood connections
+  excluded_capabilities:
+  - Holding a pinned base's private key
+  - getting its own QR code scanned in person as a base's
+  - tapping dialogs for the user
+  goals:
+  - Fake facts or answers, read questions, crash or hang a base or phone
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: host-outside-the-local-wi-fi
+  scope: in
+  capabilities:
+  - Reach a port the base or a sharing phone opened on another interface
+  excluded_capabilities:
+  - Reaching a port that is bound only to the Wi-Fi
+  goals:
+  - Use the base or read installed items
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: sender-of-links-web-page-message-other-a
+  scope: in
+  capabilities:
+  - Open lychnion:// links and legacy fieldkit:// base links with any parameters
+  excluded_capabilities:
+  - Confirming the dialog for the user
+  - being scanned in person as a base's QR code
+  goals:
+  - Get a key trusted, follow a hostile catalog, point the phone at a hostile base
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: catalog-mirror-or-file-host-that-is-not
+  scope: in
+  capabilities:
+  - Serve any bytes, old signed records, redirects
+  - delay or withhold
+  - drop or replay key statements
+  excluded_capabilities:
+  - Signing records
+  - forging a key statement
+  - making a wrong file install
+  goals:
+  - Install a tampered file, hide updates, learn what users download
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: usb-stick-author
+  scope: in
+  capabilities:
+  - Any catalog, files and links on the stick
+  excluded_capabilities:
+  - Signing records
+  goals:
+  - Install a tampered or squatting item
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Sync between nodes"
+- name: publisher-the-user-added
+  scope: in
+  capabilities:
+  - Sign any record, content and key statement for its name, including text that steers the model
+  excluded_capabilities:
+  - Signing records or statements for lychnion or another name
+  - naming a successor key it does not hold
+  - shipping models
+  - supplying the official safety line
+  goals:
+  - Replace Lychnion's items or files, make its lines look official
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: holder-of-an-old-or-stolen-publisher-key
+  scope: in
+  capabilities:
+  - Sign records and statements for that name
+  - revoke the key
+  - name a second successor
+  excluded_capabilities:
+  - Keys it does not hold
+  - the user's dialogs
+  goals:
+  - Impersonate the publisher, or make phones drop it
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- name: operator-of-a-qr-pinned-base
+  scope: out
+  capabilities:
+  - Sign facts and answers that phones trust
+  excluded_capabilities: []
+  goals: []
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: lychnion-key-holder-maintainers-build-ma
+  scope: out
+  capabilities:
+  - Sign anything as Lychnion, ship builds
+  excluded_capabilities: []
+  goals: []
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: someone-controlling-the-device
+  scope: out
+  capabilities:
+  - Read and change app files and memory
+  excluded_capabilities: []
+  goals: []
+  provenance:
+    kind: documented
+    source: SECURITY.md "In scope", the "Out of scope:" paragraph
+- name: the-user-asking
+  scope: out
+  capabilities:
+  - Type any question
+  excluded_capabilities: []
+  goals: []
+  provenance:
+    kind: maintainer
+    date: 2026-11
+dependency_policy:
+  zero_runtime_dependencies: false
+  provenance: &id016
+    kind: maintainer
+    date: 2026-11
+dependencies:
+- name: llama.cpp through flutter_edge_ai, flutter_edge_ai_llama, llamadart_llama_cpp_flutter
+  relied_on_for: parsing GGUF models and running the chat template
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: sqlite3
+  relied_on_for: opening package files read-only
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: cryptography
+  relied_on_for: Ed25519 signatures for records, facts and answers
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: crypto
+  relied_on_for: SHA-256 of files and requests
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: Dart dart:io
+  relied_on_for: HttpServer, HttpClient, header parsing
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: bonsoir
+  relied_on_for: mDNS announce and browse
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: app_links, url_launcher
+  relied_on_for: receiving links, opening source links
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: vector_map_tiles, vector_map_tiles_pmtiles, flutter_map
+  relied_on_for: rendering downloaded map files
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: geolocator
+  relied_on_for: one position fix on request
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: false
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+- name: Gemma and EmbeddingGemma model files from Hugging Face
+  relied_on_for: the answer and search models
+  relied_on_properties: []
+  caller_obligations_acknowledged: []
+  adversary_capabilities_forwarded: []
+  outputs_consumed: []
+  covered_here: true
+  violation_disposition: 'OUT-OF-MODEL: dependency-contract'
+  provenance: *id016
+build_policy:
+  security_relevant_flags_present: true
+  provenance: *id016
+build_flags:
+- name: --dart-define dev flags
+  default: unset
+  security_relevant: true
+  maintainer_stance: unsupported
+  affects_properties:
+  - property_id: signed-install-only
+    effect: voids
+  - property_id: grounded-answer-presentation
+    effect: voids
+  - property_id: fact-verification
+    effect: voids
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: DEV_MENU=true tester builds, and debug builds
+  default: off in release
+  security_relevant: true
+  maintainer_stance: unsupported
+  affects_properties:
+  - property_id: signed-install-only
+    effect: voids
+  - property_id: models-lychnion-only
+    effect: voids
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: Base switch
+  default: 'off'
+  security_relevant: true
+  maintainer_stance: supported
+  affects_properties:
+  - property_id: base-request-limits
+    effect: preserves
+  provenance:
+    kind: documented
+    source: help/en/05-base.md "How do I make my computer a base?"
+- name: Keep everything for phones
+  default: 'off'
+  security_relevant: false
+  maintainer_stance: supported
+  affects_properties: []
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Sync between nodes"
+- name: Android usesCleartextTraffic
+  default: 'on'
+  security_relevant: true
+  maintainer_stance: supported
+  affects_properties:
+  - property_id: device-egress
+    effect: narrows
+  provenance:
+    kind: documented
+    source: docs/shelter-results.md "How it works"
+- name: Android release without the upload key
+  default: n/a
+  security_relevant: false
+  maintainer_stance: unsupported
+  affects_properties: []
+  provenance:
+    kind: documented
+    source: docs/release-builds.md "Signing"
+- name: Node --publisher NAME=KEY
+  default: none
+  security_relevant: true
+  maintainer_stance: supported
+  affects_properties:
+  - property_id: signed-install-only
+    effect: narrows
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: Node directly on the internet
+  default: n/a
+  security_relevant: true
+  maintainer_stance: unsupported
+  affects_properties:
+  - property_id: blob-serving-by-hash
+    effect: preserves
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- name: Node serve on a folder it did not pull
+  default: n/a
+  security_relevant: true
+  maintainer_stance: unsupported
+  affects_properties:
+  - property_id: blob-serving-by-hash
+    effect: voids
+  provenance:
+    kind: maintainer
+    date: 2026-11
+properties_claimed:
+- id: signed-install-only
+  kind: integrity
+  components:
+  - downloads
+  - records
+  - node
+  - base-client
+  tier: security-critical
+  conditions: a file from any source is installed or served onward only when its record verifies against
+    a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in
+    or added key, or a successor named by a valid key statement, and not revoked.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: documented
+    source: docs/data-packages.md "Signing and trust"
+- id: publisher-namespace
+  kind: integrity
+  components:
+  - downloads
+  - records
+  - node
+  tier: security-critical
+  x-known-violations:
+  - a stick record for a Lychnion id not installed yet passes, because the owner check only looks at installed
+    markers (`lib/download/download_store.dart:371`), and the installed copy then wins over the bundled
+    one (`lib/download/download_store.dart:581`).
+  conditions: an added publisher never replaces Lychnion's items or files, or another publisher's ids,
+    also not by upper or lower case, and its key statements count only for its own name.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Publishers and keys"
+- id: no-downgrade-installed
+  kind: integrity
+  components:
+  - downloads
+  - records
+  - publishing
+  - node
+  tier: security-critical
+  x-known-violations:
+  - a node drops a record whose current and new versions are both incomplete, then accepts an older one
+    (`packages/lychnion_node/lib/src/pull.dart:196`).
+  conditions: an installed item is never replaced with an older version.
+  violation_symptoms:
+  - bad-data-accepted
+  provenance:
+    kind: documented
+    source: "docs/distribution.md\n  \"Principles\""
+- id: key-consent
+  kind: authentication
+  components:
+  - downloads
+  - base-client
+  tier: security-critical
+  x-known-violations:
+  - any `lychnion://base` or `lychnion://shelter` link, from a web page too, pins its key after one tap
+    (`lib/app/incoming_links.dart:67`).
+  conditions: 'a publisher key or base key becomes trusted only after the user says yes, and a base key
+    gets fact trust only from an in-person QR scan. Two exceptions come from the publisher''s own statements:
+    a successor named by a trusted key''s replacement is trusted without a dialog, and a revoked publisher''s
+    new link replaces its entry after a dialog.'
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: grounded-answer-presentation
+  kind: x-answer-grounding
+  components:
+  - answers
+  tier: security-critical
+  x-known-violations:
+  - when loading fails after the model is up, the warning is drawn only if `grounded` is true (`lib/ask/ask_page.dart:587`).
+  conditions: an answer is built only from installed guides and shows its sources; an answer whose citations
+    do not check out carries a warning; the app never shows bare-model text as an answer.
+  violation_symptoms:
+  - x-ungrounded-answer
+  provenance:
+    kind: documented
+    source: SECURITY.md "In scope"
+- id: safety-line-lychnion-only
+  kind: integrity
+  components:
+  - answers
+  tier: security-critical
+  x-known-violations:
+  - alerts of every installed package match (`lib/knowledge/grounded_answer.dart:253`).
+  conditions: when a hazard question matches, the fixed safety line from a Lychnion-signed package is
+    shown word for word above the AI text; no other publisher supplies it.
+  violation_symptoms:
+  - x-missing-or-forged-safety-line
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: models-lychnion-only
+  kind: integrity
+  components:
+  - downloads
+  - answers
+  tier: security-critical
+  x-known-violations:
+  - any trusted publisher's record kind is accepted (`lib/download/catalog.dart:186`).
+  conditions: only models signed by Lychnion are installed and loaded.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: base-answer-signature
+  kind: authentication
+  components:
+  - base-client
+  - base-server
+  tier: security-critical
+  conditions: with a pinned key, the phone accepts a base answer only when its Ed25519 signature covers
+    the phone's nonce, a hash of the request and the exact body; once that base has signed, unsigned answers
+    are refused. A QR code with `s=1` says the base signs, so unsigned answers are refused from the first
+    one. A late answer from a previous base is ignored. An answer from a base without a pinned key, or
+    an unsigned one, carries a note saying so.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: documented
+    source: "docs/shelter-results.md\n  \"How it works\""
+- id: fact-verification
+  kind: authentication
+  components:
+  - facts
+  tier: security-critical
+  conditions: an official or sensor fact shows as verified only with a signature from a trusted key; others
+    count as resident reports and are labelled. Signed fields never contain control characters, so a signature
+    never fits a different split of the fields *(maintainer, 2026-11)*.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: documented
+    source: "docs/facts-results.md\n  \"Signed facts (2026-11-05"
+- id: unverified-facts-not-acted-on
+  kind: integrity
+  components:
+  - facts
+  tier: security-critical
+  x-known-violations:
+  - shelters are avoided whatever the trust (`lib/map/map_state.dart:59`).
+  conditions: only verified facts change the suggested evacuation site or walking route.
+  violation_symptoms:
+  - bad-data-accepted
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: fact-time-bounds
+  kind: correctness
+  components:
+  - facts
+  tier: security-critical
+  x-known-violations:
+  - the newest `observedAt` wins with no cap (`lib/facts/fact_store.dart:275`).
+  conditions: a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.
+  violation_symptoms:
+  - bad-data-accepted
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: base-request-limits
+  kind: resource-bound
+  components:
+  - base-server
+  tier: security-critical
+  conditions: 'every request has limits: 100 connections in all, body 8 KiB within 10 s, question 500
+    characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone
+    leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang
+    or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).'
+  violation_symptoms:
+  - hang
+  - unbounded-allocation
+  provenance:
+    kind: documented
+    source: "docs/shelter-results.md \"How it works\"; lib/base/base_server.dart\n  `BaseServer` doc comment"
+- id: client-response-limits
+  kind: resource-bound
+  components:
+  - base-client
+  - downloads
+  - records
+  - facts
+  - node
+  tier: security-critical
+  x-known-violations:
+  - key statements are canonicalised before any shape check (`packages/lychnion_format/lib/src/key_statement.dart:328`).
+  conditions: 'what a phone or node accepts is capped: 16 KiB for a base''s `/info`, 1 MiB for facts and
+    answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements
+    per list and 1000 kept. A hostile response does not crash or hang the reader, and deeply nested JSON
+    from any of these sources is rejected *(maintainer, 2026-11)*.'
+  violation_symptoms:
+  - unbounded-allocation
+  - crash
+  - hang
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+- id: lan-only-exposure
+  kind: confidentiality
+  components:
+  - base-server
+  tier: security-critical
+  conditions: the base and Share nearby are reachable only from the local Wi-Fi or hotspot.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: blob-serving-by-hash
+  kind: confidentiality
+  components:
+  - base-server
+  - node
+  tier: security-critical
+  conditions: servers answer only fixed routes and serve files only by SHA-256 from verified records or
+    the node folder; no request part becomes a path.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+- id: browser-page-text-only
+  kind: output-sanitization
+  components:
+  - base-server
+  tier: security-critical
+  conditions: the browser page shows all data as text, never as HTML.
+  violation_symptoms:
+  - x-script-injection
+  provenance:
+    kind: documented
+    source: "docs/shelter-results.md \"Sharing switch and browser\n  page (2026-11-18"
+- id: device-egress
+  kind: confidentiality
+  components:
+  - device-data
+  - base-client
+  tier: security-critical
+  x-known-violations:
+  - a base link may name any host (`lib/base/base_link.dart:93`), and questions, answers and the region
+    go to the system log (`lib/ask/ask_page.dart:164`, with the phone's own answers at `lib/ask/ask_page.dart:384`).
+  conditions: questions leave the device only to a base the user connected to on the local network; position
+    never leaves; release builds do not log questions, answers or position.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: lan-device-same-origin
+  kind: confidentiality
+  components:
+  - downloads
+  tier: correctness-only
+  x-known-violations:
+  - the local-network test misses 100.64/10 and plain hostnames (`packages/lychnion_fetch/lib/src/downloader.dart:421`).
+  conditions: from a base or a nearby phone, the app downloads only files on that device, never from other
+    addresses its catalog names or redirects to.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: documented
+    source: CHANGELOG.md "Security"
+- id: atomic-file-install
+  kind: integrity
+  components:
+  - downloads
+  - publishing
+  - node
+  tier: security-critical
+  conditions: a file gets its final name only after its size and hash match; on failure the last good
+    file stays.
+  violation_symptoms:
+  - bad-data-accepted
+  provenance:
+    kind: documented
+    source: "packages/lychnion_node/README.md\n  \"Operating\""
+- id: publisher-key-local
+  kind: confidentiality
+  components:
+  - publishing
+  tier: security-critical
+  conditions: the plain desktop publisher key stays in the app folder and is never served or shared. The
+    only copy that leaves it is the passphrase-encrypted backup the operator saves.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: documented
+    source: "docs/distribution.md \"Publishers and\n  keys\""
+- id: publisher-removal-deletes
+  kind: correctness
+  components:
+  - downloads
+  tier: correctness-only
+  conditions: removing a publisher deletes and unloads its items.
+  violation_symptoms:
+  - wrong-output
+  provenance:
+    kind: documented
+    source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
+- id: node-private-address-filter
+  kind: x-request-forgery-filter
+  components:
+  - node
+  tier: correctness-only
+  conditions: a node skips file addresses on private or local networks, also after a redirect, unless
+    the catalog itself is on such a network. DNS rebinding is not caught.
+  violation_symptoms:
+  - x-request-forgery
+  provenance:
+    kind: documented
+    source: packages/lychnion_node/README.md "Operating"
+- id: key-statement-verification
+  kind: authentication
+  components:
+  - records
+  - downloads
+  - node
+  tier: security-critical
+  conditions: a replacement counts only when the old key signed it and the new key countersigned it; a
+    revocation only when the revoked key signed it; and only when the old key is trusted for that publisher
+    at that moment. A revoked key, a key with two successors, and any key reached only through them is
+    not trusted. This holds for the `lychnion` key too.
+  violation_symptoms:
+  - integrity-bypass
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- id: revocation-unloads
+  kind: integrity
+  components:
+  - downloads
+  tier: security-critical
+  conditions: once a revocation is learned, items whose record the revoked key signed are no longer used.
+    Their files stay on disk, and their version still blocks a downgrade.
+  violation_symptoms:
+  - bad-data-accepted
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- id: key-backup-confidentiality
+  kind: confidentiality
+  components:
+  - publishing
+  tier: security-critical
+  conditions: the private key in a backup is readable only with the passphrase (Argon2id, then AES-256-GCM;
+    name and public key bound). Restore never replaces a key, never restores a key this computer knows
+    as revoked or replaced, and writes nothing on a wrong passphrase or a damaged file.
+  violation_symptoms:
+  - info-leak
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: answers-never-mix
+  kind: correctness
+  components:
+  - answers
+  - base-server
+  tier: correctness-only
+  conditions: while a computer serves phones, answers to phones and to its own Ask page never mix, and
+    a phone that leaves stops only its own answer.
+  violation_symptoms:
+  - wrong-output
+  provenance:
+    kind: maintainer
+    date: 2026-11
+properties_disclaimed:
+- id: ai-wording-correctness
+  components:
+  - answers
+  conditions: Correct or complete wording of AI answers. Source and safety line are shown; stated limit,
+    not silence
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: citation-means-support
+  components:
+  - answers
+  conditions: Proof that a cited passage supports the sentence. [n] means only "this passage was given
+    to the model"
+  tier: security-critical
+  false_friend: true
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: signed-means-true
+  components:
+  - records
+  - facts
+  - base-client
+  - answers
+  conditions: Truth of signed content, or the signer's authority over a shelter. Records, facts and answers;
+    a signature proves origin
+  tier: security-critical
+  false_friend: true
+  provenance:
+    kind: documented
+    source: docs/facts-results.md "Signed facts (2026-11-05
+- id: publisher-content
+  components:
+  - answers
+  - downloads
+  conditions: Vetting of an added publisher's guides, including text that steers the model, synonyms and
+    vectors. Only under that publisher's own name; not its safety lines or models
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: freshness
+  components:
+  - downloads
+  - node
+  conditions: Protection against being kept on old data. No expiry on records or key statements; catalogs
+    unsigned; a carrier can withhold a revocation; older apps ignore statements; also after delete, publisher
+    removal, reinstall or on a fresh node
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: key-revocation
+  components:
+  - facts
+  - base-client
+  conditions: Rotation, revocation or removal of base (fact) keys. Publisher keys, Lychnion's included,
+    have signed replacement and revocation (key-statement-verification)
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: documented
+    source: docs/facts-results.md "Signed facts (2026-11-05
+- id: old-key-denial
+  components:
+  - records
+  - downloads
+  - node
+  conditions: Protection against the holder of an old or stolen publisher key who revokes it or names
+    a second successor. Phones that added that key drop it and its successors until the user adds the
+    new link
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: backup-passphrase-and-storage
+  components:
+  - publishing
+  conditions: Resistance of a key backup to offline guessing of a weak passphrase; protection of the backup
+    file where the operator keeps it. Passphrase of at least 12 characters; the operator chooses where
+    to save
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: lan-confidentiality
+  components:
+  - base-server
+  - base-client
+  conditions: Confidentiality on the Wi-Fi of questions, answers, facts and the list of installed packages.
+    Plain http on the local network; packages are public data
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: browser-page-integrity
+  components:
+  - base-server
+  conditions: Integrity of the browser page for phones without the app. Plain http, unsigned
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: first-signature-strip
+  components:
+  - base-client
+  conditions: Protection against stripping signatures before a pinned base has signed once. Only for a
+    QR code without s=1 (older codes), until the first signed answer; the "unsigned" note is the defence
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: cross-site-requests
+  components:
+  - base-server
+  conditions: Defence against cross-site requests and DNS rebinding from a web page. While bases run without
+    internet; in scope again if bases are meant to have internet
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: lan-availability
+  components:
+  - base-server
+  conditions: Availability of a base against a device on the Wi-Fi that floods connections or questions.
+    Per-request limits still hold (base-request-limits)
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: node-internet-dos
+  components:
+  - node
+  conditions: Availability of a node exposed to the internet without a reverse proxy. Unsupported setup
+    (§1.6)
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: download-time-and-disk
+  components:
+  - downloads
+  - node
+  conditions: A time limit per download, or a disk quota. Size and hash still decide; a bad mirror costs
+    time; a full disk ends a run
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+      "a full disk ends the run"
+- id: catalog-network-reach
+  components:
+  - downloads
+  conditions: Limits on which hosts a followed or main catalog sends the app to. Not for catalogs from
+    a base or nearby phone (lan-device-same-origin)
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Following catalogs"
+- id: multi-file-update-atomicity
+  components:
+  - downloads
+  conditions: All-or-nothing network updates of items with several files. Each file still matches a signed
+    hash; the USB stick path is atomic
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: on-disk-integrity
+  components:
+  - downloads
+  - answers
+  conditions: Re-checking hashes of installed files at load. Changing app files needs device control
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: native-parser-safety
+  components:
+  - answers
+  - downloads
+  conditions: Safety of llama.cpp, sqlite3 and map renderers on crafted files. Files from Lychnion or
+    a trusted publisher; defects go upstream
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: os-backup
+  components:
+  - device-data
+  conditions: Exclusion of app data from OS backups. The user's own backup choice
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: local-resource-bounds
+  components:
+  - answers
+  conditions: Limits on a question typed on the device. Input against the user's own device
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: base-key-id-collision
+  components:
+  - facts
+  - base-client
+  conditions: Protection against a 48-bit key-id collision that replaces a trusted base key. Denial of
+    service only; the attacker cannot sign as the base
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: source-label-destination
+  components:
+  - answers
+  conditions: That a source link's label names its destination, or that it uses https. Links from packages
+    or bases
+  tier: correctness-only
+  false_friend: true
+  provenance:
+    kind: maintainer
+    date: 2026-11
+downstream_responsibilities:
+- id: add-known-publishers-only
+  component: downloads
+  statement: Add only publishers you know.
+  enforces:
+  - the-user-confirms-only-publishers-they-know
+  provenance:
+    kind: documented
+    source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
+- id: follow-official-warnings
+  component: answers
+  statement: Follow official warnings first.
+  enforces:
+  - ai-wording-correctness
+  provenance:
+    kind: documented
+    source: help/en/02-asking.md "Are there things it cannot answer?"
+- id: base-on-controlled-wifi
+  component: base-server
+  statement: Run the base on a Wi-Fi you control; treat it as readable by everyone on it.
+  enforces:
+  - lan-confidentiality
+  provenance:
+    kind: documented
+    source: docs/base.md "Network"
+- id: base-offline-while-serving
+  component: base-server
+  statement: Keep the base offline while serving, or accept cross-site requests.
+  enforces:
+  - keep-bases-offline-1-12-cross-site-requests
+  provenance: &id017
+    kind: maintainer
+    date: 2026-11
+- id: publisher-key-offline-copy
+  component: publishing
+  statement: Save a passphrase backup of the key and keep it offline; restore only the newest backup;
+    keep backups of replaced keys as safe as the newest one.
+  enforces:
+  - publisher-key-local
+  - keep-the-backup-offline-and-the-passphrase-strong
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- id: node-operator-duties
+  component: node
+  statement: Check each --publisher key out of band, use a reverse proxy on the internet, pull a USB stick
+    instead of serving it.
+  enforces:
+  - the-operator-checks-the-key
+  - reverse-proxy-on-the-internet
+  provenance: *id017
+- id: release-without-dev-flags
+  component: answers
+  statement: Build releases without --dart-define dev flags.
+  enforces:
+  - signed-install-only
+  provenance: *id017
+- id: source-for-recipients
+  component: base-server
+  statement: Give every recipient the source, also for a base.
+  enforces: []
+  provenance:
+    kind: documented
+    source: LICENSE-APPSTORE-EXCEPTION.md "Additional permission under section 7 of the GNU AGPL version
+      3"
+known_misuses:
+- id: base-on-guest-wifi
+  components:
+  - base-server
+  pattern: running a base on guest or office Wi-Fi
+  safer_alternative: use a hotspot or router the shelter controls
+  provenance:
+    kind: documented
+    source: docs/base.md "Network"
+- id: unknown-publisher-link
+  components:
+  - downloads
+  pattern: adding a publisher from an unknown link
+  safer_alternative: add only publishers you know
+  provenance:
+    kind: documented
+    source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
+- id: signed-as-true
+  components:
+  - facts
+  - records
+  pattern: treating signed as official and true
+  safer_alternative: read a signature as who vouches, not as correctness
+  provenance:
+    kind: documented
+    source: docs/facts-results.md "Signed facts (2026-11-05)"
+- id: ship-dev-flags
+  components:
+  - answers
+  - downloads
+  pattern: shipping a build with dev flags such as DEV_MENU=true
+  safer_alternative: build releases without --dart-define
+  provenance: *id017
+- id: serve-usb-stick
+  components:
+  - node
+  pattern: serving a USB stick with lychnion_node serve
+  safer_alternative: pull the stick into the node folder
+  provenance: *id017
+known_non_findings:
+- id: unsigned-mirrors
+  components:
+  - downloads
+  - node
+  symptom: integrity-bypass
+  tool_pattern: Catalog urls and mirrors are unsigned, so an attacker can point downloads at their server
+  conditions: The app or node contacts the host, and the file is installed only if its size and SHA-256
+    match the signed record
+  discharged_by:
+  - signed-install-only
+  provenance:
+    kind: documented
+    source: 'docs/distribution.md "Storage: files by hash, any server"'
+- id: plain-http-file-tamper
+  components:
+  - downloads
+  - base-client
+  - node
+  symptom: integrity-bypass
+  tool_pattern: Downloads from a base, phone or node use plain http, so files can be swapped
+  conditions: Tampered bytes fail the hash and are not installed
+  discharged_by:
+  - signed-install-only
+  provenance:
+    kind: documented
+    source: docs/data-packages.md "Signing and trust"
+- id: unsigned-key-list
+  components:
+  - downloads
+  - records
+  - node
+  symptom: integrity-bypass
+  tool_pattern: The catalog keys list is unsigned, so a host can inject key statements
+  conditions: The injected statements are not signed by a key the device trusts for that publisher, and
+    are not kept
+  discharged_by:
+  - key-statement-verification
+  provenance:
+    kind: documented
+    source: docs/distribution.md "Backing up and replacing the key"
+- id: ai-wrong-advice
+  components:
+  - answers
+  symptom: wrong-output
+  tool_pattern: The model gave wrong or unsafe advice
+  conditions: The answer shows its sources and the safety line where one matches; no forged citation or
+    missing warning
+  discharged_by:
+  - ai-wording-correctness
+  provenance:
+    kind: maintainer
+    date: 2026-11
+dispositions:
+- VALID
+- VALID-HARDENING
+- 'OUT-OF-MODEL: trusted-input'
+- 'OUT-OF-MODEL: adversary-not-in-scope'
+- 'OUT-OF-MODEL: unsupported-component'
+- 'OUT-OF-MODEL: non-default-build'
+- 'OUT-OF-MODEL: dependency-contract'
+- 'BY-DESIGN: property-disclaimed'
+- KNOWN-NON-FINDING
+- MODEL-GAP
+disposition_precedence:
+- KNOWN-NON-FINDING
+- 'OUT-OF-MODEL: unsupported-component'
+- 'OUT-OF-MODEL: non-default-build'
+- 'OUT-OF-MODEL: dependency-contract'
+- 'OUT-OF-MODEL: trusted-input'
+- 'OUT-OF-MODEL: adversary-not-in-scope'
+- 'BY-DESIGN: property-disclaimed'
+- VALID
+- VALID-HARDENING
+- MODEL-GAP
