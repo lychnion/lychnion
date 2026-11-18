@@ -162,6 +162,9 @@ abstract class _AskPageBase extends State<AskPage> {
   // Implemented by the state and its parts.
   Thread _startThread();
   void _answerWaiting();
+
+  /// Answers [question] in the open conversation. The state's version also
+  /// takes `into:`, a conversation to answer in instead.
   Future<void> _ask(String question);
   Future<void> _syncServer();
 }
