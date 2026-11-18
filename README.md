@@ -197,6 +197,22 @@ whatever the setting says. `DEMO_FACTS=true` adds test facts; they need a
 map area (downloaded, or `MAP_PMTILES_PATH`).
 `MIN_COS` now defaults to 0.70.
 
+### Release builds (Android)
+
+```bash
+tool/build_release.sh            # APK for testers
+tool/build_release.sh appbundle  # app bundle for Google Play
+```
+
+Signed with Lychnion's Android upload key, which lives only in 1Password
+(`lychnion-android-upload-key`); the script reads it into a temporary
+file and removes it after the build. Certificate SHA-256:
+`E2:E5:99:5F:0C:BE:88:0A:69:D4:3C:B3:EB:94:3C:4A:D9:A7:24:41:CD:BC:5F:FC:CA:C8:0F:B6:49:21:59:B8`.
+Without the key (`flutter build apk --release`), builds are signed with the
+debug key and cannot update a signed install. Release builds hide the
+Developer menu; add `--dart-define=DEV_MENU=true` for test builds that need
+it.
+
 ## Repository layout
 
 - `lib/`: the app. `lib/llm/local_llm.dart` is the only code that talks to

@@ -30,11 +30,27 @@ android {
         }
     }
 
+    // The upload key lives only in 1Password; tool/build_release.sh reads
+    // it into a temporary file and sets these variables. Without them
+    // (development, CI), release builds are signed with the debug key.
+    val uploadStore = System.getenv("LYCHNION_UPLOAD_KEYSTORE")
+    signingConfigs {
+        if (uploadStore != null) {
+            create("upload") {
+                storeFile = file(uploadStore)
+                storeType = "pkcs12"
+                storePassword = System.getenv("LYCHNION_UPLOAD_PASSWORD")
+                keyAlias = System.getenv("LYCHNION_UPLOAD_ALIAS") ?: "upload"
+                keyPassword = System.getenv("LYCHNION_UPLOAD_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(
+                if (uploadStore != null) "upload" else "debug",
+            )
         }
     }
 }
