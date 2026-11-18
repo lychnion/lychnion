@@ -2,8 +2,9 @@
 
 Working notes for [threat-model.md](../threat-model.md): how the first
 version was made, and the candidate issues found on the way. The model
-itself describes the contract; this file lists defects and follow-ups. None
-of the candidate issues is filed yet; filing them is a separate decision.
+itself describes the contract; this file lists defects and follow-ups. The
+sixteen that break a claimed property are filed as #63 to #78; the
+hardening and documentation items are not filed.
 
 ## How the first version was made (2026-11-19)
 
@@ -43,71 +44,71 @@ proven. The property is the §1.11 claim each one breaks.
 
 ### Break a claimed property
 
-1. **A web link pins a base key** (confirmed, `key-consent`). Any
+1. **A web link pins a base key** ([#63](https://github.com/lychnion/lychnion/issues/63)) (confirmed, `key-consent`). Any
    `lychnion://shelter?…&key=` link, also from a web page or message on
    Android, pins its key after one "Connect"
    (`lib/app/incoming_links.dart:67`, `lib/base/base_checks.dart:47`). This
    holds for the new `lychnion://base` host too. The dialog does not show
    the key, the link's name is not cleaned (`lib/base/base_link.dart:69`),
    and trusted base keys cannot be removed.
-2. **The base and Share nearby listen on every interface** (confirmed,
+2. **The base and Share nearby listen on every interface** ([#64](https://github.com/lychnion/lychnion/issues/64)) (confirmed,
    `lan-only-exposure`): `lib/base/base_server.dart:167` binds
    `anyIPv4`, including a desktop's upstream network and a phone's mobile
    data.
-3. **Bare-model answers without a warning** (confirmed path, trigger
+3. **Bare-model answers without a warning** ([#65](https://github.com/lychnion/lychnion/issues/65)) (confirmed path, trigger
    suspected, `grounded-answer-presentation`). If the embedder or index
    fails after the model loaded, the question bar stays on and the warning
    is drawn only when `grounded` is true (`lib/ask/ask_page.dart:587`).
-4. **Any package supplies "official" safety lines** (confirmed,
+4. **Any package supplies "official" safety lines** ([#66](https://github.com/lychnion/lychnion/issues/66)) (confirmed,
    `safety-line-lychnion-only`): alerts of every installed package match
    (`lib/knowledge/grounded_answer.dart:253`), and an empty trigger word
    matches every question (`lib/knowledge/knowledge_package.dart:132`).
-5. **Added publishers can ship models** (confirmed, `models-lychnion-only`):
+5. **Added publishers can ship models** ([#67](https://github.com/lychnion/lychnion/issues/67)) (confirmed, `models-lychnion-only`):
    any record kind is accepted (`lib/download/catalog.dart:186`), and with
    no model picked the first one in sort order becomes active
    (`lib/download/download_store.dart:563`).
-6. **A USB stick can squat a Lychnion id** (confirmed, `publisher-namespace`):
+6. **A USB stick can squat a Lychnion id** ([#68](https://github.com/lychnion/lychnion/issues/68)) (confirmed, `publisher-namespace`):
    a stick record from an added publisher for a bundled or not yet installed
    Lychnion id is installed and then used, because the owner check sees only
    installed markers (`lib/download/stick.dart:313` calls
    `lib/download/download_store.dart:371`), and the installed copy then
    wins over the bundled one (`lib/download/download_store.dart:581`).
-7. **Unconfirmed facts steer the map** (confirmed,
+7. **Unconfirmed facts steer the map** ([#69](https://github.com/lychnion/lychnion/issues/69)) (confirmed,
    `unverified-facts-not-acted-on`): `lib/map/map_state.dart:59` and
    `lib/map/map_state.dart:174` use facts whatever their trust, and
    `lib/map/map_screen.dart:251` skips avoided sites.
-8. **Facts from the future win** (confirmed, `fact-time-bounds`): no cap on
+8. **Facts from the future win** ([#70](https://github.com/lychnion/lychnion/issues/70)) (confirmed, `fact-time-bounds`): no cap on
    `observedAt` or `expiresAt` (`lib/facts/fact_store.dart:275`).
-9. **Questions and answers in the release log** (confirmed, `device-egress`):
+9. **Questions and answers in the release log** ([#71](https://github.com/lychnion/lychnion/issues/71)) (confirmed, `device-egress`):
    `lib/ask/ask_page.dart:164` (`debugPrint`); each logged answer carries
    its question. Base answers are logged at `lib/ask/ask_page.dart:316`,
    the phone's own at `lib/ask/ask_page.dart:384`, and the region at
    `lib/ask/ask_page.dart:363`.
-10. **A base may be any host** (confirmed, `device-egress`):
+10. **A base may be any host** ([#72](https://github.com/lychnion/lychnion/issues/72)) (confirmed, `device-egress`):
     `lib/base/base_link.dart:93` accepts public hosts, and Android allows
     cleartext to every host. `help/en/08-privacy.md` also needs the base
     case.
-11. **The LAN redirect guard misses ranges** (confirmed,
+11. **The LAN redirect guard misses ranges** ([#73](https://github.com/lychnion/lychnion/issues/73)) (confirmed,
     `lan-device-same-origin`): `packages/lychnion_fetch/lib/src/downloader.dart:421`
     lacks 100.64/10, which discovery accepts, and plain hostnames.
-12. **Node address filter gaps** (confirmed, `node-private-address-filter`,
+12. **Node address filter gaps** ([#74](https://github.com/lychnion/lychnion/issues/74)) (confirmed, `node-private-address-filter`,
     pending Q22): `::` and some special ranges are not private
     (`packages/lychnion_node/lib/src/pull.dart:282`); catalog redirects are
     not filtered.
-13. **Node forgets a version when a record is dropped** (confirmed, pending
+13. **Node forgets a version when a record is dropped** ([#75](https://github.com/lychnion/lychnion/issues/75)) (confirmed, pending
     Q23): `packages/lychnion_node/lib/src/pull.dart:196` drops a record whose
     current and new versions are incomplete, and the next pull accepts an
     older one.
-14. **Windows file names ending in a dot** (suspected, `publisher-namespace`):
+14. **Windows file names ending in a dot** ([#76](https://github.com/lychnion/lychnion/issues/76)) (suspected, `publisher-namespace`):
     `packages/lychnion_format/lib/src/record.dart:128` allows a trailing dot
     and device names such as `NUL`; Windows may map `x.sqlite.` onto
     another publisher's `x.sqlite`.
-15. **App-help words skip safety lines** (suspected,
+15. **App-help words skip safety lines** ([#77](https://github.com/lychnion/lychnion/issues/77)) (suspected,
     `safety-line-lychnion-only`): a safety question containing a word such
     as 「ベース」, 「共有」, "offline" or "settings" may take the help path
     (`lib/knowledge/grounded_answer.dart:242`).
 
-16a. **Nested key statements may abort a node pull** (suspected, Q31):
+16a. **Nested key statements may abort a node pull** ([#78](https://github.com/lychnion/lychnion/issues/78)) (suspected, Q31):
     `relevantStatements` canonicalises each `keys` entry before any shape
     check and catches only `FormatException`
     (`packages/lychnion_format/lib/src/key_statement.dart:328`); on the node
