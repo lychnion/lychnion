@@ -6,6 +6,9 @@ import 'package:lychnion/facts/fact_store.dart';
 import 'package:lychnion/facts/signing.dart';
 import 'package:lychnion/map/evac_sites.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/l10n/app_localizations.dart';
+import 'package:lychnion/facts/fact_view.dart';
+import 'package:flutter/widgets.dart' show Locale;
 
 void main() {
   final now = DateTime.utc(2026, 11, 5, 14, 20);
@@ -70,7 +73,10 @@ void main() {
     await store.addAll([status('open', SourceType.official, 5)]);
     final f = store.shelterStatus(site)!;
     expect(f.unconfirmed, isTrue);
-    expect(f.sourceLabel(en: false), contains('署名なし'));
+    expect(
+      factSourceLabel(lookupAppLocalizations(const Locale('ja')), f),
+      contains('署名なし'),
+    );
   });
 
   test('facts entered on this device are signed', () async {

@@ -84,9 +84,13 @@ class _Args {
   bool flag(String name) => rest.remove(name);
 }
 
-Future<String> _readKey(String from) async => from == '-'
-    ? (await stdin.transform(utf8.decoder).join()).trim()
-    : (await File(from).readAsString()).trim();
+Future<String> _readKey(String from) async {
+  final k = from == '-'
+      ? (await stdin.transform(utf8.decoder).join()).trim()
+      : (await File(from).readAsString()).trim();
+  if (k.isEmpty) _fail('No key received (did `op read` fail?)');
+  return k;
+}
 
 Future<void> _keygen(_Args args) async {
   final k = await newKeyPair();

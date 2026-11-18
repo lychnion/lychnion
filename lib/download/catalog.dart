@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../knowledge/language.dart';
 import 'downloader.dart';
 import 'publishers.dart';
 import 'record.dart';
@@ -21,28 +22,28 @@ class CatalogItem {
   const CatalogItem({
     required this.id,
     required this.kind,
-    required this.titleJa,
-    required this.titleEn,
+    required this.titles,
     required this.version,
     required this.licence,
     required this.files,
     this.role,
     this.desktop = false,
-    this.noteJa = '',
-    this.noteEn = '',
+    this.notes = const {},
     this.record,
   });
 
   final String id;
   final ItemKind kind;
-  final String titleJa, titleEn, version, licence;
+  final String version, licence;
+
+  /// Title and note by language code (`{ja: …, en: …}`).
+  final Map<String, String> titles, notes;
 
   /// Models only: `chat` or `embed`.
   final String? role;
 
   /// Too large for most phones; shown with a note there.
   final bool desktop;
-  final String noteJa, noteEn;
   final List<CatalogFile> files;
 
   /// The signed record this item comes from. Only items with a verified
@@ -50,8 +51,8 @@ class CatalogItem {
   final PackageRecord? record;
 
   int get size => files.fold(0, (a, f) => a + f.size);
-  String title(bool en) => en ? titleEn : titleJa;
-  String note(bool en) => en ? noteEn : noteJa;
+  String title(String lang) => pick(titles, lang) ?? id;
+  String note(String lang) => pick(notes, lang) ?? '';
 
   /// [urls]: file SHA-256 → download address (absolute, or relative to
   /// the catalog). Files not listed there are fetched by name.
@@ -61,14 +62,12 @@ class CatalogItem {
   ]) => CatalogItem(
     id: r.id,
     kind: ItemKind.values.byName(r.kind),
-    titleJa: r.text('title', 'ja'),
-    titleEn: r.text('title', 'en'),
+    titles: r.texts('title'),
     version: r.version,
     licence: r.licence,
     role: r.role,
     desktop: r.desktop,
-    noteJa: r.text('note', 'ja'),
-    noteEn: r.text('note', 'en'),
+    notes: r.texts('note'),
     record: r,
     files: [
       for (final f in r.files)

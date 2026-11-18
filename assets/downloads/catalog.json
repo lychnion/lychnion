@@ -1,6 +1,6 @@
 {
   "format": 2,
-  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/",
+  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.3/",
   "refresh": "https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json",
   "records": [
     {
@@ -89,7 +89,7 @@
       "format": 1,
       "id": "jp.bousai.core",
       "kind": "package",
-      "version": "2026.11.1",
+      "version": "2026.11.2",
       "publisher": "lychnion",
       "title": {
         "ja": "防災（基本）",
@@ -112,12 +112,12 @@
         {
           "name": "jp.bousai.core.sqlite",
           "size": 1028096,
-          "sha256": "7640033841c441878444fececeaf6a7da55847fcf93aa5324031a0ab5555e044"
+          "sha256": "9fbf77b2acfb61bd119824853b8e0ecafa97a1d04a2e154ac49e37cf93c7b1aa"
         }
       ],
-      "signed": "2026-11-18T11:40:40+09:00",
+      "signed": "2026-11-18T12:20:47+09:00",
       "key": "vRIbo4Gi",
-      "signature": "Lb45VH6KfTjt2-9RLxESr2AMy6MlqR3dRFvu3M1GK-Ot97u-7UDX2m7GT70tpfK2HYXlr1_MRE0Qc9tuhcabBw"
+      "signature": "VAoui4PnUvvGcjOYauy0C098GscJy2cHpZIvUboqMYXYJvbRKlf5TYdzhlZ8fJN6r6pzf-d_OoiTtgkEAdvMAQ"
     },
     {
       "format": 1,
@@ -164,7 +164,7 @@
       "format": 1,
       "id": "jp.outdoor.hiking",
       "kind": "package",
-      "version": "2026.11.0",
+      "version": "2026.11.1",
       "publisher": "lychnion",
       "title": {
         "ja": "登山（基本）",
@@ -189,18 +189,18 @@
         {
           "name": "jp.outdoor.hiking.sqlite",
           "size": 450560,
-          "sha256": "3d94d77427c80f762179fdd75c51d49224468a8f4a22085ddc33b38ad23a58f2"
+          "sha256": "299672247c83cd19316156944645f0624c943e9bdac9d781e98eac16f1835ef9"
         }
       ],
-      "signed": "2026-11-18T11:40:40+09:00",
+      "signed": "2026-11-18T12:20:47+09:00",
       "key": "vRIbo4Gi",
-      "signature": "Xrb4Xlrar39ZwA-0uZBJLs2IWEQ-IUrwyiXMbRRVcHUzrLxGJSYohEWbrF0tSN_RU5lNU2UC6wuwkVnhyYJXBQ"
+      "signature": "t9S_rG0xobnwsMORXDpzM1YfZYBkOvyENBuT097Ai9bBxTJXu2EJmzdAbP6r7Hcr2eYs6ruPsGXIEhyOKm3PAw"
     },
     {
       "format": 1,
       "id": "intl.firstaid.basics",
       "kind": "package",
-      "version": "2026.11.0",
+      "version": "2026.11.1",
       "publisher": "lychnion",
       "title": {
         "ja": "応急手当（海外の資料）",
@@ -225,12 +225,12 @@
         {
           "name": "intl.firstaid.basics.sqlite",
           "size": 638976,
-          "sha256": "86bfddec18758857162dd744249d502dbb7833680d7356b72b9b905f40240439"
+          "sha256": "f4e073df3e6092734b487b26577cfb9d8b712e863789f4e77f4c2564fbe92f67"
         }
       ],
-      "signed": "2026-11-18T11:40:40+09:00",
+      "signed": "2026-11-18T12:20:47+09:00",
       "key": "vRIbo4Gi",
-      "signature": "IToM1mtEhPysoZK7eWbwVNJhBXBi_CGMwmDnA6S0KJQpDwTDZ1gA9i_his4BoPKPxPAyggMDTNNVH4WSDebJBQ"
+      "signature": "59-71Tq5wHgEvu5WT3Qt1ANlr_kRPSPCBNFq4vy70M8A8M-l3Z5Q3tFL9T9jiIpcwM8rkAQKsIMlr4Wk6eWTCg"
     },
     {
       "format": 1,
@@ -281,6 +281,10 @@
     "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.pmtiles",
     "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.sites.sqlite",
     "94a5f22980f5fbba04facec8f6c169a4c8ab70cfc2cc6263a372130de71a725d": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.routes.bin",
-    "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.inundation.mbtiles"
+    "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.inundation.mbtiles",
+    "4ae3d25c19a3489c99653beee432d57344093411664315b0a46d1e9d6e3cd651": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.pmtiles",
+    "b145b475ed0bca4a5be79b1910e2be604daa1a8e9f23e67a910090a8f9857cd2": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.sites.sqlite",
+    "82d0f8f448907f94347a1b0424e10f77f11f586dd3c5a5bcb0b2cf1c8ada4ce4": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.routes.bin",
+    "c73441a12d360cabc42f7aa67fc80ad0e97869bb694d1307fbd60ac2866de456": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.inundation.mbtiles"
   }
 }

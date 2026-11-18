@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../knowledge/knowledge_package.dart' show PackageInfo;
+import '../l10n/app_localizations.dart';
 import '../ui/package_row.dart';
 import 'brand.dart';
+import 'lang.dart';
 import 'settings.dart';
 
 /// Version of the app notice: raise it when the wording changes in a way
@@ -12,53 +14,13 @@ const appNoticeKey = 'app:1';
 /// What the app is and is not, in a few lines. Kept short on purpose: in a
 /// disaster, someone opening the app for the first time must get to the
 /// answers quickly.
-List<(IconData, String)> appNotice({required bool en}) => en
-    ? const [
-        (
-          Icons.auto_awesome_outlined,
-          'Answers are written by AI from public sources. AI can make '
-              'mistakes: check the source shown with each answer.',
-        ),
-        (
-          Icons.campaign_outlined,
-          'Instructions from your city, the Japan Meteorological Agency, '
-              'police and fire service, and people on site who know, come first.',
-        ),
-        (
-          Icons.local_hospital_outlined,
-          'It does not replace a doctor, and it is not a planning tool for '
-              'hikes or tours.',
-        ),
-        (
-          Icons.record_voice_over_outlined,
-          'When unsure, ask someone who knows. In an emergency call 119 '
-              '(ambulance, fire) or 110 (police).',
-        ),
-        (
-          Icons.wifi_off_rounded,
-          'It works without internet, so its information may not be the '
-              'latest. It does not answer what its sources do not cover.',
-        ),
-      ]
-    : const [
-        (
-          Icons.auto_awesome_outlined,
-          '回答は、公的な資料をもとにAIが作ります。AIはまちがえることがあります。回答といっしょに表示する出典を確かめてください。',
-        ),
-        (Icons.campaign_outlined, '自治体・気象庁・警察・消防の指示や、その場にいる、わかる人の判断を優先してください。'),
-        (
-          Icons.local_hospital_outlined,
-          '医師の診察の代わりにはなりません。登山やツアーの計画を立てるためのアプリでもありません。',
-        ),
-        (
-          Icons.record_voice_over_outlined,
-          '迷ったときは、わかる人に聞いてください。命に関わるときは119（救急・火事）、110（警察）へ。',
-        ),
-        (
-          Icons.wifi_off_rounded,
-          'インターネットなしで使えるため、情報が最新とは限りません。資料にないことには答えません。',
-        ),
-      ];
+List<(IconData, String)> appNotice(AppLocalizations l) => [
+  (Icons.auto_awesome_outlined, l.noticeAi),
+  (Icons.campaign_outlined, l.noticeOfficialFirst),
+  (Icons.local_hospital_outlined, l.noticeNotADoctor),
+  (Icons.record_voice_over_outlined, l.noticeAsk),
+  (Icons.wifi_off_rounded, l.noticeOffline),
+];
 
 /// First start: the app notice and the notices of the built-in packages,
 /// one tap to continue. Covers the home page, which loads underneath.
@@ -99,13 +61,11 @@ class _NoticeGateState extends State<NoticeGate> {
     listenable: widget.settings,
     builder: (context, _) {
       if (widget.settings.hasAcknowledged(appNoticeKey)) return widget.child;
-      final en = Localizations.localeOf(context).languageCode != 'ja';
       return Stack(
         children: [
           widget.child,
           Positioned.fill(
             child: NoticeScreen(
-              en: en,
               packages: _packages,
               onAccept: () => widget.settings.acknowledge([
                 appNoticeKey,
@@ -122,17 +82,16 @@ class _NoticeGateState extends State<NoticeGate> {
 class NoticeScreen extends StatelessWidget {
   const NoticeScreen({
     super.key,
-    required this.en,
     required this.packages,
     required this.onAccept,
   });
 
-  final bool en;
   final List<PackageInfo> packages;
   final VoidCallback onAccept;
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Material(
@@ -149,17 +108,14 @@ class NoticeScreen extends StatelessWidget {
                     child: LychnionMark(size: 44),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    en ? 'Before you start' : 'ご利用の前に',
-                    style: theme.textTheme.headlineSmall,
-                  ),
+                  Text(l.beforeYouStart, style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 16),
-                  for (final (icon, text) in appNotice(en: en))
+                  for (final (icon, text) in appNotice(l))
                     NoticeLine(icon: icon, text: text),
                   if (packages.any((p) => p.notice.isNotEmpty)) ...[
                     const SizedBox(height: 12),
                     Text(
-                      en ? 'About the guides' : '入っている資料について',
+                      l.noticeAboutGuides,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: scheme.primary,
                         fontWeight: FontWeight.w700,
@@ -167,7 +123,7 @@ class NoticeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     for (final p in packages)
-                      if (p.notice.isNotEmpty) PackageNotice(info: p, en: en),
+                      if (p.notice.isNotEmpty) PackageNotice(info: p),
                   ],
                 ],
               ),
@@ -178,7 +134,7 @@ class NoticeScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: onAccept,
-                  child: Text(en ? 'I understand' : 'わかりました'),
+                  child: Text(l.iUnderstand),
                 ),
               ),
             ),
@@ -214,15 +170,15 @@ class NoticeLine extends StatelessWidget {
 
 /// One package's name and what it is not for.
 class PackageNotice extends StatelessWidget {
-  const PackageNotice({super.key, required this.info, required this.en});
+  const PackageNotice({super.key, required this.info});
 
   final PackageInfo info;
-  final bool en;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (icon, name) = PackageRow.label(info, en);
+    final lang = context.lang;
+    final (icon, name) = PackageRow.label(info, lang);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -235,7 +191,7 @@ class PackageNotice extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: theme.textTheme.titleSmall),
-                for (final line in info.noticeIn(en: en))
+                for (final line in info.noticeIn(lang))
                   Text(line, style: theme.textTheme.bodyMedium),
               ],
             ),
@@ -251,9 +207,8 @@ class PackageNotice extends StatelessWidget {
 Future<void> showPackageNotices(
   BuildContext context,
   AppSettings settings,
-  List<PackageInfo> packages, {
-  required bool en,
-}) async {
+  List<PackageInfo> packages,
+) async {
   final fresh = [
     for (final p in packages)
       if (p.notice.isNotEmpty && !settings.hasAcknowledged(p.noticeKey)) p,
@@ -263,17 +218,17 @@ Future<void> showPackageNotices(
     context: context,
     barrierDismissible: false,
     builder: (c) => AlertDialog(
-      title: Text(en ? 'New guides' : '新しい資料'),
+      title: Text(c.l10n.noticeNewGuides),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [for (final p in fresh) PackageNotice(info: p, en: en)],
+          children: [for (final p in fresh) PackageNotice(info: p)],
         ),
       ),
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(c).pop(),
-          child: Text(en ? 'I understand' : 'わかりました'),
+          child: Text(c.l10n.iUnderstand),
         ),
       ],
     ),

@@ -49,9 +49,12 @@ void main() {
 
   test('foreign sources get a label, local ones none', () {
     final pkg = _package();
-    expect(foreignLabel(pkg.sources['jp']!, 'JP', en: false), isNull);
-    expect(foreignLabel(pkg.sources['gb']!, 'JP', en: false), '海外の資料（英国）');
-    expect(foreignLabel(pkg.sources['gb']!, 'JP', en: true), 'Source from UK');
+    expect(foreignLabel(pkg.sources['jp']!, 'JP', lang: 'ja'), isNull);
+    expect(foreignLabel(pkg.sources['gb']!, 'JP', lang: 'ja'), '海外の資料（英国）');
+    expect(
+      foreignLabel(pkg.sources['gb']!, 'JP', lang: 'en'),
+      'Source from UK',
+    );
   });
 
   test('the local source goes first, the foreign one stays', () {

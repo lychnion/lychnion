@@ -23,7 +23,7 @@ void main() {
   test('all sources are from the US and labelled as foreign', () {
     expect(firstAid.sources.values.map((s) => s.region).toSet(), {'US'});
     for (final s in firstAid.sources.values) {
-      expect(foreignLabel(s, 'JP', en: false), '海外の資料（米国）');
+      expect(foreignLabel(s, 'JP', lang: 'ja'), '海外の資料（米国）');
     }
   });
 

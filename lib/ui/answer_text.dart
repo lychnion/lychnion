@@ -11,7 +11,10 @@ String shownAnswer(String text, List<Alert> alerts) {
       .trim();
   if (alerts.isEmpty) return clean;
   final lines = [
-    for (final a in alerts) ...[_grams(a.text), ?_gramsOrNull(a.textEn)],
+    for (final a in alerts) ...[
+      _grams(a.text),
+      for (final t in a.translations.values) _grams(t),
+    ],
   ];
   final kept = [
     for (final s in _sentences(clean))
@@ -32,8 +35,6 @@ bool _covered(Set<String> sentence, Set<String> line) {
   final shared = sentence.where(line.contains).length;
   return shared / sentence.length >= 0.6;
 }
-
-Set<String>? _gramsOrNull(String? s) => s == null ? null : _grams(s);
 
 final _japanese = RegExp(r'[\u3040-\u30ff\u4e00-\u9fff]');
 

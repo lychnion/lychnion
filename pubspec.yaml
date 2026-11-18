@@ -32,6 +32,7 @@ dependencies:
   app_links: ^7.2.2
   url_launcher: ^6.3.3
   cryptography: ^2.9.0
+  intl: any
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +46,8 @@ hooks:
       llamadart_native_runtimes: [llama_cpp]
 
 flutter:
+  # App texts per language: lib/l10n/app_<lang>.arb (see l10n.yaml).
+  generate: true
   uses-material-design: true
   assets:
     - assets/packages/

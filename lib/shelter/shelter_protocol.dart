@@ -32,6 +32,7 @@ Source sourceFromWire(Map<String, dynamic> j) => Source(
 Map<String, Object?> answerToWire(GroundedAnswer a) => {
   'v': shelterProtocolVersion,
   'question': a.question,
+  'lang': a.lang,
   'search_query': a.searchQuery,
   'judged_relevant': a.judgedRelevant,
   'text': a.text,
@@ -40,7 +41,9 @@ Map<String, Object?> answerToWire(GroundedAnswer a) => {
       {
         'id': al.id,
         'text': al.text,
-        'text_en': al.textEn,
+        'translations': al.translations,
+        // Phones from before translations were maps read this one.
+        'text_en': al.translations['en'],
         'source': sourceToWire(al.source),
       },
   ],
@@ -73,7 +76,7 @@ GroundedAnswer answerFromWire(Map<String, dynamic> j) {
   if (j['v'] != shelterProtocolVersion) {
     throw FormatException('unsupported shelter protocol: ${j['v']}');
   }
-  final a = GroundedAnswer(j['question'] as String)
+  final a = GroundedAnswer(j['question'] as String, lang: j['lang'] as String?)
     ..searchQuery = j['search_query'] as String?
     ..judgedRelevant = j['judged_relevant'] as bool?
     ..text = j['text'] as String;
@@ -83,9 +86,10 @@ GroundedAnswer answerFromWire(Map<String, dynamic> j) {
         al['id'] as String,
         sourceFromWire(al['source'] as Map<String, dynamic>),
         al['text'] as String,
-        const [],
-        al['text_en'] as String?,
-        const [],
+        translations: {
+          if (al['text_en'] case final String en) 'en': en,
+          ...?(al['translations'] as Map?)?.cast<String, String>(),
+        },
       ),
   ];
   a.hits = [

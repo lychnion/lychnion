@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/notices.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
+import 'package:lychnion/l10n/app_localizations.dart';
 
 void main() {
   const ids = ['jp.bousai.core', 'jp.outdoor.hiking', 'intl.firstaid.basics'];
@@ -12,12 +13,12 @@ void main() {
 
   test('every built-in package says what it is not for, in both languages', () {
     for (final p in infos) {
-      expect(p.noticeIn(en: false), isNotEmpty, reason: p.id);
-      expect(p.noticeIn(en: true), isNotEmpty, reason: p.id);
+      expect(p.noticeIn('ja'), isNotEmpty, reason: p.id);
+      expect(p.noticeIn('en'), isNotEmpty, reason: p.id);
     }
     final hiking = infos[1];
-    expect(hiking.noticeIn(en: false).join(), contains('雪崩の危険度の判断には使えません'));
-    expect(infos[2].noticeIn(en: false).join(), contains('医師'));
+    expect(hiking.noticeIn('ja').join(), contains('雪崩の危険度の判断には使えません'));
+    expect(infos[2].noticeIn('ja').join(), contains('医師'));
   });
 
   test('the notice key is stable and changes with the text', () {
@@ -43,11 +44,15 @@ void main() {
 
   test('the app notice names the emergency numbers', () {
     expect(
-      appNotice(en: false).map((l) => l.$2).join(),
+      appNotice(
+        lookupAppLocalizations(const Locale('ja')),
+      ).map((l) => l.$2).join(),
       allOf(contains('119'), contains('110')),
     );
     expect(
-      appNotice(en: true).map((l) => l.$2).join(),
+      appNotice(
+        lookupAppLocalizations(const Locale('en')),
+      ).map((l) => l.$2).join(),
       allOf(contains('119'), contains('110')),
     );
   });
@@ -56,11 +61,10 @@ void main() {
     var accepted = false;
     await t.pumpWidget(
       MaterialApp(
-        home: NoticeScreen(
-          en: false,
-          packages: infos,
-          onAccept: () => accepted = true,
-        ),
+        locale: const Locale('ja'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: NoticeScreen(packages: infos, onAccept: () => accepted = true),
       ),
     );
     expect(find.text('ご利用の前に'), findsOneWidget);

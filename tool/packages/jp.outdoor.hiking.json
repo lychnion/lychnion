@@ -2,7 +2,7 @@
   "id": "jp.outdoor.hiking",
   "title": "登山（基本）",
   "language": "ja",
-  "version": "2026.11.0",
+  "version": "2026.11.1",
   "note": "First outdoor package: getting lost, lightning, heat, ticks, hornets and volcanoes, from national government pages under PDL1.0. Bears and the 政府広報 mountain article stay in jp.bousai.core.",
   "sources": [
     {
@@ -288,6 +288,41 @@
     "en": [
       "Not a substitute for planning your hike or judging weather, volcanoes and trail conditions. Check current official information before you go.",
       "Not suitable for judging avalanche risk."
+    ]
+  },
+  "name": {
+    "ja": "登山",
+    "en": "Hiking"
+  },
+  "icon": "hiking",
+  "suggestions": {
+    "ja": [
+      {
+        "icon": "thunderstorm",
+        "text": "山で雷が鳴ってきたら？"
+      },
+      {
+        "icon": "bug",
+        "text": "マダニに刺されたら？"
+      },
+      {
+        "icon": "volcano",
+        "text": "噴火速報が出たら？"
+      }
+    ],
+    "en": [
+      {
+        "icon": "thunderstorm",
+        "text": "Thunder in the mountains: what should I do?"
+      },
+      {
+        "icon": "bug",
+        "text": "What should I do after a tick bite?"
+      },
+      {
+        "icon": "volcano",
+        "text": "What should I do after an eruption alert?"
+      }
     ]
   }
 }

@@ -160,11 +160,11 @@ class PackageRecord {
   String? get role => json['role'] as String?;
   bool get desktop => json['desktop'] as bool? ?? false;
 
-  /// Text in [lang], else Japanese, else any.
-  String text(String field, String lang) {
-    final m = (json[field] as Map?) ?? const {};
-    return (m[lang] ?? m['ja'] ?? (m.isEmpty ? '' : m.values.first)) as String;
-  }
+  /// Language code → text, e.g. the `title` or `note` field.
+  Map<String, String> texts(String field) => {
+    for (final e in ((json[field] as Map?) ?? const {}).entries)
+      if (e.value is String) e.key as String: e.value as String,
+  };
 
   /// Language → lines shown before the package is relied on.
   Map<String, List<String>> get notice => {

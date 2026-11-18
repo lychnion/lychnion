@@ -437,8 +437,7 @@ void main() {
       final unsigned = CatalogItem(
         id: 'p',
         kind: ItemKind.package,
-        titleJa: 'p',
-        titleEn: 'p',
+        titles: const {'en': 'p'},
         version: '1',
         licence: '',
         files: const [CatalogFile('p.sqlite', 3, 'x', 'p.sqlite')],

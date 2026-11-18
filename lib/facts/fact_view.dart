@@ -1,19 +1,45 @@
 import 'package:flutter/material.dart';
 
+import '../app/lang.dart';
+import '../l10n/app_localizations.dart';
 import 'fact.dart';
+
+/// 「満員」 / "full"; an unknown value as it is.
+String shelterStatusName(AppLocalizations l, Fact f) =>
+    f.shelterStatus == null ? f.value : l.shelterStatus(f.shelterStatus!.key);
+
+/// "2時間前" / "2 h ago".
+String factAge(AppLocalizations l, Fact f, DateTime now) {
+  final d = now.difference(f.observedAt);
+  if (d.inMinutes < 1) return l.justNow;
+  if (d.inMinutes < 60) return l.minutesAgo('${d.inMinutes}');
+  if (d.inHours < 48) return l.hoursAgo('${d.inHours}');
+  return l.daysAgo('${d.inDays}');
+}
+
+/// "市・公式", "センサー", "住民の報告・未確認".
+String factSourceLabel(AppLocalizations l, Fact f) {
+  final type = switch (f.sourceType) {
+    SourceType.official when !f.verified => l.factSourceOfficialUnverified,
+    SourceType.sensor when !f.verified => l.factSourceSensorUnverified,
+    SourceType.official => l.factSourceOfficial,
+    SourceType.sensor => l.factSourceSensor,
+    SourceType.citizen => l.factSourceCitizen,
+  };
+  return f.sourceName.isEmpty ? type : '${f.sourceName} · $type';
+}
 
 /// One line for a fact: what, how old, from whom.
 /// e.g. 「満員 · 20分前 · 西宮市 · 公式」 / "full · 20 min ago · Nishinomiya · official"
-String factLine(Fact f, DateTime now, {required bool en}) {
+String factLine(AppLocalizations l, Fact f, DateTime now) {
   final what = switch (f.kind) {
-    FactKind.shelterStatus =>
-      (en ? f.shelterStatus?.en : f.shelterStatus?.ja) ?? f.value,
-    FactKind.roadBlocked => en ? 'road blocked' : '通行止め',
-    FactKind.waterPoint => en ? 'water: ${f.value}' : '給水：${f.value}',
+    FactKind.shelterStatus => shelterStatusName(l, f),
+    FactKind.roadBlocked => l.factRoadBlocked,
+    FactKind.waterPoint => l.factWater(f.value),
     FactKind.warning => f.value,
   };
   final note = f.note.isEmpty ? '' : '（${f.note}）';
-  return '$what$note · ${f.age(now, en: en)} · ${f.sourceLabel(en: en)}';
+  return '$what$note · ${factAge(l, f, now)} · ${factSourceLabel(l, f)}';
 }
 
 /// Colour hint: red for full/closed or warnings, amber for unconfirmed.
@@ -30,14 +56,12 @@ class CurrentFactsBox extends StatelessWidget {
     super.key,
     required this.facts,
     required this.now,
-    required this.en,
     this.onTap,
     this.onAdd,
   });
 
   final List<Fact> facts;
   final DateTime now;
-  final bool en;
 
   /// Set where facts can be entered (shelter computer): edit one fact.
   final void Function(Fact)? onTap;
@@ -52,16 +76,16 @@ class CurrentFactsBox extends StatelessWidget {
     FactKind.shelterStatus => Icons.home_work_rounded,
   };
 
-  String _what(Fact f) => switch (f.kind) {
-    FactKind.shelterStatus =>
-      (en ? f.shelterStatus?.en : f.shelterStatus?.ja) ?? f.value,
-    FactKind.roadBlocked => en ? 'Road blocked' : '通行止め',
-    FactKind.waterPoint => en ? 'Water: ${f.value}' : '給水：${f.value}',
+  static String _what(AppLocalizations l, Fact f) => switch (f.kind) {
+    FactKind.shelterStatus => shelterStatusName(l, f),
+    FactKind.roadBlocked => l.factsBoxRoadBlocked,
+    FactKind.waterPoint => l.factsBoxWater(f.value),
     FactKind.warning => f.value,
   };
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Container(
@@ -75,9 +99,7 @@ class CurrentFactsBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            en
-                ? 'Current information · not from the AI'
-                : '最新の情報 · AIの回答ではありません',
+            l.factsBoxTitle,
             style: theme.textTheme.labelMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -98,15 +120,15 @@ class CurrentFactsBox extends StatelessWidget {
                         children: [
                           Text(
                             f.note.isEmpty
-                                ? _what(f)
-                                : '${_what(f)}（${f.note}）',
+                                ? _what(l, f)
+                                : '${_what(l, f)}（${f.note}）',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: factColor(f, scheme),
                             ),
                           ),
                           Text(
-                            '${f.age(now, en: en)} · ${f.sourceLabel(en: en)}',
+                            '${factAge(l, f, now)} · ${factSourceLabel(l, f)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
@@ -122,7 +144,7 @@ class CurrentFactsBox extends StatelessWidget {
             TextButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add, size: 16),
-              label: Text(en ? 'Add warning' : '警報・注意報を追加'),
+              label: Text(l.factsBoxAddWarning),
             ),
         ],
       ),
@@ -132,21 +154,15 @@ class CurrentFactsBox extends StatelessWidget {
 
 /// Small coloured label: 満員 · 20分前.
 class StatusChip extends StatelessWidget {
-  const StatusChip({
-    super.key,
-    required this.fact,
-    required this.now,
-    required this.en,
-  });
+  const StatusChip({super.key, required this.fact, required this.now});
 
   final Fact fact;
   final DateTime now;
-  final bool en;
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final st = fact.shelterStatus;
     final color = factColor(fact, scheme);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -155,8 +171,8 @@ class StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        '${(en ? st?.en : st?.ja) ?? fact.value} · ${fact.age(now, en: en)}'
-        '${fact.unconfirmed ? (en ? ' · unconfirmed' : ' · 未確認') : ''}',
+        '${shelterStatusName(l, fact)} · ${factAge(l, fact, now)}'
+        '${fact.unconfirmed ? ' · ${l.factUnconfirmed}' : ''}',
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w700,

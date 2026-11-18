@@ -8,8 +8,11 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 import '../facts/fact.dart';
 import '../facts/fact_form.dart';
 import '../facts/fact_view.dart';
+import '../app/lang.dart';
+import '../l10n/app_localizations.dart';
 import 'evac_sites.dart';
 import 'inundation_tiles.dart';
+import 'map_labels.dart';
 import 'map_state.dart';
 import 'route_graph.dart';
 import 'offline_theme.dart';
@@ -18,15 +21,9 @@ import '../ui/breathing_light.dart';
 /// Offline map: base map from a local PMTiles file, emergency evacuation
 /// sites for the chosen hazard, and the nearest ones from the current position.
 class MapScreen extends StatefulWidget {
-  const MapScreen({
-    super.key,
-    required this.state,
-    this.english = false,
-    this.editor,
-  });
+  const MapScreen({super.key, required this.state, this.editor});
 
   final MapState state;
-  final bool english;
 
   /// Set on the shelter computer: lets staff enter current facts.
   final FactEditor? editor;
@@ -49,7 +46,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   MapState get s => widget.state;
-  bool get en => widget.english;
+  AppLocalizations get l => context.l10n;
 
   @override
   void initState() {
@@ -96,7 +93,6 @@ class _MapScreenState extends State<MapScreen> {
       kind: kind,
       subject: subject,
       title: title,
-      en: en,
       choices: choices,
       current: current,
     );
@@ -107,14 +103,14 @@ class _MapScreenState extends State<MapScreen> {
     kind: FactKind.shelterStatus,
     subject: site.uid,
     title: site.name,
-    choices: shelterChoices,
+    choices: shelterChoices(l),
     current: s.statusOf(site),
   );
 
   Future<void> _editPoint(Fact f) => _enter(
     kind: f.kind,
     subject: f.subject,
-    title: factLine(f, s.facts!.now, en: en),
+    title: factLine(l, f, s.facts!.now),
     choices: [_pointChoice(f.kind, f.value)],
     current: f,
   );
@@ -122,9 +118,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _editWarning(Fact? f, String city) => _enter(
     kind: FactKind.warning,
     subject: f?.subject ?? city,
-    title: f == null
-        ? (en ? 'Warning for $city' : '$cityの警報・注意報')
-        : factLine(f, s.facts!.now, en: en),
+    title: f == null ? l.mapWarningFor(city) : factLine(l, f, s.facts!.now),
     choices: f == null ? null : [_pointChoice(f.kind, f.value)],
     current: f,
   );
@@ -142,12 +136,12 @@ class _MapScreenState extends State<MapScreen> {
                 Icons.do_not_disturb_on,
                 color: Colors.deepOrange,
               ),
-              title: Text(en ? 'Road blocked here' : 'ここが通行止め'),
+              title: Text(l.mapRoadBlockedHere),
               onTap: () => Navigator.pop(c, FactKind.roadBlocked),
             ),
             ListTile(
               leading: const Icon(Icons.water_drop, color: Colors.blue),
-              title: Text(en ? 'Water handed out here' : 'ここで給水'),
+              title: Text(l.mapWaterHere),
               onTap: () => Navigator.pop(c, FactKind.waterPoint),
             ),
           ],
@@ -159,22 +153,22 @@ class _MapScreenState extends State<MapScreen> {
       kind: kind,
       subject:
           '${p.latitude.toStringAsFixed(4)},${p.longitude.toStringAsFixed(4)}',
-      title: kind == FactKind.roadBlocked
-          ? (en ? 'Road blocked' : '通行止め')
-          : (en ? 'Water point' : '給水'),
+      title: kind == FactKind.roadBlocked ? l.mapRoadBlocked : l.mapWaterPoint,
       choices: kind == FactKind.roadBlocked
           ? [_pointChoice(kind, 'blocked')]
-          : const [
-              (value: '給水車', ja: '給水車', en: 'water truck'),
-              (value: '給水所', ja: '給水所', en: 'water station'),
+          : [
+              // Stored values stay Japanese (as on the radio); labels follow
+              // the app language.
+              (value: '給水車', label: l.mapWaterTruck),
+              (value: '給水所', label: l.mapWaterStation),
             ],
     );
   }
 
-  static FactChoice _pointChoice(FactKind kind, String value) =>
+  FactChoice _pointChoice(FactKind kind, String value) =>
       kind == FactKind.roadBlocked
-      ? (value: value, ja: '通行止め', en: 'road blocked')
-      : (value: value, ja: value, en: value);
+      ? (value: value, label: l.factRoadBlocked)
+      : (value: value, label: value);
 
   /// Phones: the list of hazards, as a bottom sheet.
   Future<void> _pickHazard() async {
@@ -191,14 +185,14 @@ class _MapScreenState extends State<MapScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                 child: Text(
-                  en ? 'Which hazard?' : 'どの災害ですか？',
+                  l.mapWhichHazard,
                   style: Theme.of(c).textTheme.titleLarge,
                 ),
               ),
               for (final h in Hazard.values)
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  title: Text(en ? h.en : h.ja),
+                  title: Text(hazardName(l, h)),
                   trailing: s.hazard == h
                       ? Icon(
                           Icons.check_rounded,
@@ -218,14 +212,14 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   String get _locationStatus {
-    if (s.hereIsMock) return en ? 'Test location' : 'テスト用の位置';
+    if (s.hereIsMock) return l.mapTestLocation;
     if (s.here != null) {
       final acc = s.accuracy?.round();
-      return en ? 'Location ±$acc m' : '現在地 ±$acc m';
+      return l.mapLocationAccuracy('$acc');
     }
     return switch (s.error) {
-      'no-permission' => en ? 'No location permission' : '位置情報の許可がありません',
-      'no-location' => en ? 'Location not available' : '現在地を取得できません',
+      'no-permission' => l.mapNoLocationPermission,
+      'no-location' => l.mapNoLocation,
       _ => '',
     };
   }
@@ -260,7 +254,7 @@ class _MapScreenState extends State<MapScreen> {
     final walking = s.routes != null;
 
     Widget chip(Hazard h) => ChoiceChip(
-      label: Text(en ? h.en : h.ja),
+      label: Text(hazardName(l, h)),
       selected: hazard == h,
       showCheckmark: false,
       backgroundColor: theme.colorScheme.surface,
@@ -300,9 +294,7 @@ class _MapScreenState extends State<MapScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        hazard == null
-                            ? (en ? 'Hazard' : '災害の種類')
-                            : (en ? hazard.en : hazard.ja),
+                        hazard == null ? l.mapHazard : hazardName(l, hazard),
                       ),
                       const SizedBox(width: 2),
                       Icon(
@@ -320,7 +312,7 @@ class _MapScreenState extends State<MapScreen> {
                   elevation: 2,
                   shadowColor: Colors.black26,
                   side: BorderSide.none,
-                  tooltip: en ? 'Choose the hazard' : '災害の種類を選ぶ',
+                  tooltip: l.mapChooseHazard,
                   onPressed: _pickHazard,
                 ),
               ),
@@ -346,7 +338,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
             children: [
               VectorTileLayer(
-                theme: offlineLightTheme(english: en),
+                theme: offlineLightTheme(lang: context.lang),
                 tileProviders: TileProviders({'protomaps': tiles}),
                 // Vector mode draws the labels; raster mode dropped them.
                 layerMode: VectorTileLayerMode.vector,
@@ -418,7 +410,7 @@ class _MapScreenState extends State<MapScreen> {
                         child: GestureDetector(
                           onTap: _editor == null ? null : () => _editPoint(f),
                           child: Tooltip(
-                            message: factLine(f, s.facts!.now, en: en),
+                            message: factLine(l, f, s.facts!.now),
                             child: f.kind == FactKind.roadBlocked
                                 ? const Icon(
                                     Icons.do_not_disturb_on,
@@ -460,19 +452,11 @@ class _MapScreenState extends State<MapScreen> {
               RichAttributionWidget(
                 attributions: [
                   TextSourceAttribution(sites.basemapAttribution),
-                  TextSourceAttribution(
-                    en ? 'Evacuation sites: GSI Japan' : '避難場所：国土地理院',
-                  ),
+                  TextSourceAttribution(l.mapAttributionSites),
                   if (s.routes?.hasHeights ?? false)
-                    TextSourceAttribution(
-                      en ? 'Heights: GSI elevation tiles' : '標高：国土地理院 標高タイル',
-                    ),
+                    TextSourceAttribution(l.mapAttributionHeights),
                   if (s.routes?.hasFlood ?? false)
-                    TextSourceAttribution(
-                      en
-                          ? 'Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited'
-                          : '津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工',
-                    ),
+                    TextSourceAttribution(l.mapAttributionFlood),
                 ],
               ),
             ],
@@ -516,20 +500,21 @@ class _MapScreenState extends State<MapScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            en ? 'Nearby evacuation sites' : '近くの避難場所',
+                            l.mapNearbySites,
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
                             [
-                              en
-                                  ? '${hazard?.en ?? 'Any hazard'} · ${walking ? 'walking distance' : 'straight line'}'
-                                  : '${hazard?.ja ?? 'すべての災害'} · ${walking ? '徒歩の道のり' : '直線距離'}',
-                              if (s.prefersHigh(hazard))
-                                en ? 'keeps to higher ground' : '高い道を優先',
-                              if (s.avoidsBlocked)
-                                en ? 'blocked roads considered' : '通行止めを考慮',
+                              hazard == null
+                                  ? l.mapAnyHazard
+                                  : hazardName(l, hazard),
+                              walking
+                                  ? l.mapWalkingDistance
+                                  : l.mapStraightLine,
+                              if (s.prefersHigh(hazard)) l.mapKeepsHigh,
+                              if (s.avoidsBlocked) l.mapBlockedConsidered,
                               if (_locationStatus.isNotEmpty) _locationStatus,
                             ].join(' · '),
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -540,13 +525,13 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                     IconButton(
-                      tooltip: en ? 'About this data' : 'データについて',
+                      tooltip: l.mapAboutData,
                       onPressed: () =>
                           _showAbout(context, sites.notice, sites.attribution),
                       icon: const Icon(Icons.info_outline_rounded),
                     ),
                     IconButton.filledTonal(
-                      tooltip: en ? 'My location' : '現在地',
+                      tooltip: l.mapMyLocation,
                       onPressed: s.locate,
                       icon: const Icon(Icons.my_location_rounded),
                     ),
@@ -571,7 +556,7 @@ class _MapScreenState extends State<MapScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            noSiteWarning(city, hazard!, en),
+                            noSiteWarning(l, city, hazard!),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onTertiaryContainer,
                             ),
@@ -595,7 +580,6 @@ class _MapScreenState extends State<MapScreen> {
                   CurrentFactsBox(
                     facts: cur,
                     now: s.facts!.now,
-                    en: en,
                     onTap: _editor == null
                         ? null
                         : (f) => f.kind == FactKind.warning
@@ -609,9 +593,7 @@ class _MapScreenState extends State<MapScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      en
-                          ? 'Shelter computer: ✎ sets a site\'s status; long-press the map for a blocked road or water point.'
-                          : '避難所の端末：✎で状況を入力。地図を長押しで通行止め・給水を登録。',
+                      l.mapShelterHint,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -633,18 +615,12 @@ class _MapScreenState extends State<MapScreen> {
     final scheme = theme.colorScheme;
     final inside = flood >= 2;
     final d = s.depthHere;
-    final depth = d == null ? '' : depthLabel(d, en: en);
+    final depth = d == null ? '' : depthLabel(l, d);
     final title = inside
-        ? (en
-              ? 'You are in the tsunami inundation area (expected $depth)'
-              : '現在地は津波浸水想定区域内です（想定$depth）')
+        ? l.mapInFloodArea(depth)
         : flood == 1
-        ? (en
-              ? 'You are close to the tsunami inundation area'
-              : '現在地は津波浸水想定区域のすぐ近くです')
-        : (en
-              ? 'You are outside the tsunami inundation area'
-              : '現在地は津波浸水想定区域の外です');
+        ? l.mapNearFloodArea
+        : l.mapOutsideFloodArea;
     final minutes = out == null ? null : max(1, (out.meters / 60).round());
     final bg = inside ? scheme.errorContainer : scheme.surfaceContainerHigh;
     final fg = inside ? scheme.onErrorContainer : scheme.onSurface;
@@ -684,12 +660,11 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       Text(
                         out != null
-                            ? (en
-                                  ? 'Out of the area: ${formatDistance(out.meters)} walk · about $minutes min'
-                                  : '区域の外まで 徒歩${formatDistance(out.meters)}・約$minutes分')
-                            : (en
-                                  ? 'Based on the official expected inundation. A larger tsunami can go further.'
-                                  : '公表された浸水想定によります。想定を超える津波もあります。'),
+                            ? l.mapWayOut(
+                                formatDistance(out.meters),
+                                '$minutes',
+                              )
+                            : l.mapFloodBasis,
                         style: theme.textTheme.bodySmall?.copyWith(color: fg),
                       ),
                     ],
@@ -717,7 +692,7 @@ class _MapScreenState extends State<MapScreen> {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          en ? 'Expected depth:' : '浸水の深さ（想定）',
+          l.mapExpectedDepth,
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -738,7 +713,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 const SizedBox(width: 3),
                 Text(
-                  depthFromLabel(e.key, en: en),
+                  depthFromLabel(l, e.key),
                   style: theme.textTheme.labelSmall,
                 ),
               ],
@@ -787,8 +762,8 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   Text(
                     n.minutes != null
-                        ? (en ? '${n.minutes} min' : '約${n.minutes}分')
-                        : n.direction(en),
+                        ? l.mapMinutes('${n.minutes}')
+                        : siteDirection(l, n),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: avoid
                           ? scheme.onSurfaceVariant
@@ -813,9 +788,10 @@ class _MapScreenState extends State<MapScreen> {
                       decoration: avoid ? TextDecoration.lineThrough : null,
                     ),
                   ),
-                  if (s.prefersHigh(s.hazard) && n.heightLabel(en).isNotEmpty)
+                  if (s.prefersHigh(s.hazard) &&
+                      siteHeightLabel(l, n).isNotEmpty)
                     Text(
-                      n.heightLabel(en),
+                      siteHeightLabel(l, n),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: (n.route?.dip ?? 0) >= SiteDistance.minDip
                             ? scheme.error
@@ -825,25 +801,21 @@ class _MapScreenState extends State<MapScreen> {
                   if (status != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: StatusChip(
-                        fact: status,
-                        now: s.facts!.now,
-                        en: en,
-                      ),
+                      child: StatusChip(fact: status, now: s.facts!.now),
                     ),
                   if (open) ...[
                     const SizedBox(height: 6),
                     Text(n.site.address, style: theme.textTheme.bodySmall),
                     if (status != null)
                       Text(
-                        factLine(status, s.facts!.now, en: en),
+                        factLine(l, status, s.facts!.now),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
                     Text(
                       [
-                        for (final h in n.site.hazards) en ? h.en : h.ja,
+                        for (final h in n.site.hazards) hazardName(l, h),
                       ].join(' · '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
@@ -855,7 +827,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
             if (_editor != null)
               IconButton(
-                tooltip: en ? 'Set status' : '状況を入力',
+                tooltip: l.mapSetStatus,
                 icon: const Icon(Icons.edit_outlined),
                 onPressed: () => _editSite(n.site),
               ),
@@ -865,87 +837,49 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _showAbout(
-    BuildContext context,
-    String notice,
-    String attribution,
-  ) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    builder: (c) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.92,
-      builder: (c, scroll) {
-        final theme = Theme.of(c);
-        return ListView(
-          controller: scroll,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-          children: [
-            Text(
-              en ? 'About this data' : 'データについて',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              (s.routes != null
-                      ? (en
-                            ? 'Distances are walking routes on OpenStreetMap roads and paths, '
-                                  'at 60 m a minute. The route does not know about damage, '
-                                  'crowds or tsunami height: follow official guidance and what you see. '
-                            : '距離は OpenStreetMap の道路・歩道に沿った徒歩の道のりです（分速60 m で計算）。'
-                                  '被害や混雑、津波の高さは考慮していません。公式の情報と現地の状況に従ってください。')
-                      : '') +
-                  (s.routes?.hasHeights ?? false
-                      ? (en
-                            ? 'For tsunami the route keeps to higher ground and avoids going down, even if '
-                                  'it is a little longer. Heights are ground heights (GSI elevation tiles): at a '
-                                  'tsunami evacuation building, go up to the upper floors. '
-                            : '津波の場合は、少し遠回りでも高い道を通り、下り坂を避ける経路を選びます。高さは地面の標高'
-                                  '（国土地理院 標高タイル）です。津波避難ビルでは上の階へ上がってください。')
-                      : '') +
-                  (s.routes != null
-                      ? ''
-                      : (en
-                            ? 'Distances are straight lines, not routes. '
-                            : '距離は直線距離です（道のりではありません）。')) +
-                  (en
-                      ? 'Emergency evacuation sites (指定緊急避難場所) '
-                            'are designated per hazard; shelters (指定避難所) are for staying after the danger has '
-                            'passed. The data may be out of date or incomplete: check with your city.'
-                      : '指定緊急避難場所は災害の種類ごとに指定されています。'
-                            '指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、'
-                            '最新の状況は市町村に確認してください。'),
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              en ? 'GSI usage notes (Japanese)' : '国土地理院 ご利用上の注意',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 6),
-            SelectableText(
-              '$notice\n\n$attribution',
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-        );
-      },
-    ),
-  );
+  void _showAbout(BuildContext context, String notice, String attribution) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (c) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          maxChildSize: 0.92,
+          builder: (c, scroll) {
+            final theme = Theme.of(c);
+            return ListView(
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              children: [
+                Text(
+                  l.mapAboutData,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  (s.routes != null ? l.mapAboutRoutes : '') +
+                      (s.routes?.hasHeights ?? false ? l.mapAboutHeights : '') +
+                      (s.routes != null ? '' : l.mapAboutStraight) +
+                      l.mapAboutSites,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Text(l.mapGsiNotes, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 6),
+                SelectableText(
+                  '$notice\n\n$attribution',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            );
+          },
+        ),
+      );
 }
 
 /// Shown when the user's city has no emergency site for [hazard] in the
 /// GSI data, so the nearest one may be in another city.
-String noSiteWarning(String city, Hazard hazard, bool en) => en
-    ? 'The GSI data lists no ${hazard.en.toLowerCase()} evacuation site in $city. '
-          'The nearest site may be in another city. Check $city\'s own hazard map '
-          'and evacuation guidance.'
-    : '国土地理院のデータでは、$cityに${hazard.ja}の指定緊急避難場所が登録されていません。'
-          '最寄りの場所は別の市町村の可能性があります。$cityのハザードマップや避難情報を確認してください。';
-
-String formatDistance(double meters) => meters < 1000
-    ? '${meters.round()} m'
-    : '${(meters / 1000).toStringAsFixed(1)} km';
+String noSiteWarning(AppLocalizations l, String city, Hazard hazard) =>
+    l.mapNoSiteWarning(hazardInSentence(l, hazard), city);

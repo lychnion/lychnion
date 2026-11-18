@@ -32,15 +32,16 @@ enum SourceType {
   static SourceType fromCode(String c) => values.firstWhere((s) => s.code == c);
 }
 
-/// Status values for [FactKind.shelterStatus].
+/// Status values for [FactKind.shelterStatus]. Names shown to people come
+/// from the app texts (`shelterStatus`, keyed by [key]).
 enum ShelterStatus {
-  open('open', '開設', 'open'),
-  crowded('crowded', '混雑', 'crowded'),
-  full('full', '満員', 'full'),
-  closed('closed', '閉鎖', 'closed');
+  open('open'),
+  crowded('crowded'),
+  full('full'),
+  closed('closed');
 
-  const ShelterStatus(this.key, this.ja, this.en);
-  final String key, ja, en;
+  const ShelterStatus(this.key);
+  final String key;
 
   /// Full or closed: do not send people there.
   bool get avoid => this == full || this == closed;
@@ -161,29 +162,4 @@ class Fact {
     keyId: j['key_id'] as String?,
     sig: j['sig'] as String?,
   );
-
-  /// "2時間前" / "2 h ago".
-  String age(DateTime now, {required bool en}) {
-    final d = now.difference(observedAt);
-    if (d.inMinutes < 1) return en ? 'just now' : 'たった今';
-    if (d.inMinutes < 60) {
-      return en ? '${d.inMinutes} min ago' : '${d.inMinutes}分前';
-    }
-    if (d.inHours < 48) return en ? '${d.inHours} h ago' : '${d.inHours}時間前';
-    return en ? '${d.inDays} days ago' : '${d.inDays}日前';
-  }
-
-  /// "市・公式", "センサー", "住民の報告・未確認".
-  String sourceLabel({required bool en}) {
-    final type = switch (sourceType) {
-      SourceType.official when !verified =>
-        en ? 'says official, not verified' : '公式と表示・署名なし（未確認）',
-      SourceType.sensor when !verified =>
-        en ? 'says sensor, not verified' : 'センサーと表示・署名なし（未確認）',
-      SourceType.official => en ? 'official' : '公式',
-      SourceType.sensor => en ? 'sensor' : 'センサー',
-      SourceType.citizen => en ? 'resident report, unconfirmed' : '住民の報告・未確認',
-    };
-    return sourceName.isEmpty ? type : '$sourceName · $type';
-  }
 }

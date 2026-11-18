@@ -1,0 +1,7 @@
+# App texts per language. A new language = a new lib/l10n/app_<lang>.arb.
+# Data (packages, safety lines, notices, catalog) carries its own languages.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

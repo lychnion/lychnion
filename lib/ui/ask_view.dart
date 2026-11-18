@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../app/brand.dart';
+import '../app/lang.dart';
+import '../l10n/app_localizations.dart';
 import 'breathing_light.dart';
 import 'suggestions.dart';
+import '../knowledge/knowledge_package.dart' show PackageInfo;
 
 /// Where the Ask screen stands: shown as a small status pill.
 enum AskPhase { noModel, loading, ready, shelter, serving, failed }
@@ -18,7 +21,6 @@ class DevAction {
 class AskView extends StatefulWidget {
   const AskView({
     super.key,
-    required this.en,
     required this.phase,
     required this.detail,
     required this.ready,
@@ -36,14 +38,14 @@ class AskView extends StatefulWidget {
     this.detailExtra,
     this.home,
     this.packages,
-    this.packageIds = const [],
+    this.packageInfos = const [],
   });
 
   /// Shown on the empty screen above the suggestions (nearest site, warnings).
   final Widget? home;
 
-  /// Ids of the loaded knowledge packages: picks the suggested questions.
-  final List<String> packageIds;
+  /// The loaded knowledge packages: they bring the suggested questions.
+  final List<PackageInfo> packageInfos;
 
   /// Below the suggestions: the knowledge packages (see PackageRow).
   final Widget? packages;
@@ -51,7 +53,6 @@ class AskView extends StatefulWidget {
   /// Shown under the status details, e.g. the shelter QR code.
   final Widget? detailExtra;
 
-  final bool en;
   final AskPhase phase;
 
   /// Technical status (backend, load time), shown when the pill is tapped.
@@ -80,8 +81,7 @@ class AskView extends StatefulWidget {
 }
 
 class _AskViewState extends State<AskView> {
-  bool get en => widget.en;
-  String _t(String ja, String english) => en ? english : ja;
+  AppLocalizations get l => context.l10n;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +97,10 @@ class _AskViewState extends State<AskView> {
             // Gives way to the status label on narrow phones.
             Flexible(
               child: Text(
-                Brand.nameIn(en: en),
+                l.appName,
                 overflow: TextOverflow.ellipsis,
                 style: Brand.wordmarkStyle(
-                  en: en,
+                  lang: context.lang,
                   color: theme.brightness == Brightness.dark
                       ? scheme.onSurface
                       : Brand.night,
@@ -112,12 +112,10 @@ class _AskViewState extends State<AskView> {
         actions: [
           _StatusPill(
             phase: widget.phase,
-            en: en,
             shelterName: widget.shelterName,
             onTap: () => _showDetail(context),
           ),
           AppMenu(
-            en: en,
             onOpenSettings: widget.onOpenSettings,
             onShowNotice: widget.onShowNotice,
             devActions: widget.devActions,
@@ -129,7 +127,6 @@ class _AskViewState extends State<AskView> {
         children: [
           Expanded(child: _emptyState(theme)),
           QuestionBar(
-            en: en,
             input: widget.input,
             ready: widget.ready,
             busy: widget.busy,
@@ -148,21 +145,13 @@ class _AskViewState extends State<AskView> {
 
   List<Widget> _home(ThemeData theme) {
     final scheme = theme.colorScheme;
-    final suggestions = suggestionsFor(widget.packageIds, en: en);
+    final suggestions = suggestionsFor(widget.packageInfos, lang: context.lang);
     final needsData = widget.phase == AskPhase.noModel;
     return [
-      Text(
-        _t('もしものときに、\nすぐ聞ける。', 'Ask anything,\neven offline.'),
-        style: theme.textTheme.headlineMedium,
-      ),
+      Text(l.askHeadline, style: theme.textTheme.headlineMedium),
       const SizedBox(height: 10),
       Text(
-        _t(
-          '防災やアウトドアの公的な資料をもとに、インターネットなしで答えます。出典もいっしょに表示します。',
-          'Answers from official safety guides for disasters and the '
-              'outdoors, without internet, '
-              'with the source for every answer.',
-        ),
+        l.askIntro,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: scheme.onSurfaceVariant,
         ),
@@ -184,7 +173,7 @@ class _AskViewState extends State<AskView> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  _t('はじめに：データをダウンロード', 'First: download the data'),
+                  l.askFirstDownload,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: scheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
@@ -192,16 +181,13 @@ class _AskViewState extends State<AskView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _t(
-                    'Wi-Fi のあるときに一度だけ。その後はオフラインで使えます。',
-                    'Once, on Wi-Fi. After that everything works offline.',
-                  ),
+                  l.askFirstDownloadText,
                   style: TextStyle(color: scheme.onPrimaryContainer),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: widget.onOpenDownloads,
-                  child: Text(_t('ダウンロードへ', 'Go to downloads')),
+                  child: Text(l.askGoToDownloads),
                 ),
               ],
             ),
@@ -209,7 +195,7 @@ class _AskViewState extends State<AskView> {
         )
       else ...[
         Text(
-          _t('たとえば', 'Try asking'),
+          l.askTryAsking,
           style: theme.textTheme.labelLarge?.copyWith(
             color: scheme.primary,
             fontWeight: FontWeight.w700,
@@ -263,7 +249,7 @@ class _AskViewState extends State<AskView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _StatusPill.label(widget.phase, en, widget.shelterName),
+            _StatusPill.label(widget.phase, l),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -272,7 +258,7 @@ class _AskViewState extends State<AskView> {
               widget.shelterName!,
               style: Theme.of(context).textTheme.titleSmall,
             ),
-          Text(_StatusPill.explain(widget.phase, en)),
+          Text(_StatusPill.explain(widget.phase, l)),
           const SizedBox(height: 12),
           SelectableText(
             widget.detail,
@@ -291,47 +277,31 @@ class _AskViewState extends State<AskView> {
 class _StatusPill extends StatelessWidget {
   const _StatusPill({
     required this.phase,
-    required this.en,
     required this.onTap,
     this.shelterName,
   });
 
   final AskPhase phase;
-  final bool en;
   final String? shelterName;
   final VoidCallback onTap;
 
-  static String label(AskPhase p, bool en, String? shelter) => switch (p) {
-    AskPhase.noModel => en ? 'Setup needed' : '準備が必要',
-    AskPhase.loading => en ? 'Getting ready…' : '準備中…',
-    AskPhase.ready => en ? 'Offline ready' : 'オフラインで利用可',
+  static String label(AskPhase p, AppLocalizations l) => switch (p) {
+    AskPhase.noModel => l.askPhaseNoModel,
+    AskPhase.loading => l.askPhaseLoading,
+    AskPhase.ready => l.askPhaseReady,
     // Short: the header is narrow on phones; details name the shelter.
-    AskPhase.shelter => en ? 'Shelter' : '避難所',
-    AskPhase.serving => en ? 'Shelter computer' : '避難所の端末',
-    AskPhase.failed => en ? 'Not ready' : '利用できません',
+    AskPhase.shelter => l.askPhaseShelter,
+    AskPhase.serving => l.askPhaseServing,
+    AskPhase.failed => l.askPhaseFailed,
   };
 
-  static String explain(AskPhase p, bool en) => switch (p) {
-    AskPhase.noModel =>
-      en
-          ? 'Download the AI model and the safety guides under Settings → Downloads.'
-          : '「設定」→「ダウンロード」でAIモデルと資料を取得してください。',
-    AskPhase.loading =>
-      en ? 'Loading the AI model on this device.' : 'この端末でAIモデルを読み込んでいます。',
-    AskPhase.ready =>
-      en
-          ? 'The AI runs on this device. No internet is needed.'
-          : 'AIはこの端末の中で動いています。インターネットは不要です。',
-    AskPhase.shelter =>
-      en
-          ? 'A computer at the shelter answers, over the local Wi-Fi. Faster than this phone.'
-          : '避難所のコンピューターが、施設内のWi-Fiで回答します。この端末より速く答えます。',
-    AskPhase.serving =>
-      en
-          ? 'This computer answers phones on the local network, and shares current information.'
-          : 'この端末が、施設内のスマートフォンからの質問に答え、最新の情報を共有します。',
-    AskPhase.failed =>
-      en ? 'The AI model could not be loaded.' : 'AIモデルを読み込めませんでした。',
+  static String explain(AskPhase p, AppLocalizations l) => switch (p) {
+    AskPhase.noModel => l.askExplainNoModel,
+    AskPhase.loading => l.askExplainLoading,
+    AskPhase.ready => l.askExplainReady,
+    AskPhase.shelter => l.askExplainShelter,
+    AskPhase.serving => l.askExplainServing,
+    AskPhase.failed => l.askExplainFailed,
   };
 
   @override
@@ -372,7 +342,7 @@ class _StatusPill extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 150),
                   child: Text(
-                    label(phase, en, shelterName),
+                    label(phase, context.l10n),
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelMedium,
                   ),
@@ -450,7 +420,6 @@ class EmptyHint extends StatelessWidget {
 class QuestionBar extends StatelessWidget {
   const QuestionBar({
     super.key,
-    required this.en,
     required this.input,
     required this.ready,
     required this.busy,
@@ -458,7 +427,6 @@ class QuestionBar extends StatelessWidget {
     required this.onStop,
   });
 
-  final bool en;
   final TextEditingController input;
   final bool ready;
   final bool busy;
@@ -479,7 +447,7 @@ class QuestionBar extends StatelessWidget {
               textInputAction: TextInputAction.send,
               style: Theme.of(context).textTheme.bodyLarge,
               decoration: InputDecoration(
-                hintText: en ? 'Ask a question' : '質問を入力',
+                hintText: context.l10n.askHint,
                 prefixIcon: const Icon(Icons.search_rounded),
               ),
               onSubmitted: (_) => onSend(),
@@ -488,12 +456,12 @@ class QuestionBar extends StatelessWidget {
           const SizedBox(width: 8),
           busy
               ? IconButton.filledTonal(
-                  tooltip: en ? 'Stop' : '停止',
+                  tooltip: context.l10n.askStop,
                   onPressed: onStop,
                   icon: const Icon(Icons.stop_rounded),
                 )
               : IconButton.filled(
-                  tooltip: en ? 'Send' : '送信',
+                  tooltip: context.l10n.askSend,
                   onPressed: ready ? onSend : null,
                   icon: const Icon(Icons.arrow_upward_rounded),
                 ),
@@ -507,13 +475,11 @@ class QuestionBar extends StatelessWidget {
 class AppMenu extends StatelessWidget {
   const AppMenu({
     super.key,
-    required this.en,
     this.onOpenSettings,
     this.onShowNotice,
     this.devActions = const [],
   });
 
-  final bool en;
   final VoidCallback? onOpenSettings;
 
   /// The first-start notice again ("Before you start").
@@ -529,7 +495,7 @@ class AppMenu extends StatelessWidget {
           value: -1,
           child: ListTile(
             leading: const Icon(Icons.settings_outlined),
-            title: Text(en ? 'Settings' : '設定'),
+            title: Text(context.l10n.settings),
           ),
         ),
       if (onShowNotice != null)
@@ -537,7 +503,7 @@ class AppMenu extends StatelessWidget {
           value: -2,
           child: ListTile(
             leading: const Icon(Icons.info_outline_rounded),
-            title: Text(en ? 'Before you start' : 'ご利用の前に'),
+            title: Text(context.l10n.beforeYouStart),
           ),
         ),
       if (devActions.isNotEmpty) const PopupMenuDivider(),

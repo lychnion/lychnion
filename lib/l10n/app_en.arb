@@ -1,0 +1,613 @@
+{
+  "@@locale": "en",
+  "appName": "Lychnion",
+  "settings": "Settings",
+  "beforeYouStart": "Before you start",
+  "iUnderstand": "I understand",
+  "downloadsErrorOffline": "No internet connection.",
+  "downloadsErrorWifiOnly": "Connect to Wi-Fi (mobile data is off in the setting above).",
+  "downloadsErrorNetwork": "The connection dropped. \"Resume\" continues where it stopped.",
+  "downloadsErrorChecksum": "The file was damaged and has been removed. Please download again.",
+  "downloadsErrorChecksumLocal": "This file does not match the catalog. Delete it and download again.",
+  "downloadsErrorBusy": "Already downloading in another window.",
+  "downloadsErrorDiskFull": "Not enough free space.",
+  "downloadsErrorDisk": "Could not save the file.",
+  "downloadsErrorSignature": "This download is not signed by Lychnion, so it was not installed.",
+  "downloadsErrorOlder": "This is an older version than the one installed, so it was not installed.",
+  "downloadsLargeWarning": "This downloads {size}. Please use Wi-Fi. You need at least {size} of free space. If it stops, you can resume where it left off.",
+  "@downloadsLargeWarning": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "downloadsDownload": "Download",
+  "downloadsDeleteTitle": "Delete?",
+  "downloadsDeleteBody": "Removes {title} ({size}) from this device. You cannot get it back while offline.",
+  "@downloadsDeleteBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Delete",
+  "downloadsTitle": "Downloads",
+  "downloadsWifiOnly": "Download on Wi-Fi only",
+  "downloadsWifiOnlyHint": "When off, mobile data is used too (can be several GB).",
+  "downloadsFooter": "Everything downloaded works offline. Files are checked (SHA-256) before the app uses them.",
+  "downloadsKindModels": "Models",
+  "downloadsKindPackages": "Knowledge packages",
+  "downloadsKindMaps": "Map areas",
+  "downloadsTooLargeForPhone": "Too large for most phones.",
+  "downloadsNotDownloaded": "Not downloaded",
+  "downloadsNoSource": "No download source yet (uses the copy in the app)",
+  "downloadsPaused": "Paused: {done} of {total}",
+  "@downloadsPaused": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsUnverified": "File present (not checked yet)",
+  "downloadsInstalled": "Downloaded and checked",
+  "downloadsUpdateAvailable": "Update available (on device: {version})",
+  "@downloadsUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsStop": "Stop",
+  "downloadsResume": "Resume",
+  "downloadsUpdate": "Update",
+  "downloadsCheckFile": "Check file",
+  "downloadsInUse": "In use",
+  "downloadsUseModel": "Use this model",
+  "downloadsCheckingPart": "Checking the part already downloaded…",
+  "downloadsVerifying": "Checking the checksum… {percent}%",
+  "@downloadsVerifying": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadsEtaOneMinute": "about 1 min left",
+  "downloadsEtaMinutes": "about {minutes} min left",
+  "@downloadsEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "justNow": "just now",
+  "minutesAgo": "{minutes} min ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "hoursAgo": "{hours} h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "daysAgo": "{days} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "factSourceOfficialUnverified": "says official, not verified",
+  "factSourceSensorUnverified": "says sensor, not verified",
+  "factSourceOfficial": "official",
+  "factSourceSensor": "sensor",
+  "factSourceCitizen": "resident report, unconfirmed",
+  "shelterStatus": "{status, select, open{open} crowded{crowded} full{full} closed{closed} other{{status}}}",
+  "@shelterStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "factRoadBlocked": "road blocked",
+  "factWater": "water: {value}",
+  "@factWater": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "factUnconfirmed": "unconfirmed",
+  "factsBoxTitle": "Current information · not from the AI",
+  "factsBoxRoadBlocked": "Road blocked",
+  "factsBoxWater": "Water: {value}",
+  "@factsBoxWater": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "factsBoxAddWarning": "Add warning",
+  "factFormWarning": "Warning (e.g. 津波警報)",
+  "factFormNote": "Note (optional)",
+  "factFormValidFor": "Valid for",
+  "factFormHours": "{hours} h",
+  "@factFormHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "factFormOfficial": "Official (staff, city)",
+  "factFormResident": "Resident report",
+  "factFormClear": "No longer true",
+  "save": "Save",
+  "hazardName": "{hazard, select, tsunami{Tsunami} earthquake{Earthquake} flood{Flood} landslide{Landslide} stormSurge{Storm surge} fire{Large fire} inlandFlood{Inland flooding} volcano{Volcano} other{{hazard}}}",
+  "@hazardName": {
+    "placeholders": {
+      "hazard": {
+        "type": "String"
+      }
+    }
+  },
+  "hazardInSentence": "{hazard, select, tsunami{tsunami} earthquake{earthquake} flood{flood} landslide{landslide} stormSurge{storm surge} fire{large fire} inlandFlood{inland flooding} volcano{volcano} other{{hazard}}}",
+  "@hazardInSentence": {
+    "placeholders": {
+      "hazard": {
+        "type": "String"
+      }
+    }
+  },
+  "compassPoint": "{point, select, n{N} ne{NE} e{E} se{SE} s{S} sw{SW} w{W} nw{NW} other{{point}}}",
+  "@compassPoint": {
+    "placeholders": {
+      "point": {
+        "type": "String"
+      }
+    }
+  },
+  "siteHeight": "{height} m above sea level",
+  "@siteHeight": {
+    "placeholders": {
+      "height": {
+        "type": "String"
+      }
+    }
+  },
+  "siteFlooding": "expected flooding {depth}",
+  "@siteFlooding": {
+    "placeholders": {
+      "depth": {
+        "type": "String"
+      }
+    }
+  },
+  "siteDip": "dips to {height} m on the way",
+  "@siteDip": {
+    "placeholders": {
+      "height": {
+        "type": "String"
+      }
+    }
+  },
+  "siteWalk": "{distance} walk · about {minutes} min",
+  "@siteWalk": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "siteStraight": "{distance} {direction} · straight line",
+  "@siteStraight": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "depthOrMore": "{lo} m or more",
+  "@depthOrMore": {
+    "placeholders": {
+      "lo": {
+        "type": "String"
+      }
+    }
+  },
+  "depthUnder": "under {hi} m",
+  "@depthUnder": {
+    "placeholders": {
+      "hi": {
+        "type": "String"
+      }
+    }
+  },
+  "depthRange": "{lo}–{hi} m",
+  "@depthRange": {
+    "placeholders": {
+      "lo": {
+        "type": "String"
+      },
+      "hi": {
+        "type": "String"
+      }
+    }
+  },
+  "depthLegendUnder": "under 0.3 m",
+  "depthLegendFrom": "from {lo} m",
+  "@depthLegendFrom": {
+    "placeholders": {
+      "lo": {
+        "type": "String"
+      }
+    }
+  },
+  "mapWarningFor": "Warning for {city}",
+  "@mapWarningFor": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "mapRoadBlockedHere": "Road blocked here",
+  "mapWaterHere": "Water handed out here",
+  "mapRoadBlocked": "Road blocked",
+  "mapWaterPoint": "Water point",
+  "mapWaterTruck": "water truck",
+  "mapWaterStation": "water station",
+  "mapWhichHazard": "Which hazard?",
+  "mapTestLocation": "Test location",
+  "mapLocationAccuracy": "Location ±{meters} m",
+  "@mapLocationAccuracy": {
+    "placeholders": {
+      "meters": {
+        "type": "String"
+      }
+    }
+  },
+  "mapNoLocationPermission": "No location permission",
+  "mapNoLocation": "Location not available",
+  "mapHazard": "Hazard",
+  "mapChooseHazard": "Choose the hazard",
+  "mapAttributionSites": "Evacuation sites: GSI Japan",
+  "mapAttributionHeights": "Heights: GSI elevation tiles",
+  "mapAttributionFlood": "Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited",
+  "mapNearbySites": "Nearby evacuation sites",
+  "mapAnyHazard": "Any hazard",
+  "mapWalkingDistance": "walking distance",
+  "mapStraightLine": "straight line",
+  "mapKeepsHigh": "keeps to higher ground",
+  "mapBlockedConsidered": "blocked roads considered",
+  "mapAboutData": "About this data",
+  "mapMyLocation": "My location",
+  "mapShelterHint": "Shelter computer: ✎ sets a site's status; long-press the map for a blocked road or water point.",
+  "mapInFloodArea": "You are in the tsunami inundation area (expected {depth})",
+  "@mapInFloodArea": {
+    "placeholders": {
+      "depth": {
+        "type": "String"
+      }
+    }
+  },
+  "mapNearFloodArea": "You are close to the tsunami inundation area",
+  "mapOutsideFloodArea": "You are outside the tsunami inundation area",
+  "mapWayOut": "Out of the area: {distance} walk · about {minutes} min",
+  "@mapWayOut": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "mapFloodBasis": "Based on the official expected inundation. A larger tsunami can go further.",
+  "mapExpectedDepth": "Expected depth:",
+  "mapMinutes": "{minutes} min",
+  "@mapMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "mapSetStatus": "Set status",
+  "mapAboutRoutes": "Distances are walking routes on OpenStreetMap roads and paths, at 60 m a minute. The route does not know about damage, crowds or tsunami height: follow official guidance and what you see. ",
+  "mapAboutHeights": "For tsunami the route keeps to higher ground and avoids going down, even if it is a little longer. Heights are ground heights (GSI elevation tiles): at a tsunami evacuation building, go up to the upper floors. ",
+  "mapAboutStraight": "Distances are straight lines, not routes. ",
+  "mapAboutSites": "Emergency evacuation sites (指定緊急避難場所) are designated per hazard; shelters (指定避難所) are for staying after the danger has passed. The data may be out of date or incomplete: check with your city.",
+  "mapGsiNotes": "GSI usage notes (Japanese)",
+  "mapNoSiteWarning": "The GSI data lists no {hazard} evacuation site in {city}. The nearest site may be in another city. Check {city}'s own hazard map and evacuation guidance.",
+  "@mapNoSiteWarning": {
+    "placeholders": {
+      "hazard": {
+        "type": "String"
+      },
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "answerShelterComputer": "Shelter computer · {name}",
+  "@answerShelterComputer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "answerLooking": "Looking in the guides…",
+  "answerRelatedOnly": "The guides have related information, but no direct answer.",
+  "answerNotCovered": "The installed guides do not cover this question.",
+  "answerPartlyCovered": "Only partly covered by the guides. Check official information.",
+  "answerUnchecked": "This answer could not be checked against the guides.",
+  "answerSources": "Sources",
+  "answerBasedOn": "The answer is based only on these passages from official guides.",
+  "answerOurTranslation": "Translated by {appName} (not an official translation). Show the original",
+  "@answerOurTranslation": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "answerExcerpt": "Excerpt shown by {appName}.",
+  "@answerExcerpt": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "answerGoTo": "Go to: {hazard} evacuation site",
+  "@answerGoTo": {
+    "placeholders": {
+      "hazard": {
+        "type": "String"
+      }
+    }
+  },
+  "answerWayOut": "out of the inundation area: {distance} walk",
+  "@answerWayOut": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "answerSkipped": "Not {site} ({distance}): {status}, {age}",
+  "@answerSkipped": {
+    "placeholders": {
+      "site": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "answerSource": "Source: {publisher}",
+  "@answerSource": {
+    "placeholders": {
+      "publisher": {
+        "type": "String"
+      }
+    }
+  },
+  "answerSourceAndMore": "Source: {publisher} and {more} more",
+  "@answerSourceAndMore": {
+    "placeholders": {
+      "publisher": {
+        "type": "String"
+      },
+      "more": {
+        "type": "String"
+      }
+    }
+  },
+  "answerSafetyLine": "Safety line, quoted word for word",
+  "answerOfficialText": "Official text (the translation in the answer is by {appName}, not official):",
+  "@answerOfficialText": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "nearestEmergencySite": "Nearest emergency evacuation site",
+  "nearestSiteFor": "Nearest evacuation site for {hazard}",
+  "@nearestSiteFor": {
+    "placeholders": {
+      "hazard": {
+        "type": "String"
+      }
+    }
+  },
+  "languageName": "English",
+  "settingsLanguage": "Language",
+  "settingsLanguageDevice": "Device",
+  "settingsShelter": "Shelter",
+  "settingsOfflineData": "Offline data",
+  "settingsDownloadsHint": "AI models, safety guides and maps",
+  "settingsAboutGroup": "About",
+  "settingsAboutApp": "About {appName}",
+  "@settingsAboutApp": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsAboutAppHint": "How it works, notes, open source",
+  "aboutTagline": "Greek for \"small lamp\": a guide that keeps working when the network is down.",
+  "aboutHowItWorks": "How it works",
+  "aboutOffline": "Works without internet",
+  "aboutOfflineText": "Answers, the map and evacuation sites all work on this device.",
+  "aboutCheckable": "Answers you can check",
+  "aboutCheckableText": "Answers come from official guides and show their source. The app does not answer what the guides do not cover.",
+  "aboutFacts": "Current information kept apart",
+  "aboutFactsText": "Shelter status and blocked roads are shown as reported, with time and source. The AI never rewrites them.",
+  "aboutPleaseNote": "Please note",
+  "aboutPrototype": "Prototype",
+  "aboutPrototypeText": "A research prototype. In an emergency, follow official information from your city and the Japan Meteorological Agency.",
+  "aboutOpenSource": "Open source",
+  "aboutSourceCode": "Source code",
+  "aboutSourceCodeText": "Anyone can check and improve how it works (GNU AGPL v3). Whoever passes it on must give users the source code.",
+  "aboutLicences": "Licences",
+  "aboutLicencesText": "The app, the software and fonts it uses",
+  "aboutDeveloper": "Developer",
+  "aboutShowStats": "Show speed and memory",
+  "aboutShowStatsHint": "Shown under each answer.",
+  "noticeAi": "Answers are written by AI from public sources. AI can make mistakes: check the source shown with each answer.",
+  "noticeOfficialFirst": "Instructions from your city, the Japan Meteorological Agency, police and fire service, and people on site who know, come first.",
+  "noticeNotADoctor": "It does not replace a doctor, and it is not a planning tool for hikes or tours.",
+  "noticeAsk": "When unsure, ask someone who knows. In an emergency call 119 (ambulance, fire) or 110 (police).",
+  "noticeOffline": "It works without internet, so its information may not be the latest. It does not answer what its sources do not cover.",
+  "noticeAboutGuides": "About the guides",
+  "noticeNewGuides": "New guides",
+  "askHeadline": "Ask anything,\neven offline.",
+  "askIntro": "Answers from official safety guides for disasters and the outdoors, without internet, with the source for every answer.",
+  "askFirstDownload": "First: download the data",
+  "askFirstDownloadText": "Once, on Wi-Fi. After that everything works offline.",
+  "askGoToDownloads": "Go to downloads",
+  "askTryAsking": "Try asking",
+  "askPhaseNoModel": "Setup needed",
+  "askPhaseLoading": "Getting ready…",
+  "askPhaseReady": "Offline ready",
+  "askPhaseShelter": "Shelter",
+  "askPhaseServing": "Shelter computer",
+  "askPhaseFailed": "Not ready",
+  "askExplainNoModel": "Download the AI model and the safety guides under Settings → Downloads.",
+  "askExplainLoading": "Loading the AI model on this device.",
+  "askExplainReady": "The AI runs on this device. No internet is needed.",
+  "askExplainShelter": "A computer at the shelter answers, over the local Wi-Fi. Faster than this phone.",
+  "askExplainServing": "This computer answers phones on the local network, and shares current information.",
+  "askExplainFailed": "The AI model could not be loaded.",
+  "askHint": "Ask a question",
+  "askStop": "Stop",
+  "askSend": "Send",
+  "threadsUndo": "Undo",
+  "threadsNoArchived": "No archived conversations.",
+  "threadsRecent": "Recent questions",
+  "threadsMovedBack": "Moved back",
+  "threadsArchived": "Archived",
+  "threadsDeleted": "Deleted",
+  "threadsSeeAll": "See all ({count})",
+  "@threadsSeeAll": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "threadsArchive": "Archive",
+  "threadsArchiveHint": "Swipe right to move back, left to delete.",
+  "threadsArchiveCount": "Archive ({count})",
+  "@threadsArchiveCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "threadsAsk": "Ask",
+  "threadsNone": "No questions yet. Ask below.",
+  "threadsSwipeHint": "Swipe right to archive, left to delete.",
+  "conversationTitle": "Conversation",
+  "packagesTitle": "Answers from",
+  "packagesAdd": "Add",
+  "packagesAddTooltip": "Get more packages",
+  "shelterNoAddress": "No network address found. Connect this computer to the shelter Wi-Fi.",
+  "shelterConnectPhones": "Connect phones",
+  "shelterScanHint": "On the shelter Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".",
+  "@shelterScanHint": {
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shelterOrEnterAddress": "Or enter the address:",
+  "shelterConnectTo": "Connect to {name}?",
+  "@shelterConnectTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shelterThisShelter": "this shelter",
+  "shelterConnectBody": "The shelter computer ({address}) will answer your questions and share current information. Only connect to a shelter you are at.",
+  "@shelterConnectBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "shelterConnect": "Connect",
+  "shelterAddress": "Shelter address",
+  "shelterAddressHelper": "Shown on the shelter computer, under the QR code.",
+  "shelterConnectComputer": "Connect to a shelter computer",
+  "shelterConnectComputerHint": "Scan the QR code at the shelter, or enter its address. Answers come faster.",
+  "shelterAskedFirst": "Asked first · {address}",
+  "@shelterAskedFirst": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "shelterDisconnect": "Disconnect",
+  "mapNoMap": "No map yet",
+  "mapNoMapText": "Download your area to see evacuation sites without internet.",
+  "mapDownloadMap": "Download a map",
+  "navHome": "Home",
+  "navAsk": "Ask",
+  "navMap": "Map",
+  "conversationMoveBack": "Move back",
+  "conversationArchive": "Archive",
+  "conversationDeleteTitle": "Delete this conversation?",
+  "conversationDeleteBody": "It is removed from this device."
+}

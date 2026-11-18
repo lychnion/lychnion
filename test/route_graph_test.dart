@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:lychnion/map/route_graph.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:lychnion/map/map_labels.dart';
+import 'package:lychnion/l10n/app_localizations.dart';
+import 'package:flutter/widgets.dart' show Locale;
 
 /// Writes a graph in the routes.bin format. [edges] are undirected.
 /// With [heights] (metres per node) it writes version 2, with [flood]
@@ -97,6 +100,8 @@ int _sqrt(int v) {
 }
 
 void main() {
+  final ja = lookupAppLocalizations(const Locale('ja'));
+  final en = lookupAppLocalizations(const Locale('en'));
   // A ladder of two parallel streets 100 m apart, joined at both ends and
   // in the middle:
   //
@@ -203,7 +208,7 @@ void main() {
     );
     expect(fg.hasFlood, isTrue);
     expect(fg.floodOf(4), 6);
-    expect(depthLabel(fg.depthOf(4)!, en: false), '3〜4 m');
+    expect(depthLabel(ja, fg.depthOf(4)!), '3〜4 m');
     expect(fg.depthOf(0), isNull);
     // From 3 the nearest clear point is 0, straight north (100 m).
     final t = fg.walkFrom(nodes[3], preferHigh: true);
@@ -236,12 +241,12 @@ void main() {
     expect(fg.floodOf(0), 0);
     expect(fg.floodOf(1), 1);
     expect(fg.floodOf(3), 2 + 7);
-    expect(depthLabel(fg.depthOf(2)!, en: false), '3〜5 m');
-    expect(depthLabel(fg.depthOf(3)!, en: true), '10–20 m');
-    expect(depthLabel(fg.depthOf(4)!, en: false), '5 m以上');
-    expect(depthLabel(fg.depthOf(5)!, en: true), 'under 0.3 m');
+    expect(depthLabel(ja, fg.depthOf(2)!), '3〜5 m');
+    expect(depthLabel(en, fg.depthOf(3)!), '10–20 m');
+    expect(depthLabel(ja, fg.depthOf(4)!), '5 m以上');
+    expect(depthLabel(en, fg.depthOf(5)!), 'under 0.3 m');
     expect(fg.deepest, 7);
-    expect(depthFromLabel(7, en: false), '10 m〜');
+    expect(depthFromLabel(ja, 7), '10 m〜');
   });
 
   test('version 1 files have no heights', () {
