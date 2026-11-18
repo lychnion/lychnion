@@ -6,7 +6,7 @@ import 'settings.dart';
 ///
 ///   --dart-define=GGUF_MODEL_PATH=/path/in/app/storage.gguf  load on start (docs:… = in Documents)
 ///                                                            a .litertlm file runs on LiteRT-LM
-///                                                            instead of llama.cpp (spike)
+///                                                            instead of llama.cpp
 ///   --dart-define=GGUF_MODEL_URL=https://...gguf             download on start
 ///   --dart-define=AUTO_BENCH=true                            run the questions after loading
 ///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)

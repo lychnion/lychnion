@@ -109,6 +109,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadsTooLargeForPhone => 'Too large for most phones.';
 
   @override
+  String downloadsOnlyFor(String platforms) {
+    return 'For $platforms only (a base can keep it for phones nearby).';
+  }
+
+  @override
   String get downloadsNotDownloaded => 'Not downloaded';
 
   @override

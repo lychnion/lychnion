@@ -285,10 +285,25 @@ of the Pixel 5a's class; on newer phones the GPU may win (Google's
 figures for a Galaxy S26 Ultra: 7 times faster reading on the GPU), which
 needs a test on such a phone.
 
-How the spike works: `GGUF_MODEL_PATH` may point to a `.litertlm` file;
-the file ending picks the engine (`lib/llm/local_llm.dart`).
-`LLM_BACKEND=cpu|gpu` and the new `LLM_CONTEXT=2048` work for both
-engines. The downloads catalog still offers only the GGUF file.
+How it works in the app: the file ending picks the engine
+(`lib/llm/local_llm.dart`); LiteRT-LM runs on the CPU unless
+`LLM_BACKEND=gpu` says otherwise, and `LLM_CONTEXT=2048` sets the
+context for both engines. The downloads catalog offers the `.litertlm`
+file as `model.gemma-4-e2b-litertlm`, with `"platforms": ["android"]` in
+its signed record: Android phones list it and prefer it when no answer
+model is picked; iPhones do not list it; computers list it with a note,
+so a base can keep it for the phones around it. LiteRT-LM needs Android
+11 (API 30): on Android 9 and 10 the app hides the model and keeps
+llama.cpp. If LiteRT-LM fails to load the model, the app falls back to
+the GGUF model when one is installed. `GGUF_MODEL_PATH` may
+still point to a `.litertlm` file.
+
+Checked in the app on the Pixel 5a (profile build, 2026-11-19): the
+Downloads tab lists the model as signed, it downloads and checks (2.6 GB
+from Hugging Face, about 4 minutes on Wi-Fi), and with no answer model
+picked the app loads it on LiteRT-LM, on the CPU (first load 14.7 s).
+Two English questions: earthquake 17.2 s, lost while hiking 19.5 s, both
+with valid citations.
 
 ## iPhone simulator (2026-11-05)
 

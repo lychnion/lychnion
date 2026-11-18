@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import '../llm/engines.dart';
 import '../util/paths.dart';
 import '../util/versioned_file.dart';
 import 'catalog.dart';
@@ -27,6 +28,14 @@ class Installed {
   String get version => record.version;
   String? get role => record.role;
 
+  /// Whether the model runs on [os] (`Platform.operatingSystem`); see
+  /// [CatalogItem.platforms].
+  bool runsOn(String os) =>
+      record.platforms.isEmpty || record.platforms.contains(os);
+
+  /// The chat model's file: `.litertlm` (LiteRT-LM) or `.gguf` (llama.cpp).
+  String? get chatFile => fileEnding('.litertlm') ?? fileEnding('.gguf');
+
   /// File name → size.
   final Map<String, int> files;
 
@@ -37,6 +46,33 @@ class Installed {
     }
     return null;
   }
+}
+
+/// The chat model to use among [models]: [want] if it is one, else one
+/// made for [os], else the first. LiteRT-LM models count only when
+/// [liteRt] says the engine runs here; [skip] leaves out ids (a model that
+/// failed to load).
+Installed? pickChat(
+  Iterable<Installed> models, {
+  required String? want,
+  required String os,
+  required bool liteRt,
+  Set<String> skip = const {},
+}) {
+  bool usable(Installed i) {
+    final f = i.chatFile;
+    return i.role == 'chat' &&
+        i.runsOn(os) &&
+        !skip.contains(i.id) &&
+        f != null &&
+        (liteRt || !isLiteRtFile(f));
+  }
+
+  final chats = models.where(usable).toList();
+  if (chats.isEmpty) return null;
+  return chats.where((i) => i.id == want).firstOrNull ??
+      chats.where((i) => i.record.platforms.contains(os)).firstOrNull ??
+      chats.first;
 }
 
 /// Where downloads live and what is installed.
@@ -552,21 +588,23 @@ class DownloadStore {
 
   // --- what the loaders use ---------------------------------------------
 
-  /// The chat model in use: the one picked, else the first installed.
-  Installed? activeChat() {
-    final chats = [
-      for (final i in allInstalled(ItemKind.model))
-        if (i.role == 'chat') i,
-    ];
-    if (chats.isEmpty) return null;
-    final want = chatModelId;
-    return chats.firstWhere((i) => i.id == want, orElse: () => chats.first);
-  }
+  /// The chat model in use: the one picked, else one made for this
+  /// platform (the LiteRT-LM model on Android), else the first installed.
+  /// Models for other platforms (and files the app cannot load) are left
+  /// out, and so are LiteRT-LM models below Android 11 and the ids in
+  /// [skip].
+  Installed? activeChat({Set<String> skip = const {}}) => pickChat(
+    allInstalled(ItemKind.model),
+    want: chatModelId,
+    os: Platform.operatingSystem,
+    liteRt: liteRtRunsHere,
+    skip: skip,
+  );
 
   /// Path of [activeChat], or null.
-  String? chatModelPath() {
-    final c = activeChat();
-    return c == null ? null : path(c, c.fileEnding('.gguf')!);
+  String? chatModelPath({Set<String> skip = const {}}) {
+    final c = activeChat(skip: skip);
+    return c == null ? null : path(c, c.chatFile!);
   }
 
   String? embedModelPath() {

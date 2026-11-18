@@ -5,6 +5,36 @@
   "records": [
     {
       "format": 1,
+      "id": "model.gemma-4-e2b-litertlm",
+      "kind": "model",
+      "version": "2026.11.0",
+      "publisher": "lychnion",
+      "title": {
+        "ja": "回答モデル Gemma 4 E2B（Android 用）",
+        "en": "Answer model Gemma 4 E2B (Android)"
+      },
+      "note": {
+        "ja": "Android 向け：Google の LiteRT-LM で、約 2 倍速く回答",
+        "en": "For Android: about twice as fast, on Google's LiteRT-LM"
+      },
+      "licence": "Apache 2.0 (Google Gemma 4)",
+      "role": "chat",
+      "platforms": [
+        "android"
+      ],
+      "files": [
+        {
+          "name": "gemma-4-E2B-it.litertlm",
+          "size": 2588147712,
+          "sha256": "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c"
+        }
+      ],
+      "signed": "2026-11-19T06:15:31+09:00",
+      "key": "vRIbo4Gi",
+      "signature": "UbafHnou9ip_pIoP_eevkiIChhtb7M_y3ZVqUiF5F5flmobB2DaXhLO93dy2Vgjde6z-Qpuacrj9EHwuk2TNAw"
+    },
+    {
+      "format": 1,
       "id": "model.gemma-4-e2b-q4_0",
       "kind": "model",
       "version": "2026.11.0",
@@ -288,6 +318,7 @@
     }
   ],
   "urls": {
+    "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c": "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1/gemma-4-E2B-it.litertlm",
     "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_0.gguf",
     "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2": "https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_0.gguf",
     "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135": "https://huggingface.co/ggml-org/embeddinggemma-2-GGUF/resolve/main/embeddinggemma-2-Q8_0.gguf",

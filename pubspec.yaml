@@ -57,7 +57,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
-# Keep llamadart to llama.cpp only (no LiteRT-LM runtime).
+# Keep llamadart to llama.cpp only (no LiteRT-LM runtime of its own; the
+# app gets LiteRT-LM from flutter_edge_ai_litertlm above).
 hooks:
   user_defines:
     llamadart:

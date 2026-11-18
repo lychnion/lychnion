@@ -173,6 +173,13 @@ class PackageRecord {
   String? get role => json['role'] as String?;
   bool get desktop => json['desktop'] as bool? ?? false;
 
+  /// Platforms a model runs on ('android', 'ios', 'macos', 'windows',
+  /// 'linux'). Empty means every one.
+  List<String> get platforms => [
+    for (final p in (json['platforms'] as List?) ?? const [])
+      if (p is String) p,
+  ];
+
   /// Language code → text, e.g. the `title` or `note` field.
   Map<String, String> texts(String field) => {
     for (final e in ((json[field] as Map?) ?? const {}).entries)

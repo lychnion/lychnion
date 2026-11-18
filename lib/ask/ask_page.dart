@@ -23,6 +23,7 @@ import '../knowledge/bundled_packages.dart';
 import '../knowledge/grounded_answer.dart';
 import '../knowledge/hybrid_retriever.dart';
 import '../knowledge/knowledge_package.dart';
+import '../llm/engines.dart';
 import '../llm/local_embedder.dart';
 import '../llm/local_llm.dart';
 import '../map/map_state.dart';

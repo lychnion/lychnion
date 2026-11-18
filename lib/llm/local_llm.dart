@@ -40,12 +40,14 @@ class AnswerStats {
 /// The one place the app talks to the on-device model.
 ///
 /// Kept small on purpose so the engine can be swapped without touching the
-/// UI. The file decides the engine: a `.gguf` runs on llama.cpp (the
-/// default), a `.litertlm` on Google's LiteRT-LM (spike: GPU on Android
-/// phones without Vulkan 1.2, see docs/device-results.md).
+/// UI. The file decides the engine: a `.gguf` runs on llama.cpp (desktop,
+/// iOS, and the search model everywhere), a `.litertlm` on Google's
+/// LiteRT-LM (Android: about twice as fast on the CPU, see
+/// docs/device-results.md).
 /// Developer flag `--dart-define=LLM_BACKEND=cpu|gpu`: which processor
-/// runs the answer model. Unset: the engine decides (as before). A GPU the
-/// device lacks falls back to the CPU; `backend` says what was used.
+/// runs the answer model. Unset: llama.cpp decides; LiteRT-LM uses the CPU
+/// (its GPU was slower on the Pixel 5a). A GPU the device lacks falls back
+/// to the CPU; `backend` says what was used.
 const _llmBackend = String.fromEnvironment('LLM_BACKEND');
 final _preferredBackend = switch (_llmBackend) {
   'cpu' => edge.PreferredBackend.cpu,
@@ -67,7 +69,7 @@ class LocalLlm {
   /// Registers the engines: llama.cpp for chat and for embeddings,
   /// LiteRT-LM for `.litertlm` chat models.
   static Future<void> init() => edge.FlutterEdgeAi.initialize(
-    inferenceEngines: [const LlamaEngineProvider(), LiteRtLmEngine()],
+    inferenceEngines: const [LlamaEngineProvider(), LiteRtLmEngine()],
     embeddingBackends: const [LlamaEmbeddingBackend()],
   );
 
@@ -114,7 +116,8 @@ class LocalLlm {
     await source(installation).install();
     _model = await edge.FlutterEdgeAi.getActiveModel(
       maxTokens: _llmContext > 0 ? _llmContext : contextTokens,
-      preferredBackend: _preferredBackend,
+      preferredBackend:
+          _preferredBackend ?? (liteRt ? edge.PreferredBackend.cpu : null),
     );
     lastLoadTime = sw.elapsed;
   }

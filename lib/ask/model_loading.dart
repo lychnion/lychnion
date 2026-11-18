@@ -13,6 +13,10 @@ mixin _ModelLoading on _AskPageBase {
   /// A download change that came while busy, looked at again later.
   Timer? _reloadLater;
 
+  /// Chat models that failed to load in this run (a LiteRT-LM model the
+  /// device cannot run): left out, so the GGUF model takes over.
+  final _failedChats = <String>{};
+
   /// Loads the model on start: GGUF_MODEL_PATH, a download for AUTO_BENCH
   /// on phones, else the model from Downloads (again whenever it changes).
   void _startModel() {
@@ -42,7 +46,7 @@ mixin _ModelLoading on _AskPageBase {
       return;
     }
     final store = await DownloadStore.instance();
-    final chat = store.chatModelPath();
+    final chat = store.chatModelPath(skip: _failedChats);
     if (chat == null) {
       // The model is gone (deleted, or its publisher removed): stop using
       // what was loaded from Downloads, also on the base server.
@@ -65,10 +69,21 @@ mixin _ModelLoading on _AskPageBase {
     ].join('|');
     if (sig == _loadedDownloads) return;
     _loadedDownloads = sig;
-    await _run(() => _llm.loadFile(chat), afterLoad: true);
+    final ok = await _run(() => _llm.loadFile(chat), afterLoad: true);
+    // LiteRT-LM could not load the model: fall back to llama.cpp with the
+    // next answer model (the GGUF one), if there is one.
+    final failed = store.activeChat(skip: _failedChats);
+    if (!ok && !_llm.isLoaded && isLiteRtFile(chat) && failed != null) {
+      _failedChats.add(failed.id);
+      if (store.chatModelPath(skip: _failedChats) != null) {
+        _log({'event': 'chat_fallback', 'failed': failed.id});
+        await _loadDownloaded();
+      }
+    }
   }
 
-  Future<void> _run(
+  /// Loads with [load], then the packages; false if it failed.
+  Future<bool> _run(
     Future<void> Function() load, {
     bool afterLoad = false,
   }) async {
@@ -180,7 +195,7 @@ mixin _ModelLoading on _AskPageBase {
         _phase = AskPhase.failed;
       });
       _log({'event': 'load_failed', 'error': '$e'});
-      return;
+      return false;
     } finally {
       setState(() => _loadingModel = false);
       _answerWaiting();
@@ -193,12 +208,13 @@ mixin _ModelLoading on _AskPageBase {
       }
       await widget.onDemoDone?.call(_entries);
     }
+    return true;
   }
 
   Future<void> _pickFile() async {
     final file = await openFile(
       acceptedTypeGroups: [
-        const XTypeGroup(label: 'GGUF models', extensions: ['gguf']),
+        const XTypeGroup(label: 'Models', extensions: ['gguf', 'litertlm']),
       ],
     );
     if (file == null) return;

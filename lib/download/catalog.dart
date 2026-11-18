@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import '../knowledge/language.dart';
+import '../llm/engines.dart';
 import 'download_store.dart';
 import 'downloader.dart';
 
@@ -41,6 +44,7 @@ class CatalogItem {
     required this.files,
     this.role,
     this.desktop = false,
+    this.platforms = const [],
     this.notes = const {},
     this.record,
   });
@@ -57,6 +61,11 @@ class CatalogItem {
 
   /// Too large for most phones; shown with a note there.
   final bool desktop;
+
+  /// Models only: platforms the model runs on (`android`, `ios`, `macos`,
+  /// `windows`, `linux`, as `Platform.operatingSystem` names them). Empty
+  /// means every one.
+  final List<String> platforms;
   final List<CatalogFile> files;
 
   /// The signed record this item comes from. Only items with a verified
@@ -64,6 +73,17 @@ class CatalogItem {
   final PackageRecord? record;
 
   int get size => files.fold(0, (a, f) => a + f.size);
+
+  /// Whether the item runs on [os] (`Platform.operatingSystem`).
+  bool runsOn(String os) => platforms.isEmpty || platforms.contains(os);
+
+  /// Whether the item is a LiteRT-LM model (needs Android 11 on Android).
+  bool get needsLiteRt => files.any((f) => isLiteRtFile(f.name));
+
+  /// [runsOn] this device: the platform, and for LiteRT-LM models the
+  /// Android version.
+  bool get runsHere =>
+      runsOn(Platform.operatingSystem) && (liteRtRunsHere || !needsLiteRt);
 
   /// Places the item is for ('JP', 'JP-30'); empty means anywhere.
   List<String> get area => record?.area ?? const [];
@@ -84,6 +104,7 @@ class CatalogItem {
     licence: r.licence,
     role: r.role,
     desktop: r.desktop,
+    platforms: r.platforms,
     notes: r.texts('note'),
     record: r,
     files: [

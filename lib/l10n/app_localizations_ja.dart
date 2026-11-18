@@ -104,6 +104,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadsTooLargeForPhone => '多くのスマートフォンには大きすぎます。';
 
   @override
+  String downloadsOnlyFor(String platforms) {
+    return '$platforms 専用です（拠点では近くのスマートフォンのために保存できます）。';
+  }
+
+  @override
   String get downloadsNotDownloaded => '未ダウンロード';
 
   @override

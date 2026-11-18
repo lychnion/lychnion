@@ -267,6 +267,12 @@ abstract class AppLocalizations {
   /// **'Too large for most phones.'**
   String get downloadsTooLargeForPhone;
 
+  /// No description provided for @downloadsOnlyFor.
+  ///
+  /// In en, this message translates to:
+  /// **'For {platforms} only (a base can keep it for phones nearby).'**
+  String downloadsOnlyFor(String platforms);
+
   /// No description provided for @downloadsNotDownloaded.
   ///
   /// In en, this message translates to:

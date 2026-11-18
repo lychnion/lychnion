@@ -19,6 +19,7 @@ Future<PackageRecord> signedRecord(
   List<(String, int, String)> files, {
   String version = '1',
   String? role,
+  List<String>? platforms,
 }) => PackageRecord.sign({
   'format': 1,
   'id': id,
@@ -27,6 +28,7 @@ Future<PackageRecord> signedRecord(
   'publisher': 'lychnion',
   'title': {'ja': id, 'en': id},
   'role': ?role,
+  'platforms': ?platforms,
   'files': [
     for (final (n, size, sha) in files)
       {'name': n, 'size': size, 'sha256': sha},

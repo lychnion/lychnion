@@ -45,6 +45,14 @@
   "downloadsKindPackages": "Knowledge packages",
   "downloadsKindMaps": "Map areas",
   "downloadsTooLargeForPhone": "Too large for most phones.",
+  "downloadsOnlyFor": "For {platforms} only (a base can keep it for phones nearby).",
+  "@downloadsOnlyFor": {
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      }
+    }
+  },
   "downloadsNotDownloaded": "Not downloaded",
   "downloadsNoSource": "No download source yet (uses the copy in the app)",
   "downloadsPaused": "Paused: {done} of {total}",
