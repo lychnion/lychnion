@@ -22,10 +22,22 @@
 //   dart run tool/records.dart catalog --items tool/items.json \
 //     --records ../lychnion-data/records \
 //     --base https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/ \
-//     --out assets/downloads/catalog.json
+//     --out assets/downloads/catalog.json \
+//     [--mirror https://mirror.example.org/lychnion/ ...]
+//
+//   # a static node: catalog.json plus every file as blobs/sha256/<hash>,
+//   # for a USB stick or any web host (files found in the FOLDERs by name)
+//   dart run tool/records.dart export assets/downloads/catalog.json \
+//     --out /Volumes/STICK/lychnion assets/packages ~/Downloads/maps
+//   (--source-url URL: where the catalog came from, when it has no `base`
+//   and its addresses are relative)
 //
 //   # check a catalog's signatures, and local files against it
 //   dart run tool/records.dart verify assets/downloads/catalog.json [FOLDER]
+//
+// Mirrors (`--mirror`, repeatable) are nodes that keep files by hash under
+// `blobs/sha256/`. The app tries a file's own address first, then each
+// mirror. They are not signed: the hash in the signed record decides.
 //
 // tool/items.json describes each item (title, note, licence, version, and
 // its files: a local `path`, or `size`, `sha256` and `url` for files
@@ -59,6 +71,8 @@ Future<void> main(List<String> argv) async {
       await _sign(args);
     case 'catalog':
       await _catalog(args);
+    case 'export':
+      await _export(args);
     case 'verify':
       await _verify(args);
     default:
@@ -80,6 +94,11 @@ class _Args {
   }
 
   String req(String name) => opt(name) ?? _fail('Missing $name');
+
+  /// All values of a repeatable option.
+  List<String> all(String name) => [
+    for (String? v; (v = opt(name)) != null;) v!,
+  ];
 
   bool flag(String name) => rest.remove(name);
 }
@@ -300,6 +319,15 @@ Future<void> _catalog(_Args args) async {
   final base = args.req('--base');
   final out = args.req('--out');
   final refresh = args.opt('--refresh') ?? _refresh;
+  final mirrors = args.all('--mirror');
+  for (final m in mirrors) {
+    final u = Uri.tryParse(m);
+    if (u == null ||
+        !(u.isScheme('https') || u.isScheme('http')) ||
+        u.host.isEmpty) {
+      _fail('--mirror $m: not an http(s) address');
+    }
+  }
   final trust = _trust(args);
   final records = <Map<String, Object?>>[];
   final urls = <String, String>{};
@@ -331,12 +359,124 @@ Future<void> _catalog(_Args args) async {
     'base': base,
     'refresh': refresh,
     'records': records,
+    // One address per hash, as a string: older apps read only that.
     'urls': urls,
+    if (mirrors.isNotEmpty)
+      'mirrors': [for (final m in mirrors) m.endsWith('/') ? m : '$m/'],
   };
   await File(
     out,
   ).writeAsString('${const JsonEncoder.withIndent('  ').convert(catalog)}\n');
   stdout.writeln('$out: ${records.length} records');
+}
+
+/// Writes a static node: the catalog (records verified and unchanged) and
+/// every file found in the source folders as `blobs/sha256/<hash>`, which
+/// the catalog then points to. Files are copied only when their size and
+/// hash match the signed record; files not found keep their address from
+/// the source catalog (the models on Hugging Face, for example).
+Future<void> _export(_Args args) async {
+  final out = Directory(args.req('--out'));
+  final sourceUrl = args.opt('--source-url');
+  final trust = _trust(args);
+  if (args.rest.isEmpty) _fail('Usage: export CATALOG --out DIR [FOLDER...]');
+  final j = _readJson(args.rest.first);
+  if (j['format'] != 2) _fail('Not a format 2 catalog');
+  final folders = args.rest.skip(1).toList();
+  // Where the source catalog gets each file, for files not exported.
+  final base = j['base'] is String
+      ? Uri.parse(j['base']! as String)
+      : sourceUrl == null
+      ? null
+      : Uri.parse(sourceUrl);
+  // Mirrors as absolute addresses: relative ones are resolved against
+  // where the source catalog came from (--source-url, else its base), as
+  // the app does; without either they are left out.
+  final origin = sourceUrl != null ? Uri.parse(sourceUrl) : base;
+  // Only what the app accepts as a mirror: http(s) with a host.
+  bool web(Uri u) =>
+      (u.isScheme('http') || u.isScheme('https')) && u.host.isNotEmpty;
+  final mirrors = <String>[
+    for (final m in (j['mirrors'] as List?) ?? const [])
+      if (m is String)
+        if (Uri.tryParse(m) case final u?)
+          if (u.hasScheme)
+            if (web(u)) '$u' else ...[]
+          else if (origin != null)
+            if (web(origin.resolveUri(u))) '${origin.resolveUri(u)}',
+  ];
+  final hasMirrors = mirrors.isNotEmpty;
+  final from = ((j['urls'] as Map?) ?? const {}).cast<String, Object?>();
+  String? elsewhere(RecordFile f) {
+    final listed = from[f.sha256];
+    final u = Uri.tryParse(listed is String ? listed : f.name);
+    if (u == null) return null;
+    if (u.hasScheme) return '$u';
+    return base == null ? null : '${base.resolveUri(u)}';
+  }
+
+  final blobs = Directory('${out.path}/blobs/sha256');
+  await blobs.create(recursive: true);
+  final records = <Map<String, Object?>>[];
+  final urls = <String, String>{};
+  var missing = 0;
+  for (final raw in j['records']! as List) {
+    final r = await trust.check(raw);
+    if (r == null) _fail('${(raw as Map)['id']}: bad signature or record');
+    records.add(r.json);
+    for (final f in r.files) {
+      final blob = File('${blobs.path}/${f.sha256}');
+      if (blob.existsSync() &&
+          blob.lengthSync() == f.size &&
+          await _sha256(blob) == f.sha256) {
+        stdout.writeln('have   ${f.name}');
+        urls[f.sha256] = 'blobs/sha256/${f.sha256}';
+        continue;
+      }
+      File? src;
+      for (final d in folders) {
+        final c = File('$d/${f.name}');
+        if (c.existsSync() &&
+            c.lengthSync() == f.size &&
+            await _sha256(c) == f.sha256) {
+          src = c;
+          break;
+        }
+      }
+      if (src == null) {
+        missing++;
+        stdout.writeln('none   ${f.name} (${r.id} ${r.version})');
+        if (elsewhere(f) case final u?) {
+          urls[f.sha256] = u;
+        } else if (!hasMirrors) {
+          _fail(
+            '${f.name}: not in the folders and no address to get it from. '
+            'Add the folder that has it, or give --source-url.',
+          );
+        }
+        continue;
+      }
+      final part = File('${blob.path}.part');
+      await src.copy(part.path);
+      await part.rename(blob.path);
+      urls[f.sha256] = 'blobs/sha256/${f.sha256}';
+      stdout.writeln('copied ${f.name}');
+    }
+  }
+  final catalog = {
+    'format': 2,
+    if (j['refresh'] != null) 'refresh': j['refresh'],
+    'records': records,
+    'urls': urls,
+    if (mirrors.isNotEmpty) 'mirrors': mirrors,
+  };
+  await File(
+    '${out.path}/catalog.json',
+  ).writeAsString('${const JsonEncoder.withIndent('  ').convert(catalog)}\n');
+  stdout.writeln(
+    '${out.path}: ${records.length} records'
+    '${missing > 0 ? ', $missing files not found (fetched elsewhere)' : ''}',
+  );
 }
 
 Future<void> _verify(_Args args) async {

@@ -4,7 +4,7 @@
 > 「ベース」 / "base", because it also fits huts, schools and camps.
 > Code and this note keep "shelter".
 
-Design note, 2026-11-18. Status: step 1 (signed records) built; storage,
+Design note, 2026-11-18. Status: steps 1, 2, 3 and 7 built; storage,
 node sync and publishing extended the same day.
 Not over-engineered on purpose: every step below works on its own.
 
@@ -131,12 +131,57 @@ system depends on: maps for all of Japan reach many gigabytes, and other
 publishers (cities, clubs) need their own place.
 
 - Every node keeps files under the same layout, `blobs/sha256/<hash>`, and
-  a signed record lists its files by hash (and may name mirrors). A phone
-  or node can fetch a file from **any** node it can reach and knows by the
-  hash that it is the right one.
+  a signed record lists its files by hash. A phone or node can fetch a
+  file from **any** node it can reach and knows by the hash that it is the
+  right one.
 - So the host does not matter: GitHub, an object store without download
   fees (for example Cloudflare R2), a city's web server, the shelter
   laptop, a USB stick.
+
+How it works (built 2026-11-18, step 3):
+
+- **Catalog, format 2.** `records` (signed), `base`, `urls` (file hash →
+  one address, for files that are not next to the catalog, like the
+  models on Hugging Face), and `mirrors`: nodes that keep files by hash.
+  Mirrors are in the catalog, not in the signed records, so adding or
+  removing a mirror needs no new version. They need no signature: the
+  hash in the signed record decides whether a file is right. Apps from
+  before step 3 ignore `mirrors`; `urls` keeps one address (a string) per
+  file for them.
+
+  ```json
+  {
+    "format": 2,
+    "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.4/",
+    "records": ["…"],
+    "urls": {"8e30…": "https://huggingface.co/…/gemma-4-E2B-it-Q4_0.gguf"},
+    "mirrors": ["https://mirror.example.org/lychnion/"]
+  }
+  ```
+
+- **The app** tries every address of a file in turn: a shelter's first
+  (local Wi-Fi), then the file's own address (`urls`, or `base` and the
+  file name), then `<mirror>/blobs/sha256/<hash>` on each mirror. When one
+  is unreachable, answers with an HTTP error or the connection drops, it
+  goes on with the next one **from the byte where it stopped** (the part
+  file belongs to the hash, not to a server). An answer of the wrong size
+  or byte range (a captive portal's page, another file) is not written.
+  When a finished file still has the wrong hash, every address gets one
+  more turn on its own, from byte 0, so bytes of two sources never mix.
+  At most 10 mirrors are used, and only http(s) addresses. A shelter's
+  catalog adds its addresses in front; the internet ones stay as
+  fallback.
+- **Static node.** `dart run tool/records.dart export CATALOG --out DIR
+  FOLDER…` writes `catalog.json` and every file it finds (checked against
+  the signed records) as `blobs/sha256/<hash>`, for a USB stick or any
+  web host. Files it does not have keep their address from the source
+  catalog. `tool/records.dart catalog --mirror URL` adds mirrors to a
+  catalog.
+- The shelter computer serves the same layout
+  (`/blobs/sha256/<hash>`, see step 2).
+- No second host for Lychnion's own files yet: GitHub releases name files,
+  not hashes, so they stay the files' own addresses. A mirror (for example
+  R2) is a later decision.
 
 ### Sync between nodes
 
@@ -193,6 +238,7 @@ list, so people do not have to judge keys themselves. To decide later.
 | Fake or changed package | Signature of a trusted publisher on the record, SHA-256 of every file |
 | Old package replayed as new | Versions only go up; the app refuses older ones |
 | Stolen node key | Each key signs only its publisher's packages; Lychnion's key is not on any node. Key rotation and revocation: a later step |
+| Bad or slow mirror | Mirrors are unsigned on purpose: a file from one must match the signed hash, or it is thrown away and the next address is tried. A bad mirror costs time, not safety |
 | Malicious file content | Packages are data; opened read-only, only after the checks; size limits |
 | Wrong publisher trusted | Keys are added only by an explicit action (QR at the shelter), shown with the publisher's name; the user can remove them |
 | Licence problems | Every source has a licence entry; each package carries its licences and attributions |
@@ -208,8 +254,10 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
    with a switch in Settings). The desktop app serves its
    records and files on the local network; phones connected to it update
    from it without internet. (Phones already talk to it for answers.)
-3. **Files by hash, several mirrors.** The `blobs/sha256/` layout on every
-   node, mirrors in the records, the app fetching from any node it knows.
+3. **Files by hash, several mirrors** (built 2026-11-18). The
+   `blobs/sha256/` layout on every node, mirrors in the catalog, the app
+   fetching from any address it knows and going on from the next one
+   when one fails. See "Storage" above.
 4. **Nodes for others.** Following catalogs and publishing own packages
    in the desktop app, plus the headless node. A city or a club runs one
    without Git or a server background; phones trust its key by QR.

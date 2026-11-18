@@ -362,40 +362,52 @@ class DownloadManager extends ChangeNotifier {
         }
         final sw = Stopwatch()..start();
         var lastBytes = 0, lastMs = 0, lastUi = 0;
-        await Downloader().fetch(
-          catalog.spec(f),
-          dir,
-          cancel: cancel,
-          onProgress: (phase, bytes, total) {
-            final ms = sw.elapsedMilliseconds;
-            if (ms - lastUi < 200 && phase == s.phase) return;
-            if (phase == DownloadPhase.downloading && ms - lastMs > 2000) {
-              s.speed = (bytes - lastBytes) / ((ms - lastMs) / 1000);
-              lastBytes = bytes;
-              lastMs = ms;
-            }
-            if (phase != DownloadPhase.downloading) {
-              lastBytes = bytes;
-              lastMs = ms;
-            }
-            lastUi = ms;
-            final pct = 100 * (done + bytes) ~/ item.size;
-            if (_autoDownload.isNotEmpty && pct ~/ 10 != _lastPct ~/ 10) {
-              _lastPct = pct;
-              _log({
-                'event': 'download_progress',
-                'id': item.id,
-                'phase': phase.name,
-                'pct': pct,
-              });
-            }
-            s
-              ..phase = phase
-              ..bytes =
-                  done + (phase == DownloadPhase.checkingPart ? 0 : bytes);
-            notifyListeners();
-          },
+        final downloader = Downloader(
+          onSourceFailed: (url, e) => _log({
+            'event': 'download_source_failed',
+            'id': item.id,
+            'url': redactedUrl(url),
+            'error': sourceErrorText(e),
+          }),
         );
+        try {
+          await downloader.fetch(
+            catalog.spec(f),
+            dir,
+            cancel: cancel,
+            onProgress: (phase, bytes, total) {
+              final ms = sw.elapsedMilliseconds;
+              if (ms - lastUi < 200 && phase == s.phase) return;
+              if (phase == DownloadPhase.downloading && ms - lastMs > 2000) {
+                s.speed = (bytes - lastBytes) / ((ms - lastMs) / 1000);
+                lastBytes = bytes;
+                lastMs = ms;
+              }
+              if (phase != DownloadPhase.downloading) {
+                lastBytes = bytes;
+                lastMs = ms;
+              }
+              lastUi = ms;
+              final pct = 100 * (done + bytes) ~/ item.size;
+              if (_autoDownload.isNotEmpty && pct ~/ 10 != _lastPct ~/ 10) {
+                _lastPct = pct;
+                _log({
+                  'event': 'download_progress',
+                  'id': item.id,
+                  'phase': phase.name,
+                  'pct': pct,
+                });
+              }
+              s
+                ..phase = phase
+                ..bytes =
+                    done + (phase == DownloadPhase.checkingPart ? 0 : bytes);
+              notifyListeners();
+            },
+          );
+        } finally {
+          downloader.close();
+        }
         done += f.size;
       }
       await store.markInstalled(item);
@@ -404,7 +416,12 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       s.error = _errorCode(e);
       if (s.error != null) {
-        _log({'event': 'download_error', 'id': item.id, 'detail': '$e'});
+        // An HttpException's text carries its address (maybe with a token).
+        _log({
+          'event': 'download_error',
+          'id': item.id,
+          'detail': e is HttpException ? sourceErrorText(e) : '$e',
+        });
       }
     } finally {
       s
@@ -425,7 +442,11 @@ class DownloadManager extends ChangeNotifier {
     return null;
   }
 
+  @visibleForTesting
+  static String? errorCodeOf(Object e) => _errorCode(e);
+
   /// Short code for the screen (see DownloadsScreen), or null if stopped.
+  /// Never the address: it may carry a token.
   static String? _errorCode(Object e) => switch (e) {
     DownloadCancelled() => null,
     UnsignedItem() => 'signature',
@@ -439,6 +460,8 @@ class DownloadManager extends ChangeNotifier {
     TimeoutException() => 'network',
     HttpException(:final message) when !message.startsWith('HTTP ') =>
       'network',
+    HttpException(:final message) => message,
+    TlsException() => 'network',
     _ => '$e',
   };
 

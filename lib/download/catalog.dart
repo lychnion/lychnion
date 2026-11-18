@@ -9,11 +9,25 @@ enum ItemKind { model, package, map }
 
 /// One file of a catalog item. [url] may be relative to the catalog's base.
 class CatalogFile {
-  const CatalogFile(this.name, this.size, this.sha256, this.url);
+  const CatalogFile(
+    this.name,
+    this.size,
+    this.sha256,
+    this.url, [
+    this.more = const [],
+  ]);
   final String name;
   final int size;
   final String sha256;
+
+  /// The first address to try.
   final String url;
+
+  /// Further addresses of the same file (for example the internet copy
+  /// behind a shelter's), tried in order when [url] fails.
+  final List<String> more;
+
+  List<String> get urls => [url, ...more];
 }
 
 /// Something the app can download: a model, a knowledge package or a map
@@ -54,11 +68,12 @@ class CatalogItem {
   String title(String lang) => pick(titles, lang) ?? id;
   String note(String lang) => pick(notes, lang) ?? '';
 
-  /// [urls]: file SHA-256 → download address (absolute, or relative to
-  /// the catalog). Files not listed there are fetched by name.
+  /// [urls]: file SHA-256 → download addresses (absolute, or relative to
+  /// the catalog), in the order to try them. Files not listed there are
+  /// fetched by name.
   factory CatalogItem.fromRecord(
     PackageRecord r, [
-    Map<String, String> urls = const {},
+    Map<String, List<String>> urls = const {},
   ]) => CatalogItem(
     id: r.id,
     kind: ItemKind.values.byName(r.kind),
@@ -71,7 +86,16 @@ class CatalogItem {
     record: r,
     files: [
       for (final f in r.files)
-        CatalogFile(f.name, f.size, f.sha256, urls[f.sha256] ?? f.name),
+        switch (urls[f.sha256]) {
+          [final first, ...final rest] => CatalogFile(
+            f.name,
+            f.size,
+            f.sha256,
+            first,
+            rest,
+          ),
+          _ => CatalogFile(f.name, f.size, f.sha256, f.name),
+        },
     ],
   );
 }
@@ -80,9 +104,14 @@ class CatalogItem {
 /// and refreshed from [refreshUrl] when online, so packages can be updated
 /// without an app release.
 class Catalog {
-  Catalog(this.items, {this.base, this.refreshUrl});
+  Catalog(this.items, {this.base, this.refreshUrl, this.mirrors = const []});
 
   final List<CatalogItem> items;
+
+  /// Nodes that keep files by hash (`<mirror>blobs/sha256/<sha256>`), tried
+  /// for every file after its own addresses. Unsigned: the hash in the
+  /// signed record decides whether a file from a mirror is right.
+  final List<Uri> mirrors;
 
   /// Relative file URLs are resolved against this. Null: only absolute
   /// URLs (the models on Hugging Face) can be downloaded.
@@ -94,6 +123,10 @@ class Catalog {
   final List<String> rejected = [];
 
   /// Parses a catalog (format 2: signed records, see tool/records.dart).
+  ///
+  /// `urls` maps a file's SHA-256 to one address (a string: older apps
+  /// read only that). `mirrors` lists nodes with the `blobs/sha256/`
+  /// layout; older apps ignore it.
   ///
   /// [baseOverride] (dev flag DOWNLOAD_BASE_URL) wins over the catalog's own
   /// `base`; a catalog fetched from the network defaults to its own URL.
@@ -107,7 +140,11 @@ class Catalog {
     final j = jsonDecode(json) as Map<String, Object?>;
     if (j['format'] != 2) throw FormatException('Unknown catalog format');
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
-    final urls = ((j['urls'] as Map?) ?? const {}).cast<String, String>();
+    final urls = <String, List<String>>{
+      for (final e in ((j['urls'] as Map?) ?? const {}).entries)
+        if (e.key is String && e.value is String && e.value != '')
+          e.key as String: [e.value as String],
+    };
     final keys = trust ?? builtInPublishers;
     final items = <CatalogItem>[];
     final rejected = <String>[];
@@ -125,11 +162,43 @@ class Catalog {
         items.add(CatalogItem.fromRecord(r, urls));
       }
     }
+    final base = baseOverride ?? uri(j['base']) ?? fetchedFrom;
     return Catalog(
       items,
-      base: baseOverride ?? uri(j['base']) ?? fetchedFrom,
+      base: base,
       refreshUrl: uri(j['refresh']),
+      mirrors: _mirrors(j['mirrors'], fetchedFrom ?? base),
     )..rejected.addAll(rejected);
+  }
+
+  /// At most this many mirrors are used: each unreachable one costs time.
+  static const maxMirrors = 10;
+
+  /// Mirror addresses as folders (ending in `/`, no query), relative ones
+  /// resolved against the catalog's own address; anything else is left
+  /// out.
+  static List<Uri> _mirrors(Object? raw, Uri? from) {
+    final out = <Uri>[];
+    for (final m in raw is List ? raw : const []) {
+      if (out.length >= maxMirrors) break;
+      if (m is! String || m.isEmpty) continue;
+      var u = Uri.tryParse(m);
+      if (u == null) continue;
+      if (!u.hasScheme) {
+        if (from == null) continue;
+        u = from.resolveUri(u);
+      }
+      final path = u.path.endsWith('/') ? u.path : '${u.path}/';
+      u = Uri(
+        scheme: u.scheme,
+        userInfo: u.userInfo,
+        host: u.host,
+        port: u.hasPort ? u.port : null,
+        path: path,
+      );
+      if (_web(u) && !out.contains(u)) out.add(u);
+    }
+    return out;
   }
 
   CatalogItem? byId(String id) {
@@ -139,41 +208,105 @@ class Catalog {
     return null;
   }
 
-  /// Download address of [f], or null when it is relative and there is no base.
-  Uri? urlOf(CatalogFile f) {
-    final u = Uri.parse(f.url);
-    if (u.hasScheme) return u;
-    return base?.resolveUri(u);
+  /// The file's own addresses, absolute; relative ones are dropped when
+  /// there is no base.
+  List<Uri> _ownUrls(CatalogFile f) => [
+    for (final s in f.urls)
+      if (Uri.tryParse(s) case final u?)
+        if (u.hasScheme)
+          if (_web(u)) u else ...[]
+        else if (base case final b?)
+          if (_web(b.resolveUri(u))) b.resolveUri(u),
+  ];
+
+  static bool _web(Uri u) =>
+      (u.isScheme('http') || u.isScheme('https')) && u.host.isNotEmpty;
+
+  /// Every address of [f], in the order to try them: its own, then each
+  /// mirror's `blobs/sha256/<hash>`.
+  List<Uri> urlsOf(CatalogFile f) {
+    final out = <Uri>[];
+    for (final u in [
+      ..._ownUrls(f),
+      for (final m in mirrors) m.resolve('blobs/sha256/${f.sha256}'),
+    ]) {
+      if (!out.contains(u)) out.add(u);
+    }
+    return out;
   }
 
-  /// This catalog plus the items of [other] (for example a shelter's), with
-  /// [other]'s file addresses made absolute. An item of [other] wins when
-  /// its version is the same or newer: a shelter on the local Wi-Fi is
-  /// faster and works without internet. Records are checked as before.
+  /// First download address of [f], or null when there is none (a
+  /// relative address without a base, and no mirrors).
+  Uri? urlOf(CatalogFile f) => urlsOf(f).firstOrNull;
+
+  /// This catalog plus the items of [other] (for example a shelter's). An
+  /// item of [other] wins when its version is the same or newer: a shelter
+  /// on the local Wi-Fi is faster and works without internet. Records are
+  /// checked as before.
+  ///
+  /// Files are known by their hash, so every address either catalog has
+  /// for a file is kept, absolute: [other]'s first, then this catalog's
+  /// (the internet copy when the shelter's Wi-Fi is gone). Mirrors of both
+  /// are kept too.
   Catalog mergedWith(Catalog other) {
+    final addresses = <String, List<String>>{};
+    for (final c in [other, this]) {
+      for (final i in c.items) {
+        for (final f in i.files) {
+          final list = addresses.putIfAbsent(f.sha256, () => []);
+          for (final u in c._ownUrls(f)) {
+            if (!list.contains('$u')) list.add('$u');
+          }
+        }
+      }
+    }
+    final mirrors = [
+      ...this.mirrors,
+      for (final m in other.mirrors)
+        if (!this.mirrors.contains(m)) m,
+    ].take(maxMirrors).toList();
+    bool reachable(CatalogItem i) => i.files.every(
+      (f) => (addresses[f.sha256] ?? const []).isNotEmpty || mirrors.isNotEmpty,
+    );
     final byId = {for (final i in items) i.id: i};
     for (final o in other.items) {
       final mine = byId[o.id];
       if (mine != null && isOlder(o.version, mine.version)) continue;
-      final files = [
-        for (final f in o.files)
-          if (other.urlOf(f) case final u?)
-            CatalogFile(f.name, f.size, f.sha256, '$u'),
-      ];
-      if (files.length != o.files.length || o.record == null) continue;
-      byId[o.id] = CatalogItem.fromRecord(o.record!, {
-        for (final f in files) f.sha256: f.url,
-      });
+      if (o.record == null || !reachable(o)) continue;
+      byId[o.id] = o;
     }
-    return Catalog([...byId.values], base: base, refreshUrl: refreshUrl)
-      ..rejected.addAll([...rejected, ...other.rejected]);
+    return Catalog(
+      [
+        for (final i in byId.values)
+          if (i.record case final r?)
+            CatalogItem.fromRecord(r, {
+              for (final f in i.files)
+                if (addresses[f.sha256] case final a? when a.isNotEmpty)
+                  f.sha256: a,
+            })
+          else
+            i,
+      ],
+      base: base,
+      refreshUrl: refreshUrl,
+      mirrors: mirrors,
+    )..rejected.addAll([...rejected, ...other.rejected]);
   }
 
   bool canDownload(CatalogItem item) =>
       item.files.every((f) => urlOf(f) != null);
 
-  FileSpec spec(CatalogFile f) =>
-      FileSpec(url: urlOf(f)!, name: f.name, size: f.size, sha256: f.sha256);
+  /// What to fetch for [f]: its first address, the others as fallbacks.
+  FileSpec spec(CatalogFile f) {
+    final urls = urlsOf(f);
+    return FileSpec(
+      url: urls.first,
+      fallbacks: urls.skip(1).toList(),
+      name: f.name,
+      size: f.size,
+      sha256: f.sha256,
+    );
+  }
 }
 
 /// "2.8 GB", "310 MB" (decimal, as shops and Hugging Face show sizes).
