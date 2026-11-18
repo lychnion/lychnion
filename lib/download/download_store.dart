@@ -588,6 +588,12 @@ class DownloadStore {
 
   // --- what the loaders use ---------------------------------------------
 
+  /// The LiteRT-LM chat model being loaded right now, kept on disk until
+  /// the load ends. Still set when the app starts: that load crashed the
+  /// app (a native crash Dart cannot catch), so the model is skipped.
+  String? get loadingChat => _settings()['loading_chat'] as String?;
+  Future<void> setLoadingChat(String? id) => _set('loading_chat', id);
+
   /// Chat models that failed to load in this run (LiteRT-LM could not
   /// start them): left out until picked again or the app restarts, so the
   /// GGUF model takes over. Not saved.

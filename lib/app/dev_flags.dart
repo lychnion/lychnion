@@ -24,7 +24,7 @@ import 'settings.dart';
 ///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with BASE_SERVER)
 ///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
-///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: engine decides)
+///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: llama.cpp decides, LiteRT-LM cpu)
 ///   --dart-define=LLM_CONTEXT=2048                           model context in tokens (default 4096)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save

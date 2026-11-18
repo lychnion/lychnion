@@ -540,7 +540,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ].join(' · '),
       if (item.note(lang).isNotEmpty) item.note(lang),
       if (item.desktop && _isPhone) l.downloadsTooLargeForPhone,
-      if (!item.runsHere && !_isPhone)
+      if (!item.runsHere && !_isPhone && item.platforms.isNotEmpty)
         l.downloadsOnlyFor(item.platforms.map(_platformName).join(', ')),
     ];
 

@@ -430,6 +430,23 @@ void main() {
       expect(s.embedModelPath(), endsWith('/models/emb.gguf'));
       await s.delete(e4b);
       expect(s.chatModelPath(), endsWith('/models/e2b.gguf'));
+      // A model that failed to load is skipped in this run.
+      s.failedChats.add('model.e2b');
+      expect(s.chatModelPath(), isNull);
+      s.failedChats.clear();
+    });
+
+    test('the LiteRT-LM crash marker is kept on disk', () async {
+      final s = DownloadStore(tmp, trust: trust);
+      expect(s.loadingChat, isNull);
+      await s.setLoadingChat('model.e2b-litertlm');
+      // A new store (the next start) still sees it.
+      expect(
+        DownloadStore(tmp, trust: trust).loadingChat,
+        'model.e2b-litertlm',
+      );
+      await s.setLoadingChat(null);
+      expect(DownloadStore(tmp, trust: trust).loadingChat, isNull);
     });
 
     test('install needs a trusted signature', () async {

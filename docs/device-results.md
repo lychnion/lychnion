@@ -295,7 +295,9 @@ model is picked; iPhones do not list it; computers list it with a note,
 so a base can keep it for the phones around it. LiteRT-LM needs Android
 11 (API 30): on Android 9 and 10 the app hides the model and keeps
 llama.cpp. If LiteRT-LM fails to load the model, the app falls back to
-the GGUF model when one is installed. `GGUF_MODEL_PATH` may
+the GGUF model when one is installed. If loading crashes the app (a
+native crash), the next start skips that model, so it cannot crash at
+every start; picking it again in Downloads tries it again. `GGUF_MODEL_PATH` may
 still point to a `.litertlm` file.
 
 Checked in the app on the Pixel 5a (profile build, 2026-11-19): the
