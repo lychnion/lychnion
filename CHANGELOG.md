@@ -65,6 +65,8 @@ here should be relied on alone in an emergency. Source only; build it as
 - New name and brand: Lychnion (リクニオン), formerly the code name
   fieldkit. IDs are now `com.lychnion.app` and `lychnion://`; old
   `fieldkit://` QR codes still work.
+- Base QR codes say `lychnion://base?…` (was `lychnion://shelter?…`,
+  still read). A base's default name is "Lychnion base".
 - Licence: GNU AGPL 3.0 with an app store exception. Versions up to
   commit `064f50a` were published under Apache 2.0.
 - Built with Flutter 3.50 (Dart 3.14). Material and Cupertino widgets
@@ -90,8 +92,10 @@ here should be relied on alone in an emergency. Source only; build it as
   answer that was changed, signed by another key, sent before, or made
   for a changed question, and answers itself. An answer from an older
   base without a signature says so; once a base has signed, the phone
-  refuses unsigned answers from it. The page for phones without the app
-  stays unsigned.
+  refuses unsigned answers from it. The QR code of a base that signs
+  says so, so the phone refuses unsigned answers from the first one.
+  When the phone refuses a base's answer, its own answer says so. The
+  page for phones without the app stays unsigned.
 - A phone keeps at most 5,000 facts and drops expired ones.
 - A base stops an answer when the phone that asked has left.
 - From a base or a phone nearby, the app downloads only files on that

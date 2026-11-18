@@ -124,6 +124,8 @@
   "mapNoSiteWarning": "国土地理院のデータでは、{city}に{hazard}の指定緊急避難場所が登録されていません。最寄りの場所は別の市町村の可能性があります。{city}のハザードマップや避難情報を確認してください。",
   "answerBaseUnchecked": "確認されていないベースです。正しいベースか、QR コードを読み取って確かめてください。",
   "answerBaseUnsigned": "このベースは回答に署名していません。ベースのコンピューターのアプリを更新してください。",
+  "answerBaseRefused": "ベースの回答を QR コードで確かめられなかったため、使いませんでした。",
+  "answerBaseRefusedNoModel": "ベースの回答を QR コードで確かめられなかったため、使いませんでした。この端末には回答モデルがありません。",
   "answerBaseComputer": "ベース · {name}",
   "answerLooking": "資料を確認しています…",
   "answerRelatedOnly": "資料に関連する情報はありますが、直接の答えはありません。",

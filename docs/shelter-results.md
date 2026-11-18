@@ -24,7 +24,10 @@ slow or older phones get fast answers from a bigger model. This is the
     `lychnion-answer-1\n<nonce>\n<SHA-256 of the request body, hex>\n`
     followed by the response body as sent. A phone that scanned the base's
     QR code checks it; once a base has signed, the phone refuses unsigned
-    answers from it. `GET /info` says `signs_answers`. Without a nonce
+    answers from it. A base that signs adds `s=1` to the app link in its
+    QR code (`lychnion://base?url=…&key=…&s=1`); the phone then
+    refuses unsigned answers from the first one. `GET /info` says
+    `signs_answers`. Without a nonce
     (the browser page, older phones) the answer is not signed.
   - One model, so questions are answered one after another. Questions are
     limited to 500 characters and request bodies to 8 KB.
@@ -84,7 +87,8 @@ Phones no longer need the shelter address at build time (`SHELTER_URL`).
 
 - The shelter computer shows a QR code and its address under
   Settings → 避難所 (also in the status details on the Ask screen).
-- The code holds `fieldkit://shelter?url=http://<address>:8642&name=<name>`.
+- The code holds `lychnion://base?url=http://<address>:8642&name=<name>`
+  (`fieldkit://shelter?…` when these notes were written; still read).
   Scanned with the phone's normal camera, it opens fieldkit, which asks
   「〇〇に接続しますか？」 before it connects. No camera code in the app.
 - Or, on the phone: Settings → 避難所のコンピューターに接続 → type the address

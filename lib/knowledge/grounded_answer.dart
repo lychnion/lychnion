@@ -105,6 +105,11 @@ class GroundedAnswer {
   /// (an older base app, or the signature was taken off on the way).
   bool baseUnsigned = false;
 
+  /// The base's answer to this question was refused for its signature
+  /// (not the one from its QR code, or missing from a base that signs):
+  /// this answer is the phone's own.
+  bool baseRefused = false;
+
   /// Result of the relevance check: false means the passages are related but
   /// do not answer the question, so no answer was generated.
   bool? judgedRelevant;
@@ -164,6 +169,7 @@ class GroundedAnswer {
     if (answeredBy != null) 'answered_by': answeredBy,
     if (baseUnchecked) 'base_unchecked': true,
     if (baseUnsigned) 'base_unsigned': true,
+    if (baseRefused) 'base_refused': true,
     if (judgedRelevant != null) 'judged_relevant': judgedRelevant,
     'alerts': [for (final a in alerts) a.id],
     'retrieved': [

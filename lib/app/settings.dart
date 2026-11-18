@@ -24,7 +24,8 @@ class AppSettings extends ChangeNotifier {
   /// (then the key is taken on first connect).
   String? baseKey;
 
-  /// The QR key whose base has signed an answer: from then on the phone
+  /// The QR key whose base has signed an answer, or whose QR code says
+  /// it signs (`s=1` in the link): from then on the phone
   /// takes no unsigned answer from it (someone on the Wi-Fi could take
   /// the signature off). Forgotten when the base is disconnected or
   /// another key is pinned, not when the same key is pinned again.
@@ -112,22 +113,33 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
-  /// Connects to a base computer, or disconnects with null.
-  Future<void> setBase(String? url, {String? name, String? key}) async {
+  /// Connects to a base computer, or disconnects with null. [signs]: the
+  /// QR code says the base signs its answers with [key].
+  Future<void> setBase(
+    String? url, {
+    String? name,
+    String? key,
+    bool signs = false,
+  }) async {
     baseUrl = url;
     baseName = url == null ? null : name;
     final newKey = url == null ? null : key;
     // Kept for the same key (the base got a new address): forgetting it
     // would let someone take the signature off again.
     if (newKey != baseKey) baseSignedKey = null;
+    // Known from the QR code (checked in person): no unsigned answer is
+    // taken, not even the first.
+    if (signs && newKey != null) baseSignedKey = newKey;
     baseKey = newKey;
     notifyListeners();
     await _save();
   }
 
   /// The base with QR key [key] signed an answer (see [baseSignedKey]).
+  /// Ignored unless [key] is still the pinned one: a late answer from the
+  /// base before must not stand for the one connected now.
   Future<void> setBaseSigned(String key) async {
-    if (baseSignedKey == key) return;
+    if (key != baseKey || baseSignedKey == key) return;
     baseSignedKey = key;
     notifyListeners();
     await _save();

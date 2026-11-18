@@ -183,6 +183,39 @@ void main() {
       expect(j.containsKey('base_signed_key'), isFalse);
     });
 
+    test('a late answer from the base before does not count', () async {
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      await s.setBase('http://192.168.1.20:8642', key: 'kA');
+      // Switched to base B; then base A's answer arrives, signed.
+      await s.setBase('http://192.168.1.30:8642', key: 'kB');
+      await s.setBaseSigned('kA');
+      expect(s.baseSignedKey, isNull);
+      await s.setBaseSigned('kB');
+      expect(s.baseSignedKey, 'kB');
+      await s.setBaseSigned('kA');
+      expect(s.baseSignedKey, 'kB');
+    });
+
+    test('a QR code that says the base signs is remembered at once', () async {
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      await s.setBase('http://192.168.1.20:8642', key: 'k1', signs: true);
+      expect(s.baseSignedKey, 'k1');
+      // Scanned again without the flag (an old printout): still known.
+      await s.setBase('http://192.168.1.20:8642', key: 'k1');
+      expect(s.baseSignedKey, 'k1');
+      // Another key that signs: that key.
+      await s.setBase('http://192.168.1.20:8642', key: 'k2', signs: true);
+      expect(s.baseSignedKey, 'k2');
+      // No key: nothing to check a signature with.
+      await s.setBase('http://192.168.1.20:8642', signs: true);
+      expect(s.baseSignedKey, isNull);
+      // An old QR code: learnt from the first signed answer, as before.
+      await s.setBase('http://192.168.1.20:8642', key: 'k3');
+      expect(s.baseSignedKey, isNull);
+    });
+
     test('a newer file: defaults, and a copy survives the next save', () async {
       const newer = '{"format":99,"region":"JP-30"}';
       file('settings.json').writeAsStringSync(newer);

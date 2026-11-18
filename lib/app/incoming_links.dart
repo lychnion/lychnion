@@ -9,7 +9,7 @@ mixin _IncomingLinks on State<AppShell> {
 
   bool _asking = false;
 
-  /// A scanned lychnion://shelter link: ask, then connect. The same link can
+  /// A scanned lychnion://base link: ask, then connect. The same link can
   /// arrive twice (at launch and from the stream): ask only once.
   Future<void> _openLink(Uri uri) async {
     if (ShareLink.fromUri(uri) case final share?) {
@@ -51,15 +51,25 @@ mixin _IncomingLinks on State<AppShell> {
     final link = BaseLink.fromUri(uri);
     if (link == null || !mounted || _asking) return;
     // Already connected, and nothing new: a QR code with the key of a base
-    // connected by address or found on the Wi-Fi pins that key.
-    if (link.url == widget.settings.baseUrl &&
-        (link.key == null || link.key == widget.settings.baseKey)) {
+    // connected by address or found on the Wi-Fi pins that key, and one
+    // saying the base signs is taken too.
+    final s = widget.settings;
+    if (link.changesNothing(
+      url: s.baseUrl,
+      key: s.baseKey,
+      signedKey: s.baseSignedKey,
+    )) {
       return;
     }
     _asking = true;
     try {
       if (await confirmBase(context, link)) {
-        await widget.settings.setBase(link.url, name: link.name, key: link.key);
+        await widget.settings.setBase(
+          link.url,
+          name: link.name,
+          key: link.key,
+          signs: link.signs,
+        );
         setState(() => _tab = 0);
       }
     } finally {

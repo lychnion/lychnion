@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart' show sha256;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/base/answer_signing.dart';
 import 'package:lychnion/base/base_checks.dart';
 import 'package:lychnion/base/base_client.dart';
@@ -317,6 +318,94 @@ void main() {
       final a = await c.ask('津波は一回だけですか？');
       expect(a.text, contains('高い所へ'));
       expect(a.baseUnsigned, isFalse);
+    });
+
+    group('the Ask page\'s call (askBase)', () {
+      late Directory tmp;
+      setUp(() => tmp = Directory.systemTemp.createTempSync('ask_base'));
+      tearDown(() => tmp.deleteSync(recursive: true));
+
+      Future<AppSettings> settings({bool signs = false}) async {
+        final s = AppSettings();
+        await s.load(dir: tmp);
+        await s.setBase(base, key: signer.publicKeyText, signs: signs);
+        return s;
+      }
+
+      /// A client through which answers lose their signature when [strip].
+      Future<BaseClient> stripping(bool Function() strip) => through((r) async {
+        final sent = await forward(r);
+        return (body: sent.body, signature: strip() ? null : sent.signature);
+      });
+
+      test('a base whose QR code says it signs: the first unsigned '
+          'answer is refused, and the phone says why', () async {
+        final s = await settings(signs: true);
+        final c = await stripping(() => true);
+        final errors = <Object>[];
+        final r = await askBase(
+          c,
+          '津波は一回だけですか？',
+          pinnedKey: signer.publicKeyText,
+          settings: s,
+          onError: errors.add,
+        );
+        expect(r.answer, isNull);
+        expect(r.refused, isTrue);
+        expect(errors.single, isA<BadAnswerSignature>());
+      });
+
+      test(
+        'a signed answer is remembered, then an unsigned one refused',
+        () async {
+          final s = await settings();
+          var strip = false;
+          final c = await stripping(() => strip);
+          Future<BaseReply> ask() => askBase(
+            c,
+            '津波は一回だけですか？',
+            pinnedKey: signer.publicKeyText,
+            settings: s,
+          );
+          final first = await ask();
+          expect(first.answer!.baseUnsigned, isFalse);
+          expect(first.refused, isFalse);
+          expect(s.baseSignedKey, signer.publicKeyText);
+          strip = true;
+          final second = await ask();
+          expect(second.answer, isNull);
+          expect(second.refused, isTrue);
+        },
+      );
+
+      test('the pinned key is the one checked', () async {
+        final s = await settings();
+        final r = await askBase(
+          direct(),
+          '津波は一回だけですか？',
+          pinnedKey: other.publicKeyText,
+          settings: s,
+        );
+        expect(r.answer, isNull);
+        expect(r.refused, isTrue);
+        expect(s.baseSignedKey, isNull);
+      });
+
+      test('a base that is gone is not a refused answer', () async {
+        final gone = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+        final port = gone.port;
+        await gone.close();
+        final c = BaseClient('http://127.0.0.1:$port');
+        addTearDown(c.close);
+        final r = await askBase(
+          c,
+          '津波は？',
+          pinnedKey: signer.publicKeyText,
+          settings: await settings(),
+        );
+        expect(r.answer, isNull);
+        expect(r.refused, isFalse);
+      });
     });
 
     test('the browser page (no nonce) gets no signature', () async {
