@@ -1,5 +1,9 @@
 # Distribution: apps and data packages
 
+> **Name:** since 2026-11-18 the app calls the shelter computer a
+> 「ベース」 / "base", because it also fits huts, schools and camps.
+> Code and this note keep "shelter".
+
 Design note, 2026-11-18. Status: step 1 (signed records) built; storage,
 node sync and publishing extended the same day.
 Not over-engineered on purpose: every step below works on its own.

@@ -424,7 +424,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapMyLocation => '現在地';
 
   @override
-  String get mapShelterHint => '避難所の端末：✎で状況を入力。地図を長押しで通行止め・給水を登録。';
+  String get mapShelterHint => 'ベース：✎で避難所の状況を入力。地図を長押しで通行止め・給水を登録。';
 
   @override
   String mapInFloodArea(String depth) {
@@ -481,7 +481,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String answerShelterComputer(String name) {
-    return '避難所のコンピューター · $name';
+    return 'ベース · $name';
   }
 
   @override
@@ -571,7 +571,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLanguageDevice => '端末の設定';
 
   @override
-  String get settingsShelter => '避難所';
+  String get settingsShelter => 'ベース';
 
   @override
   String get settingsOfflineData => 'オフラインデータ';
@@ -699,7 +699,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askPhaseReady => 'オフラインで利用可';
 
   @override
-  String get askPhaseShelter => '避難所';
+  String get askPhaseShelter => 'ベース';
 
   @override
   String get askPhaseServing => '公開中';
@@ -717,7 +717,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askExplainReady => 'AIはこの端末の中で動いています。インターネットは不要です。';
 
   @override
-  String get askExplainShelter => '避難所のコンピューターが、施設内のWi-Fiで回答します。この端末より速く答えます。';
+  String get askExplainShelter => '近くのベース（パソコン）が、同じWi-Fiで回答します。この端末より速く答えます。';
 
   @override
   String get askExplainServing =>
@@ -791,14 +791,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get packagesAddTooltip => '分野を追加';
 
   @override
-  String get shelterNoAddress => 'ネットワークのアドレスがありません。この端末を施設のWi-Fiに接続してください。';
+  String get shelterNoAddress => 'ネットワークのアドレスがありません。この端末をWi-Fiに接続してください。';
 
   @override
   String get shelterConnectPhones => 'スマートフォンを接続';
 
   @override
   String shelterScanHint(String appName, String name) {
-    return '施設のWi-Fiに接続したスマートフォンのカメラで読み取ると、$appNameが開き「$name」に接続します。';
+    return '同じWi-Fiにつないだスマートフォンのカメラで読み取ると、$appNameが開き「$name」に接続します。';
   }
 
   @override
@@ -810,28 +810,28 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get shelterThisShelter => 'この避難所';
+  String get shelterThisShelter => 'このベース';
 
   @override
   String shelterConnectBody(String address) {
-    return '避難所のコンピューター（$address）が質問に答え、最新の情報を共有します。いま居る避難所のコードだけを読み取ってください。';
+    return 'ベース（$address）が質問に答え、最新の情報を共有します。いま居る場所のコードだけを読み取ってください。';
   }
 
   @override
   String get shelterConnect => '接続';
 
   @override
-  String get shelterAddress => '避難所のアドレス';
+  String get shelterAddress => 'ベースのアドレス';
 
   @override
-  String get shelterAddressHelper => '避難所の端末のQRコードの横に表示されています。';
+  String get shelterAddressHelper => 'ベースのQRコードの横に表示されています。';
 
   @override
-  String get shelterConnectComputer => '避難所のコンピューターに接続';
+  String get shelterConnectComputer => 'ベースに接続';
 
   @override
   String get shelterConnectComputerHint =>
-      '避難所のQRコードを読み取るか、アドレスを入力します。回答が速くなります。';
+      'ベースのQRコードを読み取るか、アドレスを入力します。回答が速くなります。';
 
   @override
   String shelterAskedFirst(String address) {
@@ -878,7 +878,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadsMobileBody =>
-      'Wi-Fi につながっていません。データ通信量を使います。多くの料金プランでは Wi-Fi のほうが安くすみます。近くに避難所のコンピューターがあれば、その Wi-Fi からもダウンロードできます。';
+      'Wi-Fi につながっていません。データ通信量を使います。多くの料金プランでは Wi-Fi のほうが安くすみます。近くにベースがあれば、その Wi-Fi からもダウンロードできます。';
 
   @override
   String get downloadsMobileData => 'モバイルデータ';
@@ -947,7 +947,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadsFilterKind => '種類';
 
   @override
-  String get webError => '避難所のコンピューターが回答できませんでした。もう一度お試しください。';
+  String get webError => 'ベースが回答できませんでした。もう一度お試しください。';
 
   @override
   String get shelterWithApp => 'アプリで';
@@ -957,20 +957,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shelterBrowserHint =>
-      'アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は避難所の Wi-Fi の中だけでやりとりします。';
+      'アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は同じ Wi-Fi の中だけでやりとりします。';
 
   @override
-  String get shareOnNetwork => 'この端末を避難所として公開';
+  String get shareOnNetwork => 'この端末をベースにする';
 
   @override
   String get shareOnNetworkHint =>
       '同じWi-Fiのスマホから、このコンピューターに質問したり、資料や地図をダウンロードしたりできます。';
 
   @override
-  String get shareName => '避難所の名前';
+  String get shareName => 'ベースの名前';
 
   @override
-  String get shareNameHint => 'スマホに表示されます（例：南小学校 避難所）';
+  String get shareNameHint => 'スマホに表示されます（例：南小学校 避難所、〇〇山荘）';
 
   @override
   String get shareStarting => '準備ができしだい公開します。';
@@ -1027,4 +1027,8 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareReceiveNothingNew => '新しいものはありません。このスマートフォンにはすべてそろっています。';
+
+  @override
+  String get answerBaseUnreachable =>
+      'ベースにつながらず、この端末にも回答モデルがありません。ベースと同じWi-Fiにつないでから、もう一度お試しください。';
 }

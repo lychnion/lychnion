@@ -1,5 +1,9 @@
 # Shelter computer over local Wi-Fi
 
+> **Name:** since 2026-11-18 the app calls the shelter computer a
+> 「ベース」 / "base", because it also fits huts, schools and camps.
+> Code and this note keep "shelter".
+
 Date: 2026-11-05. The desktop app answers phones on the local network, so
 slow or older phones get fast answers from a bigger model. This is the
 "desktop version for shelters" from the Idea 4 plan.

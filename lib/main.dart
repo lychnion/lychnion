@@ -888,7 +888,7 @@ class _SpikePageState extends State<SpikePage> {
       setState(() {
         _status =
             'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
-            '${_server != null ? ' · shelter server on port ${ShelterServer.defaultPort}' : ''}';
+            '${_server != null ? ' · base server on port ${ShelterServer.defaultPort}' : ''}';
         // A connected shelter still answers first.
         _phase = _server != null
             ? AskPhase.serving
@@ -968,7 +968,7 @@ class _SpikePageState extends State<SpikePage> {
     if (expected != null && key != expected) {
       _log({'event': 'shelter_key_mismatch'});
       setState(() {
-        _status = 'Shelter key does not match the QR code: not connected.';
+        _status = 'Base key does not match the QR code: not connected.';
         _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
       });
       return false;
@@ -1013,7 +1013,7 @@ class _SpikePageState extends State<SpikePage> {
     } catch (e) {
       _log({'event': 'shelter_unreachable', 'error': '$e'});
       if (!mounted || !identical(shelter, _shelter)) return;
-      setState(() => _status = 'Shelter not reachable: $e');
+      setState(() => _status = 'Base not reachable: $e');
       // The phone may join the shelter Wi-Fi later: try again.
       _retry = Timer(const Duration(seconds: 30), () {
         if (identical(shelter, _shelter)) unawaited(_connectShelter());
@@ -1070,8 +1070,9 @@ class _SpikePageState extends State<SpikePage> {
           return;
         }
         if (!_llm.isLoaded) {
+          if (!mounted) return;
           final failed = GroundedAnswer(question, appLang: lang)
-            ..text = 'Shelter not reachable and no model on this device: $e';
+            ..text = context.l10n.answerBaseUnreachable;
           setState(() {
             thread.entries.add(failed);
             _answering = false;

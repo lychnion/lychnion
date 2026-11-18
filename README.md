@@ -47,7 +47,8 @@ iPhone simulator, 2026-11-05. Shelter status and warnings on the map are test da
   answers in 2.5 s instead of 48 s. Phones connect by scanning a QR code
   on the shelter computer, or by typing its address. Since 2026-11-18 a
   switch in Settings turns this on, and phones without the app can use a
-  web page from the shelter computer (see [Shelter computer](#shelter-computer)).
+  web page from the shelter computer (see [Base](#base)). The app
+  now calls this a 「ベース」 / "base".
 - Real devices ([results](docs/device-results.md)): iPad Air 5 (M1) runs
   the full app offline: about 22 tokens/s, answers in 2 to 9 s, same answers
   as on the Mac. Pixel 5a (2021, 6 GB): same quality but about 48 s per
@@ -63,11 +64,12 @@ iPhone simulator, 2026-11-05. Shelter status and warnings on the map are test da
   shelters are skipped; staff enter them on the shelter computer, phones
   pull them every minute; 16 bytes per update in the radio-sized format.
 
-## Shelter computer
+## Base
 
-A notebook PC with the desktop app can serve everyone on the same Wi-Fi,
-for example in an evacuation shelter. Phones with the app and phones
-without it both get:
+A notebook PC with the desktop app can serve everyone on the same Wi-Fi:
+in an evacuation shelter, a mountain hut, a school or a camp. The app
+calls it a 「ベース」 / "base" (in code and older docs: shelter
+computer). Phones with the app and phones without it both get:
 
 - answers to their questions, from the computer's model (faster than most
   phones);
@@ -81,14 +83,15 @@ without it both get:
   <img src="docs/images/pixel-shelter-app.png" width="230" alt="App on a phone: answer from the shelter computer, with its source">
 </p>
 
-Pixel 5a over Wi-Fi, 2026-11-18. Left: browser, no app. Right:
-the app. The current information is test data.
+Pixel 5a over Wi-Fi, 2026-11-18, before the rename to "base". Left:
+browser, no app. Right: the app. The current information is test data.
 
 **On the computer:**
 
-1. Settings → 避難所 / Shelter → turn on 「この端末を避難所として公開」 /
-   "Share on the local network".
-2. Enter the shelter's name, for example 「南小学校 避難所」. Phones show it.
+1. Settings → ベース / Base → turn on 「この端末をベースにする」 /
+   "Use this computer as a base".
+2. Enter the base's name, for example 「南小学校 避難所」 or a hut's name.
+   Phones show it.
 3. Show the QR code to people. 「ブラウザで」 / "In the browser" works on
    every phone; 「アプリで」 / "With the app" connects the app. Only one
    code is shown at a time, so a camera cannot pick up the wrong one.
@@ -98,9 +101,16 @@ the app. The current information is test data.
 Sharing starts once the answer model has loaded. Turn the switch off to
 stop. The status chip on the home screen says 「公開中」 / "Sharing".
 
+**Phone to phone:** a phone can pass on what it has downloaded (guides,
+maps, models) without a base: Downloads → share button →
+「近くの人に共有」 / "Share with people nearby", while that screen is open.
+The other phone scans the code and picks what it wants in Downloads.
+Both need the same Wi-Fi, or one phone's hotspot; no internet is needed.
+Phones don't answer each other's questions (too slow).
+
 **On a phone:** scan the code with the normal camera app. The browser page
 asks and answers in Japanese or English (menu at the top right). The app
-asks before it connects and remembers the shelter.
+asks before it connects and remembers the base.
 
 **The network:** the phones and the computer must be on the same Wi-Fi,
 and it must let devices reach each other. Many guest and office networks

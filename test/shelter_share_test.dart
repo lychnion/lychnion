@@ -30,7 +30,7 @@ void main() {
     // Cancelling the name leaves sharing off.
     await t.tap(find.byType(Switch));
     await t.pumpAndSettle();
-    expect(find.text('Shelter name'), findsOneWidget);
+    expect(find.text('Base name'), findsOneWidget);
     await t.tap(find.text('Cancel'));
     await t.pumpAndSettle();
     expect(settings.sharing, isFalse);
