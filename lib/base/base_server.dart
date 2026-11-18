@@ -9,6 +9,7 @@ import '../app/lang.dart' show appTextLang;
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
 import '../facts/signing.dart';
+import 'answer_signing.dart';
 import '../knowledge/grounded_answer.dart';
 import 'base_library.dart';
 import 'base_protocol.dart';
@@ -19,9 +20,11 @@ import 'watched_socket.dart';
 ///
 /// GET /       → a page for phones without the app (assets/web/base.html)
 /// GET /web.json?lang=ja → that page's texts and the current facts
-/// GET /info  → {name, model, package, version}
+/// GET /info  → {name, model, package, version, key, signs_answers}
 /// GET /facts → current facts (JSON, or ?compact=1 for radio-sized messages)
-/// POST /ask  {"question": "…"} → an answer (base_protocol.dart)
+/// POST /ask  {"question": "…", "nonce": "…"} → an answer
+///            (base_protocol.dart), signed when the app sent a nonce
+///            (answer_signing.dart)
 /// GET /catalog.json        → signed records of what this base has
 /// GET `/blobs/sha256/<hash>` → one of those files (resumable with Range)
 ///
@@ -251,8 +254,10 @@ class BaseServer {
             'version': a.package.version,
             'answered': answered,
           },
-          // Phones trust this key for the facts the base signs.
+          // Phones trust this key for the facts the base signs, and
+          // check its answers with it.
           'key': ?facts?.signer?.publicKeyText,
+          'signs_answers': facts?.signer != null,
         });
       } else if (req.method == 'GET' && req.uri.path == '/facts') {
         // All unexpired facts, so phones apply the same conflict rules.
@@ -338,6 +343,8 @@ class BaseServer {
   Future<void> _answer(HttpRequest req, _Question question) async {
     final res = req.response;
     final Object? j;
+    // The question as received: an answer signature covers it.
+    final List<int> request;
     try {
       final body = await _readBody(req).timeout(bodyTimeout);
       if (body == null) {
@@ -349,6 +356,7 @@ class BaseServer {
           bodyRead: req.contentLength <= maxBodyBytes,
         );
       }
+      request = body;
       j = jsonDecode(utf8.decode(body));
     } on TimeoutException {
       return _refuse(
@@ -369,6 +377,9 @@ class BaseServer {
     // The browser page sends its language: it decides between
     // Latin-script languages (an English or Spanish question).
     final lang = (j as Map)['lang'];
+    // The app sends a new nonce with each question: its answer is signed
+    // with it (answer_signing.dart). The browser page sends none.
+    final nonce = j['nonce'];
     final answer = GroundedAnswer(
       q.trim(),
       appLang: appTextLang(lang is String ? lang : 'en'),
@@ -412,7 +423,12 @@ class BaseServer {
       return _send(res, 503, {'error': 'busy, try again soon'});
     }
     answered++;
-    _send(res, 200, {...answerToWire(answer), 'web': webAnswer(answer)});
+    await _sendAnswer(
+      res,
+      {...answerToWire(answer), 'web': webAnswer(answer)},
+      nonce: isAnswerNonce(nonce) ? nonce as String : null,
+      request: request,
+    );
   }
 
   /// The body, or null when it is larger than [maxBodyBytes]. Not read
@@ -550,6 +566,32 @@ class BaseServer {
     debugPrint(
       'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': to})}',
     );
+  }
+
+  /// An answer, signed with the base key when the phone sent a [nonce]:
+  /// the signature covers these exact bytes and the [request] they answer.
+  Future<void> _sendAnswer(
+    HttpResponse res,
+    Map<String, Object?> body, {
+    required String? nonce,
+    required List<int> request,
+  }) async {
+    final bytes = utf8.encode(jsonEncode(body));
+    final signer = facts?.signer;
+    final signature = signer == null || nonce == null
+        ? null
+        : await signAnswer(signer, nonce: nonce, request: request, body: bytes);
+    try {
+      if (signature != null) {
+        res.headers.set(answerSignatureHeader, signature);
+      }
+      res
+        ..statusCode = 200
+        ..add(bytes);
+    } on StateError {
+      // Headers already sent: nothing more can be said.
+    }
+    unawaited(_close(res));
   }
 
   void _send(HttpResponse res, int status, Map<String, Object?> body) {

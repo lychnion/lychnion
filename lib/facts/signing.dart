@@ -56,8 +56,11 @@ class FactSigner {
     return FactSigner._(pair, (await pair.extractPublicKey()).bytes);
   }
 
-  Future<String> signText(String text) async =>
-      _b64((await _ed25519.sign(utf8.encode(text), keyPair: _pair)).bytes);
+  Future<String> signText(String text) => signBytes(utf8.encode(text));
+
+  /// Signature of [bytes], base64url without padding (86 characters).
+  Future<String> signBytes(List<int> bytes) async =>
+      _b64((await _ed25519.sign(bytes, keyPair: _pair)).bytes);
 
   Future<Fact> sign(Fact f) async =>
       f.signed(keyId, await signText(f.canonical));
