@@ -77,6 +77,9 @@ here should be relied on alone in an emergency. Source only; build it as
   publisher the user added, checks every file's size and SHA-256, and
   never installs an older version.
 - Facts from a base are trusted only after its QR code was scanned.
+- A base limits what each phone can send and how long it may hold a
+  connection, and its errors don't show file paths. Phones limit what
+  they accept from a base.
 
 ### Formats
 
@@ -93,5 +96,7 @@ Catalog `format: 2`, signed record `format: 1`, base protocol `v: 1`.
   at one base ([#5](https://github.com/lychnion/lychnion/issues/5)),
   Android Nearby ([#6](https://github.com/lychnion/lychnion/issues/6)).
 - On phones without a fast GPU, answers are slow (Pixel 5a: about 48 s).
+- Answers from a base are not signed
+  ([#36](https://github.com/lychnion/lychnion/issues/36)).
 
 [Unreleased]: https://github.com/lychnion/lychnion/commits/main

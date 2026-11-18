@@ -15,6 +15,7 @@ import '../app/region.dart';
 import '../app/settings.dart';
 import '../download/catalog.dart';
 import '../download/download_store.dart';
+import '../download/publisher_list.dart' show cleanShownText;
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
 import '../knowledge/app_help.dart';

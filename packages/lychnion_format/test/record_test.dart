@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:test/test.dart';
 
@@ -120,5 +123,99 @@ void main() {
 
   test("Lychnion's key is built in", () {
     expect(lychnionPublicKey, hasLength(43));
+  });
+
+  group('random input', () {
+    // A record from a base or mirror can be anything: check() gives a
+    // record only when the signed content is unchanged, and never throws.
+    late TrustedKeys trusted;
+    late Map<String, Object?> signed;
+    setUpAll(() async {
+      final pair = await newKeyPair();
+      trusted = TrustedKeys({
+        'test': [pair.publicKey],
+      });
+      signed = (await PackageRecord.sign(
+        _unsigned(),
+        await keyPairFromSeed(pair.seed),
+      )).json;
+    });
+
+    Map<String, Object?> copy() =>
+        (jsonDecode(jsonEncode(signed)) as Map).cast();
+
+    test('changed values are refused, never an error', () async {
+      final rnd = Random(11);
+      final odd = <Object?>[
+        null,
+        0,
+        -1,
+        1e308,
+        '',
+        'x',
+        true,
+        <Object?>[],
+        <String, Object?>{},
+        '../etc/passwd',
+        'b' * 64,
+        '2026.11.2',
+        'lychnion',
+      ];
+      void mutate(Object? o) {
+        if (o is Map && o.isNotEmpty) {
+          final k = o.keys.elementAt(rnd.nextInt(o.length));
+          switch (rnd.nextInt(3)) {
+            case 0:
+              o[k] = odd[rnd.nextInt(odd.length)];
+            case 1:
+              o.remove(k);
+            default:
+              mutate(o[k]);
+          }
+        } else if (o is List && o.isNotEmpty) {
+          final i = rnd.nextInt(o.length);
+          if (rnd.nextBool()) {
+            o[i] = odd[rnd.nextInt(odd.length)];
+          } else {
+            mutate(o[i]);
+          }
+        }
+      }
+
+      // What the signature covers: everything but the key and signature.
+      String content(Map<String, Object?> j) => canonicalJson(
+        Map.of(j)
+          ..remove('key')
+          ..remove('signature'),
+      );
+      final original = content(signed);
+      for (var i = 0; i < 400; i++) {
+        final j = copy();
+        mutate(j);
+        final r = await trusted.check(j);
+        if (r != null) {
+          // Accepted only when nothing that is signed changed.
+          expect(content(j), original, reason: '$j');
+        }
+      }
+    });
+
+    test('random values and cut-off JSON are refused', () async {
+      final rnd = Random(5);
+      final text = jsonEncode(signed);
+      for (var i = 0; i < 200; i++) {
+        final cut = text.substring(0, rnd.nextInt(text.length));
+        Object? j;
+        try {
+          j = jsonDecode(cut);
+        } on FormatException {
+          j = cut;
+        }
+        expect(await trusted.check(j), isNull);
+      }
+      for (final j in [null, 1, 'x', <Object?>[], <String, Object?>{}]) {
+        expect(await trusted.check(j), isNull);
+      }
+    });
   });
 }
