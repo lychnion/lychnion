@@ -1471,7 +1471,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tourMenu => 'メニュー';
 
   @override
-  String get tourMenuText => '設定、近くの人と共有、そしてこのツアーはここから。';
+  String get tourMenuText => '設定、ヘルプ、近くの人と共有、そしてこのツアーはここから。';
 
   @override
   String get downloadsKeepAll => 'スマートフォン用にすべて保管';
@@ -1490,4 +1490,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadsKeepAllDone => 'すべてそろっています。';
+
+  @override
+  String get helpTitle => 'ヘルプ';
+
+  @override
+  String get helpSearch => 'ヘルプを検索';
+
+  @override
+  String get helpNoResults => '見つかりませんでした。ほかの言葉で探すか、質問欄で聞いてください。';
+
+  @override
+  String get helpAllTopics => 'すべてのヘルプ';
 }

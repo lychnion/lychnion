@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
+import '../ui/help_screen.dart';
 import '../app/region.dart';
 import '../knowledge/regions.dart';
 import '../l10n/app_localizations.dart';
@@ -307,6 +308,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     appBar: AppBar(
       title: Text(l.downloadsTitle),
       actions: [
+        IconButton(
+          tooltip: l.helpTitle,
+          icon: const Icon(Icons.help_outline_rounded),
+          onPressed: () => HelpScreen.open(context, topic: 'help-04-downloads'),
+        ),
         IconButton(
           tooltip: l.shareNearby,
           icon: const Icon(Icons.share_rounded),

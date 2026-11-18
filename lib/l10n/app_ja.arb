@@ -453,10 +453,14 @@
   "tourMap": "地図",
   "tourMapText": "避難場所、津波の浸水想定、歩いて行ける道。オフラインで使えます。",
   "tourMenu": "メニュー",
-  "tourMenuText": "設定、近くの人と共有、そしてこのツアーはここから。",
+  "tourMenuText": "設定、ヘルプ、近くの人と共有、そしてこのツアーはここから。",
   "downloadsKeepAll": "スマートフォン用にすべて保管",
   "downloadsKeepAllHint": "このパソコンがカタログのすべてのガイドと地図をダウンロードし、最新に保ちます。近くのスマートフォンはここから受け取れます。項目を削除したままにするには、オフにしてください。",
   "downloadsKeepModels": "AI モデルも（数 GB）",
   "downloadsKeepAllMissing": "未取得：{count} 件、{size}",
-  "downloadsKeepAllDone": "すべてそろっています。"
+  "downloadsKeepAllDone": "すべてそろっています。",
+  "helpTitle": "ヘルプ",
+  "helpSearch": "ヘルプを検索",
+  "helpNoResults": "見つかりませんでした。ほかの言葉で探すか、質問欄で聞いてください。",
+  "helpAllTopics": "すべてのヘルプ"
 }

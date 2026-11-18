@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../app/lang.dart';
+import '../ui/help_screen.dart';
 import '../download/download_store.dart';
 import 'shelter_library.dart';
 import 'shelter_link.dart';
@@ -146,7 +147,17 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text(l.shareNearby)),
+      appBar: AppBar(
+        title: Text(l.shareNearby),
+        actions: [
+          IconButton(
+            tooltip: l.helpTitle,
+            icon: const Icon(Icons.help_outline_rounded),
+            onPressed: () =>
+                HelpScreen.open(context, topic: 'help-06-share-nearby'),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: body,

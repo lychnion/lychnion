@@ -2567,7 +2567,7 @@ abstract class AppLocalizations {
   /// No description provided for @tourMenuText.
   ///
   /// In en, this message translates to:
-  /// **'Settings, sharing with people nearby, and this tour.'**
+  /// **'Settings, help, sharing with people nearby, and this tour.'**
   String get tourMenuText;
 
   /// No description provided for @downloadsKeepAll.
@@ -2599,6 +2599,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everything is here.'**
   String get downloadsKeepAllDone;
+
+  /// No description provided for @helpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get helpTitle;
+
+  /// No description provided for @helpSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search help'**
+  String get helpSearch;
+
+  /// No description provided for @helpNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Try other words, or ask in the question field.'**
+  String get helpNoResults;
+
+  /// No description provided for @helpAllTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'All help'**
+  String get helpAllTopics;
 }
 
 class _AppLocalizationsDelegate

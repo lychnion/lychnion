@@ -15,3 +15,7 @@ Tap "Continue first steps" at the top of Home to show the checklist again.
 ## How do I learn where everything is?
 
 Open "⋮" at the top right and choose "Guided tour". It shows the parts of Home and the tabs one by one.
+
+## Where is the help?
+
+Open "⋮" at the top right and choose "Help" to read or search every topic, also before the AI is downloaded. Screens such as Downloads and sharing have a "?" at the top right that opens their own help. Once the AI is there, you can also ask how to use the app in the question field.

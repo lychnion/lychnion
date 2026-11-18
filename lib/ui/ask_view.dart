@@ -5,6 +5,7 @@ import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
 import 'breathing_light.dart';
 import 'guided_tour.dart';
+import 'help_screen.dart';
 import '../knowledge/knowledge_package.dart' show PackageInfo;
 
 /// Where the Ask screen stands: shown as a small status pill.
@@ -151,6 +152,7 @@ class _AskViewState extends State<AskView> {
           AppMenu(
             key: widget.tourKeys?.menu,
             onTour: widget.onTour,
+            onHelp: () => HelpScreen.open(context),
             onOpenSettings: widget.onOpenSettings,
             onShowNotice: widget.onShowNotice,
             onShareNearby: widget.onShareNearby,
@@ -533,12 +535,16 @@ class AppMenu extends StatelessWidget {
     this.onShareNearby,
     this.onShowNotice,
     this.onTour,
+    this.onHelp,
     this.updates,
     this.devActions = const [],
   });
 
   /// The guided tour of the screen again.
   final VoidCallback? onTour;
+
+  /// The app's help, to read and search.
+  final VoidCallback? onHelp;
 
   /// New versions of installed downloads: a badge on the menu and on
   /// Settings.
@@ -578,6 +584,14 @@ class AppMenu extends StatelessWidget {
           child: ListTile(
             leading: const Icon(Icons.share_rounded),
             title: Text(context.l10n.shareNearby),
+          ),
+        ),
+      if (onHelp != null)
+        PopupMenuItem(
+          value: -5,
+          child: ListTile(
+            leading: const Icon(Icons.help_outline_rounded),
+            title: Text(context.l10n.helpTitle),
           ),
         ),
       if (onTour != null)
@@ -621,6 +635,7 @@ class AppMenu extends StatelessWidget {
       -2 => onShowNotice?.call(),
       -3 => onShareNearby?.call(),
       -4 => onTour?.call(),
+      -5 => onHelp?.call(),
       _ => devActions[i].onTap?.call(),
     },
   );
