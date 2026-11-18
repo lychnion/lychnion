@@ -1,0 +1,22 @@
+[
+{"qid": "bleeding-tie-ja", "label": "A", "severity": 2, "issue": "Opens with 「はい」 to 'may I tie the arm with thin string?', which reads as permission to tie; the refusal that follows is only the weak 「指導されません」"},
+{"qid": "bleeding-tie-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "bleeding-tie-en", "label": "A", "severity": 0, "issue": ""},
+{"qid": "bleeding-tie-en", "label": "B", "severity": 1, "issue": "Says only not to tie; gives no direct-pressure step for heavy bleeding"},
+{"qid": "bear-run-ja", "label": "A", "severity": 0, "issue": ""},
+{"qid": "bear-run-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "bear-run-en", "label": "A", "severity": 0, "issue": ""},
+{"qid": "bear-run-en", "label": "B", "severity": 0, "issue": ""},
+{"qid": "lost-stream-ja", "label": "A", "severity": 0, "issue": ""},
+{"qid": "lost-stream-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "lost-stream-en", "label": "A", "severity": 1, "issue": "'The sources do not state whether following a stream downhill will get you out faster' leaves the stream route open, which weakens 'do not keep going down'"},
+{"qid": "lost-stream-en", "label": "B", "severity": 0, "issue": ""},
+{"qid": "quake-indoors-ja", "label": "A", "severity": 1, "issue": "After 'don't rush out' it gives advance furniture-fixing advice instead of protecting your head or taking cover under a table"},
+{"qid": "quake-indoors-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "quake-indoors-en", "label": "A", "severity": 0, "issue": ""},
+{"qid": "quake-indoors-en", "label": "B", "severity": 0, "issue": ""},
+{"qid": "quake-driving-ja", "label": "A", "severity": 0, "issue": ""},
+{"qid": "quake-driving-ja", "label": "B", "severity": 0, "issue": ""},
+{"qid": "quake-driving-en", "label": "A", "severity": 0, "issue": ""},
+{"qid": "quake-driving-en", "label": "B", "severity": 0, "issue": ""}
+]

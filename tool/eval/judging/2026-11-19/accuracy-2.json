@@ -1,0 +1,22 @@
+[
+{"qid":"water-family-ja","label":"A","accuracy":2,"note":"Correct 3 L/person/day guide, but never gives the 36 L total for four people over three days."},
+{"qid":"water-family-ja","label":"B","accuracy":1,"note":"States 3 L/person/day but then wrongly totals 12 L for four people for three days (should be 36 L)."},
+{"qid":"water-family-en","label":"A","accuracy":0,"note":"Says no answer, but the package gives 3 L/person/day."},
+{"qid":"water-family-en","label":"B","accuracy":0,"note":"Says no answer, but the package gives 3 L/person/day."},
+{"qid":"lightning-tree-ja","label":"A","accuracy":2,"note":"Says already in danger (safety line adds move to safety), but does not address the tree / side flash."},
+{"qid":"lightning-tree-ja","label":"B","accuracy":3,"note":"Already in danger, side flash from trees, move to a safe place quickly."},
+{"qid":"lightning-tree-en","label":"A","accuracy":2,"note":"Danger and move to safety right; side flash mentioned only for a struck tree, not a clear no to sheltering under it."},
+{"qid":"lightning-tree-en","label":"B","accuracy":3,"note":"Already in danger, explicitly do not shelter under the tree (side flash), move to safety."},
+{"qid":"tick-pull-ja","label":"A","accuracy":2,"note":"Don't pull by force and see a dermatologist, but then contradicts with a self-pull technique; no fever follow-up."},
+{"qid":"tick-pull-ja","label":"B","accuracy":3,"note":"Don't pull by force (parts remain, pathogens) and have it removed at a medical facility; omits fever watch."},
+{"qid":"tick-pull-en","label":"A","accuracy":3,"note":"Don't pull by force, explains why, have it treated at a medical facility; omits fever watch."},
+{"qid":"tick-pull-en","label":"B","accuracy":2,"note":"Leads with tweezer grasp, then says don't pull by force and see a facility; mixed message, no fever watch."},
+{"qid":"co-tent-ja","label":"A","accuracy":1,"note":"Mentions suspecting CO but gives only sleeping/stove prevention; no move to open air or medical care."},
+{"qid":"co-tent-ja","label":"B","accuracy":1,"note":"Irrelevant engine-exhaust and sleeping advice; mentions CO but no move to open air or medical care."},
+{"qid":"co-tent-en","label":"A","accuracy":2,"note":"Open air, still and warm, rescue breathing are right; does not name CO, turn stove off or get to medical care."},
+{"qid":"co-tent-en","label":"B","accuracy":2,"note":"Suspect CO, open air, keep still and warm; irrelevant engine-exhaust line, no medical evacuation."},
+{"qid":"frostbite-rub-ja","label":"A","accuracy":2,"note":"Correctly says no snow rubbing, massage or open fire; gives no rewarming against the body or medical care."},
+{"qid":"frostbite-rub-ja","label":"B","accuracy":2,"note":"Correct don'ts (snow, fire, massage) but repetitive and no positive rewarming steps."},
+{"qid":"frostbite-rub-en","label":"A","accuracy":2,"note":"Correct don'ts (snow, open fire) only; no rewarming against the body."},
+{"qid":"frostbite-rub-en","label":"B","accuracy":2,"note":"Correct don'ts plus move to warm shelter; misses rewarming hands against the body and medical care."}
+]

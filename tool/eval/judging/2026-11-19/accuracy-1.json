@@ -1,0 +1,22 @@
+[
+{"qid":"bleeding-tie-ja","label":"A","accuracy":1,"note":"Opens with 「はい」, which reads as permission to tie; the correct 'not taught' point and direct pressure come after it."},
+{"qid":"bleeding-tie-ja","label":"B","accuracy":3,"note":"Says not to tie with thin string or wire (vessel and nerve damage) and to press hard with layered gauze; only the gloves are missing."},
+{"qid":"bleeding-tie-en","label":"A","accuracy":3,"note":"Says no thin string or wire and why, plus direct hard pressure with layered gauze; 'do not instruct' wording is awkward."},
+{"qid":"bleeding-tie-en","label":"B","accuracy":2,"note":"Says not to tie and why, but leaves out direct pressure, the actual way to stop the bleeding."},
+{"qid":"bear-run-ja","label":"A","accuracy":3,"note":"Do not run with your back turned; move away quietly and slowly (the safety line adds watching the bear)."},
+{"qid":"bear-run-ja","label":"B","accuracy":3,"note":"Do not turn and run because the bear may chase; move away slowly while watching the bear."},
+{"qid":"bear-run-en","label":"A","accuracy":3,"note":"Do not run; move away slowly while watching; warns against dropping a bag with food."},
+{"qid":"bear-run-en","label":"B","accuracy":3,"note":"Never turn and run; do not drop your pack; move away slowly while watching the bear."},
+{"qid":"lost-stream-ja","label":"A","accuracy":3,"note":"Do not keep going down; go back the way you came; if you cannot, wait in an open place or on a ridge. 110/119 not mentioned."},
+{"qid":"lost-stream-ja","label":"B","accuracy":2,"note":"Correct: do not go down, go back (typo 引き返る). Gives the cliff example, but no rescue call or waiting step."},
+{"qid":"lost-stream-en","label":"A","accuracy":3,"note":"Do not keep going down, go back, call 110/119; the hedge about streams is odd but harmless."},
+{"qid":"lost-stream-en","label":"B","accuracy":3,"note":"Do not keep going down, go back, wait in an open place, call 110/119."},
+{"qid":"quake-indoors-ja","label":"A","accuracy":2,"note":"Do not rush outside is correct, but the second sentence is about fixing furniture in advance; leaves out protecting the head and taking cover."},
+{"qid":"quake-indoors-ja","label":"B","accuracy":3,"note":"Do not rush outside; protect your head, move away from furniture, take cover under a sturdy table."},
+{"qid":"quake-indoors-en","label":"A","accuracy":2,"note":"Key point right, but the cover step is garbled ('move away from large furniture under a sturdy table')."},
+{"qid":"quake-indoors-en","label":"B","accuracy":3,"note":"Do not rush outside; protect your head, move away from furniture, take cover under a sturdy table."},
+{"qid":"quake-driving-ja","label":"A","accuracy":3,"note":"No sudden braking or swerving, slow down gradually, hazard lights, stop on the left."},
+{"qid":"quake-driving-ja","label":"B","accuracy":3,"note":"All steps right; the extra line about not moving from a safe place is harmless."},
+{"qid":"quake-driving-en","label":"A","accuracy":3,"note":"Slow down gradually, no sharp turns or sudden braking, hazard lights, stop on the left."},
+{"qid":"quake-driving-en","label":"B","accuracy":3,"note":"Slow down gradually, no sharp turns or sudden braking, hazard lights, stop on the left."}
+]
