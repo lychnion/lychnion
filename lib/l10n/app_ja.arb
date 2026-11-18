@@ -145,6 +145,7 @@
   "settingsLanguage": "言語",
   "settingsLanguageDevice": "端末の設定",
   "settingsShelter": "ベース",
+  "settingsKeptAside": "保存データの一部を使えませんでした。コピーを残しました：{files}",
   "settingsOfflineData": "オフラインデータ",
   "settingsDownloadsHint": "AIモデル・防災の資料・地図",
   "settingsAboutGroup": "このアプリについて",

@@ -473,6 +473,7 @@ class DownloadManager extends ChangeNotifier {
     await _loadFollowed();
     catalog = _compose();
     _refreshStates();
+    unawaited(_upgradeOldMarkers());
     if (_autoDownload.isNotEmpty) {
       unawaited(_runAuto());
     } else if (updateMode != UpdateMode.off || keepAll) {
@@ -924,11 +925,78 @@ class DownloadManager extends ChangeNotifier {
 
   Future<void> delete(CatalogItem item) async {
     stop(item);
+    // An old marker being checked may still write its new marker: wait.
+    await _upgrading[item.id];
     await store.delete(item);
     stateOf(item).error = null;
     catalog = _compose(); // an item only installed here goes from the list
     changes.value++;
     _refreshStates();
+  }
+
+  /// Install markers from before signed records (see
+  /// [DownloadStore.upgradeOldMarker]): checked against the catalog in
+  /// the background, one at a time, shown as "checking".
+  /// Old markers being checked now, by id (see [delete]).
+  final _upgrading = <String, Future<void>>{};
+
+  Future<void> _upgradeOldMarkers() async {
+    for (final (:kind, :id) in store.oldMarkers()) {
+      if (_disposed || _paused) return;
+      final item = catalog.byId(id);
+      final s = item == null ? null : stateOf(item);
+      if (s != null && s.status == ItemStatus.running) continue;
+      final cancel = CancelToken();
+      if (s != null) {
+        s
+          ..status = ItemStatus.running
+          ..phase = DownloadPhase.verifying
+          ..cancel = cancel
+          ..bytes = 0;
+        notifyListeners();
+      }
+      final finished = Completer<void>();
+      _upgrading[id] = finished.future;
+      try {
+        var done = 0;
+        final r = await store.upgradeOldMarker(
+          kind,
+          id,
+          item,
+          cancel: cancel,
+          hash: (file) async {
+            var lastUi = 0;
+            final sum = await sha256OfFile(
+              file,
+              cancel: cancel,
+              onProgress: (n) {
+                if (s == null || n - lastUi < 32 << 20) return;
+                lastUi = n;
+                s.bytes = done + n;
+                notifyListeners();
+              },
+            );
+            done += file.lengthSync();
+            return sum;
+          },
+        );
+        _log({'event': 'old_marker', 'id': id, 'result': r.name});
+        if (r == OldMarker.upgraded) changes.value++;
+      } on Object catch (e) {
+        // Cancelled or a read error: checked again at the next start.
+        _log({'event': 'old_marker', 'id': id, 'error': '$e'});
+      } finally {
+        _upgrading.removeWhere((k, _) => k == id);
+        finished.complete();
+        if (s != null) {
+          s
+            ..cancel = null
+            ..phase = null
+            ..status = ItemStatus.absent;
+        }
+        if (!_disposed) _refreshStates();
+      }
+    }
   }
 
   /// Checks files that are already there (copied by cable) and records

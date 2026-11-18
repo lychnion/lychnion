@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
+import '../util/versioned_file.dart';
+
 /// Text from a link or a file, made safe to show: no control or
 /// direction-changing characters, at most 60 characters; null when empty.
 String? cleanShownText(String? t) {
@@ -155,22 +157,19 @@ class PublisherList extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Format of publishers.json (see versioned_file.dart). 0: the same
+  /// fields without a format number.
+  static const format = 1;
+
   Future<void> load() async {
     _added.clear();
-    Object? raw;
-    try {
-      if (!await file.exists()) return _changed();
-      raw = (jsonDecode(await file.readAsString()) as Map)['publishers'];
-    } on Object {
-      // Unreadable: keep a copy (a later save would overwrite it), and
-      // start with no added publishers.
-      try {
-        await file.copy('${file.path}.broken');
-      } on Object {
-        // Nothing more to keep.
-      }
-      return _changed();
-    }
+    // Unreadable or newer: a copy is kept (a later save writes over the
+    // file), and no publishers are added.
+    final raw = await readVersioned(
+      file,
+      format,
+      (json, _) => (json! as Map)['publishers'],
+    );
     // Each entry on its own: one bad entry does not drop the others. A
     // file edited by hand is checked like a link.
     for (final e in raw is List ? raw : const []) {
@@ -257,11 +256,15 @@ class PublisherList extends ChangeNotifier {
   });
 
   Future<void> _save(Iterable<Publisher> list) async {
+    if (!mayReplace(file)) {
+      throw FileSystemException('kept as it is', file.path);
+    }
     await file.parent.create(recursive: true);
     // Written next to the file, then renamed: a cut write leaves the old list.
     final tmp = File('${file.path}.tmp');
     await tmp.writeAsString(
       const JsonEncoder.withIndent('  ').convert({
+        'format': format,
         'publishers': [
           for (final p in [...list]..sort((a, b) => a.name.compareTo(b.name)))
             p.toJson(),

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import '../util/paths.dart';
+import '../util/versioned_file.dart';
 import 'catalog.dart';
 import 'downloader.dart';
 import 'followed_catalogs.dart';
@@ -138,7 +139,8 @@ class DownloadStore {
       await for (final f in dir.list()) {
         if (f is! File || !f.path.endsWith('.installed.json')) continue;
         try {
-          final j = jsonDecode(await f.readAsString()) as Map;
+          final j = _markerJson(await f.readAsString());
+          if (j == null) continue;
           final r = await trust.check(j['record']);
           if (r != null) ok.add(canonicalJson(r.json));
         } catch (_) {}
@@ -158,6 +160,119 @@ class DownloadStore {
   File _marker(ItemKind kind, String id) =>
       File('${dirFor(kind).path}/$id.installed.json');
 
+  /// Format of install markers (see versioned_file.dart):
+  /// 0: `{id, kind, version, role, files: {name: size}}`, unsigned, from
+  ///    before signed records; never trusted, see [upgradeOldMarker];
+  /// 1: `{record}`, the publisher's signed record;
+  /// 2: `{format: 2, record}`.
+  static const markerFormat = 2;
+
+  /// Format of the marker text [text], or null when it cannot be read.
+  static int? _markerFormatOf(String text) {
+    try {
+      final j = jsonDecode(text);
+      if (j is! Map) return null;
+      if (j.containsKey('format')) {
+        return j['format'] is int ? j['format'] as int : null;
+      }
+      return j['record'] is Map ? 1 : 0;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// The marker [text] as JSON if this build reads its format (1 or 2),
+  /// or with [newer] also a newer format (only for its record, see
+  /// [_onDisk]).
+  static Map<String, Object?>? _markerJson(String text, {bool newer = false}) {
+    final f = _markerFormatOf(text);
+    if (f == null || f < 1 || (f > markerFormat && !newer)) return null;
+    return (jsonDecode(text) as Map).cast<String, Object?>();
+  }
+
+  /// Markers this build cannot use but can check against a catalog:
+  /// format 0 (unsigned, from before signed records) and unreadable ones.
+  /// Markers from a newer build are left alone.
+  List<({ItemKind kind, String id})> oldMarkers() => [
+    for (final kind in ItemKind.values)
+      if (dirFor(kind).existsSync())
+        for (final f in dirFor(kind).listSync())
+          if (f is File && f.path.endsWith('.installed.json'))
+            if ((_markerFormatOf(_readOr(f)) ?? 0) == 0)
+              (
+                kind: kind,
+                id: () {
+                  final name = f.uri.pathSegments.last;
+                  return name.substring(0, name.length - 15);
+                }(),
+              ),
+  ];
+
+  static String _readOr(File f) {
+    try {
+      return f.readAsStringSync();
+    } on Object {
+      return '';
+    }
+  }
+
+  /// Upgrades the old marker of [id] (see [oldMarkers]): if [item], from
+  /// a catalog, has a trusted record for the same id and kind, and every
+  /// file is there with its size and SHA-256 ([hash], by default
+  /// [sha256OfFile]), the signed record is written as the marker. Else the
+  /// marker is renamed to `<id>.installed.json.old`, so it is not checked
+  /// at every start, and the item shows as not installed. An unsigned
+  /// marker is never trusted as it is.
+  ///
+  /// [hash] may throw [DownloadCancelled], and so does a [cancel] that
+  /// is set when hashing is done: then nothing changes and the marker is
+  /// checked again at the next start.
+  Future<OldMarker> upgradeOldMarker(
+    ItemKind kind,
+    String id,
+    CatalogItem? item, {
+    Future<String> Function(File file)? hash,
+    CancelToken? cancel,
+  }) async {
+    final m = _marker(kind, id);
+    if (!m.existsSync() || (_markerFormatOf(_readOr(m)) ?? 0) != 0) {
+      return OldMarker.kept;
+    }
+    Future<OldMarker> retire() async {
+      await m.rename('${m.path}.old');
+      return OldMarker.retired;
+    }
+
+    // Not in the catalog now (a base's or a followed catalog not read
+    // yet): checked again at the next start, files stay in use by none.
+    if (item == null) return OldMarker.kept;
+    final r = item.record;
+    if (r == null ||
+        item.id != id ||
+        item.kind != kind ||
+        !await trust.verify(r) ||
+        !hasUnverifiedFiles(item)) {
+      return retire();
+    }
+    for (final f in item.files) {
+      final file = File('${dirFor(kind).path}/${f.name}');
+      final sum = await (hash ?? sha256OfFile)(file);
+      if (sum != f.sha256) return retire();
+    }
+    // Stopped after the last file was hashed: nothing is written.
+    if (cancel?.isCancelled ?? false) throw DownloadCancelled();
+    try {
+      await markInstalled(item);
+    } on UnsignedItem {
+      return retire();
+    } on TakenItem {
+      return retire();
+    } on OlderVersion {
+      return retire();
+    }
+    return OldMarker.upgraded;
+  }
+
   /// The install record, if its signature checks out and every file is
   /// still there at its size. Records from before signing (no `record`)
   /// count as not installed: the files then show as unverified and are
@@ -166,7 +281,7 @@ class DownloadStore {
     final m = _marker(kind, id);
     if (!m.existsSync()) return null;
     try {
-      final j = jsonDecode(m.readAsStringSync()) as Map;
+      final j = _markerJson(m.readAsStringSync())!;
       final r = PackageRecord.fromJson((j['record'] as Map).cast());
       if (!_verified.contains(canonicalJson(r.json))) return null;
       if (r.id != id || r.kind != kind.name) return null;
@@ -199,10 +314,12 @@ class DownloadStore {
 
   /// The record in the install marker of [id], read without checking its
   /// signature: who installed it and which version, also after its
-  /// publisher was removed.
+  /// publisher was removed. Also from a newer build's marker when its
+  /// record can be read: the checks for other publishers' items and
+  /// older versions must hold for those too.
   PackageRecord? _onDisk(ItemKind kind, String id) {
     try {
-      final j = jsonDecode(_marker(kind, id).readAsStringSync()) as Map;
+      final j = _markerJson(_marker(kind, id).readAsStringSync(), newer: true)!;
       return PackageRecord.fromJson((j['record'] as Map).cast());
     } on Object {
       return null;
@@ -227,6 +344,8 @@ class DownloadStore {
     '.publishing',
     '.tmp',
     '.broken',
+    '.old',
+    '.newer',
   ];
 
   static bool isReservedName(String name) {
@@ -284,8 +403,18 @@ class DownloadStore {
     // Written next to it first: a full disk must not leave a cut-off
     // record of what was installed before.
     final marker = _marker(item.kind, item.id);
+    // A marker from a newer build: kept as a copy, never written over
+    // without one.
+    if (marker.existsSync() &&
+        (_markerFormatOf(_readOr(marker)) ?? 0) > markerFormat &&
+        await keepAside(marker, 'newer') == null) {
+      throw FileSystemException('cannot keep newer marker', marker.path);
+    }
     final tmp = File('${marker.path}.tmp');
-    await tmp.writeAsString(jsonEncode({'record': r.json}), flush: true);
+    await tmp.writeAsString(
+      jsonEncode({'format': markerFormat, 'record': r.json}),
+      flush: true,
+    );
     try {
       await tmp.rename(marker.path);
     } on FileSystemException {
@@ -326,6 +455,8 @@ class DownloadStore {
     final dir = dirFor(item.kind);
     final m = _marker(item.kind, item.id);
     if (await m.exists()) await m.delete();
+    final old = File('${m.path}.old');
+    if (await old.exists()) await old.delete();
     for (final f in item.files) {
       final file = File('${dir.path}/${f.name}');
       if (await file.exists()) await file.delete();
@@ -360,16 +491,26 @@ class DownloadStore {
 
   File get _settingsFile => File('${root.path}/downloads/settings.json');
 
-  Map<String, Object?> _settings() {
-    try {
-      return (jsonDecode(_settingsFile.readAsStringSync()) as Map).cast();
-    } catch (_) {
-      return {};
-    }
-  }
+  /// Format of downloads/settings.json (see versioned_file.dart). 0: the
+  /// same fields without a format number.
+  static const settingsFormat = 1;
+
+  Map<String, Object?> _settings() =>
+      readVersionedSync(
+        _settingsFile,
+        settingsFormat,
+        (json, _) => (json! as Map).cast<String, Object?>(),
+      ) ??
+      {};
 
   Future<void> _set(String key, Object? value) async {
-    final s = _settings()..[key] = value;
+    // Read first: the read may find a file it must keep (see mayReplace).
+    final s = _settings()
+      ..[key] = value
+      ..['format'] = settingsFormat;
+    if (!mayReplace(_settingsFile)) {
+      throw FileSystemException('kept as it is', _settingsFile.path);
+    }
     await _settingsFile.parent.create(recursive: true);
     await _settingsFile.writeAsString(jsonEncode(s));
   }
@@ -467,6 +608,18 @@ class DownloadStore {
     await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
     return file.path;
   }
+}
+
+/// What [DownloadStore.upgradeOldMarker] did.
+enum OldMarker {
+  /// A signed marker was written: the item is installed.
+  upgraded,
+
+  /// Renamed to `.installed.json.old`: the item needs a download.
+  retired,
+
+  /// Nothing changed (no old marker).
+  kept,
 }
 
 /// The item has no record signed by a trusted publisher.
