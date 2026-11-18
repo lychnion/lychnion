@@ -96,7 +96,6 @@ class TrustList extends ChangeNotifier {
   /// start: keys are added again from the shelter QR. A broken entry is
   /// skipped.
   Future<void> load(File file) async {
-    _file = file;
     final keys = await readVersioned(file, format, (json, f) {
       final m = (f == 0 ? json : (json! as Map)['keys'])! as Map;
       return m.cast<String, Object?>();
@@ -112,6 +111,8 @@ class TrustList extends ChangeNotifier {
         continue;
       }
     }
+    // Saves start once the file was read (and kept as a copy if needed).
+    _file = file;
     notifyListeners();
   }
 

@@ -63,8 +63,9 @@ class AppSettings extends ChangeNotifier {
   /// Reads settings.json from app support, or from [dir] (tests).
   Future<void> load({Directory? dir}) async {
     dir ??= await getApplicationSupportDirectory();
-    _file = File('${dir.path}/settings.json');
-    await readVersioned(_file!, format, (json, _) {
+    // Saves start once the file was read (and kept as a copy if needed).
+    final file = File('${dir.path}/settings.json');
+    await readVersioned(file, format, (json, _) {
       final j = json! as Map;
       // Older files wrote 'system' for "follow the device".
       final lang = j['language'];
@@ -81,6 +82,7 @@ class AppSettings extends ChangeNotifier {
       acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
       firstSteps = {...?(j['first_steps'] as List?)?.cast<String>()};
     });
+    _file = file;
     notifyListeners();
   }
 

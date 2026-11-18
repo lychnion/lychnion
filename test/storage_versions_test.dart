@@ -170,6 +170,16 @@ void main() {
       expect(j['threads'], isList);
     });
 
+    test('a save during the load waits for the copy', () async {
+      const newer = '{"format":2,"threads":[]}';
+      file('threads.json').writeAsStringSync(newer);
+      final t = ThreadStore();
+      final loading = t.load(dir: tmp);
+      final saving = t.save();
+      await Future.wait([loading, saving]);
+      expect(file('threads.json.newer').readAsStringSync(), newer);
+    });
+
     test('format 1 is read', () async {
       file('threads.json').writeAsStringSync(
         jsonEncode({
@@ -370,6 +380,23 @@ void main() {
       await FollowedCatalogs(Directory('${tmp.path}/downloads')).load();
       expect(cache.existsSync(), isTrue);
     });
+
+    test(
+      'downloads/settings.json: a failed copy blocks the first set',
+      () async {
+        final s = DownloadStore(tmp, trust: TrustedKeys(const {}));
+        const newer = '{"format":5,"updates":"auto"}';
+        final f = File('${tmp.path}/downloads/settings.json')
+          ..createSync(recursive: true)
+          ..writeAsStringSync(newer);
+        Directory('${f.path}.newer').createSync();
+        await expectLater(
+          s.setKeepAll(true),
+          throwsA(isA<FileSystemException>()),
+        );
+        expect(f.readAsStringSync(), newer);
+      },
+    );
 
     test('downloads/settings.json: old read, newer kept aside', () async {
       final s = DownloadStore(tmp, trust: TrustedKeys(const {}));

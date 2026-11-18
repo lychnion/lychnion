@@ -66,7 +66,13 @@ class ThreadStore extends ChangeNotifier {
   static const format = 1;
 
   /// Reads threads.json from app support, or from [dir] (tests).
-  Future<void> load({Directory? dir}) async {
+  Future<void> load({Directory? dir}) => _loading = _load(dir);
+
+  /// The running or finished load: [save] waits for it, so it never
+  /// writes before a broken or newer file was kept as a copy.
+  Future<void>? _loading;
+
+  Future<void> _load(Directory? dir) async {
     dir ??= await getApplicationSupportDirectory();
     _file = File('${dir.path}/threads.json');
     final read = await readVersioned(_file!, format, (json, f) {
@@ -100,6 +106,7 @@ class ThreadStore extends ChangeNotifier {
 
   /// Saves finished answers (call after an answer is complete).
   Future<void> save() async {
+    await _loading;
     final file = _file;
     if (file == null || !mayReplace(file)) return;
     await file.writeAsString(

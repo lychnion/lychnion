@@ -498,12 +498,13 @@ class DownloadStore {
       {};
 
   Future<void> _set(String key, Object? value) async {
-    if (!mayReplace(_settingsFile)) {
-      throw FileSystemException('kept as it is', _settingsFile.path);
-    }
+    // Read first: the read may find a file it must keep (see mayReplace).
     final s = _settings()
       ..[key] = value
       ..['format'] = settingsFormat;
+    if (!mayReplace(_settingsFile)) {
+      throw FileSystemException('kept as it is', _settingsFile.path);
+    }
     await _settingsFile.parent.create(recursive: true);
     await _settingsFile.writeAsString(jsonEncode(s));
   }

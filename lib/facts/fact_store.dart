@@ -135,8 +135,10 @@ class FactStore extends ChangeNotifier {
     }
     _facts.addAll(fresh);
     final file = _file;
-    if (file != null && mayReplace(file)) {
+    if (file != null) {
       await _serial(() async {
+        // Checked in the queue, after a running load kept its copy.
+        if (!mayReplace(file)) return;
         if (!await file.exists()) await _rewrite(file, const []);
         await file.writeAsString(
           '${fresh.map((f) => jsonEncode({...f.toJson(), 'v_ok': f.verified})).join('\n')}\n',
