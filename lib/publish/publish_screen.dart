@@ -180,9 +180,12 @@ class _PublishScreenState extends State<PublishScreen> {
   List<Widget> _createForm(AppLocalizations l) => [
     TextField(
       controller: _name,
+      autocorrect: false,
+      enableSuggestions: false,
       decoration: InputDecoration(
         labelText: l.publishName,
         helperText: l.publishNameHelp,
+        helperMaxLines: 3,
         errorText: _nameError,
       ),
     ),

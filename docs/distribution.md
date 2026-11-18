@@ -78,7 +78,7 @@ Publishers → "Publish your own" (desktop app only):
 
 1. Create the publisher key once: a name (`jp.city.kobe`, cannot change)
    and a shown name (神戸市). The key is saved in the app folder
-   (`publisher/publisher.json`, readable by this user only) and never
+   (`publisher/publisher.json`, in a folder only this user can read) and never
    served or shared. The screen shows the publisher's QR code and link
    for phones, and where the key file is, to keep a copy offline.
 2. "Publish a guide or map": pick a package file (`<id>.sqlite`, built

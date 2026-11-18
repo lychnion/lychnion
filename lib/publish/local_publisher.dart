@@ -88,8 +88,9 @@ class LocalPublisher {
     return p;
   }
 
-  /// Readable by this user only (macOS, Linux). Windows keeps the app
-  /// folder per user already.
+  /// Readable by this user only. Needed on Linux; the macOS app folder
+  /// (sandbox container) and Windows' per-user app data are private to
+  /// the user already, so a refused chmod there changes nothing.
   static Future<void> _ownerOnly(File f) async {
     if (Platform.isWindows) return;
     try {
