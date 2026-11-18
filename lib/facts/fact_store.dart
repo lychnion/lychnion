@@ -13,8 +13,17 @@ import 'signing.dart';
 /// Facts are only added, never edited: a newer fact replaces an older one
 /// by winning [current]. Expired facts are never returned.
 class FactStore extends ChangeNotifier {
-  FactStore({DateTime Function()? clock, this.trust, this.signer})
-    : _clock = clock ?? DateTime.now;
+  FactStore({
+    DateTime Function()? clock,
+    this.trust,
+    this.signer,
+    this.maxFacts = 5000,
+  }) : _clock = clock ?? DateTime.now;
+
+  /// Facts kept at most, in memory and on disk. A base may send 500 new
+  /// facts a minute; without a limit they would fill the phone. Expired
+  /// facts go first, then the oldest that do not decide a topic.
+  final int maxFacts;
 
   /// Keys whose official / sensor facts count as such. Without a trust
   /// list (tests, old setups) every fact is taken as it says.
@@ -46,8 +55,14 @@ class FactStore extends ChangeNotifier {
     final file = _file = File('${dir.path}/facts.jsonl');
     await _serial(() => _loadFrom(file));
     // Keys trusted since the facts were saved (a base's QR code scanned
-    // after its facts came): checked again at every start.
+    // after its facts came): checked again at every start, before the
+    // limit drops unverified facts first.
     await reverify();
+    await _serial(() async {
+      if (_prune() && mayReplace(file) && await file.exists()) {
+        await _rewrite(file, [for (final f in _facts) _line(f)]);
+      }
+    });
     notifyListeners();
   }
 
@@ -127,32 +142,81 @@ class FactStore extends ChangeNotifier {
   /// radio message was verified already).
   Future<int> addAll(Iterable<Fact> facts, {bool checked = false}) async {
     final known = {for (final f in _facts) _key(f)};
+    final t = now;
     final fresh = [
       for (final f in facts)
-        if (known.add(_key(f))) f,
+        // Expired ones are not kept (a base sends all it has, each time).
+        if (!f.isExpired(t) && known.add(_key(f))) f,
     ];
     if (fresh.isEmpty) return 0;
-    final t = trust;
-    if (t != null && !checked) {
+    final keys = trust;
+    if (keys != null && !checked) {
       for (final f in fresh) {
-        f.verified = f.sourceType == SourceType.citizen || await t.verify(f);
+        f.verified = f.sourceType == SourceType.citizen || await keys.verify(f);
       }
     }
     _facts.addAll(fresh);
+    final pruned = _prune();
+    // Not those the limit dropped at once.
+    final kept = pruned
+        ? (Set<Fact>.identity()..addAll(_facts))
+              .intersection(Set<Fact>.identity()..addAll(fresh))
+              .length
+        : fresh.length;
     final file = _file;
     if (file != null) {
+      // What to write, taken now: facts may arrive while this waits.
+      final all = pruned ? [for (final f in _facts) _line(f)] : null;
       await _serial(() async {
         // Checked in the queue, after a running load kept its copy.
         if (!mayReplace(file)) return;
+        if (all != null) return _rewrite(file, all);
         if (!await file.exists()) await _rewrite(file, const []);
         await file.writeAsString(
-          '${fresh.map((f) => jsonEncode({...f.toJson(), 'v_ok': f.verified})).join('\n')}\n',
+          '${fresh.map(_line).join('\n')}\n',
           mode: FileMode.append,
         );
       });
     }
     notifyListeners();
-    return fresh.length;
+    return kept;
+  }
+
+  /// A fact as saved: the check result is kept on this device only.
+  static String _line(Fact f) =>
+      jsonEncode({...f.toJson(), 'v_ok': f.verified});
+
+  /// Drops expired facts and copies, then, over [maxFacts], first the
+  /// unverified ones (anyone on the Wi-Fi can send those), then those
+  /// that do not decide their topic, the oldest first. Returns whether any
+  /// were dropped.
+  bool _prune() {
+    final t = now;
+    final before = _facts.length;
+    final seen = <String>{};
+    _facts.removeWhere((f) => f.isExpired(t) || !seen.add(_key(f)));
+    if (_facts.length > maxFacts) {
+      final best = <String, Fact>{};
+      for (final f in _facts) {
+        final b = best[f.topic];
+        if (b == null || _beats(f, b)) best[f.topic] = f;
+      }
+      final winners = best.values.toSet();
+      int keep(Fact f) =>
+          (f.verified && f.sourceType != SourceType.citizen ? 2 : 0) +
+          (winners.contains(f) ? 1 : 0);
+      // A time after now counts as now: a fact cannot stay by claiming
+      // to be from the future.
+      DateTime at(Fact f) => f.observedAt.isAfter(t) ? t : f.observedAt;
+      final order = List.of(_facts)
+        ..sort((a, b) {
+          final k = keep(a) - keep(b);
+          return k != 0 ? k : at(a).compareTo(at(b));
+        });
+      final drop = order.take(_facts.length - maxFacts).toSet();
+      _facts.removeWhere(drop.contains);
+    }
+    return _facts.length < before;
   }
 
   /// Checks the unverified facts again (a key was trusted since, e.g. a

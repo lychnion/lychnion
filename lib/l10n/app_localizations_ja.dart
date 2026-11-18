@@ -484,6 +484,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get answerBaseUnchecked =>
+      '確認されていないベースです。正しいベースか、QR コードを読み取って確かめてください。';
+
+  @override
   String answerBaseComputer(String name) {
     return 'ベース · $name';
   }

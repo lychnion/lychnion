@@ -119,6 +119,18 @@ void main() {
   });
 
   group('publish', () {
+    test('the base finds a new install after its next catalog', () async {
+      final r = await go(form(packageFile(tmp, 'jp.kobe.bousai', '2026.11.1')));
+      final lib = BaseLibrary(store);
+      expect(lib.blob(r.files.single.sha256)!.existsSync(), isTrue);
+      // Installed after the base made its map: found after the next
+      // catalog, which phones fetch before they ask for files.
+      final r2 = await go(form(packageFile(tmp, 'jp.kobe.extra', '2026.11.1')));
+      expect(lib.blob(r2.files.single.sha256), isNull);
+      lib.catalog();
+      expect(lib.blob(r2.files.single.sha256)!.existsSync(), isTrue);
+    });
+
     test('a package is prefilled from its file, signed, installed and '
         'passed on by the base', () async {
       final f = packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
@@ -143,6 +155,7 @@ void main() {
       final records = lib.catalog()['records']! as List;
       expect(records.single, r.json);
       expect(lib.blob(r.files.single.sha256)!.existsSync(), isTrue);
+      expect(lib.blob('00' * 32), isNull);
 
       // A phone that added the city accepts it; one that did not, not.
       final phone = builtInPublishers.plus({

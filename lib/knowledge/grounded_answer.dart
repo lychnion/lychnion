@@ -97,6 +97,10 @@ class GroundedAnswer {
   /// Name of the base computer that answered, if not this device.
   String? answeredBy;
 
+  /// The base that answered was not checked by its QR code: it may not be
+  /// the base it says it is (anything on the Wi-Fi can answer).
+  bool baseUnchecked = false;
+
   /// Result of the relevance check: false means the passages are related but
   /// do not answer the question, so no answer was generated.
   bool? judgedRelevant;
@@ -154,6 +158,7 @@ class GroundedAnswer {
     'lang': lang,
     if (searchQuery != null) 'search_query': searchQuery,
     if (answeredBy != null) 'answered_by': answeredBy,
+    if (baseUnchecked) 'base_unchecked': true,
     if (judgedRelevant != null) 'judged_relevant': judgedRelevant,
     'alerts': [for (final a in alerts) a.id],
     'retrieved': [

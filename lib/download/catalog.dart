@@ -134,18 +134,36 @@ class Catalog {
   /// [baseOverride] (dev flag DOWNLOAD_BASE_URL) wins over the catalog's own
   /// `base`; a catalog fetched from the network defaults to its own URL.
   /// [trust] defaults to the publishers built into the app.
+  ///
+  /// With [ownFilesOnly] (a base's or a nearby phone's catalog), every
+  /// file address and mirror must be on the host it came from
+  /// ([fetchedFrom]); others are left out, so a device on the Wi-Fi
+  /// cannot make the phone contact hosts it picks.
   static Future<Catalog> parse(
     String json, {
     Uri? fetchedFrom,
     Uri? baseOverride,
     TrustedKeys? trust,
+    bool ownFilesOnly = false,
   }) async {
     final j = jsonDecode(json) as Map<String, Object?>;
     if (j['format'] != 2) throw FormatException('Unknown catalog format');
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
+    if (ownFilesOnly && fetchedFrom == null) {
+      throw ArgumentError('ownFilesOnly needs fetchedFrom');
+    }
+    bool own(String s) {
+      if (!ownFilesOnly) return true;
+      final u = Uri.tryParse(s);
+      return u != null && _sameOrigin(fetchedFrom!.resolveUri(u), fetchedFrom);
+    }
+
     final urls = <String, List<String>>{
       for (final e in ((j['urls'] as Map?) ?? const {}).entries)
-        if (e.key is String && e.value is String && e.value != '')
+        if (e.key is String &&
+            e.value is String &&
+            e.value != '' &&
+            own(e.value as String))
           e.key as String: [e.value as String],
     };
     final keys = trust ?? builtInPublishers;
@@ -167,14 +185,23 @@ class Catalog {
         items.add(CatalogItem.fromRecord(r, urls));
       }
     }
-    final base = baseOverride ?? uri(j['base']) ?? fetchedFrom;
+    // A base's own `base` and `refresh` are not followed either.
+    final base = ownFilesOnly
+        ? fetchedFrom
+        : baseOverride ?? uri(j['base']) ?? fetchedFrom;
     return Catalog(
       items,
       base: base,
-      refreshUrl: uri(j['refresh']),
-      mirrors: _mirrors(j['mirrors'], fetchedFrom ?? base),
+      refreshUrl: ownFilesOnly ? null : uri(j['refresh']),
+      mirrors: [
+        for (final m in _mirrors(j['mirrors'], fetchedFrom ?? base))
+          if (!ownFilesOnly || _sameOrigin(m, fetchedFrom!)) m,
+      ],
     )..rejected.addAll(rejected);
   }
+
+  static bool _sameOrigin(Uri a, Uri b) =>
+      a.scheme == b.scheme && a.host == b.host && a.port == b.port;
 
   /// At most this many mirrors are used: each unreachable one costs time.
   static const maxMirrors = 10;

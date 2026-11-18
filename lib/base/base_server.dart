@@ -13,6 +13,7 @@ import '../knowledge/grounded_answer.dart';
 import 'base_library.dart';
 import 'base_protocol.dart';
 import 'base_web.dart';
+import 'watched_socket.dart';
 
 /// Answers questions from phones on the base's local network.
 ///
@@ -32,7 +33,9 @@ import 'base_web.dart';
 /// [idleTimeout], a question is at most [maxBodyBytes] and must arrive
 /// within [bodyTimeout], at most [maxQuestions] wait for the model and
 /// [maxQuestionsPerPhone] per address, and a question that waited longer
-/// than the phone waits ([maxWait]) is dropped. Errors say what was wrong
+/// than the phone waits ([maxWait]) is dropped. A question whose phone
+/// closed the connection is dropped too, and its answer stopped when the
+/// model is on it already. Errors say what was wrong
 /// in a few words, never the exception (paths, internals).
 ///
 /// Without an [answerer] it only passes on files: a phone sharing its
@@ -135,6 +138,24 @@ class BaseServer {
   @visibleForTesting
   int get questionsWaiting => _live();
 
+  /// Open connections by the phone's address and port, to tell when the
+  /// phone of a question has gone.
+  final _connections = <String, WatchedSocket>{};
+
+  static String _connKey(InternetAddress a, int port) => '${a.address}:$port';
+
+  Socket _watch(Socket s) {
+    final w = WatchedSocket(s);
+    final key = _connKey(s.remoteAddress, s.remotePort);
+    _connections[key] = w;
+    unawaited(
+      w.gone.then((_) {
+        if (identical(_connections[key], w)) _connections.remove(key);
+      }),
+    );
+    return w;
+  }
+
   /// The port actually bound (useful with port 0 in tests).
   int get port => _server!.port;
 
@@ -149,11 +170,13 @@ class BaseServer {
     // closed before it sees them.
     final limited = _LimitedSocket(
       socket,
-      socket.where((s) {
-        if (server.connectionsInfo().total < maxConnections) return true;
-        s.destroy();
-        return false;
-      }),
+      socket
+          .where((s) {
+            if (server.connectionsInfo().total < maxConnections) return true;
+            s.destroy();
+            return false;
+          })
+          .map<Socket>(_watch),
     );
     server = HttpServer.listenOn(limited)
       ..idleTimeout = idleTimeout
@@ -284,6 +307,26 @@ class BaseServer {
     // The place is taken before the body arrives, so questions sent at
     // the same moment cannot all pass the limits.
     final question = _Question(phone);
+    final info = req.connectionInfo;
+    if (info != null) {
+      final gone =
+          _connections[_connKey(info.remoteAddress, info.remotePort)]?.gone;
+      if (gone == null) {
+        // Every connection is watched until it ends: this one has ended
+        // already (the phone sent its question and closed at once).
+        question.left = true;
+      } else {
+        unawaited(
+          gone.then((_) {
+            question.left = true;
+            // On it already: stop the model, the answer goes nowhere.
+            // The model is shared with this computer's own Ask page; the
+            // queue keeps phones' questions apart, not that page's.
+            if (question.running) unawaited(answerer?.llm.stop());
+          }),
+        );
+      }
+    }
     _questions.add(question);
     try {
       await _answer(req, question);
@@ -339,10 +382,31 @@ class BaseServer {
         return;
       }
       question.started = true;
-      await answerer!.answer(answer, () {});
+      question.running = true;
+      try {
+        await answerer!.answer(answer, () {
+          // Called as passages are found and as words arrive: nothing
+          // after this runs for a phone that left (a stop that came
+          // while passages were searched stopped nothing).
+          if (question.left) {
+            unawaited(answerer!.llm.stop());
+            throw const _Left();
+          }
+        });
+      } on _Left {
+        // Ended on purpose: see below.
+      } finally {
+        question.running = false;
+      }
     });
     _queue = done.catchError((Object _) {});
     await done;
+    if (question.left) {
+      _log('base_question_left', 'phone closed the connection', req);
+      // Ended, so the connection is let go of (HttpServer keeps it open
+      // until the response is closed, and it counts for the limit).
+      return _close(res);
+    }
     if (expired) {
       res.headers.set(HttpHeaders.retryAfterHeader, '30');
       return _send(res, 503, {'error': 'busy, try again soon'});
@@ -526,6 +590,11 @@ class BaseServer {
   }
 }
 
+/// Thrown to end an answer whose phone has left.
+class _Left implements Exception {
+  const _Left();
+}
+
 /// A question taken in by the base.
 class _Question {
   _Question(this.phone);
@@ -534,11 +603,19 @@ class _Question {
   final String phone;
   final _waiting = Stopwatch()..start();
 
-  /// The model is answering it.
+  /// The model was given it.
   var started = false;
 
-  /// Whether it counts: being answered, or its phone still waits.
-  bool live(Duration maxWait) => started || _waiting.elapsed <= maxWait;
+  /// The model is on it now.
+  var running = false;
+
+  /// Its phone closed the connection.
+  var left = false;
+
+  /// Whether it counts: its phone is still there, and it is being
+  /// answered or its phone still waits.
+  bool live(Duration maxWait) =>
+      !left && (started || _waiting.elapsed <= maxWait);
 }
 
 /// A server socket that passes on only the connections its stream lets

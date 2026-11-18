@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/ui/threads.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,4 +30,39 @@ void main() {
     s.restore(a);
     expect(s.recent, [b, a]);
   });
+
+  test(
+    'a base answer keeps its name and whether the base was checked',
+    () async {
+      final dir = Directory.systemTemp.createTempSync('threads_base_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final s = ThreadStore();
+      await s.load(dir: dir);
+      s.create().entries.addAll([
+        GroundedAnswer('a')
+          ..text = 'x'
+          ..answeredBy = 'Hall'
+          ..baseUnchecked = true,
+        GroundedAnswer('b')
+          ..text = 'y'
+          ..answeredBy = 'Hall',
+      ]);
+      await s.save();
+      final again = ThreadStore();
+      await again.load(dir: dir);
+      final e = again.recent.single.entries;
+      expect(
+        [for (final a in e) (a.answeredBy, a.baseUnchecked)],
+        [('Hall', true), ('Hall', false)],
+      );
+      // A base answer saved before the check was kept counts as unchecked.
+      final file = File('${dir.path}/threads.json');
+      file.writeAsStringSync(
+        file.readAsStringSync().replaceAll(',"base_unchecked":false', ''),
+      );
+      final old = ThreadStore();
+      await old.load(dir: dir);
+      expect(old.recent.single.entries.last.baseUnchecked, isTrue);
+    },
+  );
 }

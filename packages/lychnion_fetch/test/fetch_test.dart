@@ -106,4 +106,80 @@ void main() {
     expect(f.readAsBytesSync(), data);
     expect(asked, ['/hop', '/secret', '/good']);
   });
+
+  test('fetchCatalogText: no redirects for a local device', () async {
+    handle = (r) {
+      if (r.uri.path == '/hop') {
+        r.response
+          ..statusCode = 302
+          ..headers.set(HttpHeaders.locationHeader, '/c.json');
+      } else {
+        r.response.write('{"format":2}');
+      }
+      unawaited(r.response.close());
+    };
+    expect(await fetchCatalogText(at('hop')), '{"format":2}');
+    await expectLater(
+      fetchCatalogText(at('hop'), followRedirects: false),
+      throwsA(isA<CatalogFetchError>().having((e) => e.code, 'c', 'HTTP 302')),
+    );
+  });
+
+  test('Downloader: a local device may redirect only to itself', () async {
+    final data = List<int>.generate(100, (i) => i);
+    final sum = sha256.convert(data).toString();
+    final hosts = <String>[];
+    handle = (r) {
+      hosts.add('${r.headers.host} ${r.uri.path}');
+      if (r.uri.path == '/away') {
+        // Another host name for the same machine: another origin.
+        r.response
+          ..statusCode = 302
+          ..headers.set(
+            HttpHeaders.locationHeader,
+            'http://localhost:${server.port}/good',
+          );
+      } else if (r.uri.path == '/same') {
+        r.response
+          ..statusCode = 302
+          ..headers.set(HttpHeaders.locationHeader, '/good');
+      } else {
+        r.response.add(data);
+      }
+      unawaited(r.response.close());
+    };
+    final f = await Downloader().fetch(
+      FileSpec(
+        url: at('away'),
+        fallbacks: [at('same')],
+        name: 'f.bin',
+        size: data.length,
+        sha256: sum,
+      ),
+      tmp,
+    );
+    expect(f.readAsBytesSync(), data);
+    expect(hosts, ['127.0.0.1 /away', '127.0.0.1 /same', '127.0.0.1 /good']);
+  });
+
+  test('isLocalNetworkHost', () {
+    for (final h in [
+      '192.168.1.20',
+      '10.0.0.1',
+      '172.16.0.5',
+      '172.31.255.1',
+      '127.0.0.1',
+      '169.254.1.1',
+      'fd12::1',
+      'fe80::1',
+      '::1',
+      'base.local',
+      'localhost',
+    ]) {
+      expect(isLocalNetworkHost(h), isTrue, reason: h);
+    }
+    for (final h in ['8.8.8.8', '172.32.0.1', 'example.org', '2001:db8::1']) {
+      expect(isLocalNetworkHost(h), isFalse, reason: h);
+    }
+  });
 }

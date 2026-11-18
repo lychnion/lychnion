@@ -494,6 +494,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get answerBaseUnchecked =>
+      'Base not checked. Scan its QR code to make sure it is the right one.';
+
+  @override
   String answerBaseComputer(String name) {
     return 'Base · $name';
   }

@@ -22,8 +22,12 @@ import 'support/fake_llm.dart';
 /// Answers only when [release] completes, so tests decide how long the
 /// model is busy.
 class _GatedLlm extends FakeLlm {
-  _GatedLlm() : super(['高い所へ [1]。']);
+  _GatedLlm({this.first}) : super(['高い所へ [1]。']);
   var release = Completer<void>();
+
+  /// The reply to the first prompt (for example a Japanese search), when
+  /// it should differ from the answer.
+  final String? first;
 
   /// Questions the model started on.
   var started = 0;
@@ -33,9 +37,38 @@ class _GatedLlm extends FakeLlm {
       Stream.fromFuture(
         Future(() => started++).then((_) => release.future).then((_) {
           prompts.add(prompt);
-          return '高い所へ [1]。';
+          return prompts.length == 1 && first != null ? first! : '高い所へ [1]。';
         }),
       );
+}
+
+/// A [_GatedLlm] that counts [stop] calls; a stop ends the answer.
+class _StoppableLlm extends _GatedLlm {
+  var stops = 0;
+
+  @override
+  Future<void> stop() async {
+    stops++;
+    if (!release.isCompleted) release.complete();
+  }
+}
+
+/// Sends a question on a raw connection and returns the connection, so a
+/// test can close it as a phone that gives up would.
+Future<Socket> _askRaw(int port, String q) async {
+  final s = await Socket.connect(InternetAddress.loopbackIPv4, port);
+  final body = utf8.encode(jsonEncode({'question': q}));
+  s.add([
+    ...utf8.encode(
+      'POST /ask HTTP/1.1\r\nHost: x\r\n'
+      'Content-Type: application/json\r\n'
+      'Content-Length: ${body.length}\r\n\r\n',
+    ),
+    ...body,
+  ]);
+  await s.flush();
+  s.listen((_) {}, onError: (Object _) {});
+  return s;
 }
 
 /// Waits until [ready] is true (checked every 10 ms, at most 5 s), so tests
@@ -321,6 +354,77 @@ void main() {
       // The model never saw the second one.
       expect(llm.prompts, hasLength(2));
       expect(s.answered, 2);
+    });
+
+    test('a phone that leaves stops the answer it waits for', () async {
+      final llm = _StoppableLlm();
+      final s = await start(llm: llm);
+      final phone = await _askRaw(s.port, '津波は？');
+      await _until(() => llm.started == 1);
+      phone.destroy();
+      // The model is stopped, and the question no longer counts.
+      await _until(() => llm.stops >= 1);
+      await _until(() => s.questionsWaiting == 0);
+      expect(s.answered, 0);
+      // The next phone is answered as usual.
+      expect((await call(s, 'POST', '/ask', body: question('津波は？'))).$1, 200);
+      expect(s.answered, 1);
+    });
+
+    test(
+      'a phone that leaves before the model writes is not answered',
+      () async {
+        // The search finds tsunami passages, so the model would write next.
+        final llm = _GatedLlm(first: '津波は一回だけですか？');
+        final s = await start(llm: llm);
+        // English: the model first turns it into a Japanese search, so the
+        // phone leaves while that runs, before any passage or word.
+        final phone = await _askRaw(s.port, 'What to do after a tsunami?');
+        await _until(() => llm.started == 1);
+        phone.destroy();
+        await _until(() => s.questionsWaiting == 0);
+        llm.release.complete();
+        // The next phone's question runs after it.
+        expect((await call(s, 'POST', '/ask', body: question('津波は？'))).$1, 200);
+        // The search, then the next question: the left one never got an
+        // answer written.
+        expect(llm.started, 2);
+        expect(s.answered, 1);
+      },
+    );
+
+    test('phones that leave do not use up the connections', () async {
+      final llm = _StoppableLlm();
+      final s = await start(llm: llm, maxConnections: 2, perPhone: 10);
+      for (var i = 0; i < 2; i++) {
+        final phone = await _askRaw(s.port, '津波は？');
+        await _until(() => llm.started == i + 1);
+        phone.destroy();
+        await _until(() => s.questionsWaiting == 0);
+        llm.release = Completer<void>();
+      }
+      // Both connections were let go of: the base still answers.
+      final (code, _, _) = await call(s, 'GET', '/info');
+      expect(code, 200);
+    });
+
+    test('a waiting question whose phone left is dropped', () async {
+      final llm = _StoppableLlm();
+      final s = await start(llm: llm, perPhone: 10);
+      final first = call(s, 'POST', '/ask', body: question('津波は？'));
+      await _until(() => llm.started == 1);
+      final phone = await _askRaw(s.port, '避難所は？');
+      await _until(() => s.questionsWaiting == 2);
+      phone.destroy();
+      // It stops counting at once, without stopping the first answer.
+      await _until(() => s.questionsWaiting == 1);
+      expect(llm.stops, 0);
+      llm.release.complete();
+      expect((await first).$1, 200);
+      await _until(() => s.questionsWaiting == 0);
+      // The model never saw the second question.
+      expect(llm.prompts, hasLength(1));
+      expect(s.answered, 1);
     });
 
     test('a huge refused upload is not read, the connection ends', () async {

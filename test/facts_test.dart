@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:lychnion/facts/compact_codec.dart';
 import 'package:lychnion/facts/fact.dart';
@@ -71,6 +72,73 @@ void main() {
       final f = status('full', SourceType.official, minutesAgo: 10);
       expect(await store.addAll([f]), 1);
       expect(await store.addAll([f]), 0);
+    });
+  });
+
+  group('limits', () {
+    test('expired facts are not kept', () async {
+      final store = FactStore(clock: () => now);
+      final added = await store.addAll([
+        status('open', SourceType.official, minutesAgo: 200),
+      ]);
+      expect(added, 0);
+      expect(store.all, isEmpty);
+    });
+
+    test('over the limit, the oldest that decide nothing go first', () async {
+      final store = FactStore(clock: () => now, maxFacts: 3);
+      await store.addAll([
+        // Oldest, but the most trusted: it decides the topic.
+        status('open', SourceType.official, minutesAgo: 100),
+        for (final m in [50, 40, 30, 20])
+          status('full $m', SourceType.citizen, minutesAgo: m),
+      ]);
+      expect(store.all.map((f) => f.value), ['open', 'full 30', 'full 20']);
+      expect(store.shelterStatus(cityHallTsunami)!.value, 'open');
+    });
+
+    test(
+      'a flood of unverified facts does not push out verified ones',
+      () async {
+        final store = FactStore(clock: () => now, maxFacts: 3);
+        final official = status('open', SourceType.official, minutesAgo: 100)
+          ..verified = true;
+        await store.addAll([official], checked: true);
+        await store.addAll([
+          for (var i = 0; i < 5; i++)
+            Fact(
+              kind: FactKind.shelterStatus,
+              subject: '35.7$i,139.7$i',
+              value: 'closed',
+              // Claims to be from the future.
+              observedAt: now.add(const Duration(days: 1)),
+              expiresAt: now.add(const Duration(days: 2)),
+              sourceType: SourceType.official,
+              sourceName: 'fake',
+            )..verified = false,
+        ], checked: true);
+        expect(store.all, hasLength(3));
+        expect(store.all, contains(official));
+      },
+    );
+
+    test('expired facts are dropped from disk at the next start', () async {
+      final dir = Directory.systemTemp.createTempSync('facts_limit_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      var clock = now;
+      final store = FactStore(clock: () => clock);
+      await store.load(dir: dir);
+      await store.addAll([
+        status('open', SourceType.official, minutesAgo: 10, ttlMinutes: 60),
+        status('full', SourceType.citizen, minutesAgo: 5, ttlMinutes: 600),
+      ]);
+      clock = now.add(const Duration(hours: 2));
+      final again = FactStore(clock: () => clock);
+      await again.load(dir: dir);
+      expect(again.all.map((f) => f.value), ['full']);
+      final lines = File('${dir.path}/facts.jsonl').readAsLinesSync();
+      // The header and the one fact left.
+      expect(lines, hasLength(2));
     });
   });
 

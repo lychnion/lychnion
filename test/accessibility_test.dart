@@ -123,6 +123,27 @@ void main() {
       expect(answerFailedMessage(answer()), '今回は回答できませんでした。');
     });
 
+    testWidgets('an answer from a base without a QR check says so', (t) async {
+      Widget card(bool unchecked) => Scaffold(
+        body: ListView(
+          children: [
+            AnswerCard(
+              answer: answer()
+                ..answeredBy = 'Hall'
+                ..baseUnchecked = unchecked,
+              grounded: true,
+              done: true,
+            ),
+          ],
+        ),
+      );
+      // The card speaks the answer's language (Japanese here).
+      await _pump(t, card(true), 'en', Brightness.light, 1);
+      expect(find.textContaining('確認されていないベース'), findsOneWidget);
+      await _pump(t, card(false), 'en', Brightness.light, 1);
+      expect(find.textContaining('確認されていないベース'), findsNothing);
+    });
+
     testWidgets('the answer card itself announces nothing', (t) async {
       final said = <Object?>[];
       t.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
