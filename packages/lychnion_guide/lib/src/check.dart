@@ -30,7 +30,10 @@ class GuideProblem implements Exception {
 }
 
 /// Opens the guide at [path] as the app does; throws [GuideProblem] when
-/// the app could not use it.
+/// the app could not use it. Stricter than the app on purpose in a few
+/// places (an empty id, no passages, a region not like JP or JP-28,
+/// vectors that do not match the passages): those guides open but do
+/// not work well.
 GuideSummary checkGuide(String path) {
   if (!File(path).existsSync()) throw GuideProblem('$path: no such file');
   final Database db;
@@ -78,10 +81,14 @@ GuideSummary checkGuide(String path) {
       ]) {
         if (r[k] is! String) throw GuideProblem('source ${r['id']}: no $k');
       }
-      if (r.containsKey('region') &&
-          r['region'] != null &&
-          r['region'] is! String) {
-        throw GuideProblem('source ${r['id']}: region is not text');
+      if (r.containsKey('region') && r['region'] != null) {
+        final region = r['region'];
+        // Compared as it is: 'jp' would make the source foreign.
+        if (region is! String || !regionCode.hasMatch(region)) {
+          throw GuideProblem(
+            'source ${r['id']}: region is not like JP or JP-28',
+          );
+        }
       }
       sources.add(r['id'] as String);
     }
@@ -123,12 +130,28 @@ GuideSummary checkGuide(String path) {
       }
     }
     if (has('vectors')) {
+      final perModel = <String, int>{};
       // The app's own query (needs passage_id).
       for (final r in db.select(
         'SELECT model, vec FROM vectors ORDER BY model, passage_id',
       )) {
-        if (r['model'] is! String || r['vec'] is! Uint8List) {
+        final vec = r['vec'];
+        if (r['model'] is! String ||
+            vec is! Uint8List ||
+            vec.isEmpty ||
+            vec.lengthInBytes % 4 != 0) {
           throw const GuideProblem('vectors: a row is incomplete');
+        }
+        perModel[r['model'] as String] =
+            (perModel[r['model'] as String] ?? 0) + 1;
+      }
+      // One vector per passage, or the app's search lines them up wrong
+      // (it then works out its own, slowly, on the phone).
+      for (final e in perModel.entries) {
+        if (e.value != count) {
+          throw GuideProblem(
+            'vectors: ${e.value} for ${e.key}, but $count passages',
+          );
         }
       }
     }
@@ -156,8 +179,13 @@ GuideSummary checkGuide(String path) {
       }
     }
     return GuideSummary(id, version, sources.length, count);
+  } on GuideProblem {
+    rethrow;
   } on SqliteException catch (e) {
     throw GuideProblem(e.message);
+  } on Object catch (e) {
+    // A row of a shape not foreseen above: still a reason, never a crash.
+    throw GuideProblem('$e');
   } finally {
     db.close();
   }

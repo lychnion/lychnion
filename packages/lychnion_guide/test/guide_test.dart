@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:lychnion_guide/lychnion_guide.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -102,6 +103,58 @@ void main() {
       );
     });
 
+    test('a region not like JP or JP-28', () {
+      expect(
+        () => writeGuide(
+          File('${tmp.path}/r.sqlite'),
+          meta: _meta(),
+          sources: const [
+            GuideSource(
+              id: 's1',
+              title: 't',
+              publisher: 'p',
+              url: 'u',
+              licence: 'l',
+              attribution: 'a',
+              region: 'jp',
+            ),
+          ],
+          passages: const [GuidePassage(sourceId: 's1', text: 'x')],
+        ),
+        problem('region'),
+      );
+    });
+
+    test('vectors that do not match the passages', () {
+      final f = write();
+      final db = sqlite3.open(f.path)
+        ..execute(
+          'CREATE TABLE vectors(model TEXT, passage_id INTEGER, vec BLOB)',
+        );
+      db.execute('INSERT INTO vectors VALUES(?, ?, ?)', ['m', 1, Uint8List(5)]);
+      db.close();
+      expect(() => checkGuide(f.path), problem('vectors'));
+      sqlite3.open(f.path)
+        ..execute('DELETE FROM vectors')
+        ..execute('INSERT INTO vectors VALUES(?, ?, ?)', ['m', 1, Uint8List(8)])
+        ..execute('INSERT INTO vectors VALUES(?, ?, ?)', ['m', 2, Uint8List(8)])
+        ..close();
+      expect(() => checkGuide(f.path), problem('but 1 passages'));
+    });
+
+    test('where it cannot be written', () {
+      final notDir = File('${tmp.path}/file')..writeAsStringSync('x');
+      expect(
+        () => writeGuide(
+          File('${notDir.path}/g.sqlite'),
+          meta: _meta(),
+          sources: const [_source],
+          passages: const [GuidePassage(sourceId: 's1', text: 'x')],
+        ),
+        throwsA(isA<GuideProblem>()),
+      );
+    });
+
     test('a refused guide never replaces a good one', () {
       final good = write();
       final before = good.readAsBytesSync();
@@ -109,6 +162,13 @@ void main() {
       expect(good.readAsBytesSync(), before);
       expect(File('${good.path}.building').existsSync(), isFalse);
     });
+  });
+
+  test('a good guide replaces the one there', () {
+    write();
+    final f = write(meta: {..._meta(), 'version': '2026.11.2'});
+    expect(checkGuide(f.path).version, '2026.11.2');
+    expect(tmp.listSync().where((e) => e.path.endsWith('.building')), isEmpty);
   });
 
   test('written and checked, with an alert', () {

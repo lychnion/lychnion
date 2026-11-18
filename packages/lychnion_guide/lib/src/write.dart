@@ -64,68 +64,84 @@ File writeGuide(
   required List<GuidePassage> passages,
   List<GuideAlert> alerts = const [],
 }) {
-  out.parent.createSync(recursive: true);
-  final tmp = File('${out.path}.building');
-  if (tmp.existsSync()) tmp.deleteSync();
-  final db = sqlite3.open(tmp.path);
+  // A name of its own: two builds of the same guide never share one.
+  final tmp = File(
+    '${out.path}.$pid.${DateTime.now().microsecondsSinceEpoch}.building',
+  );
+  var done = false;
   try {
-    createGuideTables(db);
-    db.execute('BEGIN');
-    final putMeta = db.prepare('INSERT INTO meta VALUES(?, ?)');
-    for (final e in meta.entries) {
-      putMeta.execute([e.key, e.value]);
+    out.parent.createSync(recursive: true);
+    final db = sqlite3.open(tmp.path);
+    try {
+      _fill(db, meta, sources, passages, alerts);
+    } finally {
+      db.close();
     }
-    putMeta.close();
-    final putSource = db.prepare(
-      'INSERT INTO sources VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
-    );
-    for (final s in sources) {
-      putSource.execute([
-        s.id,
-        s.title,
-        s.publisher,
-        s.url,
-        s.licence,
-        s.licenceUrl,
-        s.attribution,
-        s.region,
-      ]);
-    }
-    putSource.close();
-    final putPassage = db.prepare(
-      'INSERT INTO passages(source_id, heading, text) VALUES(?, ?, ?)',
-    );
-    for (final p in passages) {
-      putPassage.execute([p.sourceId, p.heading.trim(), p.text.trim()]);
-    }
-    putPassage.close();
-    final putAlert = db.prepare('INSERT INTO alerts VALUES(?, ?, ?, ?, ?, ?)');
-    for (final a in alerts) {
-      putAlert.execute([
-        a.id,
-        a.sourceId,
-        a.text,
-        jsonEncode(a.matchAll),
-        a.textEn,
-        a.matchAllEn == null ? null : jsonEncode(a.matchAllEn),
-      ]);
-    }
-    putAlert.close();
-    db.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')");
-    db.execute('COMMIT');
-    db.execute('VACUUM');
-  } on Object catch (e) {
-    db.close();
-    if (tmp.existsSync()) tmp.deleteSync();
-    if (e is GuideProblem) rethrow;
-    throw GuideProblem(e is SqliteException ? e.message : '$e');
-  }
-  db.close();
-  try {
     checkGuide(tmp.path);
+    final f = tmp.renameSync(out.path);
+    done = true;
+    return f;
   } on GuideProblem {
-    tmp.deleteSync();
     rethrow;
+  } on SqliteException catch (e) {
+    throw GuideProblem(e.message);
+  } on FileSystemException catch (e) {
+    throw GuideProblem('${e.message}: ${e.path}');
+  } finally {
+    if (!done && tmp.existsSync()) tmp.deleteSync();
   }
-  return tmp.renameSync(out.path);
+}
+
+void _fill(
+  Database db,
+  Map<String, String> meta,
+  List<GuideSource> sources,
+  List<GuidePassage> passages,
+  List<GuideAlert> alerts,
+) {
+  createGuideTables(db);
+  db.execute('BEGIN');
+  final putMeta = db.prepare('INSERT INTO meta VALUES(?, ?)');
+  for (final e in meta.entries) {
+    putMeta.execute([e.key, e.value]);
+  }
+  putMeta.close();
+  final putSource = db.prepare(
+    'INSERT INTO sources VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
+  );
+  for (final s in sources) {
+    putSource.execute([
+      s.id,
+      s.title,
+      s.publisher,
+      s.url,
+      s.licence,
+      s.licenceUrl,
+      s.attribution,
+      s.region,
+    ]);
+  }
+  putSource.close();
+  final putPassage = db.prepare(
+    'INSERT INTO passages(source_id, heading, text) VALUES(?, ?, ?)',
+  );
+  for (final p in passages) {
+    putPassage.execute([p.sourceId, p.heading.trim(), p.text.trim()]);
+  }
+  putPassage.close();
+  final putAlert = db.prepare('INSERT INTO alerts VALUES(?, ?, ?, ?, ?, ?)');
+  for (final a in alerts) {
+    putAlert.execute([
+      a.id,
+      a.sourceId,
+      a.text,
+      jsonEncode(a.matchAll),
+      a.textEn,
+      a.matchAllEn == null ? null : jsonEncode(a.matchAllEn),
+    ]);
+  }
+  putAlert.close();
+  db.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')");
+  db.execute('COMMIT');
+  db.execute('VACUUM');
 }

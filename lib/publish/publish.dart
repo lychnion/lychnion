@@ -85,6 +85,8 @@ String? _guideProblem(String path) {
     checkGuide(path);
   } on GuideProblem catch (e) {
     return short(e.message);
+  } on Object catch (e) {
+    return short('$e');
   }
   try {
     final p = KnowledgePackage.open(path);
