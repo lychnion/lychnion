@@ -39,7 +39,16 @@ class _PublishersScreenState extends State<PublishersScreen> {
       ),
     );
     if (ok != true) return;
-    await _list.remove(p.name);
+    try {
+      await _list.remove(p.name);
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.publishersSaveFailed)),
+        );
+      }
+      return;
+    }
     await widget.manager.publishersChanged();
   }
 
@@ -183,7 +192,12 @@ Future<bool> addPublisher(
   if (ok != true) return false;
   // Checked again: the list may have changed while the question was open.
   if (list.problemWith(link) != null) return false;
-  await list.add(link);
+  try {
+    await list.add(link);
+  } on Object {
+    messenger.showSnackBar(SnackBar(content: Text(l.publishersSaveFailed)));
+    return false;
+  }
   await manager.publishersChanged();
   messenger.showSnackBar(
     SnackBar(content: Text(l.publishersAdded(link.title ?? link.name))),

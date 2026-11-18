@@ -11,19 +11,24 @@ import 'package:lychnion_format/lychnion_format.dart';
 
 const city = 'jp.city.test';
 
-Future<PackageRecord> cityRecord(SimpleKeyPair key, {String id = 'jp.x'}) =>
-    PackageRecord.sign({
-      'format': 1,
-      'id': id,
-      'kind': 'package',
-      'version': '1',
-      'publisher': city,
-      'title': {'ja': '市のガイド', 'en': 'City guide'},
-      'files': [
-        {'name': '$id.sqlite', 'size': 3, 'sha256': '0' * 64},
-      ],
-      'signed': '2026-11-18T09:00:00+09:00',
-    }, key);
+Future<PackageRecord> cityRecord(
+  SimpleKeyPair key, {
+  String id = 'jp.x',
+  String publisher = city,
+  String version = '1',
+  String? file,
+}) => PackageRecord.sign({
+  'format': 1,
+  'id': id,
+  'kind': 'package',
+  'version': version,
+  'publisher': publisher,
+  'title': {'ja': '市のガイド', 'en': 'City guide'},
+  'files': [
+    {'name': file ?? '$id.sqlite', 'size': 3, 'sha256': '0' * 64},
+  ],
+  'signed': '2026-11-18T09:00:00+09:00',
+}, key);
 
 void main() {
   late Directory tmp;
@@ -165,5 +170,142 @@ void main() {
         );
       },
     );
+  });
+
+  group('review fixes', () {
+    late SimpleKeyPair lychnionKey;
+    late TrustedKeys builtIn;
+    setUpAll(() async {
+      lychnionKey = await Ed25519().newKeyPair();
+      builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(lychnionKey)],
+      });
+    });
+
+    PublisherList withBuiltIn() =>
+        PublisherList(File('${tmp.path}/publishers.json'), builtIn: builtIn);
+
+    Future<void> put(String name) async {
+      final f = File('${tmp.path}/packages/$name');
+      await f.create(recursive: true);
+      await f.writeAsBytes([1, 2, 3]);
+    }
+
+    test(
+      "an added publisher cannot take a built-in publisher's id or files",
+      () async {
+        final publishers = withBuiltIn();
+        await publishers.add(link());
+        final s = DownloadStore(tmp, publishers: publishers);
+        await put('jp.x.sqlite');
+        await s.markInstalled(
+          CatalogItem.fromRecord(
+            await cityRecord(lychnionKey, publisher: 'lychnion'),
+          ),
+        );
+        final sameId = CatalogItem.fromRecord(
+          await cityRecord(key, version: '9'),
+        );
+        expect(s.isTaken(sameId), isTrue);
+        await expectLater(s.markInstalled(sameId), throwsA(isA<TakenItem>()));
+        final sameFile = CatalogItem.fromRecord(
+          await cityRecord(key, id: 'jp.y', file: 'jp.x.sqlite'),
+        );
+        expect(s.isTaken(sameFile), isTrue);
+        expect(
+          s.installed(ItemKind.package, 'jp.x')!.record.publisher,
+          'lychnion',
+        );
+      },
+    );
+
+    test('a catalog merge keeps an id with its publisher', () async {
+      final publishers = withBuiltIn();
+      await publishers.add(link());
+      Future<Catalog> cat(PackageRecord r) => Catalog.parse(
+        jsonEncode({
+          'format': 2,
+          'records': [r.json],
+        }),
+        trust: publishers.trust,
+        fetchedFrom: Uri.parse('https://example.org/catalog.json'),
+      );
+      final mine = await cat(
+        await cityRecord(lychnionKey, publisher: 'lychnion'),
+      );
+      final base = await cat(await cityRecord(key, version: '9'));
+      final m = mine.mergedWith(base);
+      expect(m.byId('jp.x')!.record!.publisher, 'lychnion');
+      expect(m.byId('jp.x')!.version, '1');
+    });
+
+    test('versions only go up, also after the publisher was removed', () async {
+      final publishers = withBuiltIn();
+      await publishers.add(link());
+      final s = DownloadStore(tmp, publishers: publishers);
+      await put('jp.x.sqlite');
+      await s.markInstalled(
+        CatalogItem.fromRecord(await cityRecord(key, version: '2')),
+      );
+      await publishers.remove(city);
+      await s.reverify();
+      await publishers.add(link());
+      await expectLater(
+        s.markInstalled(
+          CatalogItem.fromRecord(await cityRecord(key, version: '1')),
+        ),
+        throwsA(isA<OlderVersion>()),
+      );
+    });
+
+    test('titles cannot pass for the app or hide characters', () {
+      expect(PublisherLink.cleanTitle('Lychnion'), isNull);
+      expect(PublisherLink.cleanTitle(' リクニオン '), isNull);
+      expect(PublisherLink.cleanTitle('神戸\u202e市\n'), '神戸市');
+      expect(PublisherLink.cleanTitle('x' * 100)!.length, 60);
+      final l = PublisherLink.fromUri(
+        Uri.parse(
+          'lychnion://publisher?name=jp.a&title=Lychnion&key=$publicKey',
+        ),
+      )!;
+      expect(l.title, isNull);
+    });
+
+    test(
+      'one bad entry keeps the others; an unreadable file is kept aside',
+      () async {
+        final f = File('${tmp.path}/publishers.json');
+        f.writeAsStringSync(
+          jsonEncode({
+            'publishers': [
+              {'name': 42, 'key': publicKey},
+              {'name': city, 'key': publicKey},
+            ],
+          }),
+        );
+        final l = list();
+        await l.load();
+        expect(l.added.map((p) => p.name), [city]);
+
+        f.writeAsStringSync('{broken');
+        await list().load();
+        expect(File('${f.path}.broken').readAsStringSync(), '{broken');
+      },
+    );
+
+    test('a list that cannot be saved does not trust the publisher', () async {
+      // The file's place is taken by a folder: the save fails.
+      Directory('${tmp.path}/publishers.json').createSync();
+      final l = list();
+      await expectLater(l.add(link()), throwsA(isA<FileSystemException>()));
+      expect(l.added, isEmpty);
+      expect(await l.trust.verify(await cityRecord(key)), isFalse);
+    });
+
+    test('the same key with or without padding is the same key', () async {
+      final l = list();
+      await l.add(link());
+      expect(l.problemWith(link(key: '$publicKey=')), PublisherProblem.known);
+    });
   });
 }

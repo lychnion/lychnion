@@ -271,6 +271,11 @@ class Catalog {
     for (final o in other.items) {
       final mine = byId[o.id];
       if (mine != null && isOlder(o.version, mine.version)) continue;
+      // An id stays with its publisher: another publisher's item of the
+      // same id (a city's catalog on a base) never replaces it.
+      if (mine?.record case final m? when m.publisher != o.record?.publisher) {
+        continue;
+      }
       if (o.record == null || !reachable(o)) continue;
       byId[o.id] = o;
     }

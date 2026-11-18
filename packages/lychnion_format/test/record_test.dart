@@ -69,7 +69,12 @@ void main() {
     expect(await builtInPublishers.verify(record), isFalse);
     expect(more.publishers, containsAll(['lychnion', record.publisher]));
     expect(builtInPublishers.publishers, ['lychnion']);
-    expect(() => more.plus({'x': ['short']}), throwsFormatException);
+    expect(
+      () => more.plus({
+        'x': ['short'],
+      }),
+      throwsFormatException,
+    );
   });
 
   test("Lychnion's key is built in", () {

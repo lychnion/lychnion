@@ -271,9 +271,7 @@ class TrustedKeys {
   /// These keys plus [more] (publisher name → public keys), for example
   /// publishers the user added. Keys of the same publisher are combined.
   TrustedKeys plus(Map<String, List<String>> more) {
-    final keys = {
-      for (final e in _keys.entries) e.key: Map.of(e.value),
-    };
+    final keys = {for (final e in _keys.entries) e.key: Map.of(e.value)};
     for (final e in more.entries) {
       final m = keys.putIfAbsent(e.key, () => {});
       for (final k in e.value) {

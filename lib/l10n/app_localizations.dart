@@ -182,6 +182,12 @@ abstract class AppLocalizations {
   /// **'This is an older version than the one installed, so it was not installed.'**
   String get downloadsErrorOlder;
 
+  /// No description provided for @downloadsErrorTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'This ID or one of its files is already installed from another publisher, so it was not installed.'**
+  String get downloadsErrorTaken;
+
   /// No description provided for @downloadsLargeWarning.
   ///
   /// In en, this message translates to:
@@ -1969,6 +1975,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} is already added.'**
   String publishersKnown(String name);
+
+  /// No description provided for @publishersSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the list of publishers. Nothing was changed.'**
+  String get publishersSaveFailed;
 
   /// No description provided for @publishersNone.
   ///

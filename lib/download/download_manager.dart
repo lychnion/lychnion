@@ -455,10 +455,12 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Error code when [item] must not be installed: no valid signature
-  /// (`signature`) or older than the installed version (`older`).
+  /// (`signature`), its id or a file name installed from another publisher
+  /// (`taken`), or older than the installed version (`older`).
   Future<String?> _refusal(CatalogItem item) async {
     final r = item.record;
     if (r == null || !await store.trust.verify(r)) return 'signature';
+    if (store.isTaken(item)) return 'taken';
     final have = store.installedVersion(item);
     if (have != null && isOlder(item.version, have)) return 'older';
     return null;
@@ -473,6 +475,7 @@ class DownloadManager extends ChangeNotifier {
     DownloadCancelled() => null,
     UnsignedItem() => 'signature',
     OlderVersion() => 'older',
+    TakenItem() => 'taken',
     ChecksumError() => 'checksum',
     DownloadBusy() => 'busy',
     SocketException(:final osError) =>

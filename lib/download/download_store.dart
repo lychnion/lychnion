@@ -110,8 +110,18 @@ class DownloadStore {
   /// Checks all install records again, after a publisher was added or
   /// removed: a removed publisher's downloads are then no longer used.
   Future<void> reverify() async {
+    // Checked into a new set and swapped, so installed items do not vanish
+    // for loaders while the check runs.
+    final old = {..._verified};
     _verified.clear();
-    await verifyInstalled();
+    try {
+      await verifyInstalled();
+    } on Object {
+      _verified
+        ..clear()
+        ..addAll(old);
+      rethrow;
+    }
   }
 
   /// Checks the signatures of all install records (once per app start).
@@ -180,13 +190,54 @@ class DownloadStore {
 
   String path(Installed i, String file) => '${dirFor(i.kind).path}/$file';
 
+  /// The record in the install marker of [id], read without checking its
+  /// signature: who installed it and which version, also after its
+  /// publisher was removed.
+  PackageRecord? _onDisk(ItemKind kind, String id) {
+    try {
+      final j = jsonDecode(_marker(kind, id).readAsStringSync()) as Map;
+      return PackageRecord.fromJson((j['record'] as Map).cast());
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Whether [item] would clash with what another publisher installed
+  /// here: its id, or one of its file names (files of a kind share one
+  /// folder). Then it must not be downloaded or installed, so an added
+  /// publisher can never replace Lychnion's items or files.
+  bool isTaken(CatalogItem item) {
+    final r = item.record;
+    if (r == null) return false;
+    final mine = _onDisk(item.kind, item.id);
+    if (mine != null && mine.publisher != r.publisher) return true;
+    final names = {for (final f in r.files) f.name};
+    final dir = dirFor(item.kind);
+    if (!dir.existsSync()) return false;
+    for (final f in dir.listSync()) {
+      final name = f.uri.pathSegments.last;
+      if (!name.endsWith('.installed.json')) continue;
+      final id = name.substring(0, name.length - 15);
+      if (id == item.id) continue;
+      final other = _onDisk(item.kind, id);
+      if (other != null && other.files.any((x) => names.contains(x.name))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Records [item] as installed. Call only after every file was checked
   /// against the item's SHA-256. Throws [UnsignedItem] for an item without
-  /// a verified record.
+  /// a verified record, [TakenItem] when it clashes with another
+  /// publisher's item, [OlderVersion] when it is older than what is there.
   Future<void> markInstalled(CatalogItem item) async {
     final r = item.record;
     if (r == null || !await trust.verify(r)) throw UnsignedItem(item.id);
-    final have = installedVersion(item);
+    if (isTaken(item)) throw TakenItem(item.id);
+    // Also against a record no longer trusted (its publisher was removed):
+    // versions only go up.
+    final have = installedVersion(item) ?? _onDisk(item.kind, item.id)?.version;
     if (have != null && isOlder(r.version, have)) {
       throw OlderVersion(item.id, r.version, have);
     }
@@ -349,6 +400,15 @@ class UnsignedItem implements Exception {
   final String id;
   @override
   String toString() => 'No valid signature for $id';
+}
+
+/// The item's id or a file name is already installed from another
+/// publisher.
+class TakenItem implements Exception {
+  TakenItem(this.id);
+  final String id;
+  @override
+  String toString() => '$id is installed from another publisher';
 }
 
 /// The item is older than the installed version (versions only go up).
