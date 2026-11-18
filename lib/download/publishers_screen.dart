@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
+import '../publish/publish_screen.dart';
 import 'download_manager.dart';
 import 'publisher_list.dart';
 
@@ -85,7 +86,21 @@ class _PublishersScreenState extends State<PublishersScreen> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: Text(l.publishersTitle)),
+      appBar: AppBar(
+        title: Text(l.publishersTitle),
+        actions: [
+          if (canPublish)
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PublishScreen(manager: widget.manager),
+                ),
+              ),
+              icon: const Icon(Icons.edit_document),
+              label: Text(l.publishTitle),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _fromLink,
         icon: const Icon(Icons.add_link_rounded),

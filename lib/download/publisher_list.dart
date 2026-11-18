@@ -152,8 +152,11 @@ class PublisherList extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// True when [name] can be a publisher's name in records.
+  static bool isValidName(String name) => _publisherName.hasMatch(name);
+
   PublisherProblem? problemWith(PublisherLink l) {
-    if (!_publisherName.hasMatch(l.name)) return PublisherProblem.badName;
+    if (!isValidName(l.name)) return PublisherProblem.badName;
     if (l.keyId == null) return PublisherProblem.badKey;
     if (builtIn.publishers.contains(l.name)) return PublisherProblem.builtIn;
     final have = _added[l.name];
