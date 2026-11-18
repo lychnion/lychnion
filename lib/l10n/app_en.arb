@@ -1029,5 +1029,7 @@
   "aboutCopyHint": "Long press to copy (for reports)",
   "aboutCopied": "Copied",
   "stickClashed": "Not copied, the stick has another publisher's item with this id: {items}",
-  "@stickClashed": {"placeholders": {"items": {"type": "String"}}}
+  "@stickClashed": {"placeholders": {"items": {"type": "String"}}},
+  "publishErrorPackage": "This file is not a guide the app can use ({detail}). Build it again with the lychnion-data tools.",
+  "@publishErrorPackage": {"placeholders": {"detail": {"type": "String"}}}
 }

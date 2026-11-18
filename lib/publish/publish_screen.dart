@@ -341,6 +341,7 @@ String publishErrorText(AppLocalizations l, PublishError e) => switch (e.code) {
   'older' => l.publishErrorOlder(e.detail),
   'files' => l.publishErrorFiles,
   'meta' => l.publishErrorMeta,
+  'package' => l.publishErrorPackage(e.detail),
   'taken' => l.publishErrorTaken(e.detail),
   'title' => l.publishErrorTitle,
   'key' => l.publishErrorKey,

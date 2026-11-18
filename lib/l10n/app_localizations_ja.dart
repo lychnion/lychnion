@@ -1584,4 +1584,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String stickClashed(String items) {
     return 'コピーしていません（同じ ID の別の発行元のものが USB メモリにあります）：$items';
   }
+
+  @override
+  String publishErrorPackage(String detail) {
+    return 'このファイルはアプリで使えるガイドではありません（$detail）。lychnion-data のツールで作り直してください。';
+  }
 }

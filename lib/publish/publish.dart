@@ -8,6 +8,7 @@ import '../download/catalog.dart';
 import '../download/download_store.dart';
 import '../download/downloader.dart';
 import '../download/publisher_list.dart';
+import '../knowledge/knowledge_package.dart';
 import 'local_publisher.dart';
 
 // Signs a package or map area that was built elsewhere (lychnion-data
@@ -42,7 +43,8 @@ class PublishRequest {
 class PublishError implements Exception {
   PublishError(this.code, [this.detail = '']);
 
-  /// `id`, `version`, `older`, `files`, `meta`, `taken`, `title`, `key`.
+  /// `id`, `version`, `older`, `files`, `meta`, `package`, `taken`,
+  /// `title`, `key`.
   final String code;
   final String detail;
   @override
@@ -64,6 +66,21 @@ Map<String, String>? packageMeta(File f) {
     }
   } on Object {
     return null;
+  }
+}
+
+/// Why the app could not use the guide [f] (it opens it as it does to
+/// answer), or null when it can: tables or columns missing, a passage
+/// without its source, or no passages at all.
+String? guideProblem(File f) {
+  try {
+    final p = KnowledgePackage.open(f.path);
+    if (p.passages.isEmpty) return 'no passages';
+    return null;
+  } on SqliteException catch (e) {
+    return e.message;
+  } on Object catch (e) {
+    return '${e.runtimeType}';
   }
 }
 
@@ -198,6 +215,11 @@ Future<PackageRecord> publish(
         meta['id'] != req.id ||
         (meta['version'] ?? '') != req.version) {
       throw PublishError('meta', '${meta?['id']} ${meta?['version']}');
+    }
+    // Phones must be able to use what is signed and passed on: the app
+    // opens the guide as it would to answer, and it needs passages.
+    if (guideProblem(req.files.single) case final p?) {
+      throw PublishError('package', p);
     }
   }
   // This computer must trust its own publisher to install what it signs.
