@@ -727,7 +727,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askPhaseShelter => 'Shelter';
 
   @override
-  String get askPhaseServing => 'Shelter computer (serving)';
+  String get askPhaseServing => 'Sharing';
 
   @override
   String get askPhaseFailed => 'Not ready';
@@ -749,7 +749,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askExplainServing =>
-      'This computer answers phones on the local network, and shares current information.';
+      'This computer answers phones on the same Wi-Fi, and shares guides, maps and current information. You can stop it in Settings.';
 
   @override
   String get askExplainFailed => 'The AI model could not be loaded.';
@@ -990,4 +990,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shelterBrowserHint =>
       'For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.';
+
+  @override
+  String get shareOnNetwork => 'Share on the local network';
+
+  @override
+  String get shareOnNetworkHint =>
+      'Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.';
+
+  @override
+  String get shareName => 'Shelter name';
+
+  @override
+  String get shareNameHint =>
+      'Shown on phones (for example: Minami Elementary School shelter)';
+
+  @override
+  String get shareStarting => 'Starts as soon as the app is ready.';
+
+  @override
+  String get shareShowLarge => 'Show large';
 }

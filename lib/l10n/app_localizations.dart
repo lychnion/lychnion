@@ -1211,7 +1211,7 @@ abstract class AppLocalizations {
   /// No description provided for @askPhaseServing.
   ///
   /// In en, this message translates to:
-  /// **'Shelter computer (serving)'**
+  /// **'Sharing'**
   String get askPhaseServing;
 
   /// No description provided for @askPhaseFailed.
@@ -1247,7 +1247,7 @@ abstract class AppLocalizations {
   /// No description provided for @askExplainServing.
   ///
   /// In en, this message translates to:
-  /// **'This computer answers phones on the local network, and shares current information.'**
+  /// **'This computer answers phones on the same Wi-Fi, and shares guides, maps and current information. You can stop it in Settings.'**
   String get askExplainServing;
 
   /// No description provided for @askExplainFailed.
@@ -1681,6 +1681,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.'**
   String get shelterBrowserHint;
+
+  /// No description provided for @shareOnNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Share on the local network'**
+  String get shareOnNetwork;
+
+  /// No description provided for @shareOnNetworkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.'**
+  String get shareOnNetworkHint;
+
+  /// No description provided for @shareName.
+  ///
+  /// In en, this message translates to:
+  /// **'Shelter name'**
+  String get shareName;
+
+  /// No description provided for @shareNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown on phones (for example: Minami Elementary School shelter)'**
+  String get shareNameHint;
+
+  /// No description provided for @shareStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts as soon as the app is ready.'**
+  String get shareStarting;
+
+  /// No description provided for @shareShowLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Show large'**
+  String get shareShowLarge;
 }
 
 class _AppLocalizationsDelegate

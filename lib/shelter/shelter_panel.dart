@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -5,13 +6,16 @@ import '../app/lang.dart';
 import '../app/settings.dart';
 import 'shelter_link.dart';
 
-/// Shelter computer: a QR code phones scan to connect.
-class ShelterQrCard extends StatelessWidget {
+/// Shelter computer: the QR code phones scan, one at a time so a camera
+/// cannot pick up the wrong one. The browser page comes first: it works on
+/// every phone; the app link is for phones with the app.
+class ShelterQrCard extends StatefulWidget {
   const ShelterQrCard({
     super.key,
     required this.urls,
     required this.name,
     this.keyText,
+    this.large = false,
   });
 
   /// Addresses of this computer on the local network; the first is in the code.
@@ -21,75 +25,162 @@ class ShelterQrCard extends StatelessWidget {
   /// Public signing key, put in the code so phones trust signed facts.
   final String? keyText;
 
+  /// Full-screen view (for a screen at the shelter entrance).
+  final bool large;
+
+  @override
+  State<ShelterQrCard> createState() => _ShelterQrCardState();
+}
+
+enum _QrFor { browser, app }
+
+class _ShelterQrCardState extends State<ShelterQrCard> {
+  var _for = _QrFor.browser;
+
+  void _showLarge() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (c) => Scaffold(
+        appBar: AppBar(title: Text(widget.name)),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: ShelterQrCard(
+                urls: widget.urls,
+                name: widget.name,
+                keyText: widget.keyText,
+                large: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final theme = Theme.of(context);
-    if (urls.isEmpty) return Text(l.shelterNoAddress);
-    final link = ShelterLink(
-      urls.first,
-      name: name,
-      key: keyText,
-    ).toUri().toString();
-    final web = urls.first;
-    Widget qr(String data, String title, String hint) => Column(
+    if (widget.urls.isEmpty) return Text(l.shelterNoAddress);
+    final url = widget.urls.first;
+    final (data, title, hint) = switch (_for) {
+      _QrFor.browser => (url, l.shelterInBrowser, l.shelterBrowserHint),
+      _QrFor.app => (
+        ShelterLink(
+          url,
+          name: widget.name,
+          key: widget.keyText,
+        ).toUri().toString(),
+        l.shelterWithApp,
+        l.shelterScanHint(l.appName, widget.name),
+      ),
+    };
+    final big = widget.large;
+    final code = Container(
+      padding: EdgeInsets.all(big ? 16 : 10),
+      decoration: BoxDecoration(
+        // QR codes need a light background, also in dark mode.
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: QrImageView(
+        data: data,
+        size: big ? 320 : 180,
+        padding: EdgeInsets.zero,
+      ),
+    );
+    final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            // QR codes need a light background, also in dark mode.
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: QrImageView(data: data, size: 160, padding: EdgeInsets.zero),
-        ),
-        const SizedBox(height: 10),
         Text(
           title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+          style:
+              (big
+                      ? theme.textTheme.headlineSmall
+                      : theme.textTheme.titleMedium)
+                  ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        Text(hint, style: big ? theme.textTheme.titleMedium : null),
+        SizedBox(height: big ? 24 : 16),
+        Text(l.shelterOrEnterAddress, style: theme.textTheme.bodySmall),
+        for (final u in widget.urls)
+          SelectableText(
+            u.replaceFirst('http://', ''),
+            style:
+                (big
+                        ? theme.textTheme.headlineSmall
+                        : theme.textTheme.titleMedium)
+                    ?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
           ),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: 176,
-          child: Text(hint, style: theme.textTheme.bodySmall),
-        ),
       ],
     );
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(big ? 28 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l.shelterConnectPhones,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Two codes: the app (signed facts, its own map), and the
-            // browser for phones without the app.
-            Wrap(
-              spacing: 28,
-              runSpacing: 20,
+            Row(
               children: [
-                qr(link, l.shelterWithApp, l.shelterScanHint(l.appName, name)),
-                qr(web, l.shelterInBrowser, l.shelterBrowserHint),
+                Expanded(
+                  child: Text(
+                    l.shelterConnectPhones,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (!big)
+                  TextButton.icon(
+                    onPressed: _showLarge,
+                    icon: const Icon(Icons.fullscreen_rounded),
+                    label: Text(l.shareShowLarge),
+                  ),
               ],
             ),
-            const SizedBox(height: 14),
-            Text(l.shelterOrEnterAddress, style: theme.textTheme.bodySmall),
-            for (final u in urls)
-              SelectableText(
-                u.replaceFirst('http://', ''),
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            const SizedBox(height: 12),
+            SegmentedButton<_QrFor>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: _QrFor.browser,
+                  icon: const Icon(Icons.language_rounded),
+                  label: Text(l.shelterInBrowser),
                 ),
-              ),
+                ButtonSegment(
+                  value: _QrFor.app,
+                  icon: const Icon(Icons.phone_iphone_rounded),
+                  label: Text(l.shelterWithApp),
+                ),
+              ],
+              selected: {_for},
+              onSelectionChanged: (s) => setState(() => _for = s.first),
+            ),
+            const SizedBox(height: 20),
+            // Side by side when there is room, else the code on top.
+            LayoutBuilder(
+              builder: (context, box) => box.maxWidth >= (big ? 640 : 460)
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        code,
+                        const SizedBox(width: 24),
+                        Expanded(child: text),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [code, const SizedBox(height: 16), text],
+                    ),
+            ),
           ],
         ),
       ),
@@ -196,6 +287,131 @@ class ShelterSettingsTile extends StatelessWidget {
               icon: const Icon(Icons.link_off_rounded),
             ),
       onTap: url == null ? () => _enter(context) : null,
+    );
+  }
+}
+
+/// Settings section on a computer: share on the local network, the
+/// shelter's name, and the QR codes phones scan while sharing.
+class ShelterShareSection extends StatelessWidget {
+  const ShelterShareSection({
+    super.key,
+    required this.settings,
+    required this.urls,
+    this.keyText,
+  });
+
+  final AppSettings settings;
+
+  /// This computer's addresses while sharing (empty until it starts).
+  final ValueListenable<List<String>> urls;
+  final String? keyText;
+
+  /// Asks for the shelter's name; null when cancelled.
+  static Future<String?> askName(BuildContext context, String? current) =>
+      showDialog<String>(
+        context: context,
+        builder: (_) => _NameDialog(current),
+      );
+
+  Future<void> _toggle(BuildContext context, bool on) async {
+    // A shelter needs a name before phones see it.
+    if (on && settings.sharingName == null) {
+      final name = await askName(context, null);
+      if (name == null) return;
+      await settings.setSharing(true, name: name);
+      return;
+    }
+    await settings.setSharing(on);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final name = settings.sharingName;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SwitchListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          secondary: const Icon(Icons.cell_tower_rounded),
+          title: Text(l.shareOnNetwork),
+          subtitle: Text(l.shareOnNetworkHint),
+          value: settings.sharing,
+          onChanged: (on) => _toggle(context, on),
+        ),
+        if (settings.sharing) ...[
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            leading: const Icon(Icons.badge_outlined),
+            title: Text(l.shareName),
+            subtitle: Text(name ?? ''),
+            trailing: const Icon(Icons.edit_outlined),
+            onTap: () async {
+              final n = await askName(context, name);
+              if (n != null) await settings.setSharing(true, name: n);
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: ValueListenableBuilder(
+              valueListenable: urls,
+              builder: (context, u, _) => u.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text(l.shareStarting),
+                    )
+                  : ShelterQrCard(urls: u, name: name ?? '', keyText: keyText),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The shelter's name. Owns its text controller, so the controller lives
+/// until the dialog has finished closing.
+class _NameDialog extends StatefulWidget {
+  const _NameDialog(this.current);
+
+  final String? current;
+
+  @override
+  State<_NameDialog> createState() => _NameDialogState();
+}
+
+class _NameDialogState extends State<_NameDialog> {
+  late final _ctrl = TextEditingController(text: widget.current);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final ok = _ctrl.text.trim().isNotEmpty;
+    void done() => Navigator.pop(context, _ctrl.text.trim());
+    return AlertDialog(
+      title: Text(l.shareName),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        maxLength: 60,
+        decoration: InputDecoration(helperText: l.shareNameHint),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => ok ? done() : null,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.cancel),
+        ),
+        FilledButton(onPressed: ok ? done : null, child: Text(l.save)),
+      ],
     );
   }
 }

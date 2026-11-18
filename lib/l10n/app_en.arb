@@ -512,13 +512,13 @@
   "askPhaseLoading": "Getting ready…",
   "askPhaseReady": "Offline ready",
   "askPhaseShelter": "Shelter",
-  "askPhaseServing": "Shelter computer (serving)",
+  "askPhaseServing": "Sharing",
   "askPhaseFailed": "Not ready",
   "askExplainNoModel": "Download the AI model and the safety guides under Settings → Downloads.",
   "askExplainLoading": "Loading the AI model on this device.",
   "askExplainReady": "The AI runs on this device. No internet is needed.",
   "askExplainShelter": "A computer at the shelter answers, over the local Wi-Fi. Faster than this phone.",
-  "askExplainServing": "This computer answers phones on the local network, and shares current information.",
+  "askExplainServing": "This computer answers phones on the same Wi-Fi, and shares guides, maps and current information. You can stop it in Settings.",
   "askExplainFailed": "The AI model could not be loaded.",
   "askHint": "Ask a question",
   "askStop": "Stop",
@@ -649,5 +649,11 @@
   "webError": "The shelter computer could not answer. Please try again.",
   "shelterWithApp": "With the app",
   "shelterInBrowser": "In the browser",
-  "shelterBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi."
+  "shelterBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.",
+  "shareOnNetwork": "Share on the local network",
+  "shareOnNetworkHint": "Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.",
+  "shareName": "Shelter name",
+  "shareNameHint": "Shown on phones (for example: Minami Elementary School shelter)",
+  "shareStarting": "Starts as soon as the app is ready.",
+  "shareShowLarge": "Show large"
 }

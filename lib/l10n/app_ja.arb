@@ -185,13 +185,13 @@
   "askPhaseLoading": "準備中…",
   "askPhaseReady": "オフラインで利用可",
   "askPhaseShelter": "避難所",
-  "askPhaseServing": "避難所の端末（公開中）",
+  "askPhaseServing": "公開中",
   "askPhaseFailed": "利用できません",
   "askExplainNoModel": "「設定」→「ダウンロード」でAIモデルと資料を取得してください。",
   "askExplainLoading": "この端末でAIモデルを読み込んでいます。",
   "askExplainReady": "AIはこの端末の中で動いています。インターネットは不要です。",
   "askExplainShelter": "避難所のコンピューターが、施設内のWi-Fiで回答します。この端末より速く答えます。",
-  "askExplainServing": "この端末が、施設内のスマートフォンからの質問に答え、最新の情報を共有します。",
+  "askExplainServing": "この端末が、同じWi-Fiのスマートフォンからの質問に答え、資料・地図と最新の情報を共有しています。設定から止められます。",
   "askExplainFailed": "AIモデルを読み込めませんでした。",
   "askHint": "質問を入力",
   "askStop": "停止",
@@ -263,5 +263,11 @@
   "webError": "避難所のコンピューターが回答できませんでした。もう一度お試しください。",
   "shelterWithApp": "アプリで",
   "shelterInBrowser": "ブラウザで",
-  "shelterBrowserHint": "アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は避難所の Wi-Fi の中だけでやりとりします。"
+  "shelterBrowserHint": "アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は避難所の Wi-Fi の中だけでやりとりします。",
+  "shareOnNetwork": "この端末を避難所として公開",
+  "shareOnNetworkHint": "同じWi-Fiのスマホから、このコンピューターに質問したり、資料や地図をダウンロードしたりできます。",
+  "shareName": "避難所の名前",
+  "shareNameHint": "スマホに表示されます（例：南小学校 避難所）",
+  "shareStarting": "準備ができしだい公開します。",
+  "shareShowLarge": "大きく表示"
 }

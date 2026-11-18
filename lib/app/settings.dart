@@ -22,6 +22,11 @@ class AppSettings extends ChangeNotifier {
   /// (then the key is taken on first connect).
   String? shelterKey;
 
+  /// Shelter computer: answer phones on the local network (desktop), and
+  /// the name phones see. Off until the user turns it on.
+  bool sharing = false;
+  String? sharingName;
+
   /// Notices the user has acknowledged (`app:1`, `pkg:<id>:<hash>`).
   Set<String> acknowledged = {};
 
@@ -49,6 +54,8 @@ class AppSettings extends ChangeNotifier {
       shelterUrl = j['shelter_url'] as String?;
       shelterName = j['shelter_name'] as String?;
       shelterKey = j['shelter_key'] as String?;
+      sharing = j['sharing'] == true;
+      sharingName = j['sharing_name'] as String?;
       acknowledged = {...?(j['acknowledged'] as List?)?.cast<String>()};
     } on Object {
       // No file yet, or unreadable: keep defaults.
@@ -78,6 +85,15 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
+  /// Turns sharing on the local network on or off; [name] replaces the
+  /// shelter's name when given.
+  Future<void> setSharing(bool on, {String? name}) async {
+    sharing = on;
+    if (name != null) sharingName = name.trim().isEmpty ? null : name.trim();
+    notifyListeners();
+    await _save();
+  }
+
   Future<void> _save() async => _file?.writeAsString(
     jsonEncode({
       'language': ?language,
@@ -85,6 +101,8 @@ class AppSettings extends ChangeNotifier {
       'shelter_url': ?shelterUrl,
       'shelter_name': ?shelterName,
       'shelter_key': ?shelterKey,
+      'sharing': sharing,
+      'sharing_name': ?sharingName,
       'acknowledged': acknowledged.toList()..sort(),
     }),
   );

@@ -283,7 +283,9 @@ class _AskViewState extends State<AskView> {
 
   void _showDetail(BuildContext context) => showModalBottomSheet<void>(
     context: context,
-    builder: (_) => Padding(
+    // Tall content (the shelter's QR codes) scrolls instead of overflowing.
+    isScrollControlled: true,
+    builder: (_) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -294,7 +296,9 @@ class _AskViewState extends State<AskView> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          if (widget.phase == AskPhase.shelter && widget.shelterName != null)
+          if ((widget.phase == AskPhase.shelter ||
+                  widget.phase == AskPhase.serving) &&
+              widget.shelterName != null)
             Text(
               widget.shelterName!,
               style: Theme.of(context).textTheme.titleSmall,
@@ -370,7 +374,7 @@ class _StatusPill extends StatelessWidget {
               children: [
                 Icon(
                   phase == AskPhase.serving
-                      ? Icons.qr_code_rounded
+                      ? Icons.wifi_tethering_rounded
                       : Icons.cell_tower_rounded,
                   size: 16,
                   color: dot,

@@ -702,7 +702,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askPhaseShelter => '避難所';
 
   @override
-  String get askPhaseServing => '避難所の端末（公開中）';
+  String get askPhaseServing => '公開中';
 
   @override
   String get askPhaseFailed => '利用できません';
@@ -720,7 +720,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askExplainShelter => '避難所のコンピューターが、施設内のWi-Fiで回答します。この端末より速く答えます。';
 
   @override
-  String get askExplainServing => 'この端末が、施設内のスマートフォンからの質問に答え、最新の情報を共有します。';
+  String get askExplainServing =>
+      'この端末が、同じWi-Fiのスマートフォンからの質問に答え、資料・地図と最新の情報を共有しています。設定から止められます。';
 
   @override
   String get askExplainFailed => 'AIモデルを読み込めませんでした。';
@@ -957,4 +958,23 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get shelterBrowserHint =>
       'アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は避難所の Wi-Fi の中だけでやりとりします。';
+
+  @override
+  String get shareOnNetwork => 'この端末を避難所として公開';
+
+  @override
+  String get shareOnNetworkHint =>
+      '同じWi-Fiのスマホから、このコンピューターに質問したり、資料や地図をダウンロードしたりできます。';
+
+  @override
+  String get shareName => '避難所の名前';
+
+  @override
+  String get shareNameHint => 'スマホに表示されます（例：南小学校 避難所）';
+
+  @override
+  String get shareStarting => '準備ができしだい公開します。';
+
+  @override
+  String get shareShowLarge => '大きく表示';
 }

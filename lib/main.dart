@@ -104,10 +104,24 @@ const _demoQuestions = String.fromEnvironment('ASK');
 const _relevanceCheck = bool.fromEnvironment('RELEVANCE_CHECK');
 const _topK = int.fromEnvironment('TOP_K', defaultValue: 4);
 const _shelterServer = bool.fromEnvironment('SHELTER_SERVER');
-const _shelterName = String.fromEnvironment(
+const _shelterNameFlag = String.fromEnvironment(
   'SHELTER_NAME',
   defaultValue: 'Lychnion shelter',
 );
+
+/// Computers can share on the local network (phones: later).
+bool get _isDesktop => switch (defaultTargetPlatform) {
+  TargetPlatform.macOS ||
+  TargetPlatform.windows ||
+  TargetPlatform.linux => true,
+  _ => false,
+};
+
+/// Sharing on the local network: the switch in Settings, or the
+/// SHELTER_SERVER flag for development.
+bool _sharingOn(AppSettings? s) =>
+    _shelterServer || (_isDesktop && (s?.sharing ?? false));
+String _sharingName(AppSettings? s) => s?.sharingName ?? _shelterNameFlag;
 const _shelterUrl = String.fromEnvironment('SHELTER_URL');
 const _demoFactsFlag = bool.fromEnvironment('DEMO_FACTS');
 const _factsEdit = bool.fromEnvironment('FACTS_EDIT');
@@ -314,12 +328,12 @@ class _HomePageState extends State<HomePage> {
     final dir = await getApplicationSupportDirectory();
     await _trust.load(File('${dir.path}/trusted_keys.json'));
     // Devices that enter official facts (shelter computer, demo) sign them.
-    if (_shelterServer || _factsEdit || _demoFactsFlag) {
+    if (_isDesktop || _shelterServer || _factsEdit || _demoFactsFlag) {
       final signer = await FactSigner.loadOrCreate(
         File('${dir.path}/signing_key'),
       );
       _facts.signer = signer;
-      await _trust.add(signer.publicKeyText, _shelterName);
+      await _trust.add(signer.publicKeyText, _sharingName(widget.settings));
     }
     await _facts.load();
     if (!_demoFactsFlag) return;
@@ -373,16 +387,13 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => SettingsScreen(
         settings: widget.settings,
         downloads: _downloads,
-        shelter: ValueListenableBuilder(
-          valueListenable: _shelterUrls,
-          builder: (_, urls, _) => _shelterServer
-              ? ShelterQrCard(
-                  urls: urls,
-                  name: _shelterName,
-                  keyText: _facts.signer?.publicKeyText,
-                )
-              : ShelterSettingsTile(settings: widget.settings),
-        ),
+        shelter: _isDesktop
+            ? ShelterShareSection(
+                settings: widget.settings,
+                urls: _shelterUrls,
+                keyText: _facts.signer?.publicKeyText,
+              )
+            : ShelterSettingsTile(settings: widget.settings),
       ),
     ),
   );
@@ -430,12 +441,17 @@ class _HomePageState extends State<HomePage> {
                       action: l.mapDownloadMap,
                       onAction: _openDownloads,
                     )
-                  : MapScreen(
-                      key: ObjectKey(_map),
-                      state: _map!,
-                      editor: _shelterServer || _factsEdit
-                          ? const FactEditor(sourceName: _shelterName)
-                          : null,
+                  : ListenableBuilder(
+                      listenable: widget.settings,
+                      builder: (_, _) => MapScreen(
+                        key: ObjectKey(_map),
+                        state: _map!,
+                        editor: _sharingOn(widget.settings) || _factsEdit
+                            ? FactEditor(
+                                sourceName: _sharingName(widget.settings),
+                              )
+                            : null,
+                      ),
                     ),
             ),
           ],
@@ -601,6 +617,68 @@ class _SpikePageState extends State<SpikePage> {
   /// Desktop side: answers phones on the local network.
   ShelterServer? _server;
 
+  /// Server changes run one after the other.
+  Future<void> _serverOps = Future.value();
+
+  void _sharingChanged() {
+    final want = _sharingOn(widget.settings) && _answerer != null;
+    final name = _sharingName(widget.settings);
+    if (want == (_server != null) && (!want || _server!.name == name)) return;
+    _serverOps = _serverOps.then((_) => _syncServer()).then((_) {
+      if (!mounted) return;
+      setState(() {
+        if (_phase == AskPhase.serving ||
+            _phase == AskPhase.ready ||
+            _phase == AskPhase.shelter) {
+          _phase = _server != null
+              ? AskPhase.serving
+              : (_shelterReady ? AskPhase.shelter : AskPhase.ready);
+        }
+      });
+    });
+  }
+
+  /// Starts, stops or renames the server to match the settings. Answering
+  /// needs the loaded model, so it starts once the model is ready.
+  Future<void> _syncServer() async {
+    final answerer = _answerer;
+    final want = _sharingOn(widget.settings) && answerer != null;
+    final name = _sharingName(widget.settings);
+    if (_server case final s? when !want || s.name != name) {
+      await s.stop();
+      _server = null;
+      widget.shelterUrls?.value = const [];
+      _log({'event': 'shelter_stopped'});
+    }
+    if (!want || _server != null) return;
+    final server = ShelterServer(
+      answerer: answerer,
+      name: name,
+      modelName: _modelPath.split('/').last,
+      facts: widget.facts,
+      codec: widget.map?.sites == null
+          ? null
+          : CompactCodec(widget.map!.sites!.siteIds),
+      // Pass on what this computer has installed (packages, maps,
+      // models), so phones can update here without internet.
+      library: ShelterLibrary(await DownloadStore.instance()),
+      page: await rootBundle.loadString('assets/web/shelter.html'),
+    );
+    try {
+      await server.start();
+    } on SocketException catch (e) {
+      _log({'event': 'shelter_failed', 'error': '$e'});
+      return;
+    }
+    _server = server;
+    final urls = [
+      for (final a in await ShelterServer.localAddresses())
+        'http://$a:${ShelterServer.defaultPort}',
+    ];
+    widget.shelterUrls?.value = urls;
+    _log({'event': 'shelter_started', 'name': name, 'urls': urls});
+  }
+
   bool get _usesDownload =>
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
@@ -619,6 +697,7 @@ class _SpikePageState extends State<SpikePage> {
           .catchError((Object _) {}),
     );
     widget.settings?.addListener(_shelterChanged);
+    widget.settings?.addListener(_sharingChanged);
     _shelterChanged();
     if (_modelPath.isNotEmpty) {
       unawaited(
@@ -639,6 +718,8 @@ class _SpikePageState extends State<SpikePage> {
   void dispose() {
     widget.downloadChanges?.removeListener(_loadDownloaded);
     widget.settings?.removeListener(_shelterChanged);
+    widget.settings?.removeListener(_sharingChanged);
+    unawaited(_server?.stop());
     _factsTimer?.cancel();
     _retry?.cancel();
     super.dispose();
@@ -728,34 +809,7 @@ class _SpikePageState extends State<SpikePage> {
         'load_ms': _llm.lastLoadTime?.inMilliseconds,
         'backend': _llm.backend,
       });
-      final answerer = _answerer;
-      if (_shelterServer && answerer != null) {
-        _server = ShelterServer(
-          answerer: answerer,
-          name: _shelterName,
-          modelName: _modelPath.split('/').last,
-          facts: widget.facts,
-          codec: widget.map?.sites == null
-              ? null
-              : CompactCodec(widget.map!.sites!.siteIds),
-          // Pass on what this computer has installed (packages, maps,
-          // models), so phones can update here without internet.
-          library: ShelterLibrary(await DownloadStore.instance()),
-          page: await rootBundle.loadString('assets/web/shelter.html'),
-        );
-        await _server!.start();
-        final addrs = await ShelterServer.localAddresses();
-        widget.shelterUrls?.value = [
-          for (final a in addrs) 'http://$a:${ShelterServer.defaultPort}',
-        ];
-        _log({
-          'event': 'shelter_started',
-          'name': _shelterName,
-          'urls': [
-            for (final a in addrs) 'http://$a:${ShelterServer.defaultPort}',
-          ],
-        });
-      }
+      await _syncServer();
       setState(() {
         _status =
             'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
@@ -1034,7 +1088,10 @@ class _SpikePageState extends State<SpikePage> {
       onOpenSettings: widget.onOpenSettings,
       phase: _phase,
       detail: _status,
-      shelterName: _shelter?.name,
+      // Sharing: this computer's name; connected: the shelter's.
+      shelterName: _server != null
+          ? _sharingName(widget.settings)
+          : _shelter?.name,
       home: widget.map == null
           ? null
           : NearestSiteCard(map: widget.map!, onShowOnMap: widget.onShowOnMap),
@@ -1055,7 +1112,7 @@ class _SpikePageState extends State<SpikePage> {
           ? null
           : ShelterQrCard(
               urls: widget.shelterUrls?.value ?? const [],
-              name: _shelterName,
+              name: _sharingName(widget.settings),
               keyText: widget.facts?.signer?.publicKeyText,
             ),
       ready: ready,
