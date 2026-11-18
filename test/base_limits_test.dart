@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/download/download_store.dart';
@@ -24,14 +25,27 @@ class _GatedLlm extends FakeLlm {
   _GatedLlm() : super(['高い所へ [1]。']);
   var release = Completer<void>();
 
+  /// Questions the model started on.
+  var started = 0;
+
   @override
   Stream<String> ask(String prompt, {void Function(AnswerStats)? onDone}) =>
       Stream.fromFuture(
-        release.future.then((_) {
+        Future(() => started++).then((_) => release.future).then((_) {
           prompts.add(prompt);
           return '高い所へ [1]。';
         }),
       );
+}
+
+/// Waits until [ready] is true (checked every 10 ms, at most 5 s), so tests
+/// wait for a state and not for a time that a slow machine may need.
+Future<void> _until(bool Function() ready) async {
+  for (var i = 0; i < 500; i++) {
+    if (ready()) return;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+  throw TimeoutException('state not reached');
 }
 
 /// Fails with a message that must not reach the phone.
@@ -230,8 +244,7 @@ void main() {
           for (var i = 0; i < 2; i++)
             call(s, 'POST', '/ask', body: question('津波は？')),
         ];
-        // Let both reach the queue.
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await _until(() => s.questionsWaiting == 2);
         final (code, j, h) = await call(
           s,
           'POST',
@@ -249,11 +262,16 @@ void main() {
     test('questions sent at the same moment cannot pass the limit', () async {
       final llm = _GatedLlm();
       final s = await start(llm: llm, maxQuestions: 2, perPhone: 10);
+      var refused = 0;
       final all = [
         for (var i = 0; i < 6; i++)
-          call(s, 'POST', '/ask', body: question('津波は？')),
+          call(s, 'POST', '/ask', body: question('津波は？')).then((r) {
+            if (r.$1 != 200) refused++;
+            return r;
+          }),
       ];
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      // Every question is in or refused before the model answers.
+      await _until(() => refused == 4);
       llm.release.complete();
       final codes = [for (final r in await Future.wait(all)) r.$1]..sort();
       expect(codes, [200, 200, 503, 503, 503, 503]);
@@ -263,7 +281,7 @@ void main() {
       final llm = _GatedLlm();
       final s = await start(llm: llm);
       final first = call(s, 'POST', '/ask', body: question('津波は？'));
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await _until(() => s.questionsWaiting == 1);
       final (code, j, _) = await call(
         s,
         'POST',
@@ -286,15 +304,23 @@ void main() {
         maxWait: const Duration(milliseconds: 50),
       );
       final first = call(s, 'POST', '/ask', body: question('津波は？'));
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await _until(() => llm.started == 1);
       final second = call(s, 'POST', '/ask', body: question('避難所は？'));
+      await _until(() => s.questionsWaiting == 2);
+      // Longer than maxWait: the second one's phone has given up.
       await Future<void>.delayed(const Duration(milliseconds: 200));
+      // It no longer counts: only the one being answered does.
+      expect(s.questionsWaiting, 1);
+      // So its phone can ask again.
+      final third = call(s, 'POST', '/ask', body: question('避難所は？'));
+      await _until(() => s.questionsWaiting == 2);
       llm.release.complete();
       expect((await first).$1, 200);
       expect((await second).$1, 503);
+      expect((await third).$1, 200);
       // The model never saw the second one.
-      expect(llm.prompts, hasLength(1));
-      expect(s.answered, 1);
+      expect(llm.prompts, hasLength(2));
+      expect(s.answered, 2);
     });
 
     test('connections over the limit, and closes idle ones', () async {
@@ -397,12 +423,14 @@ void main() {
     test('a phone that stops reading loses its connection', () async {
       // Larger than what the system buffers for one connection.
       final big = File('${dir.path}/big.bin')
-        ..writeAsBytesSync(List.filled(64 << 20, 1));
+        ..writeAsBytesSync(Uint8List(64 << 20));
       final s = await start(
         library: _OneFile(big, sha),
         maxConnections: 1,
         sendStall: const Duration(milliseconds: 300),
       );
+      var served = 0;
+      s.onBlobServed = (_) => served++;
       final sock = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
       addTearDown(sock.destroy);
       final first = Completer<void>();
@@ -418,12 +446,16 @@ void main() {
       // It held the only place; once closed, the next phone gets in.
       await Future<void>.delayed(const Duration(seconds: 2));
       expect((await call(s, 'GET', '/info')).$1, 200);
+      // Stopped, not read to the end, and not counted as sent.
+      expect(served, 0);
     });
 
     test('a phone that leaves half-way does not stop the base', () async {
       final big = File('${dir.path}/big.bin')
-        ..writeAsBytesSync(List.filled(8 << 20, 1));
+        ..writeAsBytesSync(Uint8List(8 << 20));
       final s = await start(library: _OneFile(big, sha));
+      var served = 0;
+      s.onBlobServed = (_) => served++;
       for (var i = 0; i < 3; i++) {
         final sock = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
         final first = Completer<void>();
@@ -438,6 +470,7 @@ void main() {
       }
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect((await call(s, 'GET', '/info')).$1, 200);
+      expect(served, 0);
     });
   });
 

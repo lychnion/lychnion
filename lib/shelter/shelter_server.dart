@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 
 import '../app/lang.dart' show appTextLang;
 import '../facts/compact_codec.dart';
@@ -96,10 +96,12 @@ class ShelterServer {
   final int maxQuestionsPerPhone;
 
   /// The phone gives up after 2 minutes (ShelterClient.ask): a question
-  /// that waited this long for the model is not answered any more.
+  /// that waited this long for the model is not answered any more, and
+  /// no longer counts for the limits (its phone may ask again). It is
+  /// less than 2 minutes, so an answer started just before has time.
   final Duration maxWait;
 
-  /// A download that cannot send anything for this long (the phone
+  /// A response that cannot send anything for this long (the phone
   /// stopped reading) is closed. A slow download goes on as long as
   /// data moves; [idleTimeout] does not cover a response being sent.
   final Duration sendStall;
@@ -119,9 +121,18 @@ class ShelterServer {
   Future<void> _queue = Future.value();
   int answered = 0;
 
-  /// Questions waiting or being answered, in all and by address.
-  int _questions = 0;
-  final _byPhone = <String, int>{};
+  /// Questions taken in, until they are answered or dropped.
+  final _questions = <_Question>[];
+
+  /// Questions that count for the limits: being answered, or waiting
+  /// and their phone still waits. With [phone], only that address's.
+  int _live([String? phone]) => _questions
+      .where((q) => q.live(maxWait) && (phone == null || q.phone == phone))
+      .length;
+
+  /// Questions that count for the limits now.
+  @visibleForTesting
+  int get questionsWaiting => _live();
 
   /// The port actually bound (useful with port 0 in tests).
   int get port => _server!.port;
@@ -263,31 +274,25 @@ class ShelterServer {
     final phone = req.connectionInfo?.remoteAddress.address ?? '?';
     // Refused before the body is read: the connection closes after the
     // answer, so the rest of the body does not matter.
-    if (_questions >= maxQuestions) {
+    if (_live() >= maxQuestions) {
       res.headers.set(HttpHeaders.retryAfterHeader, '30');
       return _refuse(res, 503, 'busy, try again soon');
     }
-    if ((_byPhone[phone] ?? 0) >= maxQuestionsPerPhone) {
+    if (_live(phone) >= maxQuestionsPerPhone) {
       return _refuse(res, 429, 'one question at a time');
     }
     // The place is taken before the body arrives, so questions sent at
     // the same moment cannot all pass the limits.
-    _questions++;
-    _byPhone[phone] = (_byPhone[phone] ?? 0) + 1;
+    final question = _Question(phone);
+    _questions.add(question);
     try {
-      await _answer(req);
+      await _answer(req, question);
     } finally {
-      _questions--;
-      final n = _byPhone[phone]! - 1;
-      if (n == 0) {
-        _byPhone.remove(phone);
-      } else {
-        _byPhone[phone] = n;
-      }
+      _questions.remove(question);
     }
   }
 
-  Future<void> _answer(HttpRequest req) async {
+  Future<void> _answer(HttpRequest req, _Question question) async {
     final res = req.response;
     final Object? j;
     try {
@@ -312,15 +317,15 @@ class ShelterServer {
       q.trim(),
       appLang: appTextLang(lang is String ? lang : 'en'),
     );
-    final waiting = Stopwatch()..start();
     var expired = false;
     // One model: run questions one after another.
     final done = _queue.then((_) async {
       // The phone has given up: do not keep the others waiting for it.
-      if (waiting.elapsed > maxWait) {
+      if (!question.live(maxWait)) {
         expired = true;
         return;
       }
+      question.started = true;
       await answerer!.answer(answer, () {});
     });
     _queue = done.catchError((Object _) {});
@@ -386,17 +391,28 @@ class ShelterServer {
         'bytes $from-${size - 1}/$size',
       );
     }
+    // Taken now: it is gone once the connection closes.
+    final to = req.connectionInfo?.remoteAddress.address;
     try {
-      // Chunk by chunk, each with a fresh deadline: when a chunk cannot
-      // be sent in time the connection is closed (flush then throws).
+      // Chunk by chunk, each with a fresh deadline. When a chunk cannot
+      // be sent in time the connection is closed, but flush does not
+      // throw: the closed connection shows as no connectionInfo.
       await for (final chunk in file.openRead(from)) {
         res
           ..deadline = sendStall
           ..add(chunk);
         await res.flush();
+        if (res.connectionInfo == null) {
+          _log('blob_stalled', 'closed after no progress', req);
+          return;
+        }
       }
       res.deadline = sendStall;
       await res.close();
+      if (res.connectionInfo == null) {
+        _log('blob_stalled', 'closed after no progress', req);
+        return;
+      }
     } on Object catch (e) {
       // The phone went away, or the file could not be read half-way. The
       // headers are sent, so the connection just ends; the phone resumes.
@@ -411,7 +427,7 @@ class ShelterServer {
     onBlobServed?.call(file.uri.pathSegments.last);
     // For whoever runs the shelter: what was passed on, to whom.
     debugPrint(
-      'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': req.connectionInfo?.remoteAddress.address})}',
+      'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': to})}',
     );
   }
 
@@ -426,9 +442,11 @@ class ShelterServer {
     unawaited(_close(res));
   }
 
-  /// Closes [res]; a phone that went away is not an error.
-  static Future<void> _close(HttpResponse res) async {
+  /// Closes [res]; a phone that went away is not an error. A phone that
+  /// does not read the response loses the connection after [sendStall].
+  Future<void> _close(HttpResponse res) async {
     try {
+      res.deadline = sendStall;
       await res.close();
     } on Object {
       // The other side went away.
@@ -441,6 +459,21 @@ class ShelterServer {
       'LYCHNION ${jsonEncode({'event': event, 'path': ?req?.uri.path, 'error': '$error'})}',
     );
   }
+}
+
+/// A question taken in by the base.
+class _Question {
+  _Question(this.phone);
+
+  /// The phone's address.
+  final String phone;
+  final _waiting = Stopwatch()..start();
+
+  /// The model is answering it.
+  var started = false;
+
+  /// Whether it counts: being answered, or its phone still waits.
+  bool live(Duration maxWait) => started || _waiting.elapsed <= maxWait;
 }
 
 /// A server socket that passes on only the connections its stream lets
