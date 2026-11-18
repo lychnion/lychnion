@@ -330,6 +330,13 @@ class _MapScreenState extends State<MapScreen> {
             label: nearest.isEmpty
                 ? null
                 : l.mapNearestSiteSpoken(nearest.first.site.name),
+            // Staff: the long press that adds a blocked road or water
+            // point, at the map centre (screen readers can't long-press
+            // a spot on the map).
+            hint: _editor == null ? null : l.mapAddPointAtCentre,
+            onLongPress: _editor == null
+                ? null
+                : () => _addPoint(_mapReady ? _map.camera.center : from),
             child: ExcludeSemantics(
               child: FlutterMap(
                 mapController: _map,

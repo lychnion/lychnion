@@ -33,6 +33,7 @@ import '../shelter/shelter_panel.dart';
 import '../shelter/shelter_server.dart';
 import '../spike/bench_prompts.dart';
 import '../spike/eval_questions.dart';
+import '../ui/announce.dart';
 import '../ui/answer_card.dart';
 import '../ui/ask_view.dart';
 import '../ui/conversation_page.dart';
@@ -248,6 +249,12 @@ class _AskPageState extends _AskPageBase
     super.dispose();
   }
 
+  /// Screen readers: this answer is complete (once per answer, here and
+  /// not in its card, which may be off screen or rebuilt).
+  void _sayAnswerReady(GroundedAnswer a) {
+    if (mounted) announce(context, answerReadyMessage(a));
+  }
+
   @override
   Future<void> _ask(String question, {Thread? into}) async {
     final thread = into ?? (_current ??= _threads.create());
@@ -279,6 +286,7 @@ class _AskPageState extends _AskPageBase
         );
         unawaited(_threads.save());
         _log({'event': 'answer', ...remote.toJson()});
+        _sayAnswerReady(remote);
         setState(() => _answering = false);
         _answerWaiting();
         return;
@@ -339,6 +347,7 @@ class _AskPageState extends _AskPageBase
         }
       }
       _log({'event': 'answer', ...entry.toJson()});
+      _sayAnswerReady(entry);
     } catch (e) {
       entry.text += '\n[error: $e]';
     } finally {

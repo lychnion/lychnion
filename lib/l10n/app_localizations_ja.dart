@@ -1653,4 +1653,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String mapNearestSiteSpoken(String name) {
     return '最寄りの場所：$name';
   }
+
+  @override
+  String get mapAddPointAtCentre => '長押しで、地図の中心に通行止め・給水所を登録します';
 }

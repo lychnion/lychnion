@@ -15,32 +15,3 @@ void announce(BuildContext context, String message) {
     ),
   );
 }
-
-/// Announces [message] once, when [when] turns from false to true (not
-/// when the widget is first shown already true, e.g. an old answer).
-class AnnounceWhen extends StatefulWidget {
-  const AnnounceWhen({
-    super.key,
-    required this.when,
-    required this.message,
-    required this.child,
-  });
-
-  final bool when;
-  final String Function(BuildContext) message;
-  final Widget child;
-
-  @override
-  State<AnnounceWhen> createState() => _AnnounceWhenState();
-}
-
-class _AnnounceWhenState extends State<AnnounceWhen> {
-  @override
-  void didUpdateWidget(AnnounceWhen old) {
-    super.didUpdateWidget(old);
-    if (widget.when && !old.when) announce(context, widget.message(context));
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}

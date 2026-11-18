@@ -2863,6 +2863,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nearest site: {name}'**
   String mapNearestSiteSpoken(String name);
+
+  /// No description provided for @mapAddPointAtCentre.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press to report a blocked road or water point at the map centre'**
+  String get mapAddPointAtCentre;
 }
 
 class _AppLocalizationsDelegate

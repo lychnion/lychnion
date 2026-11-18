@@ -109,15 +109,24 @@ void main() {
     }
   }
   group('screen readers', () {
-    testWidgets('a finished answer is announced with its safety line', (
-      t,
-    ) async {
-      final said = <String>[];
+    test('a finished answer is announced with its safety line', () {
+      // AskPage says this when an answer completes (not the card, which
+      // may be off screen, or "done" early when a question is queued).
+      expect(
+        answerReadyMessage(answer()),
+        '回答が出ました。 強い揺れを感じたら、すぐに高い所へ避難してください。',
+      );
+      final en = GroundedAnswer('Does a tsunami come only once?', lang: 'en')
+        ..text = 'No.';
+      expect(answerReadyMessage(en), 'The answer is ready.');
+    });
+
+    testWidgets('the answer card itself announces nothing', (t) async {
+      final said = <Object?>[];
       t.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
         SystemChannels.accessibility,
         (m) async {
-          final data = (m! as Map)['data'] as Map;
-          if (data['message'] case final String s) said.add(s);
+          said.add(m);
           return null;
         },
       );
@@ -128,12 +137,8 @@ void main() {
         ),
       );
       await _pump(t, card(false), 'ja', Brightness.light, 1);
+      await _pump(t, card(true), 'ja', Brightness.light, 1);
       expect(said, isEmpty);
-      await _pump(t, card(true), 'ja', Brightness.light, 1);
-      expect(said, ['回答が出ました。 強い揺れを感じたら、すぐに高い所へ避難してください。']);
-      // Shown again (e.g. reopening the thread): not announced again.
-      await _pump(t, card(true), 'ja', Brightness.light, 1);
-      expect(said, hasLength(1));
     });
 
     testWidgets('safety line, answer text and sources read well', (t) async {

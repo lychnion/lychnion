@@ -1747,4 +1747,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String mapNearestSiteSpoken(String name) {
     return 'Nearest site: $name';
   }
+
+  @override
+  String get mapAddPointAtCentre =>
+      'Long press to report a blocked road or water point at the map centre';
 }
