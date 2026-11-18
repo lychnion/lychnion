@@ -16,9 +16,10 @@ here should be relied on alone in an emergency. Source only; build it as
 ### Added
 
 - **Offline answers with sources.** Japanese or English questions are
-  answered only from installed guides (official pages), and every answer
-  shows its source. Hazards like tsunamis start with a fixed official
-  safety line. Gemma 4 E2B on phones, E4B on computers, search with
+  answered from installed guides (official pages). Answers cite their
+  sources and the app checks the citations; an answer without a valid
+  citation is shown with a warning. Hazards like tsunamis start with a
+  fixed official safety line. Gemma 4 E2B on phones, E4B on computers, search with
   EmbeddingGemma 2, all on the device.
 - **Offline maps.** Evacuation sites per hazard, tsunami inundation
   areas by depth, and walking routes that keep to higher ground. Areas

@@ -24,9 +24,10 @@ tool/build_release.sh            # APK for testers
 tool/build_release.sh appbundle  # app bundle for Google Play
 ```
 
-- [ ] Check the signature with `apksigner verify --print-certs`; the
-      certificate SHA-256 must match
+- [ ] Check the signature. The certificate SHA-256 must match
       [release-builds.md](release-builds.md#signing).
+      APK: `apksigner verify --print-certs <apk>`.
+      App bundle: `keytool -printcert -jarfile <aab>`.
 - [ ] iOS and macOS: not written down yet. Until then, build in Xcode
       from the same commit and note in the release which builds exist.
 - [ ] Install the build on a real device and ask one question offline.
