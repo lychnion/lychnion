@@ -188,6 +188,19 @@ or a base's address).
 - Following never trusts a key; that is the publisher link. Removing a
   catalog keeps what was installed from it. A base passes on what it
   installed, as before.
+- Limits: a catalog over 2 MB is refused while it arrives, each fetch
+  has a time limit (about 45 s), and all followed catalogs are fetched
+  at the same time. Only a copy that reads as a catalog replaces the
+  last good one. The same size and time limits apply to Lychnion's own
+  catalog and to a base's.
+- Network: a followed catalog may point anywhere (any web server, a
+  base on the local Wi-Fi, redirects included), and its unsigned
+  `urls` and `mirrors` add download addresses, also for Lychnion's
+  items. A hostile catalog can therefore make the app ask other servers
+  for files by hash, and those servers see which files are downloaded;
+  it cannot make the app use a wrong file (hashes decide). Two followed
+  catalogs offering the same id from different added publishers: the
+  one higher in the list wins.
 - Not yet: downloading new versions by itself, and nodes syncing with
   each other (step 5).
 

@@ -945,5 +945,6 @@
   "catalogsKnown": "This catalog is followed already, or the list is full.",
   "catalogsSaveFailed": "Could not save the list of catalogs. Nothing was changed.",
   "catalogsRefresh": "Refresh",
-  "catalogsOffline": "Could not connect; the last copy is used."
+  "catalogsOffline": "Could not connect; the last copy is used.",
+  "catalogsInvalid": "This is not a valid catalog, or it is too large; the last copy is used."
 }

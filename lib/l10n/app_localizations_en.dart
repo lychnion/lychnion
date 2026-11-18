@@ -1412,4 +1412,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catalogsOffline => 'Could not connect; the last copy is used.';
+
+  @override
+  String get catalogsInvalid =>
+      'This is not a valid catalog, or it is too large; the last copy is used.';
 }

@@ -1345,4 +1345,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get catalogsOffline => '接続できませんでした。前回のものを使っています。';
+
+  @override
+  String get catalogsInvalid => '正しいカタログではないか、大きすぎます。前回のものを使っています。';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
+import '../l10n/app_localizations.dart';
 import 'download_manager.dart';
 import 'followed_catalogs.dart';
 
@@ -78,8 +79,7 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
       if (s != null && s.fetched != null)
         l.catalogsStatus('${s.shown}', '${s.notShown}'),
       when,
-      if (s?.error case final e?)
-        e == 'offline' ? l.catalogsOffline : l.catalogsError(e),
+      if (s?.error case final e?) catalogErrorText(l, e),
     ].join(' · ');
   }
 
@@ -151,6 +151,13 @@ class _CatalogsScreenState extends State<CatalogsScreen> {
   }
 }
 
+/// Why a followed catalog could not be read, for people.
+String catalogErrorText(AppLocalizations l, String code) => switch (code) {
+  'offline' => l.catalogsOffline,
+  'invalid' || 'too large' => l.catalogsInvalid,
+  _ => l.catalogsError(code),
+};
+
 /// A catalog address, or a lychnion://catalog link, from pasted text.
 CatalogLink? catalogLinkFrom(String text) {
   final t = text.trim();
@@ -176,6 +183,7 @@ Future<bool> followCatalog(
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
+      scrollable: true,
       icon: const Icon(Icons.list_alt_rounded),
       title: Text(l.catalogsAddTitle),
       content: Column(
@@ -217,9 +225,7 @@ Future<bool> followCatalog(
     SnackBar(
       content: Text(
         status.error != null && status.fetched == null
-            ? (status.error == 'offline'
-                  ? l.catalogsOffline
-                  : l.catalogsError(status.error!))
+            ? catalogErrorText(l, status.error!)
             : l.catalogsStatus('${status.shown}', '${status.notShown}'),
       ),
     ),

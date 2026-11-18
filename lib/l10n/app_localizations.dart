@@ -2329,6 +2329,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not connect; the last copy is used.'**
   String get catalogsOffline;
+
+  /// No description provided for @catalogsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a valid catalog, or it is too large; the last copy is used.'**
+  String get catalogsInvalid;
 }
 
 class _AppLocalizationsDelegate

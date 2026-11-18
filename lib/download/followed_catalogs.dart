@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +12,63 @@ import 'publisher_list.dart' show cleanShownText;
 // club's catalog on its web server, next to Lychnion's. Following a catalog
 // trusts nobody: only records of Lychnion and of publishers the user added
 // show up (publisher links, step 4a).
+
+/// Why a catalog could not be fetched: `offline` (no answer in time),
+/// `HTTP <status>`, `too large`, or `invalid` (not text).
+class CatalogFetchError implements Exception {
+  CatalogFetchError(this.code);
+  final String code;
+  @override
+  String toString() => 'CatalogFetchError($code)';
+}
+
+/// Catalogs are small (Lychnion's is a few kilobytes): anything larger
+/// than this is refused while it arrives, before it fills the memory.
+const maxCatalogBytes = 2 << 20;
+
+/// Fetches a catalog's text: an answer other than 200 is refused at once
+/// (its body is not read), the body is counted while it arrives and
+/// refused above [maxBytes] (also after decompression), and the whole
+/// fetch has a time limit.
+Future<String> fetchCatalogText(
+  Uri url, {
+  int maxBytes = maxCatalogBytes,
+  Duration limit = const Duration(seconds: 45),
+}) async {
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 10)
+    ..idleTimeout = const Duration(seconds: 5);
+  final sw = Stopwatch()..start();
+  try {
+    final req = await client.getUrl(url).timeout(const Duration(seconds: 15));
+    req.headers.set(HttpHeaders.acceptHeader, 'application/json');
+    final res = await req.close().timeout(const Duration(seconds: 15));
+    if (res.statusCode != HttpStatus.ok) {
+      throw CatalogFetchError('HTTP ${res.statusCode}');
+    }
+    if (res.contentLength > maxBytes) throw CatalogFetchError('too large');
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in res.timeout(const Duration(seconds: 15))) {
+      if (bytes.length + chunk.length > maxBytes) {
+        throw CatalogFetchError('too large');
+      }
+      if (sw.elapsed > limit) throw CatalogFetchError('offline');
+      bytes.add(chunk);
+    }
+    try {
+      return utf8.decode(bytes.takeBytes());
+    } on FormatException {
+      throw CatalogFetchError('invalid');
+    }
+  } on CatalogFetchError {
+    rethrow;
+  } on Object {
+    throw CatalogFetchError('offline');
+  } finally {
+    // Also ends an answer whose body was not read.
+    client.close(force: true);
+  }
+}
 
 /// `lychnion://catalog?url=…&name=…`, shown as a QR code or link by
 /// whoever runs the catalog.
@@ -40,6 +99,7 @@ class CatalogLink {
   /// A catalog address from a link or from what the user pasted: http(s)
   /// with a host, no user name or password. Null otherwise.
   static Uri? normalize(String input) {
+    if (input.length > 2048) return null;
     final u = Uri.tryParse(input.trim());
     if (u == null || u.host.isEmpty || u.userInfo.isNotEmpty) return null;
     if (!u.isScheme('http') && !u.isScheme('https')) return null;
@@ -130,6 +190,16 @@ class FollowedCatalogs extends ChangeNotifier {
       }
     } on Object {
       // No file yet, or a broken one: no followed catalogs.
+    }
+    // Copies of catalogs no longer followed (a crash between steps) and
+    // half-written copies are removed.
+    try {
+      final keep = {for (final c in _list) cacheFile(c.url).path};
+      for (final f in _cache.listSync().whereType<File>()) {
+        if (!keep.contains(f.path)) f.deleteSync();
+      }
+    } on Object {
+      // No folder yet.
     }
     notifyListeners();
   }

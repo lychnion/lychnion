@@ -199,4 +199,93 @@ void main() {
       expect(c.rejected, hasLength(1));
     });
   });
+
+  group('fetchCatalogText', () {
+    late HttpServer server;
+    late void Function(HttpRequest) handle;
+    setUp(() async {
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((r) => handle(r));
+    });
+    tearDown(() => server.close(force: true));
+    Uri at(String p) => Uri.parse('http://127.0.0.1:${server.port}/$p');
+    Matcher code(String c) =>
+        throwsA(isA<CatalogFetchError>().having((e) => e.code, 'code', c));
+
+    test('reads a catalog', () async {
+      handle = (r) => r.response
+        ..write('{"format":2,"records":[]}')
+        ..close();
+      expect(await fetchCatalogText(at('c.json')), '{"format":2,"records":[]}');
+    });
+
+    test('an error answer is refused at once, its body not read', () async {
+      handle = (r) {
+        r.response
+          ..statusCode = 404
+          ..bufferOutput = false
+          ..write('still going');
+        r.response.flush(); // and never closed
+      };
+      final sw = Stopwatch()..start();
+      await expectLater(fetchCatalogText(at('x')), code('HTTP 404'));
+      expect(sw.elapsed.inSeconds, lessThan(5));
+    });
+
+    test('too large: by its length, and while it arrives', () async {
+      handle = (r) => r.response
+        ..contentLength = 100
+        ..add(List.filled(100, 32))
+        ..close();
+      await expectLater(
+        fetchCatalogText(at('x'), maxBytes: 50),
+        code('too large'),
+      );
+      handle = (r) {
+        r.response.bufferOutput = false;
+        for (var i = 0; i < 20; i++) {
+          r.response.add(List.filled(10, 32));
+        }
+        r.response.close();
+      };
+      await expectLater(
+        fetchCatalogText(at('x'), maxBytes: 50),
+        code('too large'),
+      );
+    });
+
+    test('not text is invalid', () async {
+      handle = (r) => r.response
+        ..add([0xff, 0xfe, 0xfd])
+        ..close();
+      await expectLater(fetchCatalogText(at('x')), code('invalid'));
+    });
+
+    test('nobody listening is offline', () async {
+      final dead = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final port = dead.port;
+      await dead.close(force: true);
+      await expectLater(
+        fetchCatalogText(Uri.parse('http://127.0.0.1:$port/c.json')),
+        code('offline'),
+      );
+    });
+  });
+
+  test('copies of catalogs no longer followed are removed at load', () async {
+    final l = list();
+    await l.add(CatalogLink(kobe));
+    await l.keep(kobe, '{}');
+    final stray = File('${tmp.path}/followed/stray.json')
+      ..writeAsStringSync('x');
+    final half = File('${l.cacheFile(kobe).path}.tmp')..writeAsStringSync('x');
+    await list().load();
+    expect(stray.existsSync(), isFalse);
+    expect(half.existsSync(), isFalse);
+    expect(l.cacheFile(kobe).existsSync(), isTrue);
+  });
+
+  test('very long addresses are refused', () {
+    expect(CatalogLink.normalize('https://x.example/${'a' * 3000}'), isNull);
+  });
 }

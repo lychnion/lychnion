@@ -413,5 +413,6 @@
   "catalogsKnown": "このカタログは追加済みか、一覧がいっぱいです。",
   "catalogsSaveFailed": "カタログの一覧を保存できませんでした。変更はありません。",
   "catalogsRefresh": "更新",
-  "catalogsOffline": "接続できませんでした。前回のものを使っています。"
+  "catalogsOffline": "接続できませんでした。前回のものを使っています。",
+  "catalogsInvalid": "正しいカタログではないか、大きすぎます。前回のものを使っています。"
 }

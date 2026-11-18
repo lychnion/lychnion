@@ -79,9 +79,9 @@ class DownloadManager extends ChangeNotifier {
   /// Lychnion's catalog (bundled, or the one fetched last).
   Catalog _main = Catalog(const []);
 
-  /// Followed catalogs as last read (step 4c), and what they sent.
+  /// Followed catalogs as last read (step 4c). Their text stays on disk
+  /// (FollowedCatalogs.cached), not in memory.
   final _followed = <Uri, Catalog>{};
-  final _followedBodies = <Uri, String>{};
 
   /// What Downloads shows: Lychnion's catalog, then the followed ones
   /// (they add items and newer versions; Lychnion's keeps the rest), then
@@ -96,67 +96,88 @@ class DownloadManager extends ChangeNotifier {
     return _withShelters(c);
   }
 
-  Future<void> _readFollowed(Uri url, String body, DateTime fetched) async {
-    final c = await _parse(body, url);
+  /// [body] as a catalog, or [CatalogFetchError] `invalid`.
+  Future<Catalog> _parseFollowed(String body, Uri url) async {
+    try {
+      return await _parse(body, url);
+    } on Object {
+      throw CatalogFetchError('invalid');
+    }
+  }
+
+  void _useFollowed(Uri url, Catalog c, DateTime fetched, {String? error}) {
     _followed[url] = c;
-    _followedBodies[url] = body;
     store.followed.setStatus(
       url,
       CatalogStatus(
         shown: c.items.length,
         notShown: c.rejected.length,
         fetched: fetched,
+        error: error,
       ),
     );
   }
 
-  /// The followed catalogs from their last copies (offline is fine).
+  void _failedFollowed(Uri url, String code) {
+    final old = store.followed.status[url];
+    store.followed.setStatus(
+      url,
+      CatalogStatus(
+        shown: old?.shown ?? 0,
+        notShown: old?.notShown ?? 0,
+        fetched: old?.fetched,
+        error: code,
+      ),
+    );
+  }
+
+  /// The followed catalogs from their last copies (offline is fine). A
+  /// copy that cannot be read is skipped; the others still load.
   Future<void> _loadFollowed() async {
     for (final f in store.followed.all) {
       final copy = await store.followed.cached(f.url);
-      if (copy != null) await _readFollowed(f.url, copy.body, copy.fetched);
-    }
-  }
-
-  /// Fetches one followed catalog; on failure its last copy stays in use.
-  Future<void> _fetchFollowed(Uri url) async {
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10);
-    try {
-      final req = await client.getUrl(url);
-      final res = await req.close().timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) {
-        await res.drain<void>();
-        throw HttpException('HTTP ${res.statusCode}');
+      if (copy == null) continue;
+      try {
+        final c = await _parseFollowed(copy.body, f.url);
+        _useFollowed(
+          f.url,
+          c,
+          copy.fetched,
+          error: store.followed.status[f.url]?.error,
+        );
+      } on CatalogFetchError catch (e) {
+        _followed.remove(f.url);
+        _failedFollowed(f.url, e.code);
       }
-      final body = await res
-          .transform(utf8.decoder)
-          .join()
-          .timeout(const Duration(seconds: 30));
-      if (body.length > _maxCatalogChars) throw HttpException('too large');
-      await store.followed.keep(url, body);
-      await _readFollowed(url, body, DateTime.now());
-    } catch (e) {
-      final old = store.followed.status[url];
-      store.followed.setStatus(
-        url,
-        CatalogStatus(
-          shown: old?.shown ?? 0,
-          notShown: old?.notShown ?? 0,
-          fetched: old?.fetched,
-          error: e is HttpException && e.message.startsWith('HTTP ')
-              ? e.message
-              : 'offline',
-        ),
-      );
-      _log({'event': 'followed_catalog_failed', 'url': '$url', 'error': '$e'});
-    } finally {
-      client.close(force: true);
     }
   }
 
-  /// A catalog this large is not one (5 million characters).
-  static const _maxCatalogChars = 5 << 20;
+  /// Fetches one followed catalog. Only a copy that reads as a catalog is
+  /// kept; on any failure the last good copy stays in use. A catalog
+  /// removed meanwhile is left alone.
+  Future<void> _fetchFollowed(Uri url) async {
+    try {
+      final body = await fetchCatalogText(url);
+      final c = await _parseFollowed(body, url);
+      if (!store.followed.follows(url)) return;
+      await store.followed.keep(url, body);
+      if (!store.followed.follows(url)) return;
+      _useFollowed(url, c, DateTime.now());
+    } on CatalogFetchError catch (e) {
+      if (!store.followed.follows(url)) return;
+      _failedFollowed(url, e.code);
+      _log({
+        'event': 'followed_catalog_failed',
+        'url': '$url',
+        'error': e.code,
+      });
+    } on Object catch (e) {
+      // The copy could not be kept (disk): the last one stays.
+      if (!store.followed.follows(url)) return;
+      _failedFollowed(url, 'disk');
+      _log({'event': 'followed_catalog_failed', 'url': '$url', 'error': '$e'});
+    }
+  }
 
   /// Follows a catalog (after the user agreed): saves it, fetches it and
   /// shows its items. Returns its status, or null when it was followed
@@ -173,7 +194,6 @@ class DownloadManager extends ChangeNotifier {
   Future<void> unfollow(Uri url) async {
     await store.followed.remove(url);
     _followed.remove(url);
-    _followedBodies.remove(url);
     catalog = _compose();
     _refreshStates();
   }
@@ -296,15 +316,7 @@ class DownloadManager extends ChangeNotifier {
   Future<void> publishersChanged() async {
     await store.reverify();
     _main = await _localCatalog();
-    for (final f in store.followed.all) {
-      if (_followedBodies[f.url] case final body?) {
-        await _readFollowed(
-          f.url,
-          body,
-          store.followed.status[f.url]?.fetched ?? DateTime.now(),
-        );
-      }
-    }
+    await _loadFollowed();
     for (final e in _shelterBodies.entries) {
       _shelterCatalogs[e.key] = await _parse(e.value, e.key);
     }
@@ -321,8 +333,18 @@ class DownloadManager extends ChangeNotifier {
       baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
       trust: store.trust,
     );
-    for (final r in c.rejected) {
-      _log({'event': 'catalog_rejected', 'record': r, 'from': '$from'});
+    // A few lines, not one per record: a catalog may hold thousands of
+    // records from publishers not added.
+    for (final r in c.rejected.take(10)) {
+      final text = r.length > 200 ? '${r.substring(0, 200)}…' : r;
+      _log({'event': 'catalog_rejected', 'record': text, 'from': '$from'});
+    }
+    if (c.rejected.length > 10) {
+      _log({
+        'event': 'catalog_rejected_more',
+        'count': c.rejected.length - 10,
+        'from': '$from',
+      });
     }
     return c;
   }
@@ -338,28 +360,24 @@ class DownloadManager extends ChangeNotifier {
     catalogError = null;
     // Not during a build (Downloads starts a refresh in initState).
     scheduleMicrotask(notifyListeners);
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10);
     try {
-      if (url == null) throw StateError('no catalog address');
-      final req = await client.getUrl(url);
-      final res = await req.close().timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
-      final body = await res.transform(utf8.decoder).join();
-      _main = await _parse(body, url);
-      await store.cachedCatalog.parent.create(recursive: true);
-      await store.cachedCatalog.writeAsString(
-        jsonEncode({'url': '$url', 'body': body}),
-      );
+      // No address of its own (dev setups): only the followed catalogs.
+      if (url != null) {
+        final body = await fetchCatalogText(url);
+        _main = await _parse(body, url);
+        await store.cachedCatalog.parent.create(recursive: true);
+        await store.cachedCatalog.writeAsString(
+          jsonEncode({'url': '$url', 'body': body}),
+        );
+      }
     } catch (e) {
       catalogError = 'offline';
     } finally {
-      client.close(force: true);
-      // Followed catalogs too, one after another; each keeps its last
-      // copy when it cannot be reached.
-      for (final f in store.followed.all) {
-        await _fetchFollowed(f.url);
-      }
+      // Followed catalogs too, at the same time; each keeps its last copy
+      // when it cannot be reached, and each fetch has its own time limit.
+      await Future.wait([
+        for (final f in store.followed.all) _fetchFollowed(f.url),
+      ]);
       catalog = _compose();
       refreshing = false;
       _refreshStates();
@@ -372,13 +390,9 @@ class DownloadManager extends ChangeNotifier {
   /// download. Returns how many items the shelter offers, or null when it
   /// could not be read.
   Future<int?> addCatalogFrom(Uri url) async {
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10);
     try {
-      final req = await client.getUrl(url);
-      final res = await req.close().timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) return null;
-      final body = await res.transform(utf8.decoder).join();
+      // Size and time limited, like every catalog fetch.
+      final body = await fetchCatalogText(url);
       final other = await _parse(body, url);
       _shelterCatalogs[url] = other;
       _shelterBodies[url] = body;
@@ -393,8 +407,6 @@ class DownloadManager extends ChangeNotifier {
     } catch (e) {
       _log({'event': 'shelter_catalog_failed', 'from': '$url', 'error': '$e'});
       return null;
-    } finally {
-      client.close(force: true);
     }
   }
 
