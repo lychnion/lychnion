@@ -44,7 +44,7 @@ which ones it reads; data says which one it uses.
 |---|---|---|
 | Catalog | `format: 2` | `lib/download/catalog.dart` |
 | Signed record | `format: 1` | `packages/lychnion_format/lib/src/record.dart` |
-| Base protocol (phones ↔ base) | `v: 1` | `lib/shelter/shelter_protocol.dart` |
+| Base protocol (phones ↔ base) | `v: 1` | `lib/base/base_protocol.dart` |
 
 Rules:
 

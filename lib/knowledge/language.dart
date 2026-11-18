@@ -1,5 +1,5 @@
 // Question language and language maps, without Flutter (also used by the
-// shelter server and tools). Languages are ISO 639-1 codes.
+// base server and tools). Languages are ISO 639-1 codes.
 
 /// Picks the text for [lang] from a language map, falling back to English,
 /// then Japanese, then whatever is there.

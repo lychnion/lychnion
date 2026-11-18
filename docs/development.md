@@ -68,8 +68,8 @@ All other flags: [dev-flags.md](dev-flags.md).
     engine.
   - `lib/download/`: the catalog, downloads, publishers and followed
     catalogs.
-  - `lib/shelter/`: the base (server, browser page data, QR codes). The
-    browser page itself is `assets/web/shelter.html`.
+  - `lib/base/`: the base (server, browser page data, QR codes). The
+    browser page itself is `assets/web/base.html`.
   - `lib/ui/`: Home, first steps and the tour.
 - `packages/lychnion_format`: signed records, in pure Dart. The signing
   tool in lychnion-data uses it too.

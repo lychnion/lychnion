@@ -3,15 +3,15 @@ import 'dart:io';
 import '../download/catalog.dart';
 import '../download/download_store.dart';
 
-/// What a shelter computer passes on to phones on its Wi-Fi: everything it
+/// What a base computer passes on to phones on its Wi-Fi: everything it
 /// has installed from Downloads, as a catalog of the publishers' signed
 /// records with the files addressed by their hash
 /// (docs/distribution.md, step 2).
 ///
-/// Phones trust the signatures, not the shelter: a record or file that was
+/// Phones trust the signatures, not the base: a record or file that was
 /// changed fails their checks like a bad download from anywhere else.
-class ShelterLibrary {
-  ShelterLibrary(this.store);
+class BaseLibrary {
+  BaseLibrary(this.store);
 
   final DownloadStore store;
 
@@ -20,7 +20,7 @@ class ShelterLibrary {
   ];
 
   /// A format-2 catalog: the signed records unchanged, and for each file
-  /// its address on this shelter, relative to the catalog's own URL.
+  /// its address on this base, relative to the catalog's own URL.
   Map<String, Object?> catalog() {
     final all = items;
     return {

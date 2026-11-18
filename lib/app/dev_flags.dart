@@ -16,10 +16,10 @@ import 'settings.dart';
 ///   --dart-define=MOCK_LOCATION=34.7376,135.3417             fixed position for testing
 ///   --dart-define=START_TAB=2                                open on the map (1: conversations)
 ///   --dart-define=SCREENSHOT_AFTER_S=20                      save a PNG of the app to Documents
-///   --dart-define=SHELTER_SERVER=true                        answer phones on the local network (desktop)
-///   --dart-define=SHELTER_NAME=…                             shown on phones
-///   --dart-define=SHELTER_URL=http://192.168.1.20:8642       ask this shelter first (phone)
-///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with SHELTER_SERVER)
+///   --dart-define=BASE_SERVER=true                           answer phones on the local network (desktop)
+///   --dart-define=BASE_NAME=…                                shown on phones
+///   --dart-define=BASE_URL=http://192.168.1.20:8642          ask this base first (phone)
+///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with BASE_SERVER)
 ///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: engine decides)
@@ -44,12 +44,21 @@ abstract final class DevFlags {
   static const demoQuestions = String.fromEnvironment('ASK');
   static const relevanceCheck = bool.fromEnvironment('RELEVANCE_CHECK');
   static const topK = int.fromEnvironment('TOP_K', defaultValue: 4);
-  static const shelterServer = bool.fromEnvironment('SHELTER_SERVER');
-  static const shelterName = String.fromEnvironment(
-    'SHELTER_NAME',
-    defaultValue: 'Lychnion shelter',
+  // The old SHELTER_* names still work.
+  static const baseServer =
+      bool.fromEnvironment('BASE_SERVER') ||
+      bool.fromEnvironment('SHELTER_SERVER');
+  static const baseName = String.fromEnvironment(
+    'BASE_NAME',
+    defaultValue: String.fromEnvironment(
+      'SHELTER_NAME',
+      defaultValue: 'Lychnion shelter',
+    ),
   );
-  static const shelterUrl = String.fromEnvironment('SHELTER_URL');
+  static const baseUrl = String.fromEnvironment(
+    'BASE_URL',
+    defaultValue: String.fromEnvironment('SHELTER_URL'),
+  );
   static const demoFacts = bool.fromEnvironment('DEMO_FACTS');
   static const factsEdit = bool.fromEnvironment('FACTS_EDIT');
 }
@@ -63,7 +72,7 @@ bool get isDesktop => switch (defaultTargetPlatform) {
 };
 
 /// Sharing on the local network: the switch in Settings, or the
-/// SHELTER_SERVER flag for development.
+/// BASE_SERVER flag for development.
 bool sharingOn(AppSettings? s) =>
-    DevFlags.shelterServer || (isDesktop && (s?.sharing ?? false));
-String sharingName(AppSettings? s) => s?.sharingName ?? DevFlags.shelterName;
+    DevFlags.baseServer || (isDesktop && (s?.sharing ?? false));
+String sharingName(AppSettings? s) => s?.sharingName ?? DevFlags.baseName;

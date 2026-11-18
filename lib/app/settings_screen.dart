@@ -18,14 +18,14 @@ import 'brand.dart';
 import 'lang.dart';
 import 'notices.dart';
 
-/// Four groups: language, shelter, offline data, about (with developer
+/// Four groups: language, base, offline data, about (with developer
 /// options one level down).
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
     required this.settings,
     required this.downloads,
-    this.shelter,
+    this.base,
     this.onShareNearby,
     this.region,
     this.userRegion,
@@ -38,8 +38,8 @@ class SettingsScreen extends StatelessWidget {
   final AppSettings settings;
   final DownloadManager? downloads;
 
-  /// Shelter section: the QR code on a shelter computer, else connect.
-  final Widget? shelter;
+  /// Base section: the QR code on a base computer, else connect.
+  final Widget? base;
 
   /// Phones: pass on downloads to phones nearby.
   final VoidCallback? onShareNearby;
@@ -115,8 +115,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             if (region != null)
               _Group(title: l.settingsRegion, children: [region!]),
-            if (shelter != null)
-              _Group(title: l.settingsShelter, children: [shelter!]),
+            if (base != null) _Group(title: l.settingsBase, children: [base!]),
             _Group(
               title: l.settingsOfflineData,
               children: [

@@ -1,8 +1,8 @@
 part of 'ask_page.dart';
 
-/// Desktop side: shares this computer as a shelter base on the local
+/// Desktop side: shares this computer as a base on the local
 /// network, and announces it so phones find it.
-mixin _BaseServer on _AskPageBase {
+mixin _BaseSharing on _AskPageBase {
   /// Server changes run one after the other.
   Future<void> _serverOps = Future.value();
 
@@ -15,10 +15,10 @@ mixin _BaseServer on _AskPageBase {
       setState(() {
         if (_phase == AskPhase.serving ||
             _phase == AskPhase.ready ||
-            _phase == AskPhase.shelter) {
+            _phase == AskPhase.base) {
           _phase = _server != null
               ? AskPhase.serving
-              : (_shelterReady ? AskPhase.shelter : AskPhase.ready);
+              : (_baseReady ? AskPhase.base : AskPhase.ready);
         }
       });
     });
@@ -38,11 +38,11 @@ mixin _BaseServer on _AskPageBase {
       await s.stop();
       await _announcer.stop().catchError((Object _) {});
       _server = null;
-      widget.shelterUrls?.value = const [];
-      _log({'event': 'shelter_stopped'});
+      widget.baseUrls?.value = const [];
+      _log({'event': 'base_stopped'});
     }
     if (!want || _server != null) return;
-    final server = ShelterServer(
+    final server = BaseServer(
       answerer: answerer,
       name: name,
       modelName: DevFlags.modelPath.split('/').last,
@@ -52,33 +52,33 @@ mixin _BaseServer on _AskPageBase {
           : CompactCodec(widget.map!.sites!.siteIds),
       // Pass on what this computer has installed (packages, maps,
       // models), so phones can update here without internet.
-      library: ShelterLibrary(await DownloadStore.instance()),
-      page: await rootBundle.loadString('assets/web/shelter.html'),
+      library: BaseLibrary(await DownloadStore.instance()),
+      page: await rootBundle.loadString('assets/web/base.html'),
       placeName: (id) => widget.map?.sites?.byUid(id)?.name,
     );
     try {
       await server.start();
     } on SocketException catch (e) {
-      _log({'event': 'shelter_failed', 'error': '$e'});
+      _log({'event': 'base_failed', 'error': '$e'});
       return;
     }
     _server = server;
     final urls = [
-      for (final a in await ShelterServer.localAddresses())
-        'http://$a:${ShelterServer.defaultPort}',
+      for (final a in await BaseServer.localAddresses())
+        'http://$a:${BaseServer.defaultPort}',
     ];
-    widget.shelterUrls?.value = urls;
-    _log({'event': 'shelter_started', 'name': name, 'urls': urls});
+    widget.baseUrls?.value = urls;
+    _log({'event': 'base_started', 'name': name, 'urls': urls});
     // Phones on this Wi-Fi find the base without its QR code (step 5e).
     // Serving goes on if announcing is not possible here.
     try {
       await _announcer.start(
         name: name,
-        port: ShelterServer.defaultPort,
+        port: BaseServer.defaultPort,
         key: widget.facts?.signer?.publicKeyText,
       );
     } on Object catch (e) {
-      _log({'event': 'shelter_announce_failed', 'error': '$e'});
+      _log({'event': 'base_announce_failed', 'error': '$e'});
     }
   }
 

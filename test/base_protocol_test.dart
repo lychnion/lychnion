@@ -4,13 +4,13 @@ import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/knowledge/retriever.dart';
 import 'package:lychnion/llm/local_llm.dart';
-import 'package:lychnion/shelter/shelter_protocol.dart';
+import 'package:lychnion/base/base_protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final pkg = KnowledgePackage.open('assets/packages/jp.bousai.core.sqlite');
 
-  test('an answer survives the trip from shelter to phone', () {
+  test('an answer survives the trip from base to phone', () {
     final tsunami = pkg.alerts.singleWhere((a) => a.id == 'tsunami-go-high');
     final sent = GroundedAnswer('海の近くで強い揺れを感じました。')
       ..alerts = [tsunami]

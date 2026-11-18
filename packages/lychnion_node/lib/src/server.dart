@@ -28,7 +28,7 @@ class NodeServer {
   final int maxConnections;
   int _active = 0;
 
-  /// Same port as a base (the shelter computer), so a phone that knows
+  /// Same port as a base, so a phone that knows
   /// a node's address finds it the same way.
   static const defaultPort = 8642;
 

@@ -12,11 +12,11 @@ slow or older phones get fast answers from a bigger model. This is the
 
 - **Shelter (desktop):** `SHELTER_SERVER=true` (optional `SHELTER_NAME`)
   starts a small HTTP server on port 8642 after the model has loaded
-  (`lib/shelter/shelter_server.dart`).
+  (`lib/base/base_server.dart`).
   - `GET /info`: name, model, package and version, number of answers.
   - `POST /ask` `{"question": "…"}`: the full answer: safety lines,
     answer text, the passages given to the model with source and licence,
-    timings (`lib/shelter/shelter_protocol.dart`, version 1).
+    timings (`lib/base/base_protocol.dart`, version 1).
   - One model, so questions are answered one after another. Questions are
     limited to 500 characters and request bodies to 8 KB.
 - **Phone:** `SHELTER_URL=http://<shelter>:8642` connects at start-up. Questions
@@ -107,13 +107,13 @@ Notes:
   「この端末を避難所として公開」 / "Share on the local network", and the
   shelter's name (asked when turning it on). The server starts, stops and
   renames itself to match, once the model has loaded
-  (`ShelterShareSection`, `_syncServer` in `lib/ask/base_server.dart`). The
+  (`BaseShareSection`, `_syncServer` in `lib/ask/base_sharing.dart`). The
   `SHELTER_SERVER` flag still works for development.
-- **Browser page:** `GET /` serves `assets/web/shelter.html`, one
+- **Browser page:** `GET /` serves `assets/web/base.html`, one
   self-contained file (no internet, no files from elsewhere).
   `GET /web.json?lang=` gives its texts from the app's ARB files, the
   language list and the current facts as display lines; `POST /ask`
-  returns the answer ready to show (`lib/shelter/shelter_web.dart`).
+  returns the answer ready to show (`lib/base/base_web.dart`).
   Answers follow the question's language, labels included. Text is shown
   with `textContent` only, never as HTML.
 - **QR card:** one code at a time, browser first, the app on request;

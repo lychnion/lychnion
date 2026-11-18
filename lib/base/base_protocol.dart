@@ -3,11 +3,11 @@ import '../knowledge/knowledge_package.dart';
 import '../knowledge/retriever.dart';
 import '../llm/local_llm.dart';
 
-/// JSON format between a shelter computer and phones on its Wi-Fi.
+/// JSON format between a base computer and phones on its Wi-Fi.
 ///
 /// The phone rebuilds the same objects it would create with its own model,
 /// so the answer card, citation check and map link work unchanged.
-const shelterProtocolVersion = 1;
+const baseProtocolVersion = 1;
 
 Map<String, Object?> sourceToWire(Source s) => {
   'id': s.id,
@@ -46,7 +46,7 @@ const maxWireHits = 30;
 const maxWireAlerts = 30;
 
 Map<String, Object?> answerToWire(GroundedAnswer a) => {
-  'v': shelterProtocolVersion,
+  'v': baseProtocolVersion,
   'question': a.question,
   'lang': a.lang,
   'search_query': a.searchQuery,
@@ -86,11 +86,11 @@ Map<String, Object?> answerToWire(GroundedAnswer a) => {
   if (a.stats != null) 'stats': a.stats!.toJson(),
 };
 
-/// Rebuilds an answer received from a shelter. Throws [FormatException] on
+/// Rebuilds an answer received from a base. Throws [FormatException] on
 /// anything that does not look like this protocol (also a wrong type, a
 /// missing field or too many hits).
 GroundedAnswer answerFromWire(Map<String, dynamic> j) {
-  if (j['v'] != shelterProtocolVersion) {
+  if (j['v'] != baseProtocolVersion) {
     throw const FormatException('unsupported base protocol');
   }
   if (j['alerts'] case final List<Object?> l when l.length > maxWireAlerts) {

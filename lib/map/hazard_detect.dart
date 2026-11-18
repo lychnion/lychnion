@@ -15,7 +15,7 @@ Hazard? hazardFor(String question, List<Alert> alerts) {
   return null;
 }
 
-/// The hazard of the current warnings (relayed or typed by shelter staff),
+/// The hazard of the current warnings (relayed or typed by base staff),
 /// most urgent first: a tsunami warning wins over an earthquake one, in the
 /// same order as [hazardFor]. Lifted warnings (解除, "lifted") are left out.
 /// Null without a warning that names a hazard.

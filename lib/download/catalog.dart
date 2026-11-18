@@ -24,7 +24,7 @@ class CatalogFile {
   final String url;
 
   /// Further addresses of the same file (for example the internet copy
-  /// behind a shelter's), tried in order when [url] fails.
+  /// behind a base's), tried in order when [url] fails.
   final List<String> more;
 
   List<String> get urls => [url, ...more];
@@ -244,14 +244,14 @@ class Catalog {
   /// relative address without a base, and no mirrors).
   Uri? urlOf(CatalogFile f) => urlsOf(f).firstOrNull;
 
-  /// This catalog plus the items of [other] (for example a shelter's). An
-  /// item of [other] wins when its version is the same or newer: a shelter
+  /// This catalog plus the items of [other] (for example a base's). An
+  /// item of [other] wins when its version is the same or newer: a base
   /// on the local Wi-Fi is faster and works without internet. Records are
   /// checked as before.
   ///
   /// Files are known by their hash, so every address either catalog has
   /// for a file is kept, absolute: [other]'s first, then this catalog's
-  /// (the internet copy when the shelter's Wi-Fi is gone). Mirrors of both
+  /// (the internet copy when the base's Wi-Fi is gone). Mirrors of both
   /// are kept too.
   ///
   /// With [preferOther] false (a followed catalog), this catalog keeps an

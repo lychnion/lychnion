@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
-import 'package:lychnion/shelter/shelter_panel.dart';
+import 'package:lychnion/base/base_panel.dart';
 import 'package:lychnion/ui/ask_view.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -17,7 +17,7 @@ void main() {
             child: ListenableBuilder(
               listenable: settings,
               builder: (_, _) =>
-                  ShelterShareSection(settings: settings, urls: urls),
+                  BaseShareSection(settings: settings, urls: urls),
             ),
           ),
         ),
@@ -49,7 +49,7 @@ void main() {
 
     urls.value = ['http://192.168.1.20:8642'];
     await t.pumpAndSettle();
-    expect(find.byType(ShelterQrCard), findsOneWidget);
+    expect(find.byType(BaseQrCard), findsOneWidget);
     expect(find.text('Show large'), findsOneWidget);
 
     // One code at a time: the browser page first, the app on request.
@@ -73,10 +73,10 @@ void main() {
     await t.pumpAndSettle();
     expect(settings.sharing, isFalse);
     expect(settings.sharingName, 'Minami shelter');
-    expect(find.byType(ShelterQrCard), findsNothing);
+    expect(find.byType(BaseQrCard), findsNothing);
   });
 
-  testWidgets('a phone connects to a shelter by its address', (t) async {
+  testWidgets('a phone connects to a base by its address', (t) async {
     final settings = AppSettings();
     await t.pumpWidget(
       MaterialApp(
@@ -86,7 +86,7 @@ void main() {
         home: Scaffold(
           body: ListenableBuilder(
             listenable: settings,
-            builder: (_, _) => ShelterSettingsTile(settings: settings),
+            builder: (_, _) => BaseSettingsTile(settings: settings),
           ),
         ),
       ),
@@ -96,7 +96,7 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.text('Cancel'));
     await t.pumpAndSettle();
-    expect(settings.shelterUrl, isNull);
+    expect(settings.baseUrl, isNull);
 
     await t.tap(find.byType(ListTile));
     await t.pumpAndSettle();
@@ -104,7 +104,7 @@ void main() {
     await t.pump();
     await t.tap(find.widgetWithText(FilledButton, 'Connect'));
     await t.pumpAndSettle();
-    expect(settings.shelterUrl, 'http://192.168.1.20:8642');
+    expect(settings.baseUrl, 'http://192.168.1.20:8642');
     expect(find.byType(AlertDialog), findsNothing);
   });
 

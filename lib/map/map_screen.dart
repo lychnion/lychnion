@@ -25,7 +25,7 @@ class MapScreen extends StatefulWidget {
 
   final MapState state;
 
-  /// Set on the shelter computer: lets staff enter current facts.
+  /// Set on the base computer: lets staff enter current facts.
   final FactEditor? editor;
 
   @override
@@ -615,7 +615,7 @@ class _MapScreenState extends State<MapScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      l.mapShelterHint,
+                      l.mapBaseHint,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

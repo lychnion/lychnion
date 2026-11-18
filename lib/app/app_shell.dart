@@ -24,9 +24,9 @@ import '../knowledge/grounded_answer.dart';
 import '../map/hazard_detect.dart';
 import '../map/map_screen.dart';
 import '../map/map_state.dart';
-import '../shelter/share_nearby.dart';
-import '../shelter/shelter_link.dart';
-import '../shelter/shelter_panel.dart';
+import '../base/share_nearby.dart';
+import '../base/base_link.dart';
+import '../base/base_panel.dart';
 import '../ui/ask_view.dart';
 import '../ui/guided_tour.dart';
 import '../util/paths.dart';
@@ -78,8 +78,8 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
   @override
   DownloadManager? _downloads;
 
-  /// Shelter computer: its addresses for phones (empty when not serving).
-  final _shelterUrls = ValueNotifier<List<String>>(const []);
+  /// Base computer: its addresses for phones (empty when not serving).
+  final _baseUrls = ValueNotifier<List<String>>(const []);
 
   StreamSubscription<Uri>? _links;
 
@@ -89,13 +89,13 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
   /// New versions of installed downloads, for the ⋮ menu badge.
   final _updates = ValueNotifier<int>(0);
 
-  /// A shelter's catalog that arrived before Downloads was ready.
-  Uri? _pendingShelterCatalog;
+  /// A base's catalog that arrived before Downloads was ready.
+  Uri? _pendingBaseCatalog;
 
-  void _addShelterCatalog(Uri url) {
+  void _addBaseCatalog(Uri url) {
     final dm = _downloads;
     if (dm == null) {
-      _pendingShelterCatalog = url;
+      _pendingBaseCatalog = url;
     } else {
       unawaited(dm.addCatalogFrom(url));
     }
@@ -110,8 +110,8 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
     dm.updates.addListener(() => _updates.value = dm.updates.value);
     setState(() => _downloads = dm);
     _useDownloadedMap();
-    if (_pendingShelterCatalog case final u?) {
-      _pendingShelterCatalog = null;
+    if (_pendingBaseCatalog case final u?) {
+      _pendingBaseCatalog = null;
       unawaited(dm.addCatalogFrom(u));
     }
     if (_pendingPublisher case final p?) {
@@ -152,8 +152,8 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
     unawaited(_map?.load());
     unawaited(_initFacts());
     unawaited(_initDownloads());
-    if (!DevFlags.shelterServer) {
-      // Phones only: links come from the QR code at a shelter.
+    if (!DevFlags.baseServer) {
+      // Phones only: links come from the QR code at a base.
       _links = AppLinks().uriLinkStream.listen((u) => unawaited(_openLink(u)));
     }
     if (DevFlags.screenshotAfter > 0) {
@@ -170,9 +170,9 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
   Future<void> _initFacts() async {
     final dir = await getApplicationSupportDirectory();
     await _trust.load(File('${dir.path}/trusted_keys.json'));
-    // Devices that enter official facts (shelter computer, demo) sign them.
+    // Devices that enter official facts (base computer, demo) sign them.
     if (isDesktop ||
-        DevFlags.shelterServer ||
+        DevFlags.baseServer ||
         DevFlags.factsEdit ||
         DevFlags.demoFacts) {
       final signer = await FactSigner.loadOrCreate(
@@ -245,13 +245,13 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
           _map,
           mockLocation: DevFlags.mockLocation,
         ),
-        shelter: isDesktop
-            ? ShelterShareSection(
+        base: isDesktop
+            ? BaseShareSection(
                 settings: widget.settings,
-                urls: _shelterUrls,
+                urls: _baseUrls,
                 keyText: _facts.signer?.publicKeyText,
               )
-            : ShelterSettingsTile(settings: widget.settings),
+            : BaseSettingsTile(settings: widget.settings),
       ),
     ),
   );
@@ -302,14 +302,14 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
             AskPage(
               tourKeys: _tourKeys,
               onScreen: _tab == 0,
-              onShelterCatalog: _addShelterCatalog,
+              onBaseCatalog: _addBaseCatalog,
               view: _tab == 1 ? AskPageView.conversations : AskPageView.home,
               onOpenSettings: _openSettings,
               onShowAsk: () => setState(() => _tab = 1),
               map: _map,
               facts: _facts,
               settings: widget.settings,
-              shelterUrls: _shelterUrls,
+              baseUrls: _baseUrls,
               updates: _updates,
               downloadChanges: _downloadChanges,
               onShowOnMap: () {

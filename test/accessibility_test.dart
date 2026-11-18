@@ -20,7 +20,7 @@ import 'package:lychnion/ui/help_screen.dart';
 import 'package:lychnion/app/splash.dart';
 import 'package:lychnion/facts/fact.dart';
 import 'package:lychnion/facts/fact_view.dart';
-import 'package:lychnion/shelter/shelter_panel.dart';
+import 'package:lychnion/base/base_panel.dart';
 import 'package:lychnion/ui/guided_tour.dart';
 import 'package:lychnion/ui/source_link.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -210,7 +210,7 @@ void main() {
       await _pump(
         t,
         Scaffold(
-          body: ShelterQrCard(
+          body: BaseQrCard(
             urls: const ['http://192.168.1.20:8642'],
             name: '南小学校',
           ),

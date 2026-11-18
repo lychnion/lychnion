@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../knowledge/grounded_answer.dart';
-import '../shelter/shelter_protocol.dart';
+import '../base/base_protocol.dart';
 import '../util/versioned_file.dart';
 
 /// One conversation: questions and answers in the order asked.

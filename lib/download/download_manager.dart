@@ -65,16 +65,16 @@ class DownloadManager extends ChangeNotifier {
   int _lastPct = -1;
   String? catalogError;
 
-  /// Catalogs of shelter computers this phone is connected to, merged into
+  /// Catalogs of base computers this phone is connected to, merged into
   /// every catalog the app reads (a refresh from the internet must not drop
-  /// the shelter's addresses).
-  final _shelterCatalogs = <Uri, Catalog>{};
+  /// the base's addresses).
+  final _baseCatalogs = <Uri, Catalog>{};
 
-  /// What each shelter sent, to read again when publishers change.
-  final _shelterBodies = <Uri, String>{};
+  /// What each base sent, to read again when publishers change.
+  final _baseBodies = <Uri, String>{};
 
-  Catalog _withShelters(Catalog c) {
-    for (final s in _shelterCatalogs.values) {
+  Catalog _withBases(Catalog c) {
+    for (final s in _baseCatalogs.values) {
       c = c.mergedWith(s);
     }
     return c;
@@ -97,7 +97,7 @@ class DownloadManager extends ChangeNotifier {
         c = c.mergedWith(other, preferOther: false);
       }
     }
-    c = _withShelters(c);
+    c = _withBases(c);
     final listed = {for (final i in c.items) i.id};
     final here = [
       for (final kind in ItemKind.values)
@@ -247,7 +247,7 @@ class DownloadManager extends ChangeNotifier {
   /// one after another, only on Wi-Fi or a cable (never mobile data,
   /// whatever the mobile data setting says).
   /// A computer (macOS, Windows, Linux): a base, usually on a cable or
-  /// the shelter's own network. Phones fetch by themselves on Wi-Fi only.
+  /// the base's own network. Phones fetch by themselves on Wi-Fi only.
   static bool get isDesktop =>
       Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
@@ -543,14 +543,14 @@ class DownloadManager extends ChangeNotifier {
 
   /// A publisher was added or removed: install records are checked again,
   /// and every catalog is read again, so the publisher's records show up
-  /// (or go). Shelter catalogs are read from what they sent, no network.
+  /// (or go). Base catalogs are read from what they sent, no network.
   Future<void> publishersChanged() async {
     _trustGeneration++;
     await store.reverify();
     _main = await _localCatalog();
     await _loadFollowed();
-    for (final e in _shelterBodies.entries) {
-      _shelterCatalogs[e.key] = await _parse(e.value, e.key);
+    for (final e in _baseBodies.entries) {
+      _baseCatalogs[e.key] = await _parse(e.value, e.key);
     }
     catalog = _compose();
     changes.value++;
@@ -620,21 +620,21 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
-  /// Adds the catalog of a shelter computer (its `/catalog.json`), so
+  /// Adds the catalog of a base computer (its `/catalog.json`), so
   /// packages, maps and models can come from it over the local Wi-Fi,
   /// without internet. Signatures and hashes are checked as for any
-  /// download. Returns how many items the shelter offers, or null when it
+  /// download. Returns how many items the base offers, or null when it
   /// could not be read.
   Future<int?> addCatalogFrom(Uri url) async {
     try {
       // Size and time limited, like every catalog fetch.
       final body = await fetchCatalogText(url);
       final other = await _parse(body, url);
-      _shelterCatalogs[url] = other;
-      _shelterBodies[url] = body;
+      _baseCatalogs[url] = other;
+      _baseBodies[url] = body;
       catalog = catalog.mergedWith(other);
       _log({
-        'event': 'shelter_catalog',
+        'event': 'base_catalog',
         'from': redactedUrl(url),
         'items': other.items.length,
       });
@@ -642,7 +642,7 @@ class DownloadManager extends ChangeNotifier {
       return other.items.length;
     } catch (e) {
       _log({
-        'event': 'shelter_catalog_failed',
+        'event': 'base_catalog_failed',
         'from': redactedUrl(url),
         'error': e.runtimeType.toString(),
       });
@@ -653,7 +653,7 @@ class DownloadManager extends ChangeNotifier {
   /// Items the catalog at [url] (added with [addCatalogFrom]) offers that
   /// this device does not have, or has in an older version.
   int newItemsAt(Uri url) {
-    final other = _shelterCatalogs[url];
+    final other = _baseCatalogs[url];
     if (other == null) return 0;
     var n = 0;
     for (final i in other.items) {
@@ -737,7 +737,7 @@ class DownloadManager extends ChangeNotifier {
   /// Null if downloading is allowed now, else `offline` or `wifi-only`.
   /// True when this download would go over mobile data (no Wi-Fi or
   /// cable): with "Ask first" the app then asks, whatever the size. Files
-  /// from a shelter on the local Wi-Fi never get here: that is Wi-Fi.
+  /// from a base on the local Wi-Fi never get here: that is Wi-Fi.
   Future<bool> asksBeforeMobile(CatalogItem item) async {
     final now = await Connectivity().checkConnectivity();
     final wifi = now.any(

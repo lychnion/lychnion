@@ -16,15 +16,15 @@ class AppSettings extends ChangeNotifier {
   /// Developer aid: speed and memory under each answer.
   bool showStats = false;
 
-  /// The shelter computer this phone asks first (from a QR code or typed).
-  String? shelterUrl;
-  String? shelterName;
+  /// The base computer this phone asks first (from a QR code or typed).
+  String? baseUrl;
+  String? baseName;
 
-  /// The shelter's public key from its QR code; null when typed by hand
+  /// The base's public key from its QR code; null when typed by hand
   /// (then the key is taken on first connect).
-  String? shelterKey;
+  String? baseKey;
 
-  /// Shelter computer: answer phones on the local network (desktop), and
+  /// Base computer: answer phones on the local network (desktop), and
   /// the name phones see. Off until the user turns it on.
   bool sharing = false;
   String? sharingName;
@@ -78,9 +78,10 @@ class AppSettings extends ChangeNotifier {
           ? lang
           : null;
       showStats = j['show_stats'] == true;
-      shelterUrl = j['shelter_url'] as String?;
-      shelterName = j['shelter_name'] as String?;
-      shelterKey = j['shelter_key'] as String?;
+      // Older files wrote shelter_url, shelter_name and shelter_key.
+      baseUrl = (j['base_url'] ?? j['shelter_url']) as String?;
+      baseName = (j['base_name'] ?? j['shelter_name']) as String?;
+      baseKey = (j['base_key'] ?? j['shelter_key']) as String?;
       sharing = j['sharing'] == true;
       region = j['region'] as String?;
       sharingName = j['sharing_name'] as String?;
@@ -104,17 +105,17 @@ class AppSettings extends ChangeNotifier {
     await _save();
   }
 
-  /// Connects to a shelter computer, or disconnects with null.
-  Future<void> setShelter(String? url, {String? name, String? key}) async {
-    shelterUrl = url;
-    shelterName = url == null ? null : name;
-    shelterKey = url == null ? null : key;
+  /// Connects to a base computer, or disconnects with null.
+  Future<void> setBase(String? url, {String? name, String? key}) async {
+    baseUrl = url;
+    baseName = url == null ? null : name;
+    baseKey = url == null ? null : key;
     notifyListeners();
     await _save();
   }
 
   /// Turns sharing on the local network on or off; [name] replaces the
-  /// shelter's name when given.
+  /// base's name when given.
   Future<void> setSharing(bool on, {String? name}) async {
     sharing = on;
     if (name != null) sharingName = name.trim().isEmpty ? null : name.trim();
@@ -138,9 +139,9 @@ class AppSettings extends ChangeNotifier {
         'format': format,
         'language': ?language,
         'show_stats': showStats,
-        'shelter_url': ?shelterUrl,
-        'shelter_name': ?shelterName,
-        'shelter_key': ?shelterKey,
+        'base_url': ?baseUrl,
+        'base_name': ?baseName,
+        'base_key': ?baseKey,
         'sharing': sharing,
         'sharing_name': ?sharingName,
         'region': ?region,

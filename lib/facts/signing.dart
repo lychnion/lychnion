@@ -16,7 +16,7 @@ List<int> _unb64(String s) => base64Url.decode(base64Url.normalize(s));
 /// Short id of a public key: its first 6 bytes, base64url (8 characters).
 String keyIdOf(List<int> publicKey) => _b64(publicKey.sublist(0, 6));
 
-/// This device's signing key (Ed25519). A shelter computer signs the
+/// This device's signing key (Ed25519). A base computer signs the
 /// official facts its staff enter; phones check them against keys they trust.
 class FactSigner {
   FactSigner._(this._pair, this.publicKey) : keyId = keyIdOf(publicKey);
@@ -78,7 +78,7 @@ class FactSigner {
   }
 }
 
-/// Keys this device trusts, with a name for each (e.g. the shelter).
+/// Keys this device trusts, with a name for each (e.g. the base).
 /// Saved in trusted_keys.json.
 class TrustList extends ChangeNotifier {
   File? _file;
@@ -93,7 +93,7 @@ class TrustList extends ChangeNotifier {
   static const format = 1;
 
   /// Reads [file]. A broken file means no trusted keys, not a crash at
-  /// start: keys are added again from the shelter QR. A broken entry is
+  /// start: keys are added again from the base QR. A broken entry is
   /// skipped.
   Future<void> load(File file) => _loading = _load(file);
 

@@ -15,7 +15,7 @@ import 'catalog.dart';
 import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
-import '../shelter/share_nearby.dart';
+import '../base/share_nearby.dart';
 import 'stick.dart';
 
 /// Download settings: mobile data and updates. A small sheet, opened from

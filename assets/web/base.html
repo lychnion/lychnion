@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lychnion</title>
 <!--
-  Served by the Lychnion shelter computer (lib/shelter/shelter_server.dart)
+  Served by the Lychnion base computer (lib/base/base_server.dart)
   to phones on its Wi-Fi that do not have the app. Self-contained: no
   internet, no files from elsewhere. Texts come from the app's ARB files
   (GET /web.json?lang=..), answers from POST /ask (field "web").
@@ -29,7 +29,7 @@
   header svg { flex: none; }
   header .name { font-weight: 700; font-size: 18px; white-space: nowrap; }
   header select { margin-left: auto; }
-  .shelter { font-size: 14px; color: var(--muted); margin: 0; }
+  .base { font-size: 14px; color: var(--muted); margin: 0; }
   header select { font: inherit; font-size: 14px; color: var(--fg); background: var(--card);
                   border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px; }
   main { max-width: 640px; margin: 0 auto; padding: 0 16px 120px; }
@@ -75,7 +75,7 @@
   <select id="lang" hidden></select>
 </header>
 <main>
-  <p class="shelter" id="shelter"></p>
+  <p class="base" id="base"></p>
   <h1 id="intro"></h1>
   <details class="notice card"><summary id="before"></summary><ul id="notice"></ul></details>
   <div class="card facts" id="facts" hidden><h2 id="factsTitle"></h2></div>
@@ -117,7 +117,7 @@
     menu.hidden = d.languages.length < 2;
     document.title = T.appName;
     $('app').textContent = T.appName;
-    $('shelter').textContent = T.shelter;
+    $('base').textContent = T.base;
     $('intro').textContent = T.intro;
     $('before').textContent = T.beforeYouStart;
     $('q').placeholder = T.hint;

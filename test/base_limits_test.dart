@@ -12,10 +12,10 @@ import 'package:lychnion/facts/fact.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/llm/local_llm.dart';
-import 'package:lychnion/shelter/shelter_client.dart';
-import 'package:lychnion/shelter/shelter_library.dart';
-import 'package:lychnion/shelter/shelter_protocol.dart';
-import 'package:lychnion/shelter/shelter_server.dart';
+import 'package:lychnion/base/base_client.dart';
+import 'package:lychnion/base/base_library.dart';
+import 'package:lychnion/base/base_protocol.dart';
+import 'package:lychnion/base/base_server.dart';
 
 import 'support/fake_llm.dart';
 
@@ -58,7 +58,7 @@ class _LeakyLlm extends FakeLlm {
 }
 
 /// A library of one file, without a download store.
-class _OneFile implements ShelterLibrary {
+class _OneFile implements BaseLibrary {
   _OneFile(this.file, this.sha);
   final File file;
   final String sha;
@@ -113,7 +113,7 @@ Future<bool> _closedWithin(Socket s, Duration within) async {
 
 void main() {
   final pkg = KnowledgePackage.open('assets/packages/jp.bousai.core.sqlite');
-  final servers = <ShelterServer>[];
+  final servers = <BaseServer>[];
   tearDown(() async {
     for (final s in servers) {
       await s.stop();
@@ -121,9 +121,9 @@ void main() {
     servers.clear();
   });
 
-  Future<ShelterServer> start({
+  Future<BaseServer> start({
     LocalLlm? llm,
-    ShelterLibrary? library,
+    BaseLibrary? library,
     int maxConnections = 100,
     Duration idleTimeout = const Duration(seconds: 30),
     Duration bodyTimeout = const Duration(seconds: 10),
@@ -132,7 +132,7 @@ void main() {
     Duration maxWait = const Duration(seconds: 100),
     Duration sendStall = const Duration(seconds: 30),
   }) async {
-    final s = ShelterServer(
+    final s = BaseServer(
       answerer: GroundedAnswerer(llm ?? FakeLlm(['高い所へ [1]。']), pkg),
       name: 'Test base',
       library: library,
@@ -150,7 +150,7 @@ void main() {
   }
 
   Future<(int, Map<String, dynamic>, HttpHeaders)> call(
-    ShelterServer s,
+    BaseServer s,
     String method,
     String path, {
     List<int>? body,
@@ -631,7 +631,7 @@ void main() {
         }
         await req.response.close();
       });
-      final c = ShelterClient(url);
+      final c = BaseClient(url);
       addTearDown(c.close);
       await expectLater(
         c.ask('津波は？'),
@@ -650,7 +650,7 @@ void main() {
         'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n'
         'Content-Length: ${50 << 20}\r\n\r\n{}',
       );
-      final c = ShelterClient(url);
+      final c = BaseClient(url);
       addTearDown(c.close);
       await expectLater(c.facts(), throwsA(isA<HttpException>()));
       // Not kept open waiting for the rest.
@@ -664,7 +664,7 @@ void main() {
           'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n'
           'Transfer-Encoding: chunked\r\n\r\n',
         );
-        final c = ShelterClient(url);
+        final c = BaseClient(url);
         addTearDown(c.close);
         await expectLater(c.info(), throwsA(isA<TimeoutException>()));
         await closed.timeout(const Duration(seconds: 2));
@@ -696,7 +696,7 @@ void main() {
           );
           await req.response.close();
         });
-        final c = ShelterClient(url);
+        final c = BaseClient(url);
         addTearDown(c.close);
         final answer = c.ask('津波は？');
         await expectLater(c.facts(), throwsA(isA<TimeoutException>()));
@@ -730,10 +730,10 @@ void main() {
           );
         await req.response.close();
       });
-      final c = ShelterClient(url);
+      final c = BaseClient(url);
       addTearDown(c.close);
       final facts = await c.facts();
-      expect(facts.length, lessThanOrEqualTo(ShelterClient.maxFacts));
+      expect(facts.length, lessThanOrEqualTo(BaseClient.maxFacts));
       expect(facts.first.subject, 's0');
     });
 
@@ -746,7 +746,7 @@ void main() {
           ..write(jsonEncode({'v': 1, 'name': long, 'error': long}));
         await req.response.close();
       });
-      final c = ShelterClient(url);
+      final c = BaseClient(url);
       addTearDown(c.close);
       await c.info();
       expect(c.name, startsWith('evil'));
@@ -778,7 +778,7 @@ void main() {
           ..add(whole.sublist(0, cut));
         await req.response.close();
       });
-      final c = ShelterClient(url);
+      final c = BaseClient(url);
       addTearDown(c.close);
       expect((await c.ask('津波は？')).text, '高い所へ [1]。');
       final rnd = Random(7);

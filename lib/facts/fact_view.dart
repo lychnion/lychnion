@@ -66,7 +66,7 @@ class CurrentFactsBox extends StatelessWidget {
   final List<Fact> facts;
   final DateTime now;
 
-  /// Set where facts can be entered (shelter computer): edit one fact.
+  /// Set where facts can be entered (base computer): edit one fact.
   final void Function(Fact)? onTap;
 
   /// Set where facts can be entered: add a warning.

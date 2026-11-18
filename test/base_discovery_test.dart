@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/app/settings.dart';
 import 'package:lychnion/l10n/app_localizations.dart';
-import 'package:lychnion/shelter/base_discovery.dart';
-import 'package:lychnion/shelter/shelter_link.dart';
-import 'package:lychnion/shelter/shelter_panel.dart';
+import 'package:lychnion/base/base_discovery.dart';
+import 'package:lychnion/base/base_link.dart';
+import 'package:lychnion/base/base_panel.dart';
 
 /// Lists [bases] at once, without the network.
 class _FakeFinder extends BaseFinder {
   _FakeFinder(this.bases);
-  final List<ShelterLink> bases;
+  final List<BaseLink> bases;
   @override
   Future<void> start() async => found.value = bases;
   @override
@@ -23,7 +23,7 @@ void main() {
   final key = 'A' * 43;
 
   group('an announcement', () {
-    ShelterLink? link(
+    BaseLink? link(
       List<String> addresses, {
       int port = 8642,
       Map<String, String> attributes = const {},
@@ -88,10 +88,7 @@ void main() {
     t,
   ) async {
     final settings = AppSettings();
-    const base = ShelterLink(
-      'http://192.168.1.20:8642',
-      name: 'Central school',
-    );
+    const base = BaseLink('http://192.168.1.20:8642', name: 'Central school');
     await t.pumpWidget(
       MaterialApp(
         locale: const Locale('en'),
@@ -100,7 +97,7 @@ void main() {
         home: Scaffold(
           body: ListenableBuilder(
             listenable: settings,
-            builder: (_, _) => ShelterSettingsTile(
+            builder: (_, _) => BaseSettingsTile(
               settings: settings,
               newFinder: () => _FakeFinder([base]),
             ),
@@ -117,10 +114,10 @@ void main() {
     expect(find.textContaining('Central school'), findsOneWidget);
     await t.tap(find.widgetWithText(FilledButton, 'Connect'));
     await t.pumpAndSettle();
-    expect(settings.shelterUrl, base.url);
-    expect(settings.shelterName, 'Central school');
+    expect(settings.baseUrl, base.url);
+    expect(settings.baseName, 'Central school');
     // Its facts are trusted only after its QR code is scanned.
-    expect(settings.shelterKey, isNull);
+    expect(settings.baseKey, isNull);
     expect(find.textContaining('QR code to trust'), findsOneWidget);
   });
 }

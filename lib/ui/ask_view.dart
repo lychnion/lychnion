@@ -14,7 +14,7 @@ import '../knowledge/knowledge_package.dart' show PackageInfo;
 const showDevMenu = !kReleaseMode || bool.fromEnvironment('DEV_MENU');
 
 /// Where the Ask screen stands: shown as a small status pill.
-enum AskPhase { noModel, loading, ready, shelter, serving, failed }
+enum AskPhase { noModel, loading, ready, base, serving, failed }
 
 /// A developer action in the ⋮ menu (load a model file, run test questions).
 class DevAction {
@@ -38,7 +38,7 @@ class AskView extends StatefulWidget {
     required this.onSend,
     required this.onAsk,
     required this.onStop,
-    this.shelterName,
+    this.baseName,
     this.recent,
     this.onOpenSettings,
     this.onShowNotice,
@@ -79,14 +79,14 @@ class AskView extends StatefulWidget {
   /// The knowledge packages (see PackageRow).
   final Widget? packages;
 
-  /// Shown under the status details, e.g. the shelter QR code.
+  /// Shown under the status details, e.g. the base QR code.
   final Widget? detailExtra;
 
   final AskPhase phase;
 
   /// Technical status (backend, load time), shown when the pill is tapped.
   final String detail;
-  final String? shelterName;
+  final String? baseName;
   final bool ready;
   final bool busy;
   final TextEditingController input;
@@ -147,12 +147,11 @@ class _AskViewState extends State<AskView> {
         ),
         actions: [
           // Quiet when the app is ready on this phone (the question bar
-          // says enough); a chip only when a shelter computer is involved.
-          if (widget.phase == AskPhase.shelter ||
-              widget.phase == AskPhase.serving)
+          // says enough); a chip only when a base computer is involved.
+          if (widget.phase == AskPhase.base || widget.phase == AskPhase.serving)
             _StatusPill(
               phase: widget.phase,
-              shelterName: widget.shelterName,
+              baseName: widget.baseName,
               onTap: () => _showDetail(context),
             ),
           AppMenu(
@@ -294,7 +293,7 @@ class _AskViewState extends State<AskView> {
 
   void _showDetail(BuildContext context) => showModalBottomSheet<void>(
     context: context,
-    // Tall content (the shelter's QR codes) scrolls instead of overflowing.
+    // Tall content (the base's QR codes) scrolls instead of overflowing.
     isScrollControlled: true,
     builder: (_) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
@@ -307,11 +306,11 @@ class _AskViewState extends State<AskView> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          if ((widget.phase == AskPhase.shelter ||
+          if ((widget.phase == AskPhase.base ||
                   widget.phase == AskPhase.serving) &&
-              widget.shelterName != null)
+              widget.baseName != null)
             Text(
-              widget.shelterName!,
+              widget.baseName!,
               style: Theme.of(context).textTheme.titleSmall,
             ),
           Text(_StatusPill.explain(widget.phase, l)),
@@ -331,22 +330,18 @@ class _AskViewState extends State<AskView> {
 }
 
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.phase,
-    required this.onTap,
-    this.shelterName,
-  });
+  const _StatusPill({required this.phase, required this.onTap, this.baseName});
 
   final AskPhase phase;
-  final String? shelterName;
+  final String? baseName;
   final VoidCallback onTap;
 
   static String label(AskPhase p, AppLocalizations l) => switch (p) {
     AskPhase.noModel => l.askPhaseNoModel,
     AskPhase.loading => l.askPhaseLoading,
     AskPhase.ready => l.askPhaseReady,
-    // Short: the header is narrow on phones; details name the shelter.
-    AskPhase.shelter => l.askPhaseShelter,
+    // Short: the header is narrow on phones; details name the base.
+    AskPhase.base => l.askPhaseBase,
     AskPhase.serving => l.askPhaseServing,
     AskPhase.failed => l.askPhaseFailed,
   };
@@ -355,7 +350,7 @@ class _StatusPill extends StatelessWidget {
     AskPhase.noModel => l.askExplainNoModel,
     AskPhase.loading => l.askExplainLoading,
     AskPhase.ready => l.askExplainReady,
-    AskPhase.shelter => l.askExplainShelter,
+    AskPhase.base => l.askExplainBase,
     AskPhase.serving => l.askExplainServing,
     AskPhase.failed => l.askExplainFailed,
   };
@@ -365,7 +360,7 @@ class _StatusPill extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final (dot, bg) = switch (phase) {
       AskPhase.ready => (const Color(0xFF2E9D5B), scheme.surfaceContainerHigh),
-      AskPhase.shelter ||
+      AskPhase.base ||
       AskPhase.serving => (scheme.primary, scheme.primaryContainer),
       AskPhase.failed => (scheme.error, scheme.errorContainer),
       _ => (scheme.tertiary, scheme.surfaceContainerHigh),
@@ -396,8 +391,8 @@ class _StatusPill extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 170),
                   child: Text(
-                    phase == AskPhase.shelter && shelterName != null
-                        ? '${label(phase, context.l10n)}: $shelterName'
+                    phase == AskPhase.base && baseName != null
+                        ? '${label(phase, context.l10n)}: $baseName'
                         : label(phase, context.l10n),
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelMedium,

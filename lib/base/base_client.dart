@@ -6,19 +6,19 @@ import 'dart:typed_data';
 import '../download/publisher_list.dart' show cleanShownText;
 import '../facts/fact.dart';
 import '../knowledge/grounded_answer.dart';
-import 'shelter_protocol.dart';
+import 'base_protocol.dart';
 
-/// Asks a shelter computer on the local network (see ShelterServer).
+/// Asks a base computer on the local network (see BaseServer).
 ///
 /// Anything on the Wi-Fi can claim to be a base, so nothing it sends is
 /// trusted: every answer is size and time limited, and what does not look
 /// like the protocol throws ([FormatException], [HttpException],
 /// [TimeoutException]), so the phone answers itself instead.
-class ShelterClient {
-  ShelterClient(this.baseUrl);
+class BaseClient {
+  BaseClient(this.url);
 
   /// For example http://192.168.1.20:8642
-  final String baseUrl;
+  final String url;
 
   /// The base's name, cleaned for showing (at most 60 characters).
   String? name;
@@ -36,7 +36,7 @@ class ShelterClient {
     ..connectionTimeout = const Duration(seconds: 3)
     ..idleTimeout = const Duration(seconds: 5);
 
-  /// Checks that the shelter is reachable and remembers its name.
+  /// Checks that the base is reachable and remembers its name.
   Future<Map<String, dynamic>> info() async {
     final j = await _json(
       'GET',
@@ -49,7 +49,7 @@ class ShelterClient {
     return j;
   }
 
-  /// The shelter's current facts (shelter status, blocked roads, warnings).
+  /// The base's current facts (shelter status, blocked roads, warnings).
   /// Facts that are not well formed are left out.
   Future<List<Fact>> facts() async {
     final j = await _json(
@@ -70,7 +70,7 @@ class ShelterClient {
     return out;
   }
 
-  /// The shelter's answer. Throws on network errors or timeouts, so the
+  /// The base's answer. Throws on network errors or timeouts, so the
   /// caller can fall back to the phone's own model.
   Future<GroundedAnswer> ask(String question) async {
     final j = await _json(
@@ -134,7 +134,7 @@ class ShelterClient {
     int maxBytes,
     _Pending pending,
   ) async {
-    final req = await _http.openUrl(method, Uri.parse('$baseUrl$path'));
+    final req = await _http.openUrl(method, Uri.parse('$url$path'));
     pending.request = req;
     // Timed out while connecting: not sent at all.
     if (pending.cancelled) req.abort();

@@ -428,7 +428,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapMyLocation => '現在地';
 
   @override
-  String get mapShelterHint => 'ベース：✎で避難所の状況を入力。地図を長押しで通行止め・給水を登録。';
+  String get mapBaseHint => 'ベース：✎で避難所の状況を入力。地図を長押しで通行止め・給水を登録。';
 
   @override
   String mapInFloodArea(String depth) {
@@ -484,7 +484,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String answerShelterComputer(String name) {
+  String answerBaseComputer(String name) {
     return 'ベース · $name';
   }
 
@@ -575,7 +575,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsLanguageDevice => '端末の設定';
 
   @override
-  String get settingsShelter => 'ベース';
+  String get settingsBase => 'ベース';
 
   @override
   String settingsKeptAside(String files) {
@@ -708,7 +708,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askPhaseReady => 'オフラインで利用可';
 
   @override
-  String get askPhaseShelter => 'ベース';
+  String get askPhaseBase => 'ベース';
 
   @override
   String get askPhaseServing => '公開中';
@@ -726,7 +726,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askExplainReady => 'AIはこの端末の中で動いています。インターネットは不要です。';
 
   @override
-  String get askExplainShelter => '近くのベース（パソコン）が、同じWi-Fiで回答します。この端末より速く答えます。';
+  String get askExplainBase => '近くのベース（パソコン）が、同じWi-Fiで回答します。この端末より速く答えます。';
 
   @override
   String get askExplainServing =>
@@ -800,55 +800,54 @@ class AppLocalizationsJa extends AppLocalizations {
   String get packagesAddTooltip => '分野を追加';
 
   @override
-  String get shelterNoAddress => 'ネットワークのアドレスがありません。この端末をWi-Fiに接続してください。';
+  String get baseNoAddress => 'ネットワークのアドレスがありません。この端末をWi-Fiに接続してください。';
 
   @override
-  String get shelterConnectPhones => 'スマートフォンを接続';
+  String get baseConnectPhones => 'スマートフォンを接続';
 
   @override
-  String shelterScanHint(String appName, String name) {
+  String baseScanHint(String appName, String name) {
     return '同じWi-Fiにつないだスマートフォンのカメラで読み取ると、$appNameが開き「$name」に接続します。';
   }
 
   @override
-  String get shelterOrEnterAddress => 'またはアドレスを入力：';
+  String get baseOrEnterAddress => 'またはアドレスを入力：';
 
   @override
-  String shelterConnectTo(String name) {
+  String baseConnectTo(String name) {
     return '$nameに接続しますか？';
   }
 
   @override
-  String get shelterThisShelter => 'このベース';
+  String get baseThisBase => 'このベース';
 
   @override
-  String shelterConnectBody(String address) {
+  String baseConnectBody(String address) {
     return 'ベース（$address）が質問に答え、最新の情報を共有します。いま居る場所のコードだけを読み取ってください。';
   }
 
   @override
-  String get shelterConnect => '接続';
+  String get baseConnect => '接続';
 
   @override
-  String get shelterAddress => 'ベースのアドレス';
+  String get baseAddress => 'ベースのアドレス';
 
   @override
-  String get shelterAddressHelper => 'ベースのQRコードの横に表示されています。';
+  String get baseAddressHelper => 'ベースのQRコードの横に表示されています。';
 
   @override
-  String get shelterConnectComputer => 'ベースに接続';
+  String get baseConnectComputer => 'ベースに接続';
 
   @override
-  String get shelterConnectComputerHint =>
-      'ベースのQRコードを読み取るか、アドレスを入力します。回答が速くなります。';
+  String get baseConnectComputerHint => 'ベースのQRコードを読み取るか、アドレスを入力します。回答が速くなります。';
 
   @override
-  String shelterAskedFirst(String address) {
+  String baseAskedFirst(String address) {
     return '先にこちらに質問 · $address';
   }
 
   @override
-  String get shelterDisconnect => '切断';
+  String get baseDisconnect => '切断';
 
   @override
   String get mapNoMap => '地図がありません';
@@ -959,13 +958,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get webError => 'ベースが回答できませんでした。もう一度お試しください。';
 
   @override
-  String get shelterWithApp => 'アプリで';
+  String get baseWithApp => 'アプリで';
 
   @override
-  String get shelterInBrowser => 'ブラウザで';
+  String get baseInBrowser => 'ブラウザで';
 
   @override
-  String get shelterBrowserHint =>
+  String get baseBrowserHint =>
       'アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は同じ Wi-Fi の中だけでやりとりします。';
 
   @override
@@ -1596,17 +1595,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get shelterFoundTitle => 'この Wi-Fi のベース';
+  String get baseFoundTitle => 'この Wi-Fi のベース';
 
   @override
-  String get shelterFoundLooking => '探しています…';
+  String get baseFoundLooking => '探しています…';
 
   @override
-  String get shelterFoundNone =>
-      'まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。';
+  String get baseFoundNone => 'まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。';
 
   @override
-  String get shelterScanToTrust => 'お知らせを信頼するには、ベースの QR コードを読み取ってください。';
+  String get baseScanToTrust => 'お知らせを信頼するには、ベースの QR コードを読み取ってください。';
 
   @override
   String answerReading(int count) {
@@ -1644,7 +1642,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapLoadingSpoken => '地図を読み込んでいます';
 
   @override
-  String shelterQrSpoken(String name) {
+  String baseQrSpoken(String name) {
     return '$nameにつなぐためのQRコード';
   }
 

@@ -131,7 +131,7 @@ class AnswerCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         answer.answeredBy != null
-                            ? l.answerShelterComputer(answer.answeredBy!)
+                            ? l.answerBaseComputer(answer.answeredBy!)
                             : l.appName,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelMedium?.copyWith(

@@ -4,7 +4,7 @@ import '../app/lang.dart';
 import '../l10n/app_localizations.dart';
 import 'fact.dart';
 
-/// Who enters facts on this device, e.g. the shelter computer's name.
+/// Who enters facts on this device, e.g. the base computer's name.
 /// Facts entered here carry it as their source name.
 class FactEditor {
   const FactEditor({required this.sourceName});

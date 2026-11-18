@@ -311,7 +311,7 @@
   "mapBlockedConsidered": "blocked roads considered",
   "mapAboutData": "About this data",
   "mapMyLocation": "My location",
-  "mapShelterHint": "Base: ✎ sets a site's status; long-press the map for a blocked road or water point.",
+  "mapBaseHint": "Base: ✎ sets a site's status; long-press the map for a blocked road or water point.",
   "mapInFloodArea": "You are in the tsunami inundation area (expected {depth})",
   "@mapInFloodArea": {
     "placeholders": {
@@ -360,8 +360,8 @@
       }
     }
   },
-  "answerShelterComputer": "Base · {name}",
-  "@answerShelterComputer": {
+  "answerBaseComputer": "Base · {name}",
+  "@answerBaseComputer": {
     "placeholders": {
       "name": {
         "type": "String"
@@ -464,7 +464,7 @@
   "languageName": "English",
   "settingsLanguage": "Language",
   "settingsLanguageDevice": "Device",
-  "settingsShelter": "Base",
+  "settingsBase": "Base",
   "settingsKeptAside": "Some saved data could not be used. A copy was kept: {files}",
   "@settingsKeptAside": {
     "description": "Settings: saved files that were broken or from a newer app version were copied aside (lib/util/versioned_file.dart).",
@@ -517,13 +517,13 @@
   "askPhaseNoModel": "Setup needed",
   "askPhaseLoading": "Getting ready…",
   "askPhaseReady": "Offline ready",
-  "askPhaseShelter": "Base",
+  "askPhaseBase": "Base",
   "askPhaseServing": "Sharing",
   "askPhaseFailed": "Not ready",
   "askExplainNoModel": "Download the AI model and the safety guides under Settings → Downloads.",
   "askExplainLoading": "Loading the AI model on this device.",
   "askExplainReady": "The AI runs on this device. No internet is needed.",
-  "askExplainShelter": "A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.",
+  "askExplainBase": "A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.",
   "askExplainServing": "This computer answers phones on the same Wi-Fi, and shares guides, maps and current information. You can stop it in Settings.",
   "askExplainFailed": "The AI model could not be loaded.",
   "askHint": "Ask a question",
@@ -560,10 +560,10 @@
   "packagesTitle": "Answers from",
   "packagesAdd": "Add",
   "packagesAddTooltip": "Get more packages",
-  "shelterNoAddress": "No network address found. Connect this computer to Wi-Fi.",
-  "shelterConnectPhones": "Connect phones",
-  "shelterScanHint": "On the same Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".",
-  "@shelterScanHint": {
+  "baseNoAddress": "No network address found. Connect this computer to Wi-Fi.",
+  "baseConnectPhones": "Connect phones",
+  "baseScanHint": "On the same Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".",
+  "@baseScanHint": {
     "placeholders": {
       "appName": {
         "type": "String"
@@ -573,38 +573,38 @@
       }
     }
   },
-  "shelterOrEnterAddress": "Or enter the address:",
-  "shelterConnectTo": "Connect to {name}?",
-  "@shelterConnectTo": {
+  "baseOrEnterAddress": "Or enter the address:",
+  "baseConnectTo": "Connect to {name}?",
+  "@baseConnectTo": {
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
   },
-  "shelterThisShelter": "this base",
-  "shelterConnectBody": "The base ({address}) will answer your questions and share current information. Only connect to a base where you are.",
-  "@shelterConnectBody": {
+  "baseThisBase": "this base",
+  "baseConnectBody": "The base ({address}) will answer your questions and share current information. Only connect to a base where you are.",
+  "@baseConnectBody": {
     "placeholders": {
       "address": {
         "type": "String"
       }
     }
   },
-  "shelterConnect": "Connect",
-  "shelterAddress": "Base address",
-  "shelterAddressHelper": "Shown on the base, under the QR code.",
-  "shelterConnectComputer": "Connect to a base",
-  "shelterConnectComputerHint": "Scan the base's QR code, or enter its address. Answers come faster.",
-  "shelterAskedFirst": "Asked first · {address}",
-  "@shelterAskedFirst": {
+  "baseConnect": "Connect",
+  "baseAddress": "Base address",
+  "baseAddressHelper": "Shown on the base, under the QR code.",
+  "baseConnectComputer": "Connect to a base",
+  "baseConnectComputerHint": "Scan the base's QR code, or enter its address. Answers come faster.",
+  "baseAskedFirst": "Asked first · {address}",
+  "@baseAskedFirst": {
     "placeholders": {
       "address": {
         "type": "String"
       }
     }
   },
-  "shelterDisconnect": "Disconnect",
+  "baseDisconnect": "Disconnect",
   "mapNoMap": "No map yet",
   "mapNoMapText": "Download your area to see evacuation sites without internet.",
   "mapDownloadMap": "Download a map",
@@ -653,9 +653,9 @@
   "downloadsKey": "Key",
   "downloadsFilterKind": "Kind",
   "webError": "The base could not answer. Please try again.",
-  "shelterWithApp": "With the app",
-  "shelterInBrowser": "In the browser",
-  "shelterBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.",
+  "baseWithApp": "With the app",
+  "baseInBrowser": "In the browser",
+  "baseBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.",
   "shareOnNetwork": "Use this computer as a base",
   "shareOnNetworkHint": "Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.",
   "shareName": "Base name",
@@ -1037,10 +1037,10 @@
   "@stickClashed": {"placeholders": {"items": {"type": "String"}}},
   "publishErrorPackage": "This file is not a guide the app can use ({detail}). Build it again with the lychnion-data tools.",
   "@publishErrorPackage": {"placeholders": {"detail": {"type": "String"}}},
-  "shelterFoundTitle": "Bases on this Wi-Fi",
-  "shelterFoundLooking": "Looking…",
-  "shelterFoundNone": "No base found yet. Enter its address below, or scan its QR code.",
-  "shelterScanToTrust": "Scan the base's QR code to trust its notices.",
+  "baseFoundTitle": "Bases on this Wi-Fi",
+  "baseFoundLooking": "Looking…",
+  "baseFoundNone": "No base found yet. Enter its address below, or scan its QR code.",
+  "baseScanToTrust": "Scan the base's QR code to trust its notices.",
   "answerReading": "Reading {count, plural, =1{1 source} other{{count} sources}}…",
   "@answerReading": {"placeholders": {"count": {"type": "int"}}},
   "answerTimeLeft": "About {seconds} s left",
@@ -1054,8 +1054,8 @@
   "firstStepsCountSpoken": "{done} of {total} done",
   "@firstStepsCountSpoken": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
   "mapLoadingSpoken": "Loading the map",
-  "shelterQrSpoken": "QR code to connect to {name}",
-  "@shelterQrSpoken": {"placeholders": {"name": {"type": "String"}}},
+  "baseQrSpoken": "QR code to connect to {name}",
+  "@baseQrSpoken": {"placeholders": {"name": {"type": "String"}}},
   "shareNearbyQrSpoken": "QR code to receive these downloads",
   "publishQrSpoken": "QR code to add your publisher",
   "mapNearestSiteSpoken": "Nearest site: {name}",

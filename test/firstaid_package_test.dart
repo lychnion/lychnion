@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/knowledge/retriever.dart';
 import 'package:lychnion/knowledge/subjects.dart';
-import 'package:lychnion/shelter/shelter_protocol.dart';
+import 'package:lychnion/base/base_protocol.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 
 void main() {
@@ -61,7 +61,7 @@ void main() {
     expect(firstAid.passages.map((p) => p.text).join(), contains('きつく締めすぎない'));
   });
 
-  test('the original travels from shelter to phone', () {
+  test('the original travels from base to phone', () {
     final a = GroundedAnswer('ヘビにかまれたら？')
       ..hits = [Hit(firstAid.passages.first, 1)];
     final back = answerFromWire(answerToWire(a));
@@ -75,7 +75,7 @@ void main() {
     expect(p.textIn('es'), p.text); // no Spanish: the package's own text
   });
 
-  test('per-language texts travel from shelter to phone', () {
+  test('per-language texts travel from base to phone', () {
     final a = GroundedAnswer('Snake bite?')
       ..hits = [Hit(firstAid.passages.first, 1)];
     final back = answerFromWire(answerToWire(a)).hits.single.passage;

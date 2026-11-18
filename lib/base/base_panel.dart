@@ -8,13 +8,13 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../app/lang.dart';
 import '../app/settings.dart';
 import 'base_discovery.dart';
-import 'shelter_link.dart';
+import 'base_link.dart';
 
-/// Shelter computer: the QR code phones scan, one at a time so a camera
+/// Base computer: the QR code phones scan, one at a time so a camera
 /// cannot pick up the wrong one. The browser page comes first: it works on
 /// every phone; the app link is for phones with the app.
-class ShelterQrCard extends StatefulWidget {
-  const ShelterQrCard({
+class BaseQrCard extends StatefulWidget {
+  const BaseQrCard({
     super.key,
     required this.urls,
     required this.name,
@@ -33,12 +33,12 @@ class ShelterQrCard extends StatefulWidget {
   final bool large;
 
   @override
-  State<ShelterQrCard> createState() => _ShelterQrCardState();
+  State<BaseQrCard> createState() => _BaseQrCardState();
 }
 
 enum _QrFor { browser, app }
 
-class _ShelterQrCardState extends State<ShelterQrCard> {
+class _BaseQrCardState extends State<BaseQrCard> {
   var _for = _QrFor.browser;
 
   void _showLarge() => Navigator.of(context).push(
@@ -50,7 +50,7 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
-              child: ShelterQrCard(
+              child: BaseQrCard(
                 urls: widget.urls,
                 name: widget.name,
                 keyText: widget.keyText,
@@ -67,18 +67,18 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final theme = Theme.of(context);
-    if (widget.urls.isEmpty) return Text(l.shelterNoAddress);
+    if (widget.urls.isEmpty) return Text(l.baseNoAddress);
     final url = widget.urls.first;
     final (data, title, hint) = switch (_for) {
-      _QrFor.browser => (url, l.shelterInBrowser, l.shelterBrowserHint),
+      _QrFor.browser => (url, l.baseInBrowser, l.baseBrowserHint),
       _QrFor.app => (
-        ShelterLink(
+        BaseLink(
           url,
           name: widget.name,
           key: widget.keyText,
         ).toUri().toString(),
-        l.shelterWithApp,
-        l.shelterScanHint(l.appName, widget.name),
+        l.baseWithApp,
+        l.baseScanHint(l.appName, widget.name),
       ),
     };
     final big = widget.large;
@@ -93,7 +93,7 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
         data: data,
         size: big ? 320 : 180,
         padding: EdgeInsets.zero,
-        semanticsLabel: l.shelterQrSpoken(widget.name),
+        semanticsLabel: l.baseQrSpoken(widget.name),
       ),
     );
     final text = Column(
@@ -111,7 +111,7 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
         const SizedBox(height: 6),
         Text(hint, style: big ? theme.textTheme.titleMedium : null),
         SizedBox(height: big ? 24 : 16),
-        Text(l.shelterOrEnterAddress, style: theme.textTheme.bodySmall),
+        Text(l.baseOrEnterAddress, style: theme.textTheme.bodySmall),
         for (final u in widget.urls)
           SelectableText(
             u.replaceFirst('http://', ''),
@@ -137,7 +137,7 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
               children: [
                 Expanded(
                   child: Text(
-                    l.shelterConnectPhones,
+                    l.baseConnectPhones,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -158,12 +158,12 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
                 ButtonSegment(
                   value: _QrFor.browser,
                   icon: const Icon(Icons.language_rounded),
-                  label: Text(l.shelterInBrowser),
+                  label: Text(l.baseInBrowser),
                 ),
                 ButtonSegment(
                   value: _QrFor.app,
                   icon: const Icon(Icons.phone_iphone_rounded),
-                  label: Text(l.shelterWithApp),
+                  label: Text(l.baseWithApp),
                 ),
               ],
               selected: {_for},
@@ -193,17 +193,15 @@ class _ShelterQrCardState extends State<ShelterQrCard> {
   }
 }
 
-/// Asks before connecting to a shelter from a scanned link.
-Future<bool> confirmShelter(BuildContext context, ShelterLink link) async =>
+/// Asks before connecting to a base from a scanned link.
+Future<bool> confirmBase(BuildContext context, BaseLink link) async =>
     await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         icon: const Icon(Icons.cell_tower_rounded),
-        title: Text(
-          c.l10n.shelterConnectTo(link.name ?? c.l10n.shelterThisShelter),
-        ),
+        title: Text(c.l10n.baseConnectTo(link.name ?? c.l10n.baseThisBase)),
         content: Text(
-          c.l10n.shelterConnectBody(link.url.replaceFirst('http://', '')),
+          c.l10n.baseConnectBody(link.url.replaceFirst('http://', '')),
         ),
         actions: [
           TextButton(
@@ -212,16 +210,16 @@ Future<bool> confirmShelter(BuildContext context, ShelterLink link) async =>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: Text(c.l10n.shelterConnect),
+            child: Text(c.l10n.baseConnect),
           ),
         ],
       ),
     ) ??
     false;
 
-/// Settings section on a phone: the saved shelter, connect by address.
-class ShelterSettingsTile extends StatelessWidget {
-  const ShelterSettingsTile({
+/// Settings section on a phone: the saved base, connect by address.
+class BaseSettingsTile extends StatelessWidget {
+  const BaseSettingsTile({
     super.key,
     required this.settings,
     @visibleForTesting this.newFinder,
@@ -233,7 +231,7 @@ class ShelterSettingsTile extends StatelessWidget {
   final BaseFinder Function()? newFinder;
 
   Future<void> _enter(BuildContext context) async {
-    final picked = await showDialog<(ShelterLink, bool)>(
+    final picked = await showDialog<(BaseLink, bool)>(
       context: context,
       builder: (_) => _AddressDialog(newFinder: newFinder),
     );
@@ -241,18 +239,18 @@ class ShelterSettingsTile extends StatelessWidget {
     final (link, found) = picked;
     // A base found on the Wi-Fi: the same question as for a QR code.
     if (found) {
-      if (!context.mounted || !await confirmShelter(context, link)) return;
+      if (!context.mounted || !await confirmBase(context, link)) return;
     }
     // No key: an announcement is not checked in person, so the base's
     // facts are trusted only after its QR code is scanned.
-    await settings.setShelter(link.url, name: link.name);
+    await settings.setBase(link.url, name: link.name);
   }
 
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final url = settings.shelterUrl;
+    final url = settings.baseUrl;
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: scheme.secondaryContainer,
@@ -261,22 +259,22 @@ class ShelterSettingsTile extends StatelessWidget {
       ),
       title: Text(
         url == null
-            ? l.shelterConnectComputer
-            : (settings.shelterName ?? url.replaceFirst('http://', '')),
+            ? l.baseConnectComputer
+            : (settings.baseName ?? url.replaceFirst('http://', '')),
       ),
       subtitle: Text(
         url == null
-            ? l.shelterConnectComputerHint
-            : settings.shelterKey == null
-            ? '${l.shelterAskedFirst(url.replaceFirst('http://', ''))}\n'
-                  '${l.shelterScanToTrust}'
-            : l.shelterAskedFirst(url.replaceFirst('http://', '')),
+            ? l.baseConnectComputerHint
+            : settings.baseKey == null
+            ? '${l.baseAskedFirst(url.replaceFirst('http://', ''))}\n'
+                  '${l.baseScanToTrust}'
+            : l.baseAskedFirst(url.replaceFirst('http://', '')),
       ),
       trailing: url == null
           ? const Icon(Icons.chevron_right)
           : IconButton(
-              tooltip: l.shelterDisconnect,
-              onPressed: () => settings.setShelter(null),
+              tooltip: l.baseDisconnect,
+              onPressed: () => settings.setBase(null),
               icon: const Icon(Icons.link_off_rounded),
             ),
       onTap: url == null ? () => _enter(context) : null,
@@ -285,9 +283,9 @@ class ShelterSettingsTile extends StatelessWidget {
 }
 
 /// Settings section on a computer: share on the local network, the
-/// shelter's name, and the QR codes phones scan while sharing.
-class ShelterShareSection extends StatelessWidget {
-  const ShelterShareSection({
+/// base's name, and the QR codes phones scan while sharing.
+class BaseShareSection extends StatelessWidget {
+  const BaseShareSection({
     super.key,
     required this.settings,
     required this.urls,
@@ -300,7 +298,7 @@ class ShelterShareSection extends StatelessWidget {
   final ValueListenable<List<String>> urls;
   final String? keyText;
 
-  /// Asks for the shelter's name; null when cancelled.
+  /// Asks for the base's name; null when cancelled.
   static Future<String?> askName(BuildContext context, String? current) =>
       showDialog<String>(
         context: context,
@@ -308,7 +306,7 @@ class ShelterShareSection extends StatelessWidget {
       );
 
   Future<void> _toggle(BuildContext context, bool on) async {
-    // A shelter needs a name before phones see it.
+    // A base needs a name before phones see it.
     if (on && settings.sharingName == null) {
       final name = await askName(context, null);
       if (name == null) return;
@@ -354,7 +352,7 @@ class ShelterShareSection extends StatelessWidget {
                       padding: const EdgeInsets.all(8),
                       child: Text(l.shareStarting),
                     )
-                  : ShelterQrCard(urls: u, name: name ?? '', keyText: keyText),
+                  : BaseQrCard(urls: u, name: name ?? '', keyText: keyText),
             ),
           ),
         ],
@@ -363,7 +361,7 @@ class ShelterShareSection extends StatelessWidget {
   }
 }
 
-/// The shelter's name. Owns its text controller, so the controller lives
+/// The base's name. Owns its text controller, so the controller lives
 /// until the dialog has finished closing.
 class _NameDialog extends StatefulWidget {
   const _NameDialog(this.current);
@@ -458,10 +456,10 @@ class _AddressDialogState extends State<_AddressDialog> {
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    final ok = ShelterLink.normalize(_ctrl.text);
-    void typed() => Navigator.pop(context, (ShelterLink(ok!), false));
+    final ok = BaseLink.normalize(_ctrl.text);
+    void typed() => Navigator.pop(context, (BaseLink(ok!), false));
     return AlertDialog(
-      title: Text(l.shelterAddress),
+      title: Text(l.baseAddress),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -469,7 +467,7 @@ class _AddressDialogState extends State<_AddressDialog> {
           children: [
             if (_looking) ...[
               Text(
-                l.shelterFoundTitle,
+                l.baseFoundTitle,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               ValueListenableBuilder(
@@ -486,7 +484,7 @@ class _AddressDialogState extends State<_AddressDialog> {
                                 ),
                               ),
                         title: Text(
-                          _waited ? l.shelterFoundNone : l.shelterFoundLooking,
+                          _waited ? l.baseFoundNone : l.baseFoundLooking,
                         ),
                       )
                     : ConstrainedBox(
@@ -498,7 +496,7 @@ class _AddressDialogState extends State<_AddressDialog> {
                                 ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: const Icon(Icons.cell_tower_rounded),
-                                  title: Text(b.name ?? l.shelterThisShelter),
+                                  title: Text(b.name ?? l.baseThisBase),
                                   subtitle: Text(
                                     b.url.replaceFirst('http://', ''),
                                   ),
@@ -518,7 +516,7 @@ class _AddressDialogState extends State<_AddressDialog> {
               keyboardType: TextInputType.url,
               decoration: InputDecoration(
                 hintText: '192.168.1.20',
-                helperText: l.shelterAddressHelper,
+                helperText: l.baseAddressHelper,
               ),
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => ok == null ? null : typed(),
@@ -533,7 +531,7 @@ class _AddressDialogState extends State<_AddressDialog> {
         ),
         FilledButton(
           onPressed: ok == null ? null : typed,
-          child: Text(l.shelterConnect),
+          child: Text(l.baseConnect),
         ),
       ],
     );
