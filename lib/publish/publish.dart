@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:lychnion_format/lychnion_format.dart';
+import 'package:lychnion_guide/lychnion_guide.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../download/catalog.dart';
@@ -78,6 +79,15 @@ Future<String?> guideProblem(String path) =>
 
 String? _guideProblem(String path) {
   String short(String s) => s.length > 80 ? '${s.substring(0, 80)}…' : s;
+  // The shared check first (lychnion-studio runs the same): it says what
+  // is wrong. Then the app's own reader, as it opens guides to answer.
+  try {
+    checkGuide(path);
+  } on GuideProblem catch (e) {
+    return short(e.message);
+  } on Object catch (e) {
+    return short('$e');
+  }
   try {
     final p = KnowledgePackage.open(path);
     // Opens, but gives the app nothing to answer with.

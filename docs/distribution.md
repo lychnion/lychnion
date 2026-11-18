@@ -478,7 +478,11 @@ so the app does not grow with tools only publishers need: a command line
 (`draft` turns a city's own web pages into an editable draft, `build`
 writes the guide in the format the app reads, `check` opens it as the app
 does) and the publisher guide (`docs/publishing.md` there). The guide is
-then signed with "Publish your own" in the desktop app. Not yet: PDFs,
+then signed with "Publish your own" in the desktop app. The guide file's
+tables, writing one and the check are one package,
+`packages/lychnion_guide` here, used by the studio and by the desktop
+app before it signs a guide; an app test makes sure that every guide the
+check accepts opens where the app reads guides to answer. Not yet: PDFs,
 pages in Shift_JIS or EUC-JP (their text is copied by hand for now),
 translation, a desktop window, publishing to a node.
 

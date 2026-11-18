@@ -675,6 +675,13 @@ packages:
       relative: true
     source: path
     version: "1.1.0"
+  lychnion_guide:
+    dependency: "direct main"
+    description:
+      path: "packages/lychnion_guide"
+      relative: true
+    source: path
+    version: "1.0.0"
   matcher:
     dependency: transitive
     description:
