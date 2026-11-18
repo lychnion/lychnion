@@ -719,5 +719,82 @@
     }
   },
   "regionHint": "Sources for this region rank a little higher. Your location never leaves this device.",
-  "regionJapan": "Japan (no prefecture)"
+  "regionJapan": "Japan (no prefecture)",
+  "publishersTitle": "Publishers",
+  "publishersHint": "Who may sign the guides and maps you install",
+  "publishersBuiltIn": "Built into the app",
+  "publishersAddedOn": "Added {date}",
+  "@publishersAddedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersKey": "Key {id}",
+  "@publishersKey": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersRemove": "Remove",
+  "publishersRemoveTitle": "Remove {name}?",
+  "@publishersRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersRemoveBody": "Guides and maps signed by this publisher are no longer used. Their files stay on this device until you delete them in Downloads.",
+  "publishersAddTitle": "Add this publisher?",
+  "publishersAddBody": "Only add publishers you know, for example your city. {app} then installs guides and maps they sign, like its own.",
+  "@publishersAddBody": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersAdd": "Add",
+  "publishersAdded": "{name} added",
+  "@publishersAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersFromLink": "Add from a link",
+  "publishersLinkLabel": "Publisher link",
+  "publishersNotALink": "This is not a publisher link.",
+  "publishersBadName": "The link has an invalid publisher name.",
+  "publishersBadKey": "The link has an invalid key.",
+  "publishersBuiltInName": "{name} is built into the app and cannot be added.",
+  "@publishersBuiltInName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersOtherKey": "{name} is already added with another key. If the publisher changed its key, remove it first.",
+  "@publishersOtherKey": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersKnown": "{name} is already added.",
+  "@publishersKnown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "publishersNone": "No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it."
 }

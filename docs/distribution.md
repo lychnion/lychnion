@@ -50,8 +50,28 @@ copy, from wherever it came, must be **provably genuine and current**.
 Every publisher has an Ed25519 key pair: Lychnion for the general
 packages, and for example a city for its local packages. The app ships
 with the Lychnion public key. Other publishers' keys are added by the
-user, for example by scanning the shelter's QR code, which already carries
-the shelter computer's key (`ShelterQrCard`, `lib/facts/signing.dart`).
+user (built 2026-11-18, step 4a):
+
+- A publisher gives out a link, as text or QR code:
+  `lychnion://publisher?name=jp.city.kobe&title=神戸市&key=<public key>`.
+  `name` is the `publisher` field of its records (lower case, digits,
+  `.`, `_`, `-`); `title` is only shown.
+- Scanning or opening the link asks first, showing the title, name and
+  key id. Settings → Publishers lists the added publishers, adds one from
+  a pasted link (desktop) and removes one.
+- The app then accepts records signed by that key for that name, for
+  downloads, updates and what a base passes on. A base passes on what
+  it has installed; a phone installs a city's package from it only once
+  that phone has added the city too.
+- Names built into the app (`lychnion`) cannot be added. A name already
+  added with another key is refused: the user removes it first, so a
+  changed key is never taken over silently.
+- Removing a publisher: its downloads stay on the device but are no
+  longer used (install records are checked again).
+
+A city's publisher key is separate from a base's key (the one that signs
+facts, `lib/facts/signing.dart`): the city signs on one machine, and bases
+only carry its signed records.
 
 ### Package records
 
@@ -261,6 +281,9 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
 4. **Nodes for others.** Following catalogs and publishing own packages
    in the desktop app, plus the headless node. A city or a club runs one
    without Git or a server background; phones trust its key by QR.
+   In parts: (a) publisher keys in the app (built 2026-11-18, see
+   "Publishers and keys"); (b) publishing own packages on the desktop;
+   (c) following catalogs on the desktop; (d) the headless node.
 5. **Sync between nodes**, including updates during a disaster.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones

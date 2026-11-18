@@ -58,6 +58,20 @@ void main() {
     expect(() => PackageRecord.sign(bad, key), throwsFormatException);
   });
 
+  test('plus adds publishers without changing the original', () async {
+    final pair = await newKeyPair();
+    final key = await keyPairFromSeed(pair.seed);
+    final record = await PackageRecord.sign(_unsigned(), key);
+    final more = builtInPublishers.plus({
+      record.publisher: [pair.publicKey],
+    });
+    expect(await more.verify(record), isTrue);
+    expect(await builtInPublishers.verify(record), isFalse);
+    expect(more.publishers, containsAll(['lychnion', record.publisher]));
+    expect(builtInPublishers.publishers, ['lychnion']);
+    expect(() => more.plus({'x': ['short']}), throwsFormatException);
+  });
+
   test("Lychnion's key is built in", () {
     expect(lychnionPublicKey, hasLength(43));
   });

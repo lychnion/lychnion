@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../util/paths.dart';
 import 'catalog.dart';
 import 'downloader.dart';
+import 'publisher_list.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
 /// Record of a verified download, kept next to its files as
@@ -70,13 +71,27 @@ enum MobileData {
 }
 
 class DownloadStore {
-  DownloadStore(this.root, {TrustedKeys? trust})
-    : trust = trust ?? builtInPublishers;
+  DownloadStore(
+    this.root, {
+    TrustedKeys? trust,
+    PublisherList? publishers,
+  }) // A named parameter cannot be private, so no initializing formal.
+    // ignore: prefer_initializing_formals
+    : _trust = trust,
+       publishers =
+           publishers ??
+           PublisherList(File('${root.path}/downloads/publishers.json'));
 
   final Directory root;
 
-  /// Publishers whose records are accepted.
-  final TrustedKeys trust;
+  /// Fixed keys (tests); otherwise the publishers' keys.
+  final TrustedKeys? _trust;
+
+  /// Publishers the user added (a city, a club), next to Lychnion.
+  final PublisherList publishers;
+
+  /// Publishers whose records are accepted: built in, plus the added ones.
+  TrustedKeys get trust => _trust ?? publishers.trust;
 
   /// Install records checked in this run, as canonical JSON (the whole
   /// record, so an edit after the check does not pass). Checking is async,
@@ -87,9 +102,17 @@ class DownloadStore {
   static Future<DownloadStore>? _instance;
   static Future<DownloadStore> instance() => _instance ??= () async {
     final s = DownloadStore(await appSupportDirectory());
+    await s.publishers.load();
     await s.verifyInstalled();
     return s;
   }();
+
+  /// Checks all install records again, after a publisher was added or
+  /// removed: a removed publisher's downloads are then no longer used.
+  Future<void> reverify() async {
+    _verified.clear();
+    await verifyInstalled();
+  }
 
   /// Checks the signatures of all install records (once per app start).
   Future<void> verifyInstalled() async {

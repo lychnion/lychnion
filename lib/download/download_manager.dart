@@ -65,6 +65,9 @@ class DownloadManager extends ChangeNotifier {
   /// the shelter's addresses).
   final _shelterCatalogs = <Uri, Catalog>{};
 
+  /// What each shelter sent, to read again when publishers change.
+  final _shelterBodies = <Uri, String>{};
+
   Catalog _withShelters(Catalog c) {
     for (final s in _shelterCatalogs.values) {
       c = c.mergedWith(s);
@@ -114,21 +117,7 @@ class DownloadManager extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    final bundled = await rootBundle.loadString(
-      'assets/downloads/catalog.json',
-    );
-    catalog = await _parse(bundled, null);
-    // A catalog fetched earlier wins over the bundled one.
-    try {
-      final f = store.cachedCatalog;
-      if (await f.exists()) {
-        final j = jsonDecode(await f.readAsString()) as Map;
-        catalog = await _parse(
-          j['body'] as String,
-          Uri.parse(j['url'] as String),
-        );
-      }
-    } catch (_) {}
+    catalog = await _localCatalog();
     _refreshStates();
     if (_autoDownload.isNotEmpty) {
       unawaited(_runAuto());
@@ -168,6 +157,38 @@ class DownloadManager extends ChangeNotifier {
         'ms': sw.elapsedMilliseconds,
       });
     }
+  }
+
+  /// The bundled catalog, or the one fetched last (it wins).
+  Future<Catalog> _localCatalog() async {
+    var c = await _parse(
+      await rootBundle.loadString('assets/downloads/catalog.json'),
+      null,
+    );
+    try {
+      final f = store.cachedCatalog;
+      if (await f.exists()) {
+        final j = jsonDecode(await f.readAsString()) as Map;
+        c = await _parse(j['body'] as String, Uri.parse(j['url'] as String));
+      }
+    } catch (_) {}
+    return c;
+  }
+
+  /// A publisher was added or removed: install records are checked again,
+  /// and every catalog is read again, so the publisher's records show up
+  /// (or go). Shelter catalogs are read from what they sent, no network.
+  Future<void> publishersChanged() async {
+    await store.reverify();
+    var c = await _localCatalog();
+    for (final e in _shelterBodies.entries) {
+      final other = await _parse(e.value, e.key);
+      _shelterCatalogs[e.key] = other;
+      c = c.mergedWith(other);
+    }
+    catalog = c;
+    changes.value++;
+    _refreshStates();
   }
 
   /// Records with a bad signature are left out of the catalog and logged.
@@ -231,6 +252,7 @@ class DownloadManager extends ChangeNotifier {
       final body = await res.transform(utf8.decoder).join();
       final other = await _parse(body, url);
       _shelterCatalogs[url] = other;
+      _shelterBodies[url] = body;
       catalog = catalog.mergedWith(other);
       _log({
         'event': 'shelter_catalog',

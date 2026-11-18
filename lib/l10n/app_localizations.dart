@@ -1849,6 +1849,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Japan (no prefecture)'**
   String get regionJapan;
+
+  /// No description provided for @publishersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishers'**
+  String get publishersTitle;
+
+  /// No description provided for @publishersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Who may sign the guides and maps you install'**
+  String get publishersHint;
+
+  /// No description provided for @publishersBuiltIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Built into the app'**
+  String get publishersBuiltIn;
+
+  /// No description provided for @publishersAddedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {date}'**
+  String publishersAddedOn(String date);
+
+  /// No description provided for @publishersKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key {id}'**
+  String publishersKey(String id);
+
+  /// No description provided for @publishersRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get publishersRemove;
+
+  /// No description provided for @publishersRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String publishersRemoveTitle(String name);
+
+  /// No description provided for @publishersRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Guides and maps signed by this publisher are no longer used. Their files stay on this device until you delete them in Downloads.'**
+  String get publishersRemoveBody;
+
+  /// No description provided for @publishersAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this publisher?'**
+  String get publishersAddTitle;
+
+  /// No description provided for @publishersAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only add publishers you know, for example your city. {app} then installs guides and maps they sign, like its own.'**
+  String publishersAddBody(String app);
+
+  /// No description provided for @publishersAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get publishersAdd;
+
+  /// No description provided for @publishersAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} added'**
+  String publishersAdded(String name);
+
+  /// No description provided for @publishersFromLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Add from a link'**
+  String get publishersFromLink;
+
+  /// No description provided for @publishersLinkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Publisher link'**
+  String get publishersLinkLabel;
+
+  /// No description provided for @publishersNotALink.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a publisher link.'**
+  String get publishersNotALink;
+
+  /// No description provided for @publishersBadName.
+  ///
+  /// In en, this message translates to:
+  /// **'The link has an invalid publisher name.'**
+  String get publishersBadName;
+
+  /// No description provided for @publishersBadKey.
+  ///
+  /// In en, this message translates to:
+  /// **'The link has an invalid key.'**
+  String get publishersBadKey;
+
+  /// No description provided for @publishersBuiltInName.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is built into the app and cannot be added.'**
+  String publishersBuiltInName(String name);
+
+  /// No description provided for @publishersOtherKey.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is already added with another key. If the publisher changed its key, remove it first.'**
+  String publishersOtherKey(String name);
+
+  /// No description provided for @publishersKnown.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is already added.'**
+  String publishersKnown(String name);
+
+  /// No description provided for @publishersNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No other publishers yet. A city or a club that publishes its own guides gives you a link or QR code to add it.'**
+  String get publishersNone;
 }
 
 class _AppLocalizationsDelegate

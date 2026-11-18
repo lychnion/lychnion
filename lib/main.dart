@@ -17,6 +17,8 @@ import 'download/catalog.dart';
 import 'download/download_manager.dart';
 import 'download/download_store.dart';
 import 'download/downloads_screen.dart';
+import 'download/publisher_list.dart';
+import 'download/publishers_screen.dart';
 import 'ui/ask_view.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
@@ -234,6 +236,17 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openLink(Uri uri) async {
     if (ShareLink.fromUri(uri) case final share?) {
       await _receiveShare(share);
+      return;
+    }
+    if (PublisherLink.fromUri(uri) case final publisher?) {
+      final dm = _downloads;
+      if (dm == null || !mounted || _asking) return;
+      _asking = true;
+      try {
+        await addPublisher(context, dm, publisher);
+      } finally {
+        _asking = false;
+      }
       return;
     }
     final link = ShelterLink.fromUri(uri);
