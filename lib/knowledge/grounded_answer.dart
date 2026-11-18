@@ -1,4 +1,5 @@
 import '../llm/local_llm.dart';
+import 'app_help.dart';
 import 'hybrid_retriever.dart';
 import 'knowledge_package.dart';
 import 'retriever.dart';
@@ -175,7 +176,16 @@ class GroundedAnswerer {
     this.hybrid,
     this.checkRelevance = false,
     this.topK = 4,
+    this.help,
+    this.helpHybrid,
   }) : retriever = Retriever(package);
+
+  /// The app's own help (AppHelp), searched only for questions about the
+  /// app ([isAppQuestion]); null: none.
+  final KnowledgePackage? help;
+
+  /// Vector search over [help], when the search model is loaded.
+  final HybridRetriever? helpHybrid;
 
   /// How many passages the model reads. Reading is the slow part on phones.
   final int topK;
@@ -205,6 +215,19 @@ class GroundedAnswerer {
     // alone (no search model installed) still needs a Japanese question.
     final search = lang != 'ja' && hybrid == null ? await _toJapanese(q) : q;
     if (search != q) answer.searchQuery = search;
+    // Questions about the app itself: from the app's help, without safety
+    // lines; other questions never see help passages.
+    if (help case final h? when isAppQuestion(q) || isAppQuestion(search)) {
+      final hits = helpHybrid != null
+          ? await helpHybrid!.search(search, limit: topK, original: q)
+          : Retriever(h).search(search, limit: topK);
+      if (hits.isNotEmpty) {
+        answer.hits = hits;
+        onUpdate();
+        await _generate(answer, lang, say, onUpdate);
+        return;
+      }
+    }
     answer.alerts = package.alerts
         .where((a) => a.matches(q) || a.matches(search))
         .toList();
@@ -232,9 +255,18 @@ class GroundedAnswerer {
         return;
       }
     }
+    await _generate(answer, lang, say, onUpdate);
+  }
+
+  Future<void> _generate(
+    GroundedAnswer answer,
+    String lang,
+    AnswerTexts say,
+    void Function() onUpdate,
+  ) async {
     await llm.newChat(systemInstruction: say.instruction);
     await for (final t in llm.ask(
-      _prompt(q, answer.hits, lang, userRegion: userRegion),
+      _prompt(answer.question, answer.hits, lang, userRegion: userRegion),
       onDone: (s) => answer.stats = s,
     )) {
       answer.text += t;

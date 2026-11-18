@@ -25,6 +25,7 @@ import 'ui/ask_view.dart';
 import 'ui/first_steps.dart';
 import 'ui/guided_tour.dart';
 import 'ui/suggestions.dart';
+import 'knowledge/app_help.dart';
 import 'knowledge/grounded_answer.dart';
 import 'knowledge/hybrid_retriever.dart';
 import 'knowledge/knowledge_package.dart';
@@ -1002,12 +1003,31 @@ class _SpikePageState extends State<SpikePage> {
             'model': _embedder.modelName,
           });
         }
+        // The app's own help, for questions about the app (lychnion#9).
+        // Answers about hazards work without it.
+        KnowledgePackage? help;
+        HybridRetriever? helpHybrid;
+        try {
+          help = await AppHelp.load();
+          if (hybrid != null) {
+            helpHybrid = HybridRetriever(
+              help,
+              _embedder,
+              minCosine: double.parse(_minCos),
+            );
+            await helpHybrid.index();
+          }
+        } on Object catch (e) {
+          _log({'event': 'help', 'error': '$e'});
+        }
         _answerer = GroundedAnswerer(
           _llm,
           pkg,
           hybrid: hybrid,
           checkRelevance: _relevanceCheck,
           topK: _topK,
+          help: help,
+          helpHybrid: helpHybrid,
         );
         _log({
           'event': 'package',
