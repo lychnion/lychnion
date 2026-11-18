@@ -142,7 +142,10 @@ club, so it comes in forms they can operate:
   Following catalogs and adding own packages happen in the app.
 - **A headless node** for a server or a small box: the same Dart code as a
   single program (`dart compile exe`) or a container. For people who
-  operate servers.
+  operate servers. Built 2026-11-18: `packages/lychnion_node`
+  (`serve`, `pull`, `check`; README there). `pull` from cron keeps it
+  current; the download and catalog code is shared with the app in
+  `packages/lychnion_fetch`.
 - **A static folder.** A node can export its catalog and files as plain
   files, to put on any web host or a USB stick. GitHub Pages works too,
   for those who already use GitHub, but it is one option, not a
@@ -351,7 +354,8 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
    In parts: (a) publisher keys in the app and (b) publishing own
    packages on the desktop (both built 2026-11-18, see "Publishers and
    keys"); (c) following catalogs (built 2026-11-18, see "Following
-   catalogs"); (d) the headless node.
+   catalogs"); (d) the headless node (built 2026-11-18,
+   `packages/lychnion_node`, see "Node").
 5. **Sync between nodes**, including updates during a disaster.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones

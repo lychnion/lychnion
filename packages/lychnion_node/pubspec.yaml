@@ -1,0 +1,23 @@
+name: lychnion_node
+description: >-
+  A headless Lychnion node: serves a folder of signed records and files by
+  hash to the app and to other nodes, and pulls catalogs into it. Pure
+  Dart, compiled to a single program or run in a container.
+version: 0.1.0
+publish_to: 'none'
+repository: https://github.com/lychnion/lychnion/tree/main/packages/lychnion_node
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  crypto: ^3.0.6
+  lychnion_fetch:
+    path: ../lychnion_fetch
+  lychnion_format:
+    path: ../lychnion_format
+
+dev_dependencies:
+  cryptography: ^2.9.0
+  lints: ^6.0.0
+  test: ^1.25.0

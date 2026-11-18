@@ -35,6 +35,9 @@ dependencies:
   # Signed records, shared with the data tools and nodes.
   lychnion_format:
     path: packages/lychnion_format
+  # Downloads and catalog fetches, shared with the headless node.
+  lychnion_fetch:
+    path: packages/lychnion_fetch
   intl: any
   wakelock_plus: ^1.8.0
 
