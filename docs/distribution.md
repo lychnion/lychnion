@@ -292,9 +292,14 @@ Built (2026-11-18, steps 5a and 5b):
 - **Short internet windows.** When the connection comes back, and every
   30 minutes while the app runs, it reads Lychnion's and the followed
   catalogs again. With automatic updates on, new versions of what is
-  installed are fetched at once: on a phone over Wi-Fi or a cable only,
-  on a computer (a base) over any connection. A download that fails
-  waits 30 minutes before it is tried again by itself.
+  installed are fetched at once: on a phone over Wi-Fi or a cable only
+  (checked before every item, so a phone that falls back to mobile data
+  stops), on a computer (a base) over any connection, also a metered
+  one. A download that fails waits 30 minutes before it is tried again
+  by itself; losing the connection or a full disk ends the run without
+  holding the items back. The catalogs are not read by themselves over
+  mobile data the user does not allow, nor more often than every five
+  minutes on a flapping connection.
 - **A base keeps everything.** Desktop app, Downloads settings: "Keep
   everything for phones" downloads every guide and map from the
   catalogs (the AI models too, if ticked) and keeps them current, so

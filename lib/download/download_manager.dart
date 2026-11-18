@@ -260,32 +260,42 @@ class DownloadManager extends ChangeNotifier {
       keepAll: true,
       keepModels: keepModels,
     );
-    return (count: items.length, bytes: items.fold(0, (a, i) => a + i.size));
+    // What still has to come: a partial download counts what is missing.
+    return (
+      count: items.length,
+      bytes: items.fold(
+        0,
+        (a, i) =>
+            a +
+            (stateOf(i).status == ItemStatus.partial
+                ? i.size - stateOf(i).bytes
+                : i.size),
+      ),
+    );
   }
 
   /// Fetches by itself what [itemsToSync] says (new versions with
   /// automatic updates; everything on a base that keeps a full set), one
   /// after another, and again while new work turns up.
   Future<void> _autoUpdate() async {
-    if (_updating) return;
-    final updates = updateMode == UpdateMode.auto;
-    if (!updates && !keepAll) return;
-    if (!syncAllowed(
-      await Connectivity().checkConnectivity(),
-      desktop: isDesktop,
-    )) {
-      return;
-    }
+    // Taken before the first await: two calls must never both run.
+    if (_updating || _disposed) return;
     _updating = true;
     try {
-      // A failed item waits 30 minutes before it is tried again by itself
-      // (a missing file must not be asked for in a loop).
-      final now = DateTime.now();
-      _syncFailed.removeWhere(
-        (_, t) => now.difference(t) > const Duration(minutes: 30),
-      );
-      final tried = {..._syncFailed.keys};
       while (true) {
+        final updates = updateMode == UpdateMode.auto;
+        if (!updates && !keepAll) break;
+        // Checked before every item: a phone that falls back to mobile
+        // data, or loses the connection, stops here without blaming the
+        // items (they are fetched in the next window).
+        if (!syncAllowed(
+          await Connectivity().checkConnectivity(),
+          desktop: isDesktop,
+        )) {
+          break;
+        }
+        final now = DateTime.now();
+        _syncFailed.removeWhere((_, t) => now.difference(t) >= _backoff);
         final next = itemsToSync(
           catalog,
           status: (i) => stateOf(i).status,
@@ -293,10 +303,9 @@ class DownloadManager extends ChangeNotifier {
           updates: updates,
           keepAll: keepAll,
           keepModels: keepModels,
-        ).where((i) => !tried.contains('${i.id}@${i.version}')).toList();
+        ).where((i) => !_syncFailed.containsKey(_key(i))).toList();
         if (next.isEmpty) break;
         final item = next.first;
-        tried.add('${item.id}@${item.version}');
         _log({
           'event': 'auto_update',
           'id': item.id,
@@ -304,16 +313,36 @@ class DownloadManager extends ChangeNotifier {
           'keep_all': keepAll,
         });
         await download(item);
-        if (stateOf(item).error != null) {
-          _syncFailed['${item.id}@${item.version}'] = DateTime.now();
+        final error = stateOf(item).error;
+        // The connection or the disk, not the item: stop this run.
+        if (const {
+          'offline',
+          'wifi-only',
+          'disk-full',
+          'disk',
+        }.contains(error)) {
+          _log({'event': 'auto_update_stopped', 'error': error});
+          break;
         }
+        // Done, or failed for this item: either way not again in this run
+        // (a failed one waits [_backoff]).
+        _syncFailed[_key(item)] = error == null
+            ? DateTime.now().subtract(_backoff)
+            : DateTime.now();
       }
     } finally {
       _updating = false;
     }
   }
 
-  /// Items whose last download by itself failed, and when.
+  static String _key(CatalogItem i) => '${i.id}@${i.version}';
+
+  /// How long a failed, stopped or deleted item waits before it is
+  /// fetched again by itself (a little under the timer's 30 minutes).
+  static const _backoff = Duration(minutes: 29);
+
+  /// Items whose last download by itself failed (or that the user stopped
+  /// or deleted), and when.
   final _syncFailed = <String, DateTime>{};
 
   /// Short internet windows: when the connection comes back, and every
@@ -321,28 +350,59 @@ class DownloadManager extends ChangeNotifier {
   /// versions fetched by [_autoUpdate]).
   StreamSubscription<List<ConnectivityResult>>? _connection;
   Timer? _every;
-  bool _online = true;
+  bool _online = false;
+  bool _syncOk = false;
+  bool _disposed = false;
+  DateTime? _lastAutoRefresh;
 
-  void _watchConnection() {
+  /// Reads the catalogs again by itself, unless that would use mobile
+  /// data the user does not allow, or one was read a few minutes ago
+  /// (a flapping connection).
+  Future<void> _autoRefresh() async {
+    if (_disposed || (updateMode == UpdateMode.off && !keepAll)) return;
+    final last = _lastAutoRefresh;
+    if (last != null &&
+        DateTime.now().difference(last) < const Duration(minutes: 5)) {
+      return;
+    }
+    if (await networkProblem() != null) return;
+    _lastAutoRefresh = DateTime.now();
+    await refreshCatalog();
+  }
+
+  Future<void> _watchConnection() async {
+    try {
+      final now = await Connectivity().checkConnectivity();
+      _online = isOnline(now);
+      _syncOk = syncAllowed(now, desktop: isDesktop);
+    } on Object {
+      // Unknown: the first event decides.
+    }
+    if (_disposed) return;
     _connection = Connectivity().onConnectivityChanged.listen(
       (now) {
         final online = isOnline(now);
+        final syncOk = syncAllowed(now, desktop: isDesktop);
         final back = online && !_online;
+        final nowAllowed = syncOk && !_syncOk;
         _online = online;
-        if (back && (updateMode != UpdateMode.off || keepAll)) {
+        _syncOk = syncOk;
+        if (back) {
           _log({'event': 'connection_back'});
-          unawaited(refreshCatalog());
+          unawaited(_autoRefresh());
+        } else if (nowAllowed) {
+          // Mobile data to Wi-Fi: fetch what waits, no need to re-read.
+          unawaited(_autoUpdate());
         }
       },
       onError: (Object _) {
         // No connectivity events on this platform: the timer still runs.
       },
     );
-    _every = Timer.periodic(const Duration(minutes: 30), (_) {
-      if (updateMode != UpdateMode.off || keepAll) {
-        unawaited(refreshCatalog());
-      }
-    });
+    _every = Timer.periodic(
+      const Duration(minutes: 30),
+      (_) => unawaited(_autoRefresh()),
+    );
   }
 
   Future<void> _init() async {
@@ -356,7 +416,7 @@ class DownloadManager extends ChangeNotifier {
       // New versions: look once at start (offline is fine).
       unawaited(refreshCatalog());
     }
-    _watchConnection();
+    unawaited(_watchConnection());
   }
 
   Future<void> _runAuto() async {
@@ -783,7 +843,7 @@ class DownloadManager extends ChangeNotifier {
 
   void stop(CatalogItem item) {
     // Stopped by hand: not started again by itself for a while.
-    _syncFailed['${item.id}@${item.version}'] = DateTime.now();
+    _syncFailed[_key(item)] = DateTime.now();
     stateOf(item).cancel?.cancel();
   }
 
@@ -846,6 +906,7 @@ class DownloadManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _connection?.cancel();
     _every?.cancel();
     changes.dispose();
