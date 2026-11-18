@@ -107,7 +107,7 @@ Notes:
   「この端末を避難所として公開」 / "Share on the local network", and the
   shelter's name (asked when turning it on). The server starts, stops and
   renames itself to match, once the model has loaded
-  (`ShelterShareSection`, `_syncServer` in `lib/main.dart`). The
+  (`ShelterShareSection`, `_syncServer` in `lib/ask/base_server.dart`). The
   `SHELTER_SERVER` flag still works for development.
 - **Browser page:** `GET /` serves `assets/web/shelter.html`, one
   self-contained file (no internet, no files from elsewhere).
