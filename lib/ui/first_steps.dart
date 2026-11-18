@@ -240,20 +240,17 @@ class ReadyOfflineChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ActionChip(
-        avatar: CircleAvatar(
-          backgroundColor: scheme.tertiaryContainer,
-          child: Icon(
-            Icons.check_rounded,
-            size: 14,
-            color: scheme.onTertiaryContainer,
-          ),
+    return ActionChip(
+      avatar: CircleAvatar(
+        backgroundColor: scheme.tertiaryContainer,
+        child: Icon(
+          Icons.check_rounded,
+          size: 14,
+          color: scheme.onTertiaryContainer,
         ),
-        label: Text(context.l10n.readyOffline),
-        onPressed: onTap,
       ),
+      label: Text(context.l10n.readyOffline),
+      onPressed: onTap,
     );
   }
 }
@@ -266,12 +263,9 @@ class ResumeStepsChip extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerLeft,
-    child: ActionChip(
-      avatar: const Icon(Icons.checklist_rounded, size: 18),
-      label: Text(context.l10n.firstStepsResume(steps.done, steps.total)),
-      onPressed: onTap,
-    ),
+  Widget build(BuildContext context) => ActionChip(
+    avatar: const Icon(Icons.checklist_rounded, size: 18),
+    label: Text(context.l10n.firstStepsResume(steps.done, steps.total)),
+    onPressed: onTap,
   );
 }

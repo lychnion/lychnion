@@ -196,7 +196,11 @@ class _AskViewState extends State<AskView> {
     final needsData = widget.phase == AskPhase.noModel;
     return [
       if (widget.status case final s?) ...[
-        KeyedSubtree(key: widget.tourKeys?.status, child: s),
+        // Aligned outside the key, so the tour rings the chip itself.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: KeyedSubtree(key: widget.tourKeys?.status, child: s),
+        ),
         const SizedBox(height: 12),
       ],
       Text(l.askHeadline, style: theme.textTheme.headlineMedium),
