@@ -1680,4 +1680,112 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get answerFailedAnnounce => '今回は回答できませんでした。';
+
+  @override
+  String publishersRevoked(String name) {
+    return '$name の鍵は発行者によって無効にされました（盗難・紛失）。発行者に新しいリンクを確認してください。';
+  }
+
+  @override
+  String publishersKeyReplaced(String id) {
+    return '発行者が鍵を交換しました。現在の鍵: $id';
+  }
+
+  @override
+  String get publishersKeyRevoked =>
+      '鍵は無効にされました。この発行者のものは使われません。新しいリンクを追加してください。';
+
+  @override
+  String get publishKeySection => 'あなたの鍵';
+
+  @override
+  String get publishBackup => '鍵のバックアップを保存';
+
+  @override
+  String get publishBackupWarning =>
+      'バックアップがあれば、あなたの名前でパッケージに署名できます。オフラインで保管してください（1Password、金庫の USB メモリなど）。サーバー、リポジトリ、人に渡す USB メモリには置かないでください。パスフレーズがないと開けません。忘れたパスフレーズは取り戻せません。';
+
+  @override
+  String get publishPassphrase => 'パスフレーズ（12 文字以上）';
+
+  @override
+  String get publishPassphraseAgain => 'パスフレーズ（確認）';
+
+  @override
+  String get publishPassphraseShort => '12 文字以上にしてください。';
+
+  @override
+  String get publishPassphraseMismatch => '2 つのパスフレーズが一致しません。';
+
+  @override
+  String publishBackupSaved(String path) {
+    return 'バックアップを保存しました: $path';
+  }
+
+  @override
+  String get publishRestore => 'バックアップから復元';
+
+  @override
+  String publishRestored(String name) {
+    return '$name の鍵を復元しました。';
+  }
+
+  @override
+  String get publishBackupWrongPassphrase => 'このパスフレーズではバックアップを開けません。';
+
+  @override
+  String get publishBackupNotBackup => 'リクニオンの鍵のバックアップではありません。';
+
+  @override
+  String get publishBackupDamaged => 'バックアップが壊れているか、変更されています。';
+
+  @override
+  String get publishBackupNewer => 'このバックアップは新しいバージョンのアプリで作られました。アプリを更新してください。';
+
+  @override
+  String get publishReplaceKey => '鍵を交換';
+
+  @override
+  String get publishReplaceKeyText =>
+      '新しい鍵を作り、今の鍵で署名します。今の鍵を信頼しているスマートフォンは、カタログや USB メモリを受け取ったときに新しい鍵を受け入れます。これまでに署名したものは有効なままです。交換後は新しいバックアップを作ってください（古いバックアップには古い鍵が入っています）。古いバックアップも安全に保管してください。古い鍵の署名はまだ有効で、その無効化の宣言はそのバックアップに入っています。';
+
+  @override
+  String get publishRevokeKey => '鍵を無効にする';
+
+  @override
+  String get publishRevokeKeyText =>
+      '鍵を他人が持っているかもしれないときに使います。スマートフォンはその鍵と、その鍵で署名されたものをすべて信頼しなくなり、新しいリンク（QR コード）を追加し直す必要があります。このパソコンのパッケージは新しい鍵で署名し直されます。';
+
+  @override
+  String publishKeyChanged(String count, String path) {
+    return '新しい鍵を作り、$count 件のパッケージに署名し直しました。$path の内容をカタログ（\"keys\"）に入れてください。このパソコンで作る USB メモリには既に入ります。';
+  }
+
+  @override
+  String get publishRevokeFromBackup => '紛失した鍵をバックアップから無効にする';
+
+  @override
+  String get publishRevokeFromBackupText =>
+      '手元にない鍵（パソコンの紛失・盗難）のために、バックアップには無効化の宣言が用意されています。パスフレーズは不要です。';
+
+  @override
+  String publishRevokeConfirm(String id, String name) {
+    return '$name の鍵 $id を無効にしますか？元に戻せません。';
+  }
+
+  @override
+  String publishRevocationSaved(String path) {
+    return '無効化の宣言を $path に保存しました。カタログ（\"keys\"）に入れてください。このパソコンで作る USB メモリには既に入ります。';
+  }
+
+  @override
+  String publishersReplacesRevoked(String id) {
+    return '無効にされた鍵 $id を置き換えます。その鍵を持っていた人なら誰でもこのようなリンクを作れます。発行者から直接、または公式ページで受け取った場合だけ追加してください。';
+  }
+
+  @override
+  String get publishRestoreRevoked => 'このバックアップの鍵は無効にされています。新しい鍵を作ってください。';
+
+  @override
+  String get publishRestoreReplaced => 'このバックアップの鍵は交換済みです。最新のバックアップから復元してください。';
 }

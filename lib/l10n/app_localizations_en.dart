@@ -1778,4 +1778,117 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get answerFailedAnnounce => 'No answer this time.';
+
+  @override
+  String publishersRevoked(String name) {
+    return '$name\'s key was revoked by the publisher (stolen or lost). Ask the publisher for its new link.';
+  }
+
+  @override
+  String publishersKeyReplaced(String id) {
+    return 'Key replaced by the publisher, now $id';
+  }
+
+  @override
+  String get publishersKeyRevoked =>
+      'Key revoked: nothing of this publisher is used. Add its new link.';
+
+  @override
+  String get publishKeySection => 'Your key';
+
+  @override
+  String get publishBackup => 'Save a key backup';
+
+  @override
+  String get publishBackupWarning =>
+      'The backup can sign packages in your name. Keep it offline (1Password, or a USB stick in a safe). Never put it on a server, in a repository or on a stick you hand out. It opens only with the passphrase; a forgotten passphrase cannot be recovered.';
+
+  @override
+  String get publishPassphrase => 'Passphrase (at least 12 characters)';
+
+  @override
+  String get publishPassphraseAgain => 'Passphrase again';
+
+  @override
+  String get publishPassphraseShort => 'Use at least 12 characters.';
+
+  @override
+  String get publishPassphraseMismatch =>
+      'The two passphrases are not the same.';
+
+  @override
+  String publishBackupSaved(String path) {
+    return 'Backup saved: $path';
+  }
+
+  @override
+  String get publishRestore => 'Restore from a backup';
+
+  @override
+  String publishRestored(String name) {
+    return 'Key of $name restored.';
+  }
+
+  @override
+  String get publishBackupWrongPassphrase =>
+      'The passphrase does not open this backup.';
+
+  @override
+  String get publishBackupNotBackup => 'This is not a Lychnion key backup.';
+
+  @override
+  String get publishBackupDamaged => 'The backup is damaged or was changed.';
+
+  @override
+  String get publishBackupNewer =>
+      'This backup was made by a newer version of the app. Update the app.';
+
+  @override
+  String get publishReplaceKey => 'Replace the key';
+
+  @override
+  String get publishReplaceKeyText =>
+      'Makes a new key, signed by the current one. Phones that trust the current key accept the new one when they get your catalog or a stick. What you signed so far stays valid. Make a new backup afterwards: old backups hold the old key. Keep the old backup safe too: the old key still signs validly, and its revocation is in that backup.';
+
+  @override
+  String get publishRevokeKey => 'Revoke the key';
+
+  @override
+  String get publishRevokeKeyText =>
+      'Use this when someone else may have the key. Phones stop trusting it and everything it signed, and have to add your new link (QR code). Your packages here are signed again with the new key.';
+
+  @override
+  String publishKeyChanged(String count, String path) {
+    return 'New key made; $count packages signed again. Put the statements in $path into your catalog (\"keys\"). Sticks made here carry them already.';
+  }
+
+  @override
+  String get publishRevokeFromBackup => 'Revoke a lost key from a backup';
+
+  @override
+  String get publishRevokeFromBackupText =>
+      'For a key you no longer have (computer lost or stolen): the backup holds a ready-made revocation. No passphrase needed.';
+
+  @override
+  String publishRevokeConfirm(String id, String name) {
+    return 'Revoke the key $id of $name? This cannot be undone.';
+  }
+
+  @override
+  String publishRevocationSaved(String path) {
+    return 'Revocation saved in $path. Put it into your catalog (\"keys\"). Sticks made here carry it already.';
+  }
+
+  @override
+  String publishersReplacesRevoked(String id) {
+    return 'This replaces the revoked key $id. Anyone who had that key can make such a link: add it only if you got it from the publisher in person or from its official page.';
+  }
+
+  @override
+  String get publishRestoreRevoked =>
+      'This backup holds a key that was revoked. Make a new key instead.';
+
+  @override
+  String get publishRestoreReplaced =>
+      'This backup holds a key that was replaced. Restore the newest backup.';
 }

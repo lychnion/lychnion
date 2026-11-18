@@ -126,8 +126,25 @@ enum PublisherProblem {
   /// not taken over silently.
   otherKey,
 
-  /// Already added with this key.
+  /// Already added with this key (or the key that replaced it).
   known,
+
+  /// A key statement revoked this key: the publisher gave it up (stolen
+  /// or lost). Its new link has another key.
+  revoked,
+}
+
+/// Where an added publisher's key stands after the key statements this
+/// device learned.
+enum PublisherKeyState {
+  /// The key added by its link.
+  added,
+
+  /// Replaced by a newer key, signed by the old one.
+  replaced,
+
+  /// Revoked: nothing of it is trusted until its new link is added.
+  revoked,
 }
 
 /// The publishers the user added, saved in a JSON file.
@@ -147,10 +164,46 @@ class PublisherList extends ChangeNotifier {
 
   TrustedKeys? _trust;
 
-  /// Built-in publishers plus the added ones (built once per change).
-  TrustedKeys get trust => _trust ??= builtIn.plus({
-    for (final p in _added.values) p.name: [p.key],
-  });
+  /// Key statements learned from catalogs, sticks and devices nearby
+  /// (docs/distribution.md, "Replacing a key"). Kept when a publisher is
+  /// removed, so a revoked key stays revoked if its old link is added
+  /// again.
+  final _statements = <KeyStatement>[];
+
+  /// At most this many statements are kept.
+  static const maxStatements = 1000;
+
+  List<KeyStatement> get statements => List.unmodifiable(_statements);
+
+  /// Built-in publishers plus the added ones, after the key statements
+  /// (built once per change).
+  TrustedKeys get trust => _trust ??= builtIn
+      .plus({
+        for (final p in _added.values) p.name: [p.key],
+      })
+      .withStatements(_statements);
+
+  /// Where [name]'s key stands (built-in publishers too).
+  PublisherKeyState keyStateOf(String name) {
+    final now = trust.keysOf(name);
+    if (now.isEmpty) return PublisherKeyState.revoked;
+    final roots = switch (_added[name]) {
+      final p? => {TrustedKeys.canonicalKey(p.key)},
+      null => builtIn.keysOf(name),
+    };
+    return now.difference(roots).isEmpty
+        ? PublisherKeyState.added
+        : PublisherKeyState.replaced;
+  }
+
+  /// The statements about [publishers], to pass on (a stick, a base).
+  List<Map<String, Object?>> statementsFor(Iterable<String> publishers) {
+    final names = publishers.toSet();
+    return [
+      for (final s in _statements)
+        if (names.contains(s.publisher)) s.json,
+    ];
+  }
 
   void _changed() {
     _trust = null;
@@ -158,17 +211,19 @@ class PublisherList extends ChangeNotifier {
   }
 
   /// Format of publishers.json (see versioned_file.dart). 0: the same
-  /// fields without a format number.
-  static const format = 1;
+  /// fields without a format number. 1: without `statements`.
+  static const format = 2;
 
   Future<void> load() async {
     _added.clear();
+    _statements.clear();
     // Unreadable or newer: a copy is kept (a later save writes over the
     // file), and no publishers are added.
-    final raw = await readVersioned(
-      file,
-      format,
-      (json, _) => (json! as Map)['publishers'],
+    final json = await readVersioned(file, format, (json, _) => json! as Map);
+    final raw = json?['publishers'];
+    // Each one checked again: a file edited by hand proves nothing.
+    _statements.addAll(
+      await KeyStatement.checkAll(json?['statements'], max: maxStatements),
     );
     // Each entry on its own: one bad entry does not drop the others. A
     // file edited by hand is checked like a link.
@@ -180,7 +235,8 @@ class PublisherList extends ChangeNotifier {
           key: m['key'] as String,
           title: PublisherLink.cleanTitle(m['title'] as String?),
         );
-        if (problemWith(link) != null) continue;
+        // A revoked one stays listed (shown as revoked).
+        if (_shapeProblem(link) != null) continue;
         _added[link.name] = Publisher(
           name: link.name,
           key: link.key,
@@ -198,18 +254,83 @@ class PublisherList extends ChangeNotifier {
   /// True when [name] can be a publisher's name in records.
   static bool isValidName(String name) => _publisherName.hasMatch(name);
 
-  PublisherProblem? problemWith(PublisherLink l) {
+  PublisherProblem? _shapeProblem(PublisherLink l) {
     if (!isValidName(l.name)) return PublisherProblem.badName;
     if (l.keyId == null) return PublisherProblem.badKey;
-    if (builtIn.publishers.contains(l.name)) return PublisherProblem.builtIn;
+    if (builtIn.known.contains(l.name)) return PublisherProblem.builtIn;
+    return null;
+  }
+
+  PublisherProblem? problemWith(PublisherLink l) {
+    if (_shapeProblem(l) case final p?) return p;
+    // Also for a publisher removed meanwhile: its statements are kept.
+    if (resolveKeys(l.name, [l.key], _statements).keys.isEmpty) {
+      return PublisherProblem.revoked;
+    }
     final have = _added[l.name];
     if (have != null) {
       // The same key may be written with or without base64 padding.
-      return have.key.replaceAll('=', '') == l.key.replaceAll('=', '')
-          ? PublisherProblem.known
-          : PublisherProblem.otherKey;
+      final key = TrustedKeys.canonicalKey(l.key);
+      if (TrustedKeys.canonicalKey(have.key) == key) {
+        return PublisherProblem.known;
+      }
+      if (trust.keysOf(l.name).contains(key)) return PublisherProblem.known;
+      // All its keys revoked: its new link replaces the entry.
+      if (keyStateOf(l.name) == PublisherKeyState.revoked) return null;
+      return PublisherProblem.otherKey;
     }
     return null;
+  }
+
+  /// Keeps the valid [learned] statements about publishers this device
+  /// knows (built in, added, or with statements already kept; with [any],
+  /// every one: a publisher's own revocation on a new computer), and
+  /// saves them. Returns true when the trusted keys changed (then install
+  /// records and catalogs must be checked again). Throws the save's error
+  /// (then nothing changed).
+  Future<bool> learn(Iterable<KeyStatement> learned, {bool any = false}) =>
+      _serial(() async {
+        final before = _keySummary();
+        final room = maxStatements - _statements.length;
+        final seen = {for (final s in _statements) s.id};
+        // Only statements made by a key trusted here (see
+        // relevantStatements): statements anyone can make about keys of
+        // their own never fill the list. Revocations are kept even when
+        // it is full: losing one would trust a stolen key again.
+        final candidates = any
+            ? [
+                for (final s in learned)
+                  if (seen.add(s.id)) s,
+              ]
+            : await relevantStatements(trust, learned.toList());
+        var left = room;
+        final fresh = [
+          for (final s in candidates)
+            // Like a revocation: a second successor of a key proves a
+            // theft, and losing it would trust the thief's chain.
+            if (s.type == KeyStatementType.revoke ||
+                provesTheft(s, _statements) ||
+                left-- > 0)
+              s,
+        ];
+        final next = [..._statements, ...fresh];
+        if (next.length == _statements.length) return false;
+        await _save(_added.values, next);
+        _statements
+          ..clear()
+          ..addAll(next);
+        _trust = null;
+        final changed = _keySummary() != before;
+        _changed();
+        return changed;
+      });
+
+  String _keySummary() {
+    final t = trust;
+    return [
+      for (final n in [...t.known]..sort())
+        '$n:${([...t.keyIdsOf(n)]..sort()).join(',')}',
+    ].join(';');
   }
 
   /// Additions and removals one after another: each checks and saves the
@@ -236,7 +357,7 @@ class PublisherList extends ChangeNotifier {
         added: DateTime.now(),
       ),
     };
-    await _save(next.values);
+    await _save(next.values, _statements);
     _added
       ..clear()
       ..addAll(next);
@@ -250,12 +371,15 @@ class PublisherList extends ChangeNotifier {
     await _save([
       for (final p in _added.values)
         if (p.name != name) p,
-    ]);
+    ], _statements);
     _added.remove(name);
     _changed();
   });
 
-  Future<void> _save(Iterable<Publisher> list) async {
+  Future<void> _save(
+    Iterable<Publisher> list,
+    Iterable<KeyStatement> statements,
+  ) async {
     if (!mayReplace(file)) {
       throw FileSystemException('kept as it is', file.path);
     }
@@ -269,6 +393,8 @@ class PublisherList extends ChangeNotifier {
           for (final p in [...list]..sort((a, b) => a.name.compareTo(b.name)))
             p.toJson(),
         ],
+        if (statements.isNotEmpty)
+          'statements': [for (final s in statements) s.json],
       }),
       flush: true,
     );

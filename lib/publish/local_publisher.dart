@@ -15,11 +15,25 @@ import '../download/publisher_list.dart';
 
 /// This computer's publisher: name, title and signing key.
 class LocalPublisher {
-  LocalPublisher._(this.name, this.title, this._seed, this.publicKey);
+  LocalPublisher._(
+    this.name,
+    this.title,
+    this._seed,
+    this.publicKey, [
+    this.statements = const [],
+  ]);
 
   final String name;
   final String? title;
   final String _seed;
+
+  /// Key statements this publisher made (replaced and revoked keys,
+  /// oldest first), kept with the key so both change in one write. To
+  /// put in its catalog's `keys` (see [keysFileIn]).
+  final List<KeyStatement> statements;
+
+  /// Short id of the key, as records name it.
+  String get keyId => link.keyId ?? '';
 
   /// Ed25519, base64url.
   final String publicKey;
@@ -31,10 +45,15 @@ class LocalPublisher {
   Future<SimpleKeyPair> keyPair() => keyPairFromSeed(_seed);
 
   /// Format of publisher.json (see versioned_file.dart). 0: the same
-  /// fields without a format number.
+  /// fields without a format number. `statements` is optional (older
+  /// builds ignore it; they never write this file over).
   static const format = 1;
 
   static File fileIn(Directory dir) => File('${dir.path}/publisher.json');
+
+  /// `{"keys": [...]}`: this publisher's key statements, for its catalog
+  /// (a catalog's `keys`). Never holds a private key.
+  static File keysFileIn(Directory dir) => File('${dir.path}/keys.json');
 
   /// Whether a key file is there (also when it cannot be read).
   static bool existsIn(Directory dir) => fileIn(dir).existsSync();
@@ -56,6 +75,7 @@ class LocalPublisher {
         PublisherLink.cleanTitle(j['title'] as String?),
         seed,
         await publicKeyOf(pair),
+        await KeyStatement.checkAll(j['statements']),
       );
     } on Object {
       return null;
@@ -75,7 +95,109 @@ class LocalPublisher {
     Directory dir, {
     required String name,
     String? title,
-  }) async {
+  }) => _createWith(dir, name, title, null);
+
+  /// Saves the key of an opened backup ([KeyBackup.open]) as this
+  /// computer's publisher. Throws what [create] throws (`exists` when a
+  /// key is here: a key is never replaced silently).
+  static Future<LocalPublisher> restore(Directory dir, RestoredKey k) =>
+      _createWith(dir, k.name, k.title, k.seed);
+
+  /// A backup of this key, encrypted with [passphrase] (see [KeyBackup]).
+  Future<String> backup(String passphrase, {KeyBackupKdf? kdf}) =>
+      KeyBackup.create(
+        name: name,
+        title: title,
+        seed: _seed,
+        passphrase: passphrase,
+        signed: nowStamp(),
+        kdf: kdf ?? const KeyBackupKdf(),
+      );
+
+  /// Replaces this key with a new one; the old key signs the new one, so
+  /// phones that trust the old key accept the new one. Records signed by
+  /// the old key stay valid. Old backups hold the old key: a new backup
+  /// is needed.
+  Future<LocalPublisher> replaceKey(Directory dir) async {
+    final k = await newKeyPair();
+    final s = await KeyStatement.replace(
+      publisher: name,
+      oldKey: await keyPair(),
+      newKey: await keyPairFromSeed(k.seed),
+      signed: nowStamp(),
+    );
+    return _renew(dir, k, s);
+  }
+
+  /// Revokes this key (stolen or given away) and makes a new one. Phones
+  /// stop trusting the old key and everything it signed, and must add the
+  /// new link: nothing signed by the old key can vouch for the new one.
+  Future<LocalPublisher> revokeAndRenew(Directory dir) async {
+    final s = await KeyStatement.revoke(
+      publisher: name,
+      key: await keyPair(),
+      signed: nowStamp(),
+    );
+    return _renew(dir, await newKeyPair(), s);
+  }
+
+  Future<LocalPublisher> _renew(
+    Directory dir,
+    ({String seed, String publicKey}) k,
+    KeyStatement s,
+  ) async {
+    final f = fileIn(dir);
+    // The file must still hold this key: another window may have
+    // replaced it meanwhile.
+    final now = await load(dir);
+    if (now == null || now.publicKey != publicKey) throw ArgumentError('key');
+    final p = LocalPublisher._(name, title, k.seed, k.publicKey, [
+      ...statements,
+      s,
+    ]);
+    // One write replaces key and statements together: the old key is gone
+    // only once its statement is saved with the new one.
+    await _save(dir, f, p);
+    return p;
+  }
+
+  /// Adds [more] to `keys.json` (statements made elsewhere, for example a
+  /// revocation from a backup), keeping those there.
+  static Future<void> writeKeysFile(
+    Directory dir,
+    Iterable<KeyStatement> more,
+  ) async {
+    final f = keysFileIn(dir);
+    final all = <KeyStatement>[];
+    try {
+      all.addAll(
+        await KeyStatement.checkAll(
+          (jsonDecode(await f.readAsString()) as Map)['keys'],
+        ),
+      );
+    } on Object {
+      // None yet, or unreadable: written anew.
+    }
+    for (final s in more) {
+      if (!all.contains(s)) all.add(s);
+    }
+    await dir.create(recursive: true);
+    final tmp = File('${f.path}.$pid.tmp');
+    await tmp.writeAsString(
+      '${const JsonEncoder.withIndent('  ').convert({
+        'keys': [for (final s in all) s.json],
+      })}\n',
+      flush: true,
+    );
+    await tmp.rename(f.path);
+  }
+
+  static Future<LocalPublisher> _createWith(
+    Directory dir,
+    String name,
+    String? title,
+    String? seed,
+  ) async {
     if (!_usable(name)) throw ArgumentError('name');
     final f = fileIn(dir);
     if (await f.exists()) throw ArgumentError('exists');
@@ -94,25 +216,26 @@ class LocalPublisher {
     }
     try {
       if (await f.exists()) throw ArgumentError('exists');
-      return await _write(dir, f, name, title);
+      final k = seed == null
+          ? await newKeyPair()
+          : (
+              seed: seed,
+              publicKey: await publicKeyOf(await keyPairFromSeed(seed)),
+            );
+      final p = LocalPublisher._(
+        name,
+        PublisherLink.cleanTitle(title),
+        k.seed,
+        k.publicKey,
+      );
+      await _save(dir, f, p);
+      return p;
     } finally {
       if (await lock.exists()) await lock.delete();
     }
   }
 
-  static Future<LocalPublisher> _write(
-    Directory dir,
-    File f,
-    String name,
-    String? title,
-  ) async {
-    final k = await newKeyPair();
-    final p = LocalPublisher._(
-      name,
-      PublisherLink.cleanTitle(title),
-      k.seed,
-      k.publicKey,
-    );
+  static Future<void> _save(Directory dir, File f, LocalPublisher p) async {
     // Folder and file are made private before the key is written into it.
     final tmp = File('${f.path}.$pid.tmp');
     try {
@@ -126,6 +249,8 @@ class LocalPublisher {
           'title': ?p.title,
           'public_key': p.publicKey,
           'seed': p._seed,
+          if (p.statements.isNotEmpty)
+            'statements': [for (final s in p.statements) s.json],
           'note':
               'Private signing key of this publisher. Keep a copy offline; '
               'never put it on a server, a stick or in a repository.',
@@ -137,7 +262,6 @@ class LocalPublisher {
       if (await tmp.exists()) await tmp.delete();
       rethrow;
     }
-    return p;
   }
 
   /// chmod. Linux needs it (app data folders are usually readable by
@@ -156,4 +280,13 @@ class LocalPublisher {
       throw StateError('chmod $mode failed');
     }
   }
+}
+
+/// `2026-11-18T09:00:00+09:00`
+String nowStamp() {
+  final t = DateTime.now();
+  final o = t.timeZoneOffset;
+  String two(int n) => n.abs().toString().padLeft(2, '0');
+  return '${t.toIso8601String().substring(0, 19)}'
+      '${o.isNegative ? '-' : '+'}${two(o.inHours)}:${two(o.inMinutes % 60)}';
 }

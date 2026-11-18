@@ -545,7 +545,31 @@ class DownloadManager extends ChangeNotifier {
   /// A publisher was added or removed: install records are checked again,
   /// and every catalog is read again, so the publisher's records show up
   /// (or go). Base catalogs are read from what they sent, no network.
-  Future<void> publishersChanged() async {
+  ///
+  /// One run at a time: a call while one runs (for example from key
+  /// statements a catalog brought) makes it run once more, and waits for
+  /// that, so a slower old run never overwrites a newer one.
+  Future<void> publishersChanged() {
+    if (_changing case final running?) {
+      _changeAgain = true;
+      return running;
+    }
+    return _changing = () async {
+      try {
+        do {
+          _changeAgain = false;
+          await _publishersChanged();
+        } while (_changeAgain);
+      } finally {
+        _changing = null;
+      }
+    }();
+  }
+
+  Future<void>? _changing;
+  bool _changeAgain = false;
+
+  Future<void> _publishersChanged() async {
     _trustGeneration++;
     await store.reverify();
     _main = await _localCatalog();
@@ -569,6 +593,30 @@ class DownloadManager extends ChangeNotifier {
   }) =>
       Catalog.parse(json, fetchedFrom: from, trust: trust, ownFilesOnly: true);
 
+  /// Keeps the key statements of [c] about publishers this device knows.
+  /// When they change which keys are trusted, install records and every
+  /// catalog are checked again (not awaited: this runs inside a parse).
+  Future<void> _learnStatements(Catalog c, Uri? from) async {
+    if (c.statements.isEmpty) return;
+    try {
+      if (!await store.publishers.learn(c.statements)) return;
+    } on Object catch (e) {
+      // Not saved: they still applied to this catalog's records.
+      _log({'event': 'key_statements_not_saved', 'error': '$e'});
+      return;
+    }
+    _log({
+      'event': 'key_statements_learned',
+      'from': from == null ? null : redactedUrl(from),
+    });
+    unawaited(
+      publishersChanged().catchError(
+        (Object e) =>
+            _log({'event': 'publishers_changed_failed', 'error': '$e'}),
+      ),
+    );
+  }
+
   /// Records with a bad signature are left out of the catalog and logged.
   /// [device]: from a device on the local network ([parseDeviceCatalog]).
   Future<Catalog> _parse(String json, Uri? from, {bool device = false}) async {
@@ -580,6 +628,7 @@ class DownloadManager extends ChangeNotifier {
             baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
             trust: store.trust,
           );
+    await _learnStatements(c, from);
     // A few lines, not one per record: a catalog may hold thousands of
     // records from publishers not added.
     for (final r in c.rejected.take(10)) {

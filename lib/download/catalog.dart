@@ -108,7 +108,17 @@ class CatalogItem {
 /// and refreshed from [refreshUrl] when online, so packages can be updated
 /// without an app release.
 class Catalog {
-  Catalog(this.items, {this.base, this.refreshUrl, this.mirrors = const []});
+  Catalog(
+    this.items, {
+    this.base,
+    this.refreshUrl,
+    this.mirrors = const [],
+    this.statements = const [],
+  });
+
+  /// Key statements in the catalog's `keys` made by keys the device
+  /// trusts (see relevantStatements); the device keeps them.
+  final List<KeyStatement> statements;
 
   final List<CatalogItem> items;
 
@@ -167,7 +177,11 @@ class Catalog {
             own(e.value as String))
           e.key as String: [e.value as String],
     };
-    final keys = trust ?? builtInPublishers;
+    // Key statements first: records signed by a successor key the
+    // catalog announces are accepted at once. Older apps ignore `keys`.
+    final given = trust ?? builtInPublishers;
+    final statements = await relevantStatements(given, j['keys']);
+    final keys = given.withStatements(statements);
     final items = <CatalogItem>[];
     final rejected = <String>[];
     final raw = j['records']! as List;
@@ -194,6 +208,7 @@ class Catalog {
       items,
       base: base,
       refreshUrl: ownFilesOnly ? null : uri(j['refresh']),
+      statements: statements,
       mirrors: [
         for (final m in _mirrors(j['mirrors'], fetchedFrom ?? base))
           if (!ownFilesOnly || _sameOrigin(m, fetchedFrom!)) m,

@@ -114,12 +114,25 @@ class _PublishersScreenState extends State<PublishersScreen> {
                 ),
               for (final p in added)
                 ListTile(
-                  leading: const Icon(Icons.badge_outlined),
+                  leading: Icon(
+                    _list.keyStateOf(p.name) == PublisherKeyState.revoked
+                        ? Icons.gpp_bad_outlined
+                        : Icons.badge_outlined,
+                  ),
                   title: Text(p.title ?? p.name),
                   subtitle: Text(
                     [
                       if (p.title != null) p.name,
-                      l.publishersKey(p.keyId),
+                      switch (_list.keyStateOf(p.name)) {
+                        PublisherKeyState.added => l.publishersKey(p.keyId),
+                        PublisherKeyState.replaced => l.publishersKeyReplaced(
+                          ([
+                            for (final id in _list.trust.keyIdsOf(p.name))
+                              if (id != p.keyId) id,
+                          ]..sort()).join(', '),
+                        ),
+                        PublisherKeyState.revoked => l.publishersKeyRevoked,
+                      },
                       l.publishersAddedOn(
                         MaterialLocalizations.of(context)
                             .formatMediumDate(p.added.toLocal()),
@@ -148,6 +161,7 @@ String publisherProblemText(AppLocalizations l, PublisherProblem p, String n) =>
       PublisherProblem.builtIn => l.publishersBuiltInName(n),
       PublisherProblem.otherKey => l.publishersOtherKey(n),
       PublisherProblem.known => l.publishersKnown(n),
+      PublisherProblem.revoked => l.publishersRevoked(n),
     };
 
 /// Asks, then adds the publisher of [link] (a scanned or pasted
@@ -166,6 +180,8 @@ Future<bool> addPublisher(
     );
     return false;
   }
+  // Its new link after a revoked key: anyone can make one, so say so.
+  final replacing = list.added.where((p) => p.name == link.name).firstOrNull;
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
@@ -187,6 +203,13 @@ Future<bool> addPublisher(
           ),
           const SizedBox(height: 12),
           Text(l.publishersAddBody(l.appName)),
+          if (replacing != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              l.publishersReplacesRevoked(replacing.keyId),
+              style: TextStyle(color: Theme.of(c).colorScheme.error),
+            ),
+          ],
         ],
       ),
       actions: [

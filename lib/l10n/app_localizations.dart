@@ -2906,6 +2906,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No answer this time.'**
   String get answerFailedAnnounce;
+
+  /// No description provided for @publishersRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s key was revoked by the publisher (stolen or lost). Ask the publisher for its new link.'**
+  String publishersRevoked(String name);
+
+  /// No description provided for @publishersKeyReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Key replaced by the publisher, now {id}'**
+  String publishersKeyReplaced(String id);
+
+  /// No description provided for @publishersKeyRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Key revoked: nothing of this publisher is used. Add its new link.'**
+  String get publishersKeyRevoked;
+
+  /// No description provided for @publishKeySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Your key'**
+  String get publishKeySection;
+
+  /// No description provided for @publishBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a key backup'**
+  String get publishBackup;
+
+  /// No description provided for @publishBackupWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup can sign packages in your name. Keep it offline (1Password, or a USB stick in a safe). Never put it on a server, in a repository or on a stick you hand out. It opens only with the passphrase; a forgotten passphrase cannot be recovered.'**
+  String get publishBackupWarning;
+
+  /// No description provided for @publishPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase (at least 12 characters)'**
+  String get publishPassphrase;
+
+  /// No description provided for @publishPassphraseAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase again'**
+  String get publishPassphraseAgain;
+
+  /// No description provided for @publishPassphraseShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 12 characters.'**
+  String get publishPassphraseShort;
+
+  /// No description provided for @publishPassphraseMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two passphrases are not the same.'**
+  String get publishPassphraseMismatch;
+
+  /// No description provided for @publishBackupSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved: {path}'**
+  String publishBackupSaved(String path);
+
+  /// No description provided for @publishRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from a backup'**
+  String get publishRestore;
+
+  /// No description provided for @publishRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Key of {name} restored.'**
+  String publishRestored(String name);
+
+  /// No description provided for @publishBackupWrongPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'The passphrase does not open this backup.'**
+  String get publishBackupWrongPassphrase;
+
+  /// No description provided for @publishBackupNotBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a Lychnion key backup.'**
+  String get publishBackupNotBackup;
+
+  /// No description provided for @publishBackupDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup is damaged or was changed.'**
+  String get publishBackupDamaged;
+
+  /// No description provided for @publishBackupNewer.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was made by a newer version of the app. Update the app.'**
+  String get publishBackupNewer;
+
+  /// No description provided for @publishReplaceKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the key'**
+  String get publishReplaceKey;
+
+  /// No description provided for @publishReplaceKeyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Makes a new key, signed by the current one. Phones that trust the current key accept the new one when they get your catalog or a stick. What you signed so far stays valid. Make a new backup afterwards: old backups hold the old key. Keep the old backup safe too: the old key still signs validly, and its revocation is in that backup.'**
+  String get publishReplaceKeyText;
+
+  /// No description provided for @publishRevokeKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke the key'**
+  String get publishRevokeKey;
+
+  /// No description provided for @publishRevokeKeyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this when someone else may have the key. Phones stop trusting it and everything it signed, and have to add your new link (QR code). Your packages here are signed again with the new key.'**
+  String get publishRevokeKeyText;
+
+  /// No description provided for @publishKeyChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'New key made; {count} packages signed again. Put the statements in {path} into your catalog (\"keys\"). Sticks made here carry them already.'**
+  String publishKeyChanged(String count, String path);
+
+  /// No description provided for @publishRevokeFromBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke a lost key from a backup'**
+  String get publishRevokeFromBackup;
+
+  /// No description provided for @publishRevokeFromBackupText.
+  ///
+  /// In en, this message translates to:
+  /// **'For a key you no longer have (computer lost or stolen): the backup holds a ready-made revocation. No passphrase needed.'**
+  String get publishRevokeFromBackupText;
+
+  /// No description provided for @publishRevokeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke the key {id} of {name}? This cannot be undone.'**
+  String publishRevokeConfirm(String id, String name);
+
+  /// No description provided for @publishRevocationSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Revocation saved in {path}. Put it into your catalog (\"keys\"). Sticks made here carry it already.'**
+  String publishRevocationSaved(String path);
+
+  /// No description provided for @publishersReplacesRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces the revoked key {id}. Anyone who had that key can make such a link: add it only if you got it from the publisher in person or from its official page.'**
+  String publishersReplacesRevoked(String id);
+
+  /// No description provided for @publishRestoreRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup holds a key that was revoked. Make a new key instead.'**
+  String get publishRestoreRevoked;
+
+  /// No description provided for @publishRestoreReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup holds a key that was replaced. Restore the newest backup.'**
+  String get publishRestoreReplaced;
 }
 
 class _AppLocalizationsDelegate

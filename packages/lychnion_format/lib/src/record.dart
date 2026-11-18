@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
 
+import 'encoding.dart';
+import 'key_statement.dart';
+
 // Signed package records (docs/distribution.md, step 1).
 //
 // Pure Dart (no Flutter), so the signing tool (lychnion-data/tool/records.dart) and a
@@ -9,8 +12,8 @@ import 'package:cryptography/cryptography.dart';
 
 final _ed25519 = Ed25519();
 
-String _b64(List<int> b) => base64Url.encode(b).replaceAll('=', '');
-List<int> _unb64(String s) => base64Url.decode(base64Url.normalize(s));
+String _b64(List<int> b) => b64(b);
+List<int> _unb64(String s) => unb64(s);
 
 /// Short id of a public key: its first 6 bytes, base64url (8 characters).
 /// Same as the key ids of signed base facts (lib/facts/signing.dart).
@@ -260,35 +263,100 @@ Future<({String seed, String publicKey})> newKeyPair() async {
 Future<String> publicKeyOf(SimpleKeyPair pair) async =>
     _b64((await pair.extractPublicKey()).bytes);
 
-/// Publishers' public keys this device accepts records from:
-/// publisher name → key id → 32-byte key.
+/// Publishers' public keys this device accepts records from.
+///
+/// Made from the keys the device trusts on its own (built in, or added by
+/// a link: the roots) and the key statements it learned
+/// ([withStatements]): a replaced key's successor is trusted too, a
+/// revoked key is not (see [resolveKeys]).
 class TrustedKeys {
   TrustedKeys(Map<String, List<String>> publicKeys)
-    : _keys = {
-        for (final e in publicKeys.entries)
-          e.key: {
-            for (final k in e.value) recordKeyIdOf(_checked(k)): _checked(k),
-          },
+    : this._(_rootsOf(const {}, publicKeys), const []);
+
+  TrustedKeys._(this._roots, List<KeyStatement> statements)
+    : statements = List.unmodifiable(statements) {
+    for (final e in _roots.entries) {
+      final r = resolveKeys(e.key, e.value, statements);
+      _keys[e.key] = {
+        for (final k in r.keys) recordKeyIdOf(_unb64(k)): _unb64(k),
       };
+      _revoked[e.key] = r.revokedIds;
+    }
+  }
 
-  TrustedKeys._(this._keys);
+  /// Publisher name → keys trusted on its own (unpadded base64url).
+  final Map<String, Set<String>> _roots;
 
-  final Map<String, Map<String, List<int>>> _keys;
+  /// The key statements applied (only valid ones exist).
+  final List<KeyStatement> statements;
 
-  /// Publisher names with at least one key.
-  Iterable<String> get publishers => _keys.keys;
+  /// Publisher name → key id → 32-byte key, after the statements.
+  final _keys = <String, Map<String, List<int>>>{};
+  final _revoked = <String, Set<String>>{};
+
+  static Map<String, Set<String>> _rootsOf(
+    Map<String, Set<String>> have,
+    Map<String, List<String>> more,
+  ) {
+    final roots = {
+      for (final e in have.entries) e.key: {...e.value},
+    };
+    for (final e in more.entries) {
+      roots.putIfAbsent(e.key, () => {}).addAll([
+        for (final k in e.value) _b64(_checked(k)),
+      ]);
+    }
+    return roots;
+  }
+
+  /// Publisher names with at least one trusted key.
+  Iterable<String> get publishers => [
+    for (final e in _keys.entries)
+      if (e.value.isNotEmpty) e.key,
+  ];
+
+  /// Names of all publishers given to these keys, also those whose keys
+  /// were all revoked.
+  Iterable<String> get known => _roots.keys;
+
+  /// Trusted key ids of [publisher] (empty when none, or all revoked).
+  Set<String> keyIdsOf(String publisher) => {...?_keys[publisher]?.keys};
+
+  /// Keys trusted for [publisher] on their own, before statements
+  /// (unpadded base64url).
+  Set<String> rootsOf(String publisher) => {...?_roots[publisher]};
+
+  /// [key] as written in these keys: unpadded base64url. Throws
+  /// [FormatException] for a key that is not 32 bytes.
+  static String canonicalKey(String key) => _b64(_checked(key));
+
+  /// Trusted keys of [publisher] (unpadded base64url).
+  Set<String> keysOf(String publisher) => {
+    for (final k in _keys[publisher]?.values ?? const <List<int>>[]) _b64(k),
+  };
+
+  /// Ids of [publisher]'s keys revoked by a statement (or by naming two
+  /// successors).
+  Set<String> revokedIdsOf(String publisher) => {...?_revoked[publisher]};
+
+  /// True when a statement revoked [key] of [publisher].
+  bool isRevoked(String publisher, String key) =>
+      revokedIdsOf(publisher).contains(recordKeyIdOf(_checked(key)));
 
   /// These keys plus [more] (publisher name → public keys), for example
   /// publishers the user added. Keys of the same publisher are combined.
-  TrustedKeys plus(Map<String, List<String>> more) {
-    final keys = {for (final e in _keys.entries) e.key: Map.of(e.value)};
-    for (final e in more.entries) {
-      final m = keys.putIfAbsent(e.key, () => {});
-      for (final k in e.value) {
-        m[recordKeyIdOf(_checked(k))] = _checked(k);
-      }
+  TrustedKeys plus(Map<String, List<String>> more) =>
+      TrustedKeys._(_rootsOf(_roots, more), statements);
+
+  /// These keys after [more] statements too (duplicates count once).
+  /// Statements of publishers not given here change nothing.
+  TrustedKeys withStatements(Iterable<KeyStatement> more) {
+    final all = [...statements];
+    final seen = {for (final s in all) s.id};
+    for (final s in more) {
+      if (seen.add(s.id)) all.add(s);
     }
-    return TrustedKeys._(keys);
+    return all.length == statements.length ? this : TrustedKeys._(_roots, all);
   }
 
   static List<int> _checked(String k) {

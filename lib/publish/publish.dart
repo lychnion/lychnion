@@ -297,7 +297,7 @@ Future<PackageRecord> publish(
       'licence': req.licence.trim(),
       if (req.notice.isNotEmpty) 'notice': req.notice,
       'files': files,
-      'signed': _now(),
+      'signed': nowStamp(),
     }, await publisher.keyPair());
     final item = CatalogItem.fromRecord(record);
 
@@ -339,11 +339,94 @@ Future<PackageRecord> publish(
   }
 }
 
-/// `2026-11-18T09:00:00+09:00`
-String _now() {
-  final t = DateTime.now();
-  final o = t.timeZoneOffset;
-  String two(int n) => n.abs().toString().padLeft(2, '0');
-  return '${t.toIso8601String().substring(0, 19)}'
-      '${o.isNegative ? '-' : '+'}${two(o.inHours)}:${two(o.inMinutes % 60)}';
+/// Safe to run again (after a failure, or when Publish your own opens):
+/// what was done already is skipped.
+///
+/// After this computer's publisher key was replaced or revoked
+/// ([LocalPublisher.replaceKey], [LocalPublisher.revokeAndRenew]): this
+/// computer learns the key statements, so it trusts the new key; it adds
+/// the new link when the old key was revoked; and it re-signs the newest
+/// record of each item it published with the new key. An item installed
+/// here with the same files is recorded with the new record, so it stays
+/// in use and is passed on signed by the new key. Returns the ids
+/// re-signed. Throws [PublishError] (`key`) when the new key cannot be
+/// trusted here, and the save's error when the publisher list cannot be
+/// saved.
+Future<List<String>> adoptNewKey(
+  DownloadStore store,
+  Directory publisherDir,
+  LocalPublisher publisher,
+) async {
+  if (publisher.statements.isNotEmpty) {
+    await LocalPublisher.writeKeysFile(publisherDir, publisher.statements);
+  }
+  await store.publishers.learn(publisher.statements);
+  switch (store.publishers.problemWith(publisher.link)) {
+    case null:
+      await store.publishers.add(publisher.link);
+    case PublisherProblem.known:
+      break;
+    case final p:
+      throw PublishError('key', p.name);
+  }
+  final pair = await publisher.keyPair();
+  final out = <String>[];
+  final records = Directory('${publisherDir.path}/records');
+  if (!await records.exists()) return out;
+  await for (final d in records.list()) {
+    if (d is! Directory) continue;
+    final id = d.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
+    final version = lastPublished(publisherDir, id);
+    if (version == null) continue;
+    final f = recordFile(publisherDir, id, version);
+    final PackageRecord old;
+    try {
+      old = PackageRecord.fromJson(
+        (jsonDecode(await f.readAsString()) as Map).cast(),
+      );
+    } on Object {
+      continue;
+    }
+    if (old.publisher != publisher.name || old.keyId == publisher.keyId) {
+      continue;
+    }
+    final r = await PackageRecord.sign({
+      ...old.json,
+      'signed': nowStamp(),
+    }, pair);
+    final tmp = File('${f.path}.$pid.tmp');
+    await tmp.writeAsString(
+      '${const JsonEncoder.withIndent('  ').convert(r.json)}\n',
+      flush: true,
+    );
+    await tmp.rename(f.path);
+    out.add(id);
+    await _reinstall(store, r);
+  }
+  return out;
+}
+
+/// Records [r] as installed when the same version of its item is
+/// installed here from the same publisher and every file still matches.
+Future<void> _reinstall(DownloadStore store, PackageRecord r) async {
+  final ItemKind kind;
+  try {
+    kind = ItemKind.values.byName(r.kind);
+  } on ArgumentError {
+    return;
+  }
+  final here = store.recordOnDisk(kind, r.id);
+  if (here == null ||
+      here.publisher != r.publisher ||
+      here.version != r.version ||
+      canonicalJson([for (final f in here.files) f.toJson()]) !=
+          canonicalJson([for (final f in r.files) f.toJson()])) {
+    return;
+  }
+  final item = CatalogItem.fromRecord(r);
+  for (final f in item.files) {
+    final file = File('${store.dirFor(kind).path}/${f.name}');
+    if (!await file.exists() || await sha256OfFile(file) != f.sha256) return;
+  }
+  await store.markInstalled(item);
 }

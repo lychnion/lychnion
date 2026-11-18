@@ -213,6 +213,7 @@ Future<void> _stick(
     } else {
       if (m.busy) throw const _Busy();
       final r = await m.withoutDownloads(() => loadFromStick(m.store, dir));
+      if (r.keysChanged) await m.publishersChanged();
       m.installedChanged();
       text = l.stickLoaded(
         '${r.added}',
@@ -222,6 +223,7 @@ Future<void> _stick(
       if (r.failed.isNotEmpty) {
         text += '\n${l.stickFailedItems(r.failed.join(', '))}';
       }
+      if (r.keysNotSaved) text += '\n${l.publishersSaveFailed}';
     }
   } on _Busy {
     text = l.stickBusy;
