@@ -47,7 +47,8 @@ def grades(judge_dir):
         e = read_json(path, {})
         out[(e["qid"], model(e))].update(sev=e["severity"], issue=e.get("reason", ""), by="skeptic")
     for e in read_json(os.path.join(judge_dir, "human.json"), []):
-        out[(e["qid"], model(e))].update(sev=e["severity"], issue=e.get("note", ""), by="human")
+        g = out[(e["qid"], model(e))]
+        g.update(sev=e["severity"], by="human", issue=f"{g.get('issue', '')} Human: {e.get('note', '')}".strip())
     return out
 
 

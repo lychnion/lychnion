@@ -6,7 +6,8 @@ Usage:
       --label mac-e2b [--out tool/eval/results/2026-11-19/mac-e2b.jsonl] [--define LLM_BACKEND=cpu]
 
 Builds a release app under its own test app id (default com.lychnion.app.eval, set with
-FLUTTER_XCODE_PRODUCT_BUNDLE_IDENTIFIER, no file is changed), so the live app's data is never
+FLUTTER_XCODE_PRODUCT_BUNDLE_IDENTIFIER, no tracked file is changed; Flutter keeps the eval's
+--dart-defines in the ignored macos/Flutter/ephemeral/ until the next build), so the live app's data is never
 touched. The answer model and the search model are cloned (APFS, no extra space) into that test
 app's Documents folder. The app asks all questions with the ASK flag and logs one
 `LYCHNION {"event":"answer",...}` line per answer; this script only reads those lines, so it works
