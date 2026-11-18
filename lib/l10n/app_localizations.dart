@@ -2636,6 +2636,90 @@ abstract class AppLocalizations {
   /// **'Download a map of where you are, and the nearest evacuation site shows here.'**
   String get nearestOutsideText;
 
+  /// No description provided for @stickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'USB stick'**
+  String get stickTitle;
+
+  /// No description provided for @stickCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to a USB stick'**
+  String get stickCopy;
+
+  /// No description provided for @stickCopyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything installed here, for places without a network'**
+  String get stickCopyHint;
+
+  /// No description provided for @stickLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Load from a USB stick'**
+  String get stickLoad;
+
+  /// No description provided for @stickLoadHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Guides, maps and models signed by {app} or a publisher you added'**
+  String stickLoadHint(String app);
+
+  /// No description provided for @stickCopying.
+  ///
+  /// In en, this message translates to:
+  /// **'Copying to the stick…'**
+  String get stickCopying;
+
+  /// No description provided for @stickLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking and installing…'**
+  String get stickLoading;
+
+  /// No description provided for @stickCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'{added} items copied, {notNewer} already there ({path})'**
+  String stickCopied(String added, String notNewer, String path);
+
+  /// No description provided for @stickLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{added} new, {notNewer} not newer than here, {notTrusted} not trusted'**
+  String stickLoaded(String added, String notNewer, String notTrusted);
+
+  /// No description provided for @stickFailedItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Not done (files missing or changed): {items}'**
+  String stickFailedItems(String items);
+
+  /// No description provided for @stickNoCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no Lychnion folder on this stick.'**
+  String get stickNoCatalog;
+
+  /// No description provided for @stickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not finish: {detail}'**
+  String stickFailed(String detail);
+
+  /// No description provided for @stickBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait until the downloads have finished, then load from the stick.'**
+  String get stickBusy;
+
+  /// No description provided for @stickUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The Lychnion folder on this stick cannot be read ({reason}). Nothing was changed.'**
+  String stickUnreadable(String reason);
+
   /// No description provided for @aboutVersion.
   ///
   /// In en, this message translates to:
@@ -2665,6 +2749,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied'**
   String get aboutCopied;
+
+  /// No description provided for @stickClashed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not copied, the stick has another publisher\'s item with this id: {items}'**
+  String stickClashed(String items);
 }
 
 class _AppLocalizationsDelegate

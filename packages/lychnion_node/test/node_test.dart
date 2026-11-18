@@ -304,6 +304,38 @@ void main() {
     });
   });
 
+  group('pull from a folder (a USB stick)', () {
+    test('reads the catalog and files there, checks every hash', () async {
+      // Fill one node folder over HTTP, then pull another from it.
+      final a = await offer('jp.a', '1', 'aaa');
+      publish([a]);
+      await go();
+      final stick = Directory('${tmp.path}/stick/lychnion');
+      stick.parent.createSync();
+      await folder.dir.rename(stick.path);
+      final other = NodeFolder(Directory('${tmp.path}/other'));
+      final r = await pull([Directory('${tmp.path}/stick').uri], other, trust);
+      expect(r.changed, ['jp.a 1']);
+      expect(await checkFolder(other, trust), isEmpty);
+
+      // A changed file on the stick is refused.
+      final b = await offer('jp.b', '1', 'bbb');
+      await NodeFolder(stick).writeCatalog([a, b]);
+      File('${stick.path}/blobs/sha256/${b.files.single.sha256}')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('bad');
+      final r2 = await pull([stick.uri], other, trust);
+      expect(r2.failed.single, startsWith('jp.b 1'));
+      expect((await other.records(trust)).map((x) => x.id), ['jp.a']);
+    });
+
+    test('a folder without a catalog fails alone', () async {
+      final empty = Directory('${tmp.path}/empty')..createSync();
+      final r = await pull([empty.uri], folder, trust);
+      expect(r.failed.single, contains('no catalog.json'));
+    });
+  });
+
   group('serve', () {
     late NodeServer server;
     late HttpClient client;

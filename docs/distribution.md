@@ -311,6 +311,26 @@ Built (2026-11-18, steps 5a and 5b):
   failed run it tries again after 1, 2, 4 … minutes, so a short
   internet window is not missed (README in `packages/lychnion_node`).
 
+**A USB stick** (step 5d), for places without any network. The stick
+holds a normal node folder (`lychnion/catalog.json`,
+`lychnion/blobs/sha256/<hash>`), so every tool reads and writes it:
+
+- Desktop app, Downloads settings → "Copy to a USB stick": everything
+  installed here is added to the stick. The stick keeps what it has; an
+  item is replaced only by a newer version, and files no record lists
+  any more are removed from it.
+- "Load from a USB stick": only records of Lychnion and of added
+  publishers, every file checked by its hash before it is installed (all
+  files of an item before any of them replaces the installed one),
+  versions only go up, ids and file names stay with their publisher. A
+  summary says what was new, what was not newer, and what was not
+  trusted. A base then passes it on to phones as usual.
+- Headless node: `pull` also takes a folder
+  (`lychnion_node pull --into /srv/lychnion /media/stick`); a node's
+  own folder can be copied to a stick as it is.
+- Phones cannot read a stick yet (folder access differs on Android and
+  iOS).
+
 ### Updates during a disaster
 
 A city signs a new version of its local package on its node (new shelter
@@ -385,7 +405,7 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
    everything (both built 2026-11-18, see "Sync between nodes");
    (c) the headless node pulling by itself at an interval (built
    2026-11-18: `pull --every`, `serve --pull`); (d) a USB stick between
-   places; (e) finding bases on the local Wi-Fi.
+   places (built 2026-11-18); (e) finding bases on the local Wi-Fi.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones
    without the app (all iPhones without it, since iOS installs apps only

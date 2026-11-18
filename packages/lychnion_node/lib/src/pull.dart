@@ -115,17 +115,25 @@ Future<PullResult> _pull(
   final private = _PrivateHosts();
 
   for (final source in sources) {
+    // A folder (a USB stick, step 5d): its catalog and files are read
+    // from there; every file is still checked by its hash.
+    final local = source.isScheme('file') ? _localFolder(source) : null;
     final _Catalog cat;
     try {
-      cat = _Catalog.parse(await fetchCatalogText(source), source);
+      cat = local != null
+          ? _Catalog.parse(await _readLocal(local), local.uri)
+          : _Catalog.parse(await fetchCatalogText(source), source);
     } on CatalogFetchError catch (e) {
       result.failed.add('${redactedUrl(source)}: ${e.code}');
+      continue;
+    } on FileSystemException {
+      result.failed.add('${source.toFilePath()}: no catalog.json');
       continue;
     } on FormatException {
       result.failed.add('${redactedUrl(source)}: invalid');
       continue;
     }
-    final sourcePrivate = await private.isPrivate(source.host);
+    final sourcePrivate = local != null || await private.isPrivate(source.host);
     for (final raw in cat.records) {
       final r = await trust.check(raw);
       if (r == null) {
@@ -158,14 +166,18 @@ Future<PullResult> _pull(
             if (sourcePrivate || !await private.isPrivate(u.host)) u,
         ];
       }
-      if (await _fetchFiles(
-        folder,
-        r,
-        addresses,
-        log,
-        // Redirects too: never into a private network from the internet.
-        (u) async => sourcePrivate || !await private.isPrivate(u.host),
-      )) {
+      final fetched = local != null
+          ? await _copyFilesSafely(folder, r, local, cat, log)
+          : await _fetchFiles(
+              folder,
+              r,
+              addresses,
+              log,
+              // Redirects too: never into a private network from the
+              // internet.
+              (u) async => sourcePrivate || !await private.isPrivate(u.host),
+            );
+      if (fetched) {
         next[r.id] = r;
         if (newer) result.changed.add('${r.id} ${r.version}');
       } else {
@@ -259,6 +271,97 @@ class _PrivateHosts {
     }
     return (b[0] & 0xfe) == 0xfc; // fc00::/7
   }
+}
+
+/// The node folder at [source] (a `file:` address): `<dir>/lychnion` when
+/// that holds the catalog (as the app writes a stick), else the folder.
+Directory _localFolder(Uri source) {
+  final dir = Directory(source.toFilePath());
+  final inner = Directory('${dir.path}/lychnion');
+  return File('${inner.path}/catalog.json').existsSync() ? inner : dir;
+}
+
+/// The catalog.json in [dir], at most [maxCatalogBytes] like a fetched one.
+Future<String> _readLocal(Directory dir) async {
+  final f = File('${dir.path}/catalog.json');
+  if (await f.length() > maxCatalogBytes) {
+    throw const FormatException('too large');
+  }
+  return f.readAsString();
+}
+
+/// [_copyFiles], false on any file error (the stick pulled out, the disk
+/// full): the item fails, the others go on.
+Future<bool> _copyFilesSafely(
+  NodeFolder folder,
+  PackageRecord r,
+  Directory from,
+  _Catalog cat,
+  void Function(String line)? log,
+) async {
+  try {
+    return await _copyFiles(folder, r, from, cat, log);
+  } on FileSystemException catch (e) {
+    log?.call('${r.id} ${r.version}: ${e.message}');
+    return false;
+  }
+}
+
+/// Copies the files of [r] from the folder [from] into [folder], each
+/// checked by its hash before it is used.
+Future<bool> _copyFiles(
+  NodeFolder folder,
+  PackageRecord r,
+  Directory from,
+  _Catalog cat,
+  void Function(String line)? log,
+) async {
+  for (final f in r.files) {
+    final blob = folder.blob(f.sha256)!;
+    if (await blob.exists() &&
+        await blob.length() == f.size &&
+        await _sha256(blob) == f.sha256) {
+      continue;
+    }
+    final listed = cat.urls[f.sha256];
+    final candidates = [
+      if (listed != null &&
+          !listed.contains('..') &&
+          !listed.startsWith('/') &&
+          !(Uri.tryParse(listed)?.hasScheme ?? true))
+        listed,
+      'blobs/sha256/${f.sha256}',
+    ];
+    File? source;
+    for (final c in candidates) {
+      final file = File('${from.path}/$c');
+      if (await file.exists()) {
+        source = file;
+        break;
+      }
+    }
+    if (source == null || await source.length() != f.size) {
+      log?.call('${r.id} ${r.version}: ${f.name} not in the folder');
+      return false;
+    }
+    final part = File('${blob.path}.copy');
+    try {
+      await source.copy(part.path);
+      if (await _sha256(part) != f.sha256) {
+        log?.call('${r.id} ${r.version}: ${f.name} does not match');
+        return false;
+      }
+      await part.rename(blob.path);
+    } on FileSystemException catch (e) {
+      // The stick pulled out, or the disk full.
+      log?.call('${r.id} ${r.version}: ${f.name}: ${e.message}');
+      return false;
+    } finally {
+      if (await part.exists()) await part.delete();
+    }
+    log?.call('${r.id} ${r.version}: ${f.name} (${f.size} bytes, copied)');
+  }
+  return true;
 }
 
 /// Whether every file of [r] is here at its size.

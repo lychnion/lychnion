@@ -46,6 +46,11 @@ record lists any more are removed. `--kind` limits it to `package`,
 `map` or `model` (models are gigabytes). Run it from cron to keep the
 node current, for example every hour.
 
+`pull` also reads a folder instead of an address, for example a USB
+stick written by the desktop app ("Copy to a USB stick") or another
+node's folder: `lychnion_node pull --into /srv/lychnion /media/stick`.
+Every file is checked by its hash there too.
+
 `serve` answers `GET`/`HEAD` for `/catalog.json` and
 `/blobs/sha256/<hash>` (with Range, so downloads resume), and one line
 at `/`; nothing else. It logs one line per request.

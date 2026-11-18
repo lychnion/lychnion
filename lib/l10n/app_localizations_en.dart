@@ -1588,6 +1588,62 @@ class AppLocalizationsEn extends AppLocalizations {
       'Download a map of where you are, and the nearest evacuation site shows here.';
 
   @override
+  String get stickTitle => 'USB stick';
+
+  @override
+  String get stickCopy => 'Copy to a USB stick';
+
+  @override
+  String get stickCopyHint =>
+      'Everything installed here, for places without a network';
+
+  @override
+  String get stickLoad => 'Load from a USB stick';
+
+  @override
+  String stickLoadHint(String app) {
+    return 'Guides, maps and models signed by $app or a publisher you added';
+  }
+
+  @override
+  String get stickCopying => 'Copying to the stick…';
+
+  @override
+  String get stickLoading => 'Checking and installing…';
+
+  @override
+  String stickCopied(String added, String notNewer, String path) {
+    return '$added items copied, $notNewer already there ($path)';
+  }
+
+  @override
+  String stickLoaded(String added, String notNewer, String notTrusted) {
+    return '$added new, $notNewer not newer than here, $notTrusted not trusted';
+  }
+
+  @override
+  String stickFailedItems(String items) {
+    return 'Not done (files missing or changed): $items';
+  }
+
+  @override
+  String get stickNoCatalog => 'There is no Lychnion folder on this stick.';
+
+  @override
+  String stickFailed(String detail) {
+    return 'Could not finish: $detail';
+  }
+
+  @override
+  String get stickBusy =>
+      'Wait until the downloads have finished, then load from the stick.';
+
+  @override
+  String stickUnreadable(String reason) {
+    return 'The Lychnion folder on this stick cannot be read ($reason). Nothing was changed.';
+  }
+
+  @override
   String get aboutVersion => 'Version';
 
   @override
@@ -1603,4 +1659,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutCopied => 'Copied';
+
+  @override
+  String stickClashed(String items) {
+    return 'Not copied, the stick has another publisher\'s item with this id: $items';
+  }
 }
