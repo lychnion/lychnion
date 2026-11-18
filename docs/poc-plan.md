@@ -280,6 +280,13 @@ sources may fill gaps where Japan has no usable source.
   questions use the translation, English ones the original, and the
   sources sheet shows 「Lychnionによる翻訳（公式の訳ではありません）」 with the
   original one tap away.
+- **Every package in more languages, made at build time** (decided
+  2026-11-18): each passage can carry its text per language
+  (`tool/add_translations.py`, table `passage_texts`), so the phone model
+  reads passages in the question's language and never translates. Japanese
+  and English first; publishers could add more (Spanish, Chinese, …) later.
+  For that the app also needs language detection beyond ja/en, its own
+  texts, and safety lines and notices per language.
 - **First foreign package:** `intl.firstaid.basics` (2026-11-18), US Army
   ATP 4-02.11 (bites, snakebite, ticks, heat, altitude) and TC 21-3 (cold
   injuries), public domain; sources picked with the vetted list of the

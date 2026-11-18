@@ -250,14 +250,15 @@ class GroundedAnswerer {
       final p = hits[i].passage;
       final label = foreignLabel(p.source, userRegion, en: en);
       foreign |= label != null;
-      // English questions read a translated passage in its original.
-      final heading = en ? (p.originalHeading ?? p.heading) : p.heading;
+      // Each question reads the passages in its own language, translated
+      // when the package was built: the phone model never translates.
+      final heading = p.headingIn(en ? 'en' : 'ja');
       b.writeln(
         '[${i + 1}] ${p.source.publisher}「${p.source.title}」'
         '${heading.isEmpty ? '' : ' / $heading'}'
         '${label == null ? '' : ' [$label]'}',
       );
-      b.writeln(en ? (p.original ?? p.text) : p.text);
+      b.writeln(p.textIn(en ? 'en' : 'ja'));
       b.writeln();
     }
     if (foreign) {

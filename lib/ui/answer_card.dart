@@ -295,7 +295,7 @@ class AnswerCard extends StatelessWidget {
             // English readers see a translated passage in its original;
             // Japanese readers see our translation, the original one tap away.
             SelectableText(
-              en ? (p.original ?? p.text) : p.text,
+              p.textIn(en ? 'en' : 'ja'),
               style: theme.textTheme.bodyMedium,
             ),
             if (p.translated && !en)

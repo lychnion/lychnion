@@ -70,6 +70,7 @@ class Passage {
     this.text, {
     this.original,
     this.originalHeading,
+    this.texts = const {},
   });
   final int id;
   final Source source;
@@ -80,6 +81,14 @@ class Passage {
   final String? original, originalHeading;
 
   bool get translated => original != null;
+
+  /// The passage in other languages, made when the package was built
+  /// (never by the phone model): lang → (heading, text).
+  final Map<String, (String, String)> texts;
+
+  /// The text to read for a question in [lang] ('ja', 'en').
+  String textIn(String lang) => texts[lang]?.$2 ?? text;
+  String headingIn(String lang) => texts[lang]?.$1 ?? heading;
 }
 
 /// A fixed safety line, quoted word for word from its source.
@@ -219,6 +228,7 @@ class KnowledgePackage {
             p.text,
             original: p.original,
             originalHeading: p.originalHeading,
+            texts: p.texts,
           ),
         );
       }
@@ -301,6 +311,20 @@ class KnowledgePackage {
       final passageRows = db.select('SELECT * FROM passages ORDER BY id');
       // Packages built before translations existed have no such columns.
       final hasOriginal = passageRows.columnNames.contains('original');
+      // Texts in other languages (tool/add_translations.py), and for a
+      // translated foreign source its original, in the package language.
+      final texts = <int, Map<String, (String, String)>>{};
+      if (db
+          .select("SELECT 1 FROM sqlite_master WHERE name = 'passage_texts'")
+          .isNotEmpty) {
+        for (final r in db.select('SELECT * FROM passage_texts')) {
+          (texts[r['passage_id'] as int] ??= {})[r['lang'] as String] = (
+            r['heading'] as String? ?? '',
+            r['text'] as String,
+          );
+        }
+      }
+      final language = meta['language'] ?? 'ja';
       final passages = [
         for (final r in passageRows)
           Passage(
@@ -312,6 +336,14 @@ class KnowledgePackage {
             originalHeading: hasOriginal
                 ? r['original_heading'] as String?
                 : null,
+            texts: {
+              if (hasOriginal && r['original'] != null)
+                language: (
+                  r['original_heading'] as String? ?? '',
+                  r['original'] as String,
+                ),
+              ...?texts[r['id'] as int],
+            },
           ),
       ];
       List<List<String>> groups(Object? json) => [

@@ -67,4 +67,18 @@ void main() {
     final back = answerFromWire(answerToWire(a));
     expect(back.hits.single.passage.original, firstAid.passages.first.original);
   });
+
+  test('English questions read the original, Japanese the translation', () {
+    final p = firstAid.passages.first;
+    expect(p.textIn('en'), p.original);
+    expect(p.textIn('ja'), p.text);
+    expect(p.textIn('es'), p.text); // no Spanish: the package's own text
+  });
+
+  test('per-language texts travel from shelter to phone', () {
+    final a = GroundedAnswer('Snake bite?')
+      ..hits = [Hit(firstAid.passages.first, 1)];
+    final back = answerFromWire(answerToWire(a)).hits.single.passage;
+    expect(back.textIn('en'), firstAid.passages.first.original);
+  });
 }
