@@ -23,11 +23,11 @@
   §1.3 or §1.12 rule out are closed by citing this document. `SECURITY.md`
   keeps a short summary; where the two differ, this model wins
   *(maintainer, 2026-11)*.
-- **Status**: under maintainer review, 2026-11-19. Twenty-two maintainer
-  questions are answered (Q1 to Q20, Q32, Q33); the questions left in §1.18
-  are open. An **inferred** claim may
-  escalate a report but never close it, and an **assumption** closes nothing
-  under the declared policy.
+- **Status**: accepted, 2026-11-19. The maintainer answered all 33
+  questions (Q1 to Q33); no **inferred** or **assumption** claim is left.
+  The closure constraint still holds for anything added later: an
+  **inferred** claim may escalate a report but never close it, and an
+  **assumption** closes nothing under the declared policy.
 - **Triage policy**: `strict`. An **assumption** escalates like an
   **inferred** claim.
 - **Provenance legend**: *(documented, source)* = stated in a named public
@@ -45,7 +45,7 @@
   records and files; the headless node is `packages/lychnion_node`. A *record*
   is the small signed JSON that names a package version and its files by
   SHA-256. *Pinning* a key means the phone remembers it as the base's key.
-- **Draft confidence**: 120 documented / 109 maintainer / 6 inferred / 32 assumption.
+- **Draft confidence**: 120 documented / 150 maintainer / 0 inferred / 0 assumption.
 - **Backtest note**: routed a 41-item corpus in 15 clusters across all 9
   component families and all 8 contract dimensions. 15 items carry a real
   historical outcome: 13 security fixes in the git history and 2 acknowledged
@@ -55,8 +55,8 @@
   `OUT-OF-MODEL: adversary-not-in-scope`, 1 `OUT-OF-MODEL: non-default-build`,
   1 `OUT-OF-MODEL: dependency-contract`, 2 `KNOWN-NON-FINDING`, 0
   `MODEL-GAP`. All 13 historically-fixed items route `VALID`, so the
-  fail-safe figure is 0. 13 of 41 items take a closing route (32%): 12 close
-  and 1 escalates on Q21. No contradiction with a historical
+  fail-safe figure is 0. 13 of 41 items take a closing route (32%) and all
+  13 close; one escalated until Q21 was answered. No contradiction with a historical
   call; the two open items of issue 36 now close on maintainer rulings (Q12,
   Q18). Routing added the "not checked" note to `base-answer-signature` and
   the crash outcome to `client-response-limits`.
@@ -185,7 +185,7 @@ One model covers everything this repository ships *(maintainer, 2026-11)*.
   the network falls under the AGPL network clause *(documented, README.md
   "Licence")*.
 - **The radio message reader** (`unpackSigned` in `lib/facts/signing.dart`)
-  is not wired into the app *(assumption, Q29)*.
+  is not wired into the app *(maintainer, 2026-11)*.
 
 ## 1.4 Trust boundaries and data flow
 
@@ -292,7 +292,7 @@ replacing the key")*.
 The headless node opens one listening socket (default `0.0.0.0:8642`), makes
 outbound HTTP(S) to catalog and file hosts, writes only inside its folder,
 handles SIGINT and SIGTERM, reads no environment variables, starts no child
-process, and logs client IP addresses to stdout *(assumption, Q30)*.
+process, and logs client IP addresses to stdout *(maintainer, 2026-11)*.
 
 ## 1.6 Build-time and configuration variants
 
@@ -343,8 +343,8 @@ covered only where they show input.
 | package `vectors`, `synonyms` | retrieval data | yes, by a trusted publisher | data | none — publisher content is trusted | *(maintainer, 2026-11)* |
 | `KnowledgePackage.open` | SQLite bytes | yes, by a trusted publisher | serialized-state | none; parser defects go to sqlite3 | *(maintainer, 2026-11)* |
 | `LocalLlm.loadFile` | GGUF bytes, chat template | only Lychnion | serialized-state, callback-code | none — `models-lychnion-only` | *(maintainer, 2026-11)* |
-| `GroundedAnswerer.answer` | the user's question | the user only | data, size | none; no limit on the device | *(assumption, Q24)* |
-| `SourceLink._open` | `source.url`, attribution label | yes, by a trusted publisher or a base | resource-name | the reader checks the address in the browser | *(assumption, Q26)* |
+| `GroundedAnswerer.answer` | the user's question | the user only | data, size | none; no limit on the device | *(maintainer, 2026-11)* |
+| `SourceLink._open` | `source.url`, attribution label | yes, by a trusted publisher or a base | resource-name | the reader checks the address in the browser | *(maintainer, 2026-11)* |
 | base TCP accept | connections per address | yes, any device on the Wi-Fi | rate | accept flooding | *(maintainer, 2026-11)* |
 | base TCP accept | the network a client comes from | yes | resource-name | none — `lan-only-exposure` | *(maintainer, 2026-11)* |
 | base `POST /ask` | body (≤8 KiB, ≤10 s), `question` (≤500 characters) | yes | data, size | none — `base-request-limits` | *(documented, docs/shelter-results.md "How it works")* |
@@ -382,69 +382,69 @@ dimension.
 | answers | recursive/cyclic topology | N/A | passages are flat rows | §1.7 | *(documented, docs/data-packages.md "Data packages and trust")* |
 | answers | callback execution | claimed | the GGUF chat template runs in the engine; only Lychnion models | §1.11 `models-lychnion-only` | *(maintainer, 2026-11)* |
 | answers | serialization/reconstruction | disclaimed | SQLite and GGUF parse in native code | §1.12 `native-parser-safety` | *(maintainer, 2026-11)* |
-| answers | reference lifecycle | N/A | no caller-held references; the answerer is replaced whole | §1.7 | *(assumption, Q30)* |
-| answers | concurrency/reentrancy | unresolved | the base computer's own Ask page shares the model with phones | §1.18 Q25 | *(inferred, Q25)* |
-| answers | resource complexity | disclaimed | no limit on a question typed on the device | §1.12 `local-resource-bounds` | *(assumption, Q24)* |
+| answers | reference lifecycle | N/A | no caller-held references; the answerer is replaced whole | §1.7 | *(maintainer, 2026-11)* |
+| answers | concurrency/reentrancy | claimed | answers to phones and to the base computer's own Ask page never mix | §1.11 `answers-never-mix` | *(maintainer, 2026-11)* |
+| answers | resource complexity | disclaimed | no limit on a question typed on the device | §1.12 `local-resource-bounds` | *(maintainer, 2026-11)* |
 | downloads | numeric domain | claimed | catalog ≤2 MB; file ≤ signed size | §1.11 `client-response-limits` | *(documented, docs/distribution.md "Following catalogs")* |
 | downloads | failure atomicity | disclaimed | per file atomic; a multi-file network update is not | §1.12 `multi-file-update-atomicity` | *(maintainer, 2026-11)* |
-| downloads | recursive/cyclic topology | unresolved | deeply nested JSON in a catalog | §1.18 Q31 | *(inferred, Q31)* |
-| downloads | callback execution | N/A | no caller code; progress callbacks are internal | §1.7 | *(assumption, Q30)* |
+| downloads | recursive/cyclic topology | claimed | deeply nested JSON is rejected without a crash or hang | §1.11 `client-response-limits` | *(maintainer, 2026-11)* |
+| downloads | callback execution | N/A | no caller code; progress callbacks are internal | §1.7 | *(maintainer, 2026-11)* |
 | downloads | serialization/reconstruction | claimed | signed record and hash decide | §1.11 `signed-install-only` | *(documented, docs/data-packages.md "Signing and trust")* |
 | downloads | reference lifecycle | claimed | a revoked key's items stop being used; removing a publisher deletes its items (`publisher-removal-deletes`) | §1.11 `revocation-unloads` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | downloads | concurrency/reentrancy | claimed | only a file whose size and hash match is renamed | §1.11 `atomic-file-install` | *(documented, packages/lychnion_fetch/lib/src/downloader.dart `Downloader` doc comment)* |
 | downloads | resource complexity | disclaimed | no overall download deadline, no disk quota | §1.12 `download-time-and-disk` | *(documented, docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes", "a full disk ends the run")* |
 | records | numeric domain | claimed | versions 1–4 parts of ≤9 digits; missing parts count as 0 | §1.11 `no-downgrade-installed` | *(documented, packages/lychnion_format/lib/src/record.dart `compareVersions` comment)* |
 | records | failure atomicity | claimed | a record that fails is ignored | §1.11 `signed-install-only` | *(documented, packages/lychnion_format/lib/src/record.dart `TrustedKeys.check` doc comment)* |
-| records | recursive/cyclic topology | unresolved | canonical JSON recurses without a depth limit | §1.18 Q31 | *(inferred, Q31)* |
-| records | callback execution | N/A | pure functions | §1.7 | *(assumption, Q30)* |
+| records | recursive/cyclic topology | claimed | deeply nested JSON is rejected without a crash or hang | §1.11 `client-response-limits` | *(maintainer, 2026-11)* |
+| records | callback execution | N/A | pure functions | §1.7 | *(maintainer, 2026-11)* |
 | records | serialization/reconstruction | claimed | any JSON formatting of a record verifies the same | §1.11 `signed-install-only` | *(documented, packages/lychnion_format/lib/src/record.dart `canonicalJson` comment)* |
 | records | reference lifecycle | claimed | trusted keys change only through verified key statements | §1.11 `key-statement-verification` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
-| records | concurrency/reentrancy | N/A | no shared mutable state | §1.7 | *(assumption, Q30)* |
+| records | concurrency/reentrancy | N/A | no shared mutable state | §1.7 | *(maintainer, 2026-11)* |
 | records | resource complexity | claimed | one signature check per record; key statements capped per list and per publisher | §1.11 `client-response-limits` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | publishing | numeric domain | claimed | a version must be higher than any signed or installed | §1.11 `no-downgrade-installed` | *(documented, docs/distribution.md "Publishers and keys")* |
 | publishing | failure atomicity | claimed | the signed record is kept first; leftover copies are removed | §1.11 `atomic-file-install` | *(documented, lib/publish/publish.dart `publish` step comments)* |
-| publishing | recursive/cyclic topology | N/A | the operator picks single files | §1.7 | *(assumption, Q30)* |
-| publishing | callback execution | N/A | no callbacks | §1.7 | *(assumption, Q30)* |
+| publishing | recursive/cyclic topology | N/A | the operator picks single files | §1.7 | *(maintainer, 2026-11)* |
+| publishing | callback execution | N/A | no callbacks | §1.7 | *(maintainer, 2026-11)* |
 | publishing | serialization/reconstruction | claimed | the key file stays on the computer, never served | §1.11 `publisher-key-local` | *(documented, docs/distribution.md "Publishers and keys")* |
 | publishing | reference lifecycle | claimed | backup, restore, replacement and revocation of the desktop key | §1.11 `key-backup-confidentiality` | *(documented, docs/distribution.md "Backing up and replacing the key")* |
-| publishing | concurrency/reentrancy | N/A | one operator; a lock file guards key creation | §1.7 | *(assumption, Q30)* |
-| publishing | resource complexity | N/A | operator-chosen files | §1.7 | *(assumption, Q30)* |
+| publishing | concurrency/reentrancy | N/A | one operator; a lock file guards key creation | §1.7 | *(maintainer, 2026-11)* |
+| publishing | resource complexity | N/A | operator-chosen files | §1.7 | *(maintainer, 2026-11)* |
 | base-server | numeric domain | claimed | 500 characters, 8 KB body | §1.11 `base-request-limits` | *(documented, docs/shelter-results.md "How it works")* |
-| base-server | failure atomicity | N/A | no route writes state from the network | §1.7 | *(assumption, Q30)* |
+| base-server | failure atomicity | N/A | no route writes state from the network | §1.7 | *(maintainer, 2026-11)* |
 | base-server | recursive/cyclic topology | N/A | body ≤8 KB; three fields read | §1.7 | *(documented, docs/shelter-results.md "How it works")* |
-| base-server | callback execution | unresolved | the model is shared with the base computer's Ask page | §1.18 Q25 | *(inferred, Q25)* |
+| base-server | callback execution | claimed | the model is shared with the base computer's Ask page; answers never mix | §1.11 `answers-never-mix` | *(maintainer, 2026-11)* |
 | base-server | serialization/reconstruction | claimed | the signature covers the exact bytes sent | §1.11 `base-answer-signature` | *(documented, docs/shelter-results.md "How it works")* |
 | base-server | reference lifecycle | claimed | an answer stops when its phone leaves | §1.11 `base-request-limits` | *(documented, CHANGELOG.md "Security")* |
 | base-server | concurrency/reentrancy | claimed | one question per phone; questions answered one after another | §1.11 `base-request-limits` | *(documented, docs/shelter-results.md "How it works"; lib/base/base_server.dart `BaseServer` doc comment)* |
 | base-server | resource complexity | claimed | per-request limits hold; flooding is disclaimed | §1.11 `base-request-limits` | *(maintainer, 2026-11)* |
 | base-client | numeric domain | claimed | 16 KiB info, 1 MiB facts and answers | §1.11 `client-response-limits` | *(documented, lib/base/base_client.dart `maxInfoBytes` comment)* |
 | base-client | failure atomicity | claimed | an answer that does not check out is dropped; the phone answers itself | §1.11 `base-answer-signature` | *(documented, CHANGELOG.md "Security")* |
-| base-client | recursive/cyclic topology | unresolved | deeply nested JSON from a base | §1.18 Q31 | *(inferred, Q31)* |
-| base-client | callback execution | N/A | no caller code | §1.7 | *(assumption, Q30)* |
+| base-client | recursive/cyclic topology | claimed | deeply nested JSON is rejected without a crash or hang | §1.11 `client-response-limits` | *(maintainer, 2026-11)* |
+| base-client | callback execution | N/A | no caller code | §1.7 | *(maintainer, 2026-11)* |
 | base-client | serialization/reconstruction | claimed | wrong protocol version or too many hits are refused | §1.11 `client-response-limits` | *(documented, lib/base/base_protocol.dart `answerFromWire` comment)* |
 | base-client | reference lifecycle | claimed | the signing memory lasts until another key or a disconnect | §1.11 `base-answer-signature` | *(documented, CHANGELOG.md "Security")* |
-| base-client | concurrency/reentrancy | N/A | each request has its own timeout | §1.7 | *(assumption, Q30)* |
+| base-client | concurrency/reentrancy | N/A | each request has its own timeout | §1.7 | *(maintainer, 2026-11)* |
 | base-client | resource complexity | claimed | time and size caps per call | §1.11 `client-response-limits` | *(documented, CHANGELOG.md "Security")* |
 | facts | numeric domain | claimed | no fact from the future, no endless lifetime | §1.11 `fact-time-bounds` | *(maintainer, 2026-11)* |
 | facts | failure atomicity | N/A | the store is a local file; its failures cross no boundary | §1.7 | *(maintainer, 2026-11)* |
-| facts | recursive/cyclic topology | N/A | flat records | §1.7 | *(assumption, Q30)* |
-| facts | callback execution | N/A | no callbacks | §1.7 | *(assumption, Q30)* |
+| facts | recursive/cyclic topology | N/A | flat records | §1.7 | *(maintainer, 2026-11)* |
+| facts | callback execution | N/A | no callbacks | §1.7 | *(maintainer, 2026-11)* |
 | facts | serialization/reconstruction | claimed | changing any field breaks the signature | §1.11 `fact-verification` | *(documented, docs/facts-results.md "Signed facts (2026-11-05)")* |
 | facts | reference lifecycle | disclaimed | trusted keys cannot be revoked | §1.12 `key-revocation` | *(documented, docs/facts-results.md "Signed facts (2026-11-05)")* |
-| facts | concurrency/reentrancy | N/A | writes are queued on one device | §1.7 | *(assumption, Q30)* |
+| facts | concurrency/reentrancy | N/A | writes are queued on one device | §1.7 | *(maintainer, 2026-11)* |
 | facts | resource complexity | claimed | ≤5,000 facts kept, ≤500 per pull | §1.11 `client-response-limits` | *(documented, CHANGELOG.md "Security"; lib/base/base_client.dart `maxFacts` comment)* |
-| device-data | numeric domain | N/A | no numeric input from outside | §1.7 | *(assumption, Q30)* |
+| device-data | numeric domain | N/A | no numeric input from outside | §1.7 | *(maintainer, 2026-11)* |
 | device-data | failure atomicity | N/A | local files; tampering needs device control | §1.3 | *(maintainer, 2026-11)* |
-| device-data | recursive/cyclic topology | N/A | flat JSON written by the app | §1.7 | *(assumption, Q30)* |
-| device-data | callback execution | N/A | no callbacks | §1.7 | *(assumption, Q30)* |
-| device-data | serialization/reconstruction | N/A | read back only by the app | §1.7 | *(assumption, Q30)* |
+| device-data | recursive/cyclic topology | N/A | flat JSON written by the app | §1.7 | *(maintainer, 2026-11)* |
+| device-data | callback execution | N/A | no callbacks | §1.7 | *(maintainer, 2026-11)* |
+| device-data | serialization/reconstruction | N/A | read back only by the app | §1.7 | *(maintainer, 2026-11)* |
 | device-data | reference lifecycle | disclaimed | OS backup may copy app data | §1.12 `os-backup` | *(maintainer, 2026-11)* |
-| device-data | concurrency/reentrancy | N/A | saves wait for the load | §1.7 | *(assumption, Q30)* |
-| device-data | resource complexity | N/A | grows only with the user's own use | §1.7 | *(assumption, Q30)* |
+| device-data | concurrency/reentrancy | N/A | saves wait for the load | §1.7 | *(maintainer, 2026-11)* |
+| device-data | resource complexity | N/A | grows only with the user's own use | §1.7 | *(maintainer, 2026-11)* |
 | node | numeric domain | claimed | catalog ≤2 MB; `Range` numbers ≤18 digits | §1.11 `client-response-limits` | *(documented, packages/lychnion_fetch/lib/src/catalog_fetch.dart `maxCatalogBytes` comment)* |
 | node | failure atomicity | claimed | the last good state stays | §1.11 `atomic-file-install` | *(documented, packages/lychnion_node/README.md "Operating")* |
-| node | recursive/cyclic topology | unresolved | deeply nested JSON in a catalog | §1.18 Q31 | *(inferred, Q31)* |
-| node | callback execution | N/A | no caller code | §1.7 | *(assumption, Q30)* |
+| node | recursive/cyclic topology | claimed | deeply nested JSON is rejected without a crash or hang | §1.11 `client-response-limits` | *(maintainer, 2026-11)* |
+| node | callback execution | N/A | no caller code | §1.7 | *(maintainer, 2026-11)* |
 | node | serialization/reconstruction | claimed | records are carried unchanged | §1.11 `signed-install-only` | *(documented, docs/distribution.md "Node")* |
 | node | reference lifecycle | disclaimed | a publisher cannot withdraw one version; revoking a key sets aside what it signed | §1.12 `freshness` | *(documented, packages/lychnion_node/README.md "Operating")* |
 | node | concurrency/reentrancy | claimed | one pull per folder | §1.11 `atomic-file-install` | *(documented, packages/lychnion_node/README.md "Operating")* |
@@ -457,7 +457,7 @@ dimension.
 | Answer text | `answers` | As untrusted as the passages and question that shaped it. Shown as plain text: no markup, no links | That it is correct. "Shows its source" is not "is right" | *(maintainer, 2026-11)* |
 | Citation marks `[n]` | `answers` | The app checks only that each number points to a passage the model was given | That the cited passage supports the sentence | *(maintainer, 2026-11)* |
 | Fixed safety line | `answers` | Word for word from a package's alerts table | That the app checked the quote against the official page; lychnion-data checks it at build time | *(maintainer, 2026-11)* |
-| Source link | `answers` | `http` or `https` address from the package or base | That the label is the destination | *(assumption, Q26)* |
+| Source link | `answers` | `http` or `https` address from the package or base | That the label is the destination | *(maintainer, 2026-11)* |
 | Base answer and its signature | `base-server`, `base-client` | Signed answers prove which base sent them; a refused answer is noted on the phone's own answer | That a signed answer is true or grounded in the phone's own packages | *(maintainer, 2026-11)* |
 | Catalog `keys` list | `records` | Each statement is signed; the list is not | That the list is complete or current: a carrier can drop statements | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | Key backup file | `publishing` | Encrypted private key, plus a readable revocation | That the file is harmless without the passphrase: anyone with it can revoke the key | *(documented, docs/distribution.md "Backing up and replacing the key")* |
@@ -466,7 +466,7 @@ dimension.
 | Facts on screen | `facts` | Value, note and source name as received; "unconfirmed" when not verified | That "official" means true, or that the signer is responsible for that shelter | *(maintainer, 2026-11)* |
 | Map suggestion and route | `facts` | Built from current facts | Promised: only verified facts change it (`unverified-facts-not-acted-on`) | *(maintainer, 2026-11)* |
 | System log | `device-data`, `base-server` | The app writes JSON lines; the base logs client addresses | Promised: release builds do not log questions, answers or position (`device-egress`) | *(maintainer, 2026-11)* |
-| Node stdout | `node` | Time, client IP, path, status | That it holds no personal data | *(assumption, Q30)* |
+| Node stdout | `node` | Time, client IP, path, status | That it holds no personal data | *(maintainer, 2026-11)* |
 | Files in the app folder | `downloads` | Byte-exact to the signed hash at install | That a half-failed multi-file update is consistent | *(maintainer, 2026-11)* |
 
 ## 1.9 Assumptions about dependencies
@@ -488,7 +488,7 @@ The app treats these as trusted code. A defect in one of them, reached by
 conformant use, is forwarded upstream *(maintainer, 2026-11)*. Misusing a
 dependency, for example passing it an unchecked file, is in model. No
 third-party code is vendored; pub packages are pinned by `pubspec.lock`
-*(assumption, Q30)*.
+*(maintainer, 2026-11)*.
 
 ## 1.10 Adversary model
 
@@ -497,7 +497,7 @@ plus phones that also use the internet when they can.
 
 | Actor | In scope? | Capabilities held | Capabilities excluded | Goals | Provenance |
 | --- | --- | --- | --- | --- | --- |
-| Device on the same Wi-Fi | yes | Send any request to a base or a sharing phone; announce a fake base; read and change plain http; flood connections | Holding a pinned base's private key; getting its own QR code scanned in person as a base's (Q21); tapping dialogs for the user | Fake facts or answers, read questions, crash or hang a base or phone | *(maintainer, 2026-11)* |
+| Device on the same Wi-Fi | yes | Send any request to a base or a sharing phone; announce a fake base; read and change plain http; flood connections | Holding a pinned base's private key; getting its own QR code scanned in person as a base's; tapping dialogs for the user | Fake facts or answers, read questions, crash or hang a base or phone | *(maintainer, 2026-11)* |
 | Host outside the local Wi-Fi | yes | Reach a port the base or a sharing phone opened on another interface | Reaching a port that is bound only to the Wi-Fi | Use the base or read installed items | *(maintainer, 2026-11)* |
 | Sender of links (web page, message, other app, printed QR) | yes | Open `lychnion://` links and legacy `fieldkit://` base links with any parameters | Confirming the dialog for the user; being scanned in person as a base's QR code | Get a key trusted, follow a hostile catalog, point the phone at a hostile base | *(maintainer, 2026-11)* |
 | Catalog, mirror or file host that is not a publisher | yes | Serve any bytes, old signed records, redirects; delay or withhold; drop or replay key statements | Signing records; forging a key statement; making a wrong file install | Install a tampered file, hide updates, learn what users download | *(maintainer, 2026-11)* |
@@ -539,7 +539,9 @@ plus phones that also use the internet when they can.
   publisher (`lib/download/download_manager.dart:540`), reinstalling the app,
   or a fresh node folder. After that an older signed version is accepted
   again (§1.12 `freshness`). After a revocation a node lists the version it
-  listed before, never one below it. *(documented, docs/distribution.md
+  listed before, never one below it. Known gap: a node drops a record whose
+  current and new versions are both incomplete, then accepts an older one
+  (`packages/lychnion_node/lib/src/pull.dart:196`). *(documented, docs/distribution.md
   "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
@@ -588,7 +590,9 @@ plus phones that also use the internet when they can.
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
   verified only with a signature from a trusted key; others count as
-  resident reports and are labelled. *Violation symptom*: integrity-bypass.
+  resident reports and are labelled. Signed fields never contain control
+  characters, so a signature never fits a different split of the fields
+  *(maintainer, 2026-11)*. *Violation symptom*: integrity-bypass.
   *Tier*: security-critical. *Voided by*: `DEMO_FACTS` signs made-up facts
   (`lib/app/app_shell.dart:185`). *(documented, docs/facts-results.md
   "Signed facts (2026-11-05)")*
@@ -620,13 +624,18 @@ plus phones that also use the internet when they can.
   `facts`, `node`): what a phone or node accepts is capped: 16 KiB for a
   base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000
   kept, 2 MB per catalog read within 45 s, 500 key statements per list and
-  1000 kept. A hostile response does not crash or hang the reader. *Violation symptom*: unbounded-allocation, crash, hang.
+  1000 kept. A hostile response does not crash or hang the reader, and
+  deeply nested JSON from any of these sources is rejected *(maintainer, 2026-11)*.
+  *Violation symptom*: unbounded-allocation, crash, hang.
   *Tier*: security-critical. *Voided by*: nothing.
   Caps are constants or constructor defaults
   (`lib/base/base_client.dart:31`,
   `packages/lychnion_fetch/lib/src/catalog_fetch.dart:17`). Search:
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
-  — no setting or dev flag sets them. *(documented, CHANGELOG.md "Security")*
+  — no setting or dev flag sets them. Known gap: key statements are
+  canonicalised before any shape check
+  (`packages/lychnion_format/lib/src/key_statement.dart:328`).
+  *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
   reachable only from the local Wi-Fi or hotspot. *Violation symptom*:
   info-leak. *Tier*: security-critical. *Voided by*: no switch. Known
@@ -686,7 +695,7 @@ plus phones that also use the internet when they can.
 - **`node-private-address-filter`** (`node`): a node skips file addresses on
   private or local networks, also after a redirect, unless the catalog itself
   is on such a network. DNS rebinding is not caught. *Violation symptom*:
-  x-request-forgery. *Tier*: correctness-only (assumption, Q22). *Voided
+  x-request-forgery. *Tier*: correctness-only. *Voided
   by*: a catalog on a private network or a folder
   (`packages/lychnion_node/lib/src/pull.dart:138`). *(documented,
   packages/lychnion_node/README.md "Operating")*
@@ -718,6 +727,14 @@ plus phones that also use the internet when they can.
   Argon2id settings within limits
   (`packages/lychnion_format/lib/src/key_backup.dart:234`); weak passphrases
   are §1.12 `backup-passphrase-and-storage`. *(maintainer, 2026-11)*
+
+- **`answers-never-mix`** (`answers`, `base-server`): while a computer
+  serves phones, answers to phones and to its own Ask page never mix, and a
+  phone that leaves stops only its own answer. *Violation symptom*:
+  wrong-output. *Tier*: correctness-only. *Voided by*: no switch. Known
+  gap: both use one chat with no lock; a new chat closes the shared one
+  (`lib/llm/local_llm.dart:106`), and stopping a phone's answer stops the
+  shared session (`lib/llm/local_llm.dart:160`). *(maintainer, 2026-11)*
 
 ### Worked routing examples
 
@@ -756,8 +773,9 @@ proves origin, not truth.
 | `on-disk-integrity` | Re-checking hashes of installed files at load | Changing app files needs device control | security-critical | no | *(maintainer, 2026-11)* |
 | `native-parser-safety` | Safety of llama.cpp, sqlite3 and map renderers on crafted files | Files from Lychnion or a trusted publisher; defects go upstream | security-critical | no | *(maintainer, 2026-11)* |
 | `os-backup` | Exclusion of app data from OS backups | The user's own backup choice | correctness-only | no | *(maintainer, 2026-11)* |
-| `local-resource-bounds` | Limits on a question typed on the device | Input against the user's own device | correctness-only | no | *(assumption, Q24)* |
-| `source-label-destination` | That a source link's label names its destination, or that it uses https | Links from packages or bases | correctness-only | **yes** | *(assumption, Q26)* |
+| `local-resource-bounds` | Limits on a question typed on the device | Input against the user's own device | correctness-only | no | *(maintainer, 2026-11)* |
+| `base-key-id-collision` | Protection against a 48-bit key-id collision that replaces a trusted base key | Denial of service only; the attacker cannot sign as the base | correctness-only | no | *(maintainer, 2026-11)* |
+| `source-label-destination` | That a source link's label names its destination, or that it uses https | Links from packages or bases | correctness-only | **yes** | *(maintainer, 2026-11)* |
 
 Well-known attack classes left open: **prompt injection** by a trusted
 publisher's text (`publisher-content`); **freeze and replay** of old signed
@@ -828,6 +846,7 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
 - A release built in CI, or app store and desktop signing written down.
 - Telemetry or issue reports from the app (issue 18).
 - Any §1.6 default that changes, and any new `lychnion://` link kind.
+- The radio message reader wired into the app.
 - A report that cannot be routed to one §1.17 disposition.
 
 ## 1.17 Triage dispositions
@@ -881,65 +900,7 @@ finding keeps its disposition and goes to the maintainer; it is not a
 
 ## 1.18 Open questions for the maintainers
 
-Questions Q1 to Q20, Q32 and Q33 were answered on 2026-11-19 and are
-recorded in `docs/threat-model-questions.md`.
-
-- **Q21** — Is a fake QR code put up in person at a shelter, posing as the
-  base's, out of model?
-  - Proposed answer: yes. Phones trust what is scanned in person; staff
-    control what is posted. A web link that pins a key stays in model (Q10).
-  - Lands in: §1.10, the excluded capabilities of a device on the Wi-Fi.
-- **Q22** — Is the node's private-address filter defence in depth, tier
-  correctness-only?
-  - Proposed answer: yes. Missing ranges such as `::` are bugs against it;
-    a catalog URL that redirects is accepted, because the operator chose the
-    host.
-  - Lands in: §1.11 `node-private-address-filter`.
-- **Q23** — When a node drops a record because both its current and its new
-  version are incomplete, and then accepts an older one, is that a bug?
-  - Proposed answer: yes, against `no-downgrade-installed`, low severity.
-  - Lands in: §1.11 `no-downgrade-installed`.
-- **Q24** — Is a very long question typed on the device only a correctness
-  issue?
-  - Proposed answer: yes. It is input against the user's own device.
-  - Lands in: §1.12 `local-resource-bounds`.
-- **Q25** — Should phones' questions and the base computer's own Ask page be
-  able to use the model at the same time without mixing answers?
-  - Proposed answer: a §1.11 correctness guarantee: answers never mix. A
-    defect is correctness-only, because the signature covers what is sent.
-  - Lands in: §1.7 matrix rows for `answers` and `base-server`.
-- **Q26** — Is it accepted that a source link's label does not show its
-  address, and that `http` links open?
-  - Proposed answer: yes, disclaimed as a false friend; the browser shows the
-    address.
-  - Lands in: §1.12 `source-label-destination`, §1.8.
-- **Q27** — Can a field of a signed fact contain the U+001F separator used in
-  the signed text?
-  - Proposed answer: no. A signature that fits a different split of the
-    fields is a `fact-verification` bug.
-  - Lands in: §1.11 `fact-verification`.
-- **Q28** — Is a 48-bit key id collision that replaces a trusted base key a
-  correctness issue only?
-  - Proposed answer: yes. It denies service; it does not let the attacker
-    sign as the base.
-  - Lands in: §1.12, as a new correctness-only disclaimer.
-- **Q29** — Is the radio message reader (`unpackSigned`) unsupported until
-  the app uses it?
-  - Proposed answer: yes; findings there route
-    `OUT-OF-MODEL: unsupported-component`.
-  - Lands in: §1.3.
-- **Q30** — Are the rows tagged Q30 correct? These are the matrix rows marked
-  N/A for the reason given, the node's side effects in §1.5, its log in
-  §1.8, and "no vendored third-party code" in §1.9.
-  - Proposed answer: yes, as written.
-  - Lands in: §1.5, §1.7, §1.8, §1.9.
-- **Q31** — Is deeply nested JSON from any untrusted source (catalog,
-  record, key statement, base response) rejected without a crash?
-  - Proposed answer: claim it. Responses are capped in size, and a stack
-    overflow is caught when a record is verified. A crash, a hang, or a node
-    pull that aborts on a nested `keys` entry is a bug against
-    `client-response-limits`.
-  - Lands in: §1.11 `client-response-limits`.
+Not applicable — every question is answered; the rulings are in `docs/threat-model-questions.md`.
 
 ## 1.19 Machine-readable companions
 

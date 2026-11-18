@@ -19,9 +19,9 @@ hardening and documentation items are not filed.
 - The surface pass ran as four read-only sub-agents: the base and the local
   network; records, catalogs, downloads and publishing; the headless node
   with CI and release; answers, facts, deep links and privacy.
-- Twenty-two maintainer questions, asked one at a time
-  ([threat-model-questions.md](threat-model-questions.md)). Eleven remain
-  open in §1.18 (Q21 to Q31).
+- Thirty-three maintainer questions, asked one at a time
+  ([threat-model-questions.md](threat-model-questions.md)). All are
+  answered, so the model is accepted.
 - Validator (`tests/harness/validate_model.py` of the plugin): 92 checks
   pass for prose, YAML and JSON; one warning that the prose is longer than
   the 7,000-word guideline. The plugin's citation check covers C, Python, JS
@@ -91,12 +91,10 @@ proven. The property is the §1.11 claim each one breaks.
 11. **The LAN redirect guard misses ranges** ([#73](https://github.com/lychnion/lychnion/issues/73)) (confirmed,
     `lan-device-same-origin`): `packages/lychnion_fetch/lib/src/downloader.dart:421`
     lacks 100.64/10, which discovery accepts, and plain hostnames.
-12. **Node address filter gaps** ([#74](https://github.com/lychnion/lychnion/issues/74)) (confirmed, `node-private-address-filter`,
-    pending Q22): `::` and some special ranges are not private
+12. **Node address filter gaps** ([#74](https://github.com/lychnion/lychnion/issues/74)) (confirmed, `node-private-address-filter`): `::` and some special ranges are not private
     (`packages/lychnion_node/lib/src/pull.dart:282`); catalog redirects are
     not filtered.
-13. **Node forgets a version when a record is dropped** ([#75](https://github.com/lychnion/lychnion/issues/75)) (confirmed, pending
-    Q23): `packages/lychnion_node/lib/src/pull.dart:196` drops a record whose
+13. **Node forgets a version when a record is dropped** ([#75](https://github.com/lychnion/lychnion/issues/75)) (confirmed, `no-downgrade-installed`): `packages/lychnion_node/lib/src/pull.dart:196` drops a record whose
     current and new versions are incomplete, and the next pull accepts an
     older one.
 14. **Windows file names ending in a dot** ([#76](https://github.com/lychnion/lychnion/issues/76)) (suspected, `publisher-namespace`):
@@ -108,12 +106,19 @@ proven. The property is the §1.11 claim each one breaks.
     as 「ベース」, 「共有」, "offline" or "settings" may take the help path
     (`lib/knowledge/grounded_answer.dart:242`).
 
-16a. **Nested key statements may abort a node pull** ([#78](https://github.com/lychnion/lychnion/issues/78)) (suspected, Q31):
+16a. **Nested key statements may abort a node pull** ([#78](https://github.com/lychnion/lychnion/issues/78)) (suspected, `client-response-limits`):
     `relevantStatements` canonicalises each `keys` entry before any shape
     check and catches only `FormatException`
     (`packages/lychnion_format/lib/src/key_statement.dart:328`); on the node
     the call is outside the parse `try`
     (`packages/lychnion_node/lib/src/pull.dart:139`).
+
+### Breaks a correctness-only property (not filed)
+
+16b. **Answers on the base computer can mix** (`answers-never-mix`, Q25):
+    phones and the computer's own Ask page share one chat with no lock; a
+    new chat closes the shared one (`lib/llm/local_llm.dart:106`), and a
+    phone that leaves stops the shared session (`lib/llm/local_llm.dart:160`).
 
 ### Hardening and correctness
 

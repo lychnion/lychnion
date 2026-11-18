@@ -130,8 +130,9 @@ adapted from the skill's reference bank (its number in brackets).
 
 The first model asked Q1 to Q20 one at a time, each with selectable
 answers, against commit `6ee5dea`. After re-binding to `be565e8` it asked
-Q32 and Q33 about the key statements that had landed in between. The
-maintainer chose the proposed answer every time.
+Q32 and Q33 about the key statements that had landed in between, and then
+Q21 to Q31, the questions the draft had left open. The maintainer chose the
+proposed answer every time, and the model is accepted.
 
 | Q | Question | Ruling |
 | --- | --- | --- |
@@ -155,7 +156,18 @@ maintainer chose the proposed answer every time.
 | Q18 | Wi-Fi limits | Disclaimed: confidentiality on the Wi-Fi, browser-page integrity, signature stripping before the first signed answer, cross-site requests while bases are offline. |
 | Q19 | Files after install | Trusted after install; a half-failed multi-file update is a correctness bug; parser defects go upstream. |
 | Q20 | Side effects | The inventory in §1.5 is right, including the assumption that native libraries do not use the network. |
+| Q21 | Fake QR code posted in person | Out of model: phones trust what is scanned in person, and staff control what is posted. A web link that pins a key stays in model (Q10). |
+| Q22 | Node private-address filter | Defence in depth, tier correctness-only. Missing ranges such as `::` are bugs against it; catalog URL redirects are accepted. |
+| Q23 | Node drops an incomplete record | A bug against no-downgrade, low severity (#75). |
+| Q24 | Long questions on the device | Correctness only: input against the user's own device. |
+| Q25 | The base computer's own Ask page | Claimed, correctness-only: answers to phones and to the computer never mix. |
+| Q26 | Source link labels | Disclaimed false friend: the label is not the destination; links stay http and https only. |
+| Q27 | The U+001F separator in signed facts | Fields never contain control characters; a signature that fits another split of the fields is a bug. |
+| Q28 | 48-bit base key ids | A collision only denies service; disclaimed, correctness-only. |
+| Q29 | Radio message reader | Unsupported until the app uses it. |
+| Q30 | Code-only facts | Confirmed as written: the N/A matrix rows, the node's side effects (including client IPs in its log) and no vendored code. |
+| Q31 | Deeply nested JSON | Claimed under client-response-limits: rejected without a crash or hang (#78). |
 | Q32 | Lychnion's key and key statements | Statements for the built-in `lychnion` key are claimed and verified like any publisher's; theft of the key itself stays out of model. |
 | Q33 | Old keys and backups | Claimed: a backup's key is readable only with the passphrase; restore never brings back a revoked or replaced key. Disclaimed: denial by an old-key holder, offline guessing of a weak passphrase, where the backup is kept. |
 
-Still open in §1.18 of the model: Q21 to Q31.
+No question is open. The next revision continues at Q34.

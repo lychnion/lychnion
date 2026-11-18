@@ -2,14 +2,14 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:69a9368b748c8fa30c4538f9ea8508404f0a3b1ea270359c83f5c7775aae1598
-model_status: under-review
+prose_version: threat-model.md@sha256:9c84bda57e82e5a4737cad46a285fb0a0ec60dd095fb4b7b9bcf08ecd9c289ef
+model_status: accepted
 triage_policy: strict
 confidence:
   documented: 120
-  maintainer: 109
-  inferred: 6
-  assumption: 32
+  maintainer: 150
+  inferred: 0
+  assumption: 0
 generation:
   model: Claude Opus 5.5 (claude-opus-5-5)
   effort: low
@@ -425,8 +425,8 @@ entry_points:
     - size
     caller_must_enforce: none; no limit on the device
     provenance:
-      kind: assumption
-      question_id: Q24
+      kind: maintainer
+      date: 2026-11
 - id: SourceLink._open
   component: answers
   parameters:
@@ -436,8 +436,8 @@ entry_points:
     - resource-name
     caller_must_enforce: the reader checks the address in the browser
     provenance:
-      kind: assumption
-      question_id: Q26
+      kind: maintainer
+      date: 2026-11
     obligation_id: the-reader-checks-the-address-in-the-browser
 - id: base TCP accept
   component: base-server
@@ -686,23 +686,23 @@ contract_dimensions:
   status: not-applicable
   conditions: no caller-held references; the answerer is replaced whole
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: answers
   dimension: concurrency-reentrancy
-  status: unresolved
-  conditions: the base computer's own Ask page shares the model with phones
+  status: claimed
+  conditions: answers to phones and to the base computer's own Ask page never mix
   provenance:
-    kind: inferred
-    question_id: Q25
-  question_id: Q25
+    kind: maintainer
+    date: 2026-11
+  property_id: answers-never-mix
 - component: answers
   dimension: resource-complexity
   status: disclaimed
   conditions: no limit on a question typed on the device
   provenance:
-    kind: assumption
-    question_id: Q24
+    kind: maintainer
+    date: 2026-11
   property_id: local-resource-bounds
 - component: downloads
   dimension: numeric-domain
@@ -722,19 +722,19 @@ contract_dimensions:
   property_id: multi-file-update-atomicity
 - component: downloads
   dimension: recursive-cyclic-topology
-  status: unresolved
-  conditions: deeply nested JSON in a catalog
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
   provenance:
-    kind: inferred
-    question_id: Q31
-  question_id: Q31
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
 - component: downloads
   dimension: callback-execution
   status: not-applicable
   conditions: no caller code; progress callbacks are internal
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: downloads
   dimension: serialization-reconstruction
   status: claimed
@@ -786,19 +786,19 @@ contract_dimensions:
   property_id: signed-install-only
 - component: records
   dimension: recursive-cyclic-topology
-  status: unresolved
-  conditions: canonical JSON recurses without a depth limit
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
   provenance:
-    kind: inferred
-    question_id: Q31
-  question_id: Q31
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
 - component: records
   dimension: callback-execution
   status: not-applicable
   conditions: pure functions
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: records
   dimension: serialization-reconstruction
   status: claimed
@@ -820,8 +820,8 @@ contract_dimensions:
   status: not-applicable
   conditions: no shared mutable state
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: records
   dimension: resource-complexity
   status: claimed
@@ -851,15 +851,15 @@ contract_dimensions:
   status: not-applicable
   conditions: the operator picks single files
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: publishing
   dimension: callback-execution
   status: not-applicable
   conditions: no callbacks
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: publishing
   dimension: serialization-reconstruction
   status: claimed
@@ -881,15 +881,15 @@ contract_dimensions:
   status: not-applicable
   conditions: one operator; a lock file guards key creation
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: publishing
   dimension: resource-complexity
   status: not-applicable
   conditions: operator-chosen files
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: base-server
   dimension: numeric-domain
   status: claimed
@@ -903,8 +903,8 @@ contract_dimensions:
   status: not-applicable
   conditions: no route writes state from the network
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: base-server
   dimension: recursive-cyclic-topology
   status: not-applicable
@@ -914,12 +914,12 @@ contract_dimensions:
     source: docs/shelter-results.md "How it works"
 - component: base-server
   dimension: callback-execution
-  status: unresolved
-  conditions: the model is shared with the base computer's Ask page
+  status: claimed
+  conditions: the model is shared with the base computer's Ask page; answers never mix
   provenance:
-    kind: inferred
-    question_id: Q25
-  question_id: Q25
+    kind: maintainer
+    date: 2026-11
+  property_id: answers-never-mix
 - component: base-server
   dimension: serialization-reconstruction
   status: claimed
@@ -970,19 +970,19 @@ contract_dimensions:
   property_id: base-answer-signature
 - component: base-client
   dimension: recursive-cyclic-topology
-  status: unresolved
-  conditions: deeply nested JSON from a base
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
   provenance:
-    kind: inferred
-    question_id: Q31
-  question_id: Q31
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
 - component: base-client
   dimension: callback-execution
   status: not-applicable
   conditions: no caller code
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: base-client
   dimension: serialization-reconstruction
   status: claimed
@@ -1004,8 +1004,8 @@ contract_dimensions:
   status: not-applicable
   conditions: each request has its own timeout
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: base-client
   dimension: resource-complexity
   status: claimed
@@ -1034,15 +1034,15 @@ contract_dimensions:
   status: not-applicable
   conditions: flat records
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: facts
   dimension: callback-execution
   status: not-applicable
   conditions: no callbacks
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: facts
   dimension: serialization-reconstruction
   status: claimed
@@ -1064,8 +1064,8 @@ contract_dimensions:
   status: not-applicable
   conditions: writes are queued on one device
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: facts
   dimension: resource-complexity
   status: claimed
@@ -1079,8 +1079,8 @@ contract_dimensions:
   status: not-applicable
   conditions: no numeric input from outside
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: device-data
   dimension: failure-atomicity
   status: not-applicable
@@ -1093,22 +1093,22 @@ contract_dimensions:
   status: not-applicable
   conditions: flat JSON written by the app
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: device-data
   dimension: callback-execution
   status: not-applicable
   conditions: no callbacks
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: device-data
   dimension: serialization-reconstruction
   status: not-applicable
   conditions: read back only by the app
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: device-data
   dimension: reference-lifecycle
   status: disclaimed
@@ -1122,15 +1122,15 @@ contract_dimensions:
   status: not-applicable
   conditions: saves wait for the load
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: device-data
   dimension: resource-complexity
   status: not-applicable
   conditions: grows only with the user's own use
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: node
   dimension: numeric-domain
   status: claimed
@@ -1149,19 +1149,19 @@ contract_dimensions:
   property_id: atomic-file-install
 - component: node
   dimension: recursive-cyclic-topology
-  status: unresolved
-  conditions: deeply nested JSON in a catalog
+  status: claimed
+  conditions: deeply nested JSON is rejected without a crash or hang
   provenance:
-    kind: inferred
-    question_id: Q31
-  question_id: Q31
+    kind: maintainer
+    date: 2026-11
+  property_id: client-response-limits
 - component: node
   dimension: callback-execution
   status: not-applicable
   conditions: no caller code
   provenance:
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
 - component: node
   dimension: serialization-reconstruction
   status: claimed
@@ -1233,8 +1233,8 @@ outputs:
   channel: source-link
   taint: constrained
   taint_provenance: &id005
-    kind: assumption
-    question_id: Q26
+    kind: maintainer
+    date: 2026-11
   invariants: []
   downstream_must_not_assume:
   - id: source-link-not-assumed
@@ -1334,8 +1334,8 @@ outputs:
   channel: node-stdout
   taint: same-as-input
   taint_provenance: &id014
-    kind: assumption
-    question_id: Q30
+    kind: maintainer
+    date: 2026-11
   invariants: []
   downstream_must_not_assume:
   - id: node-stdout-not-assumed
@@ -1362,7 +1362,7 @@ adversaries:
   - flood connections
   excluded_capabilities:
   - Holding a pinned base's private key
-  - getting its own QR code scanned in person as a base's (Q21)
+  - getting its own QR code scanned in person as a base's
   - tapping dialogs for the user
   goals:
   - Fake facts or answers, read questions, crash or hang a base or phone
@@ -1717,6 +1717,9 @@ properties_claimed:
   - publishing
   - node
   tier: security-critical
+  x-known-violations:
+  - a node drops a record whose current and new versions are both incomplete, then accepts an older one
+    (`packages/lychnion_node/lib/src/pull.dart:196`).
   conditions: an installed item is never replaced with an older version.
   violation_symptoms:
   - bad-data-accepted
@@ -1805,7 +1808,8 @@ properties_claimed:
   - facts
   tier: security-critical
   conditions: an official or sensor fact shows as verified only with a signature from a trusted key; others
-    count as resident reports and are labelled.
+    count as resident reports and are labelled. Signed fields never contain control characters, so a signature
+    never fits a different split of the fields *(maintainer, 2026-11)*.
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1861,9 +1865,12 @@ properties_claimed:
   - facts
   - node
   tier: security-critical
+  x-known-violations:
+  - key statements are canonicalised before any shape check (`packages/lychnion_format/lib/src/key_statement.dart:328`).
   conditions: 'what a phone or node accepts is capped: 16 KiB for a base''s `/info`, 1 MiB for facts and
     answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements
-    per list and 1000 kept. A hostile response does not crash or hang the reader.'
+    per list and 1000 kept. A hostile response does not crash or hang the reader, and deeply nested JSON
+    from any of these sources is rejected *(maintainer, 2026-11)*.'
   violation_symptoms:
   - unbounded-allocation
   - crash
@@ -2023,6 +2030,19 @@ properties_claimed:
     as revoked or replaced, and writes nothing on a wrong passphrase or a damaged file.
   violation_symptoms:
   - info-leak
+  provenance:
+    kind: maintainer
+    date: 2026-11
+- id: answers-never-mix
+  kind: correctness
+  components:
+  - answers
+  - base-server
+  tier: correctness-only
+  conditions: while a computer serves phones, answers to phones and to its own Ask page never mix, and
+    a phone that leaves stops only its own answer.
+  violation_symptoms:
+  - wrong-output
   provenance:
     kind: maintainer
     date: 2026-11
@@ -2247,8 +2267,19 @@ properties_disclaimed:
   tier: correctness-only
   false_friend: false
   provenance:
-    kind: assumption
-    question_id: Q24
+    kind: maintainer
+    date: 2026-11
+- id: base-key-id-collision
+  components:
+  - facts
+  - base-client
+  conditions: Protection against a 48-bit key-id collision that replaces a trusted base key. Denial of
+    service only; the attacker cannot sign as the base
+  tier: correctness-only
+  false_friend: false
+  provenance:
+    kind: maintainer
+    date: 2026-11
 - id: source-label-destination
   components:
   - answers
@@ -2257,8 +2288,8 @@ properties_disclaimed:
   tier: correctness-only
   false_friend: true
   provenance:
-    kind: assumption
-    question_id: Q26
+    kind: maintainer
+    date: 2026-11
 downstream_responsibilities:
 - id: add-known-publishers-only
   component: downloads

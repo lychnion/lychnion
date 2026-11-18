@@ -6,8 +6,8 @@
   "scope_subpath": null,
   "description": "Lychnion is an offline safety assistant for Japan. A phone or computer runs a small language model over installed, signed knowledge packages and shows sources and fixed official safety lines. Packages, maps and models come from signed catalogs over the internet, a base computer on the local Wi-Fi, a nearby phone, a USB stick or a headless node. A base also shares signed current facts such as shelter status.",
   "confidence": {
-    "documented": 229,
-    "inferred": 38
+    "documented": 270,
+    "inferred": 0
   },
   "components": [
     {
@@ -399,8 +399,8 @@
       "attacker_controllable": "no",
       "component": "answers",
       "caller_must_enforce": "none; no limit on the device",
-      "provenance": "inferred",
-      "source": "open question Q24"
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     },
     {
       "entry_point": "SourceLink._open",
@@ -408,8 +408,8 @@
       "attacker_controllable": "yes",
       "component": "answers",
       "caller_must_enforce": "the reader checks the address in the browser",
-      "provenance": "inferred",
-      "source": "open question Q26"
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     },
     {
       "entry_point": "base TCP accept",
@@ -749,7 +749,7 @@
       "property": "fact-verification",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "an official or sensor fact shows as verified only with a signature from a trusted key; others count as resident reports and are labelled.",
+      "conditions": "an official or sensor fact shows as verified only with a signature from a trusted key; others count as resident reports and are labelled. Signed fields never contain control characters, so a signature never fits a different split of the fields *(maintainer, 2026-11)*.",
       "provenance": "documented",
       "source": "docs/facts-results.md\n  \"Signed facts (2026-11-05"
     },
@@ -781,7 +781,7 @@
       "property": "client-response-limits",
       "violation_symptom": "unbounded-allocation, crash, hang",
       "severity_tier": "security",
-      "conditions": "what a phone or node accepts is capped: 16 KiB for a base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements per list and 1000 kept. A hostile response does not crash or hang the reader.",
+      "conditions": "what a phone or node accepts is capped: 16 KiB for a base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements per list and 1000 kept. A hostile response does not crash or hang the reader, and deeply nested JSON from any of these sources is rejected *(maintainer, 2026-11)*.",
       "provenance": "documented",
       "source": "CHANGELOG.md \"Security\""
     },
@@ -878,6 +878,14 @@
       "violation_symptom": "info-leak",
       "severity_tier": "security",
       "conditions": "the private key in a backup is readable only with the passphrase (Argon2id, then AES-256-GCM; name and public key bound). Restore never replaces a key, never restores a key this computer knows as revoked or replaced, and writes nothing on a wrong passphrase or a damaged file.",
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "answers-never-mix",
+      "violation_symptom": "wrong-output",
+      "severity_tier": "correctness",
+      "conditions": "while a computer serves phones, answers to phones and to its own Ask page never mix, and a phone that leaves stops only its own answer.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     }
@@ -1027,15 +1035,22 @@
       "property": "local-resource-bounds",
       "reason": "Limits on a question typed on the device. Input against the user's own device",
       "false_friend": false,
-      "provenance": "inferred",
-      "source": "open question Q24"
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "base-key-id-collision",
+      "reason": "Protection against a 48-bit key-id collision that replaces a trusted base key. Denial of service only; the attacker cannot sign as the base",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     },
     {
       "property": "source-label-destination",
       "reason": "That a source link's label names its destination, or that it uses https. Links from packages or bases",
       "false_friend": true,
-      "provenance": "inferred",
-      "source": "open question Q26"
+      "provenance": "documented",
+      "source": "maintainer ruling, 2026-11"
     }
   ],
   "attack_classes": [
@@ -1121,61 +1136,5 @@
     "known_non_finding",
     "model_gap"
   ],
-  "open_questions": [
-    {
-      "claim": "Q21: Is a fake QR code put up in person at a shelter, posing as the base's, out of model?",
-      "field": "adversaries",
-      "proposed": "yes. Phones trust what is scanned in person; staff control what is posted. A web link that pins a key stays in model (Q10)."
-    },
-    {
-      "claim": "Q22: Is the node's private-address filter defence in depth, tier correctness-only?",
-      "field": "properties_provided",
-      "proposed": "yes. Missing ranges such as `::` are bugs against it; a catalog URL that redirects is accepted, because the operator chose the host."
-    },
-    {
-      "claim": "Q23: When a node drops a record because both its current and its new version are incomplete, and then accepts an older one, is that a bug?",
-      "field": "properties_provided",
-      "proposed": "yes, against `no-downgrade-installed`, low severity."
-    },
-    {
-      "claim": "Q24: Is a very long question typed on the device only a correctness issue?",
-      "field": "properties_not_provided",
-      "proposed": "yes. It is input against the user's own device."
-    },
-    {
-      "claim": "Q25: Should phones' questions and the base computer's own Ask page be able to use the model at the same time without mixing answers?",
-      "field": "entry_points",
-      "proposed": "a §1.11 correctness guarantee: answers never mix. A defect is correctness-only, because the signature covers what is sent."
-    },
-    {
-      "claim": "Q26: Is it accepted that a source link's label does not show its address, and that `http` links open?",
-      "field": "properties_not_provided",
-      "proposed": "yes, disclaimed as a false friend; the browser shows the address."
-    },
-    {
-      "claim": "Q27: Can a field of a signed fact contain the U+001F separator used in the signed text?",
-      "field": "properties_provided",
-      "proposed": "no. A signature that fits a different split of the fields is a `fact-verification` bug."
-    },
-    {
-      "claim": "Q28: Is a 48-bit key id collision that replaces a trusted base key a correctness issue only?",
-      "field": "properties_not_provided",
-      "proposed": "yes. It denies service; it does not let the attacker sign as the base."
-    },
-    {
-      "claim": "Q29: Is the radio message reader (`unpackSigned`) unsupported until the app uses it?",
-      "field": "out_of_scope",
-      "proposed": "yes; findings there route `OUT-OF-MODEL: unsupported-component`."
-    },
-    {
-      "claim": "Q30: Are the rows tagged Q30 correct? These are the matrix rows marked N/A for the reason given, the node's side effects in §1.5, its log in §1.8, and \"no vendored third-party code\" in §1.9.",
-      "field": "environment",
-      "proposed": "yes, as written."
-    },
-    {
-      "claim": "Q31: Is deeply nested JSON from any untrusted source (catalog, record, key statement, base response) rejected without a crash?",
-      "field": "properties_provided",
-      "proposed": "claim it. Responses are capped in size, and a stack overflow is caught when a record is verified. A crash, a hang, or a node pull that aborts on a nested `keys` entry is a bug against `client-response-limits`."
-    }
-  ]
+  "open_questions": []
 }
