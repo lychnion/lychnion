@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "Lychnion";
 "CFBundleName" = "Lychnion";
+"NSLocalNetworkUsageDescription" = "Announces this base on the Wi-Fi so phones find it, and finds other bases.";

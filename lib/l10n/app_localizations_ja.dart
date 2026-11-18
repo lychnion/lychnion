@@ -1589,4 +1589,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String publishErrorPackage(String detail) {
     return 'このファイルはアプリで使えるガイドではありません（$detail）。lychnion-data のツールで作り直してください。';
   }
+
+  @override
+  String get shelterFoundTitle => 'この Wi-Fi のベース';
+
+  @override
+  String get shelterFoundLooking => '探しています…';
+
+  @override
+  String get shelterFoundNone =>
+      'まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。';
 }

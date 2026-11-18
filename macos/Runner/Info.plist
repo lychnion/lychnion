@@ -39,5 +39,11 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_lychnion._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Announces this base on the Wi-Fi so phones find it, and finds other bases.</string>
 </dict>
 </plist>

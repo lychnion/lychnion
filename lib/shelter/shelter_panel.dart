@@ -1,9 +1,13 @@
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'dart:async';
+
+import 'package:flutter/foundation.dart'
+    show ValueListenable, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app/lang.dart';
 import '../app/settings.dart';
+import 'base_discovery.dart';
 import 'shelter_link.dart';
 
 /// Shelter computer: the QR code phones scan, one at a time so a camera
@@ -216,16 +220,29 @@ Future<bool> confirmShelter(BuildContext context, ShelterLink link) async =>
 
 /// Settings section on a phone: the saved shelter, connect by address.
 class ShelterSettingsTile extends StatelessWidget {
-  const ShelterSettingsTile({super.key, required this.settings});
+  const ShelterSettingsTile({
+    super.key,
+    required this.settings,
+    @visibleForTesting this.newFinder,
+  });
 
   final AppSettings settings;
 
+  /// Tests: what lists the bases on the Wi-Fi.
+  final BaseFinder Function()? newFinder;
+
   Future<void> _enter(BuildContext context) async {
-    final url = await showDialog<String>(
+    final picked = await showDialog<(ShelterLink, bool)>(
       context: context,
-      builder: (_) => const _AddressDialog(),
+      builder: (_) => _AddressDialog(newFinder: newFinder),
     );
-    if (url != null) await settings.setShelter(url);
+    if (picked == null) return;
+    final (link, found) = picked;
+    // A base found on the Wi-Fi: the same question as for a QR code.
+    if (found) {
+      if (!context.mounted || !await confirmShelter(context, link)) return;
+    }
+    await settings.setShelter(link.url, name: link.name, key: link.key);
   }
 
   @override
@@ -386,10 +403,14 @@ class _NameDialogState extends State<_NameDialog> {
   }
 }
 
-/// A shelter's address, typed by hand. Owns its text controller, so the
-/// controller lives until the dialog has finished closing.
+/// A base found on the Wi-Fi, or its address typed by hand. Returns the
+/// link and whether it was found (then the caller asks first). Owns its
+/// text controller, so the controller lives until the dialog has finished
+/// closing.
 class _AddressDialog extends StatefulWidget {
-  const _AddressDialog();
+  const _AddressDialog({this.newFinder});
+
+  final BaseFinder Function()? newFinder;
 
   @override
   State<_AddressDialog> createState() => _AddressDialogState();
@@ -397,9 +418,31 @@ class _AddressDialog extends StatefulWidget {
 
 class _AddressDialogState extends State<_AddressDialog> {
   final _ctrl = TextEditingController();
+  late final _finder = widget.newFinder?.call() ?? BaseFinder();
+
+  /// False when this device cannot look (no Wi-Fi discovery here).
+  var _looking = true;
+
+  /// After a while without a base, the spinner gives way to a line (it
+  /// still keeps looking).
+  var _waited = false;
+  Timer? _wait;
+
+  @override
+  void initState() {
+    super.initState();
+    _finder.start().catchError((Object _) {
+      if (mounted) setState(() => _looking = false);
+    });
+    _wait = Timer(const Duration(seconds: 15), () {
+      if (mounted) setState(() => _waited = true);
+    });
+  }
 
   @override
   void dispose() {
+    _wait?.cancel();
+    _finder.dispose();
     _ctrl.dispose();
     super.dispose();
   }
@@ -408,18 +451,64 @@ class _AddressDialogState extends State<_AddressDialog> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final ok = ShelterLink.normalize(_ctrl.text);
+    void typed() => Navigator.pop(context, (ShelterLink(ok!), false));
     return AlertDialog(
       title: Text(l.shelterAddress),
-      content: TextField(
-        controller: _ctrl,
-        autofocus: true,
-        keyboardType: TextInputType.url,
-        decoration: InputDecoration(
-          hintText: '192.168.1.20',
-          helperText: l.shelterAddressHelper,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_looking) ...[
+              Text(
+                l.shelterFoundTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              ValueListenableBuilder(
+                valueListenable: _finder.found,
+                builder: (c, found, _) => found.isEmpty
+                    ? ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: _waited
+                            ? const Icon(Icons.wifi_find_rounded)
+                            : const SizedBox.square(
+                                dimension: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                        title: Text(
+                          _waited ? l.shelterFoundNone : l.shelterFoundLooking,
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          for (final b in found)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.cell_tower_rounded),
+                              title: Text(b.name ?? l.shelterThisShelter),
+                              subtitle: Text(b.url.replaceFirst('http://', '')),
+                              onTap: () => Navigator.pop(context, (b, true)),
+                            ),
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: _ctrl,
+              autofocus: !_looking,
+              keyboardType: TextInputType.url,
+              decoration: InputDecoration(
+                hintText: '192.168.1.20',
+                helperText: l.shelterAddressHelper,
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => ok == null ? null : typed(),
+            ),
+          ],
         ),
-        onChanged: (_) => setState(() {}),
-        onSubmitted: (_) => ok == null ? null : Navigator.pop(context, ok),
       ),
       actions: [
         TextButton(
@@ -427,7 +516,7 @@ class _AddressDialogState extends State<_AddressDialog> {
           child: Text(l.cancel),
         ),
         FilledButton(
-          onPressed: ok == null ? null : () => Navigator.pop(context, ok),
+          onPressed: ok == null ? null : typed,
           child: Text(l.shelterConnect),
         ),
       ],

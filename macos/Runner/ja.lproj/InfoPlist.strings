@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "リクニオン";
 "CFBundleName" = "リクニオン";
+"NSLocalNetworkUsageDescription" = "この Wi-Fi でベースとして知らせ、スマートフォンが見つけられるようにします。";

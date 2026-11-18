@@ -36,8 +36,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_lychnion._tcp</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Connects to the shelter computer on this Wi-Fi to answer questions.</string>
+	<string>Finds and connects to the base computer on this Wi-Fi, for answers and updates without internet.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Shows the nearest evacuation sites. Your location stays on this device.</string>
 	<key>UIApplicationSceneManifest</key>

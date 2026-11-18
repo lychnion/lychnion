@@ -485,5 +485,8 @@
   "aboutCopyHint": "長押しでコピー（問い合わせ用）",
   "aboutCopied": "コピーしました",
   "stickClashed": "コピーしていません（同じ ID の別の発行元のものが USB メモリにあります）：{items}",
-  "publishErrorPackage": "このファイルはアプリで使えるガイドではありません（{detail}）。lychnion-data のツールで作り直してください。"
+  "publishErrorPackage": "このファイルはアプリで使えるガイドではありません（{detail}）。lychnion-data のツールで作り直してください。",
+  "shelterFoundTitle": "この Wi-Fi のベース",
+  "shelterFoundLooking": "探しています…",
+  "shelterFoundNone": "まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。"
 }

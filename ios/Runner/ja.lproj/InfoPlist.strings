@@ -1,2 +1,3 @@
 "CFBundleDisplayName" = "リクニオン";
 "CFBundleName" = "リクニオン";
+"NSLocalNetworkUsageDescription" = "この Wi-Fi のベース（避難所のパソコン）を見つけてつなぎ、インターネットなしで回答と更新を受け取ります。";

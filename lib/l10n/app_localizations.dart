@@ -2761,6 +2761,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This file is not a guide the app can use ({detail}). Build it again with the lychnion-data tools.'**
   String publishErrorPackage(String detail);
+
+  /// No description provided for @shelterFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bases on this Wi-Fi'**
+  String get shelterFoundTitle;
+
+  /// No description provided for @shelterFoundLooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking…'**
+  String get shelterFoundLooking;
+
+  /// No description provided for @shelterFoundNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No base found yet. Enter its address below, or scan its QR code.'**
+  String get shelterFoundNone;
 }
 
 class _AppLocalizationsDelegate

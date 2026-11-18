@@ -42,6 +42,7 @@ import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
 import 'package:app_links/app_links.dart';
 
+import 'shelter/base_discovery.dart';
 import 'shelter/share_nearby.dart';
 import 'shelter/shelter_client.dart';
 import 'shelter/shelter_link.dart';
@@ -848,6 +849,7 @@ class _SpikePageState extends State<SpikePage> {
     if (_server case final s?
         when !want || s.name != name || s.answerer != answerer) {
       await s.stop();
+      await _announcer.stop().catchError((Object _) {});
       _server = null;
       widget.shelterUrls?.value = const [];
       _log({'event': 'shelter_stopped'});
@@ -880,7 +882,20 @@ class _SpikePageState extends State<SpikePage> {
     ];
     widget.shelterUrls?.value = urls;
     _log({'event': 'shelter_started', 'name': name, 'urls': urls});
+    // Phones on this Wi-Fi find the base without its QR code (step 5e).
+    // Serving goes on if announcing is not possible here.
+    try {
+      await _announcer.start(
+        name: name,
+        port: ShelterServer.defaultPort,
+        key: widget.facts?.signer?.publicKeyText,
+      );
+    } on Object catch (e) {
+      _log({'event': 'shelter_announce_failed', 'error': '$e'});
+    }
   }
+
+  final _announcer = BaseAnnouncer();
 
   bool get _usesDownload =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -924,6 +939,7 @@ class _SpikePageState extends State<SpikePage> {
     widget.settings?.removeListener(_shelterChanged);
     widget.settings?.removeListener(_sharingChanged);
     unawaited(_server?.stop());
+    unawaited(_announcer.stop().catchError((Object _) {}));
     _factsTimer?.cancel();
     _retry?.cancel();
     super.dispose();
