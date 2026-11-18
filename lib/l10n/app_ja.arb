@@ -493,5 +493,14 @@
   "answerReading": "資料{count}件を読んでいます…",
   "answerTimeLeft": "あと約{seconds}秒",
   "answerSlowPhone": "この端末では、答えまで1分ほどかかることがあります。",
-  "answerBaseHint": "ベースにつなぐと、数秒で答えます"
+  "answerBaseHint": "ベースにつなぐと、数秒で答えます",
+  "answerReadyAnnounce": "回答が出ました。",
+  "answerSafetyLineSpoken": "安全のための注意",
+  "menuWithUpdates": "メニューを表示（更新{count}件）",
+  "firstStepsCountSpoken": "{total}件中{done}件完了",
+  "mapLoadingSpoken": "地図を読み込んでいます",
+  "shelterQrSpoken": "{name}につなぐためのQRコード",
+  "shareNearbyQrSpoken": "このダウンロードを受け取るためのQRコード",
+  "publishQrSpoken": "あなたの発行元を追加するためのQRコード",
+  "mapNearestSiteSpoken": "最寄りの場所：{name}"
 }

@@ -1618,4 +1618,39 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get answerBaseHint => 'ベースにつなぐと、数秒で答えます';
+
+  @override
+  String get answerReadyAnnounce => '回答が出ました。';
+
+  @override
+  String get answerSafetyLineSpoken => '安全のための注意';
+
+  @override
+  String menuWithUpdates(int count) {
+    return 'メニューを表示（更新$count件）';
+  }
+
+  @override
+  String firstStepsCountSpoken(int done, int total) {
+    return '$total件中$done件完了';
+  }
+
+  @override
+  String get mapLoadingSpoken => '地図を読み込んでいます';
+
+  @override
+  String shelterQrSpoken(String name) {
+    return '$nameにつなぐためのQRコード';
+  }
+
+  @override
+  String get shareNearbyQrSpoken => 'このダウンロードを受け取るためのQRコード';
+
+  @override
+  String get publishQrSpoken => 'あなたの発行元を追加するためのQRコード';
+
+  @override
+  String mapNearestSiteSpoken(String name) {
+    return '最寄りの場所：$name';
+  }
 }

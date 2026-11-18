@@ -74,6 +74,19 @@ class SourceLink extends StatelessWidget {
       ),
     );
     if (!hasUrl) return text;
-    return InkWell(onTap: () => _open(context), child: text);
+    // A link for screen readers, and a full-height tap target.
+    return Semantics(
+      link: true,
+      child: InkWell(
+        onTap: () => _open(context),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: text,
+          ),
+        ),
+      ),
+    );
   }
 }

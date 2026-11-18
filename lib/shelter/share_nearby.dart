@@ -119,6 +119,7 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
                 data: ShareLink(urls.first).toUri().toString(),
                 size: 240,
                 padding: EdgeInsets.zero,
+                semanticsLabel: l.shareNearbyQrSpoken,
               ),
             ),
           ),

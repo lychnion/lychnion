@@ -58,39 +58,47 @@ class NearestSiteCard extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // A live region: TalkBack reads a new warning when it arrives.
           for (final w in warnings)
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: scheme.error,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.campaign_rounded, color: scheme.onError),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          w.value,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: scheme.onError,
-                            fontWeight: FontWeight.w800,
+            Semantics(
+              container: true,
+              liveRegion: true,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.error,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.campaign_rounded, color: scheme.onError),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            w.value,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: scheme.onError,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '${w.subject} · ${factAge(l, w, facts!.now)} · ${factSourceLabel(l, w)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onError,
+                          Text(
+                            '${w.subject} · ${factAge(l, w, facts!.now)} · ${factSourceLabel(l, w)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onError,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           if (outside)

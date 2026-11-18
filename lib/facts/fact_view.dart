@@ -42,12 +42,15 @@ String factLine(AppLocalizations l, Fact f, DateTime now) {
   return '$what$note · ${factAge(l, f, now)} · ${factSourceLabel(l, f)}';
 }
 
-/// Colour hint: red for full/closed or warnings, amber for unconfirmed.
+/// Colour hint: red for full/closed or warnings, amber (Glow) for
+/// unconfirmed.
 Color factColor(Fact f, ColorScheme c) {
   if (f.kind == FactKind.warning || (f.shelterStatus?.avoid ?? false)) {
     return c.error;
   }
-  return f.unconfirmed ? Colors.amber.shade700 : c.onSurfaceVariant;
+  // Tertiary (Glow Deep by day, Glow by night) is readable as text;
+  // plain amber is about 2:1 on Paper.
+  return f.unconfirmed ? c.tertiary : c.onSurfaceVariant;
 }
 
 /// "Current information" box: facts that are not in the knowledge package.

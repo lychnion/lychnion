@@ -127,7 +127,8 @@ class _AskViewState extends State<AskView> {
         titleSpacing: 20,
         title: Row(
           children: [
-            const LychnionMark(size: 34),
+            // The name follows as text: read it once.
+            const ExcludeSemantics(child: LychnionMark(size: 34)),
             const SizedBox(width: 8),
             // Gives way to the status label on narrow phones.
             Flexible(
@@ -373,12 +374,14 @@ class _StatusPill extends StatelessWidget {
       padding: const EdgeInsets.only(right: 4),
       child: Material(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Container(
+            // Full-size tap target in the app bar.
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -571,14 +574,20 @@ class AppMenu extends StatelessWidget {
   final List<DevAction> devActions;
 
   @override
-  Widget build(BuildContext context) => PopupMenuButton<int>(
-    icon: ValueListenableBuilder(
-      valueListenable: updates ?? ValueNotifier(0),
-      builder: (context, n, _) => Badge(
-        isLabelVisible: n > 0,
-        smallSize: 9,
-        child: const Icon(Icons.more_vert),
-      ),
+  Widget build(BuildContext context) => ValueListenableBuilder(
+    valueListenable: updates ?? ValueNotifier(0),
+    builder: (context, n, _) => _menu(context, n),
+  );
+
+  Widget _menu(BuildContext context, int n) => PopupMenuButton<int>(
+    // The badge is only a dot: screen readers hear the count instead.
+    tooltip: n > 0
+        ? context.l10n.menuWithUpdates(n)
+        : MaterialLocalizations.of(context).showMenuTooltip,
+    icon: Badge(
+      isLabelVisible: n > 0,
+      smallSize: 9,
+      child: const Icon(Icons.more_vert),
     ),
     itemBuilder: (_) => [
       if (onOpenSettings != null)
