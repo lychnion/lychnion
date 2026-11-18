@@ -63,11 +63,16 @@ class GroundedAnswer {
   String text = '';
   AnswerStats? stats;
 
-  /// Passage numbers (1-based, as given to the model) that the answer cites.
+  /// Passage numbers (1-based, as given to the model) that the answer cites:
+  /// [1], [1][2], and also [1, 2] or [1、2] (seen on the Pixel 5a).
   Set<int> get citedNumbers => {
-    for (final m in RegExp(r'\[(\d+)\]').allMatches(text))
-      int.parse(m.group(1)!),
+    for (final m in citation.allMatches(text))
+      for (final n in RegExp(r'\d+').allMatches(m.group(0)!))
+        int.parse(n.group(0)!),
   };
+
+  /// One citation mark: [1], [1, 2], [1,2], [1、2].
+  static final citation = RegExp(r'\[\d{1,2}(?:\s*[,、，]\s*\d{1,2})*\]');
 
   /// Citations that point to a passage the model was not given.
   Set<int> get invalidCitations =>

@@ -1,3 +1,4 @@
+import '../knowledge/grounded_answer.dart' show GroundedAnswer;
 import '../knowledge/knowledge_package.dart' show Alert;
 
 /// The answer as shown: citation markers removed (sources are listed once,
@@ -5,7 +6,9 @@ import '../knowledge/knowledge_package.dart' show Alert;
 /// already shown above it. The full text stays in the answer for the
 /// citation check and the logs.
 String shownAnswer(String text, List<Alert> alerts) {
-  final clean = text.replaceAll(RegExp(r'\s?\[\d{1,2}\]'), '').trim();
+  final clean = text
+      .replaceAll(RegExp('\\s?${GroundedAnswer.citation.pattern}'), '')
+      .trim();
   if (alerts.isEmpty) return clean;
   final lines = [
     for (final a in alerts) ...[_grams(a.text), ?_gramsOrNull(a.textEn)],
