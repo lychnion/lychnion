@@ -58,20 +58,14 @@ mixin _BaseConnection on _AskPageBase {
       facts: widget.facts,
       name: _base?.name ?? 'base',
     );
-    switch (check) {
-      case BaseKeyCheck.notPinned:
-        _log({'event': 'base_key_not_pinned'});
-        return true;
-      case BaseKeyCheck.mismatch:
-        _log({'event': 'base_key_mismatch'});
-        setState(() {
-          _status = 'Base key does not match the QR code: not connected.';
-          _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
-        });
-        return false;
-      case BaseKeyCheck.trusted:
-        return true;
+    _log({'event': check.logEvent});
+    if (!check.connects) {
+      setState(() {
+        _status = 'Base key does not match the QR code: not connected.';
+        _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
+      });
     }
+    return check.connects;
   }
 
   Future<void> _connectBase() async {

@@ -295,13 +295,19 @@ class _AskPageState extends _AskPageBase
         onError: (e) => _log({'event': 'base_failed', 'error': '$e'}),
       );
       if (remote != null) {
-        setState(
-          () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
-        );
-        unawaited(_threads.save());
-        _log({'event': 'answer', ...remote.toJson()});
-        _sayAnswerReady(remote);
-        setState(() => _answering = false);
+        try {
+          setState(() {
+            final i = thread.entries.indexOf(placeholder);
+            // The conversation may have been cleared meanwhile.
+            if (i >= 0) thread.entries[i] = remote;
+          });
+          unawaited(_threads.save());
+          _log({'event': 'answer', ...remote.toJson()});
+          _sayAnswerReady(remote);
+        } finally {
+          // Never left answering: later questions would wait for good.
+          if (mounted) setState(() => _answering = false);
+        }
         _answerWaiting();
         return;
       } else {

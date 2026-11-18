@@ -42,6 +42,17 @@ void main() {
     sourceType: SourceType.official,
   );
 
+  test('only a mismatch keeps the phone from connecting', () {
+    expect(
+      {for (final c in BaseKeyCheck.values) c: (c.connects, c.logEvent)},
+      {
+        BaseKeyCheck.notPinned: (true, 'base_key_not_pinned'),
+        BaseKeyCheck.mismatch: (false, 'base_key_mismatch'),
+        BaseKeyCheck.trusted: (true, 'base_key_trusted'),
+      },
+    );
+  });
+
   group('the base key', () {
     test('without a QR code nothing is pinned', () async {
       final r = await checkBaseKey({'key': base.publicKeyText}, pinned: null);

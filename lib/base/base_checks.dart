@@ -13,7 +13,17 @@ enum BaseKeyCheck {
   mismatch,
 
   /// The QR code's key: the base's facts are trusted.
-  trusted,
+  trusted;
+
+  /// Whether the phone connects to the base.
+  bool get connects => this != mismatch;
+
+  /// The event the phone logs.
+  String get logEvent => switch (this) {
+    notPinned => 'base_key_not_pinned',
+    mismatch => 'base_key_mismatch',
+    trusted => 'base_key_trusted',
+  };
 }
 
 /// Checks the key a base sent against the one from its QR code
