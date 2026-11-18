@@ -94,8 +94,10 @@ Publishers → "Publish your own" (desktop app only):
 
 Refused: a version not higher than one this publisher signed or that is
 installed (versions only go up), an id installed from another publisher,
-a package whose file says another id or version, and file names that do
-not start with the id. This computer adds its own publisher to its list,
+a package whose file says another id or version, a package the app
+cannot use (it is opened as the app does to answer: the `meta`, `sources`,
+`passages` and `alerts` tables, and at least one passage), and file names
+that do not start with the id. This computer adds its own publisher to its list,
 so it trusts what it signs.
 
 Not yet: export or back up the key from the app, replace a lost key,

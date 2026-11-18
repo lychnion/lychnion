@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -8,6 +9,7 @@ import '../download/catalog.dart';
 import '../download/download_store.dart';
 import '../download/downloader.dart';
 import '../download/publisher_list.dart';
+import '../knowledge/knowledge_package.dart';
 import 'local_publisher.dart';
 
 // Signs a package or map area that was built elsewhere (lychnion-data
@@ -42,7 +44,8 @@ class PublishRequest {
 class PublishError implements Exception {
   PublishError(this.code, [this.detail = '']);
 
-  /// `id`, `version`, `older`, `files`, `meta`, `taken`, `title`, `key`.
+  /// `id`, `version`, `older`, `files`, `meta`, `package`, `taken`,
+  /// `title`, `key`.
   final String code;
   final String detail;
   @override
@@ -64,6 +67,30 @@ Map<String, String>? packageMeta(File f) {
     }
   } on Object {
     return null;
+  }
+}
+
+/// Why the app could not use the guide at [path] (it is opened as the
+/// app does to answer), or null when it can. Read in another isolate: a
+/// large guide takes a while.
+Future<String?> guideProblem(String path) =>
+    Isolate.run(() => _guideProblem(path));
+
+String? _guideProblem(String path) {
+  String short(String s) => s.length > 80 ? '${s.substring(0, 80)}…' : s;
+  try {
+    final p = KnowledgePackage.open(path);
+    // Opens, but gives the app nothing to answer with.
+    if (p.passages.isEmpty) return 'no passages';
+    return null;
+  } on SqliteException catch (e) {
+    return short(e.message); // "no such table: sources"
+  } on FormatException {
+    return 'broken JSON in a table';
+  } on TypeError {
+    return 'a missing value, or a passage or alert without its source';
+  } on Object catch (e) {
+    return short('$e');
   }
 }
 
@@ -236,6 +263,13 @@ Future<PackageRecord> publish(
       if (f.absolute.path != target.absolute.path) {
         copy = await f.copy('${target.path}.publishing');
         copies.add((copy, target));
+      }
+      // Phones must be able to use what is signed and passed on: the
+      // copy that gets signed is opened as the app does to answer.
+      if (req.kind == ItemKind.package) {
+        if (await guideProblem(copy.path) case final p?) {
+          throw PublishError('package', p);
+        }
       }
       files.add({
         'name': name,

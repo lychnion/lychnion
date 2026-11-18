@@ -2755,6 +2755,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not copied, the stick has another publisher\'s item with this id: {items}'**
   String stickClashed(String items);
+
+  /// No description provided for @publishErrorPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is not a guide the app can use ({detail}). Build it again with the lychnion-data tools.'**
+  String publishErrorPackage(String detail);
 }
 
 class _AppLocalizationsDelegate

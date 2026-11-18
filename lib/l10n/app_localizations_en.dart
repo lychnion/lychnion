@@ -1664,4 +1664,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String stickClashed(String items) {
     return 'Not copied, the stick has another publisher\'s item with this id: $items';
   }
+
+  @override
+  String publishErrorPackage(String detail) {
+    return 'This file is not a guide the app can use ($detail). Build it again with the lychnion-data tools.';
+  }
 }

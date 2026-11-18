@@ -12,12 +12,36 @@ import 'package:lychnion/shelter/shelter_library.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-/// A minimal package file: a meta table as build_package.py writes it.
-File packageFile(Directory dir, String id, String version) {
+/// A minimal package file: the tables build_package.py writes, with one
+/// source and one passage ([passages] false: none).
+File packageFile(
+  Directory dir,
+  String id,
+  String version, {
+  bool sources = true,
+  bool passages = true,
+}) {
   final f = File('${dir.path}/src/$id.sqlite')..parent.createSync();
   if (f.existsSync()) f.deleteSync();
   final db = sqlite3.open(f.path);
   db.execute('CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+  if (sources) {
+    db.execute('''
+      CREATE TABLE sources(id TEXT PRIMARY KEY, title TEXT, publisher TEXT,
+                           url TEXT, licence TEXT, licence_url TEXT,
+                           attribution TEXT);
+      INSERT INTO sources VALUES('s1', '防災ガイド', '市', 'https://example.org',
+                                 'CC BY 4.0', NULL, '市');''');
+  }
+  db.execute('''
+    CREATE TABLE passages(id INTEGER PRIMARY KEY, source_id TEXT NOT NULL,
+                          heading TEXT, text TEXT NOT NULL);
+    CREATE TABLE alerts(id TEXT PRIMARY KEY, source_id TEXT NOT NULL,
+                        text TEXT NOT NULL, match_all TEXT NOT NULL,
+                        text_en TEXT, match_all_en TEXT);''');
+  if (passages) {
+    db.execute("INSERT INTO passages VALUES(1, 's1', '避難', '避難所へ行きます。')");
+  }
   final meta = {
     'id': id,
     'version': version,
@@ -164,6 +188,29 @@ void main() {
         throwsA(isA<PublishError>().having((e) => e.code, 'code', code)),
       );
       await refused(edit(version: '2026.11.9'), 'meta');
+      // Files phones could not use are not signed.
+      packageFile(tmp, 'jp.kobe.bousai', '2026.11.1', sources: false);
+      await refused(edit(), 'package');
+      packageFile(tmp, 'jp.kobe.bousai', '2026.11.1', passages: false);
+      await refused(edit(), 'package');
+      // A passage whose source is not there.
+      final f2 = packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
+      final db = sqlite3.open(f2.path);
+      db.execute("UPDATE passages SET source_id = 'gone'");
+      db.close();
+      await expectLater(
+        go(edit()),
+        throwsA(
+          isA<PublishError>()
+              .having((e) => e.code, 'code', 'package')
+              .having((e) => e.detail, 'detail', contains('source')),
+        ),
+      );
+      File(
+        '${tmp.path}/src/jp.kobe.bousai.sqlite',
+      ).writeAsStringSync('not sqlite');
+      await refused(edit(), 'meta');
+      packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
       await refused(edit(version: 'new'), 'version');
       await refused(edit(id: '../x'), 'id');
       await refused(edit(id: 'jp.other'), 'files');
