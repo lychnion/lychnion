@@ -655,5 +655,46 @@
   "shareName": "Shelter name",
   "shareNameHint": "Shown on phones (for example: Minami Elementary School shelter)",
   "shareStarting": "Starts as soon as the app is ready.",
-  "shareShowLarge": "Show large"
+  "shareShowLarge": "Show large",
+  "shareNearby": "Share with people nearby",
+  "shareNearbyIntro": "Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.",
+  "shareNearbyKeepOpen": "Sharing runs only while this screen is open.",
+  "shareNearbyNothing": "Nothing downloaded yet. You can share guides, maps and models you have downloaded.",
+  "shareNearbyItems": "{count, plural, =1{Sharing 1 item} other{Sharing {count} items}}",
+  "@shareNearbyItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbySent": "{count, plural, =1{Sent: 1 file} other{Sent: {count} files}}",
+  "@shareNearbySent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbyNoNetwork": "Not on Wi-Fi. Connect both phones to the same Wi-Fi or hotspot.",
+  "shareReceiveTitle": "Get downloads from a phone nearby?",
+  "shareReceiveBody": "Shows the guides, maps and models at {address} in Downloads. They are saved only after their signatures are checked.",
+  "@shareReceiveBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "shareReceiveShow": "Show",
+  "shareReceiveNone": "Nothing found. Check that both phones are on the same Wi-Fi.",
+  "shareReceiveFound": "{count, plural, =1{1 item available} other{{count} items available}}",
+  "@shareReceiveFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareReceiveNothingNew": "Nothing new: this phone already has everything offered."
 }

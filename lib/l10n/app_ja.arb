@@ -269,5 +269,46 @@
   "shareName": "避難所の名前",
   "shareNameHint": "スマホに表示されます（例：南小学校 避難所）",
   "shareStarting": "準備ができしだい公開します。",
-  "shareShowLarge": "大きく表示"
+  "shareShowLarge": "大きく表示",
+  "shareNearby": "近くの人に共有",
+  "shareNearbyIntro": "同じWi-Fiやテザリングにつないだスマートフォンで、このQRコードを読み取ると、このスマートフォンにダウンロードした資料・地図・モデルを受け取れます。インターネットは要りません。",
+  "shareNearbyKeepOpen": "この画面を開いている間だけ共有します。",
+  "shareNearbyNothing": "まだダウンロードしたものがありません。共有できるのは、ダウンロードした資料・地図・モデルです。",
+  "shareNearbyItems": "共有中：{count}件",
+  "@shareNearbyItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbySent": "送信済み：{count}ファイル",
+  "@shareNearbySent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbyNoNetwork": "Wi-Fiにつながっていません。両方のスマートフォンを同じWi-Fiかテザリングにつないでください。",
+  "shareReceiveTitle": "近くのスマートフォンから受け取りますか？",
+  "shareReceiveBody": "{address} にある資料・地図・モデルを、ダウンロード画面に表示します。署名を確認してから保存します。",
+  "@shareReceiveBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "shareReceiveShow": "表示",
+  "shareReceiveNone": "受け取れるものが見つかりませんでした。同じWi-Fiにつながっているか確認してください。",
+  "shareReceiveFound": "{count}件を受け取れます",
+  "@shareReceiveFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareReceiveNothingNew": "新しいものはありません。このスマートフォンにはすべてそろっています。"
 }

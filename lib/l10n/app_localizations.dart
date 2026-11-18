@@ -1717,6 +1717,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show large'**
   String get shareShowLarge;
+
+  /// No description provided for @shareNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'Share with people nearby'**
+  String get shareNearby;
+
+  /// No description provided for @shareNearbyIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.'**
+  String get shareNearbyIntro;
+
+  /// No description provided for @shareNearbyKeepOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing runs only while this screen is open.'**
+  String get shareNearbyKeepOpen;
+
+  /// No description provided for @shareNearbyNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded yet. You can share guides, maps and models you have downloaded.'**
+  String get shareNearbyNothing;
+
+  /// No description provided for @shareNearbyItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sharing 1 item} other{Sharing {count} items}}'**
+  String shareNearbyItems(int count);
+
+  /// No description provided for @shareNearbySent.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sent: 1 file} other{Sent: {count} files}}'**
+  String shareNearbySent(int count);
+
+  /// No description provided for @shareNearbyNoNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Not on Wi-Fi. Connect both phones to the same Wi-Fi or hotspot.'**
+  String get shareNearbyNoNetwork;
+
+  /// No description provided for @shareReceiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get downloads from a phone nearby?'**
+  String get shareReceiveTitle;
+
+  /// No description provided for @shareReceiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows the guides, maps and models at {address} in Downloads. They are saved only after their signatures are checked.'**
+  String shareReceiveBody(String address);
+
+  /// No description provided for @shareReceiveShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get shareReceiveShow;
+
+  /// No description provided for @shareReceiveNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Check that both phones are on the same Wi-Fi.'**
+  String get shareReceiveNone;
+
+  /// No description provided for @shareReceiveFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item available} other{{count} items available}}'**
+  String shareReceiveFound(int count);
+
+  /// No description provided for @shareReceiveNothingNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing new: this phone already has everything offered.'**
+  String get shareReceiveNothingNew;
 }
 
 class _AppLocalizationsDelegate

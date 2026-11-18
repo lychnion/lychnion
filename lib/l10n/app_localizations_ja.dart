@@ -977,4 +977,54 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shareShowLarge => '大きく表示';
+
+  @override
+  String get shareNearby => '近くの人に共有';
+
+  @override
+  String get shareNearbyIntro =>
+      '同じWi-Fiやテザリングにつないだスマートフォンで、このQRコードを読み取ると、このスマートフォンにダウンロードした資料・地図・モデルを受け取れます。インターネットは要りません。';
+
+  @override
+  String get shareNearbyKeepOpen => 'この画面を開いている間だけ共有します。';
+
+  @override
+  String get shareNearbyNothing =>
+      'まだダウンロードしたものがありません。共有できるのは、ダウンロードした資料・地図・モデルです。';
+
+  @override
+  String shareNearbyItems(int count) {
+    return '共有中：$count件';
+  }
+
+  @override
+  String shareNearbySent(int count) {
+    return '送信済み：$countファイル';
+  }
+
+  @override
+  String get shareNearbyNoNetwork =>
+      'Wi-Fiにつながっていません。両方のスマートフォンを同じWi-Fiかテザリングにつないでください。';
+
+  @override
+  String get shareReceiveTitle => '近くのスマートフォンから受け取りますか？';
+
+  @override
+  String shareReceiveBody(String address) {
+    return '$address にある資料・地図・モデルを、ダウンロード画面に表示します。署名を確認してから保存します。';
+  }
+
+  @override
+  String get shareReceiveShow => '表示';
+
+  @override
+  String get shareReceiveNone => '受け取れるものが見つかりませんでした。同じWi-Fiにつながっているか確認してください。';
+
+  @override
+  String shareReceiveFound(int count) {
+    return '$count件を受け取れます';
+  }
+
+  @override
+  String get shareReceiveNothingNew => '新しいものはありません。このスマートフォンにはすべてそろっています。';
 }

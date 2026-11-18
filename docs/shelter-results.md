@@ -129,6 +129,7 @@ Tested with the Mac (Gemma 4 E2B) as shelter and a Pixel 5a over Wi-Fi
 Fixed during the test: site IDs instead of names on the page; the phone
 keyboard staying open over the answer.
 
-Not tested yet: scanning the codes with a phone camera (the links were
-opened over USB), an iPhone, several phones at once, Windows as shelter.
+Scanning the codes with a phone camera was tried by hand and worked (the
+links above were opened over USB). Not tested yet: an iPhone as the
+phone, several phones at once, Windows as shelter.
 

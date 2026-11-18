@@ -1010,4 +1010,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareShowLarge => 'Show large';
+
+  @override
+  String get shareNearby => 'Share with people nearby';
+
+  @override
+  String get shareNearbyIntro =>
+      'Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.';
+
+  @override
+  String get shareNearbyKeepOpen =>
+      'Sharing runs only while this screen is open.';
+
+  @override
+  String get shareNearbyNothing =>
+      'Nothing downloaded yet. You can share guides, maps and models you have downloaded.';
+
+  @override
+  String shareNearbyItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sharing $count items',
+      one: 'Sharing 1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareNearbySent(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sent: $count files',
+      one: 'Sent: 1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareNearbyNoNetwork =>
+      'Not on Wi-Fi. Connect both phones to the same Wi-Fi or hotspot.';
+
+  @override
+  String get shareReceiveTitle => 'Get downloads from a phone nearby?';
+
+  @override
+  String shareReceiveBody(String address) {
+    return 'Shows the guides, maps and models at $address in Downloads. They are saved only after their signatures are checked.';
+  }
+
+  @override
+  String get shareReceiveShow => 'Show';
+
+  @override
+  String get shareReceiveNone =>
+      'Nothing found. Check that both phones are on the same Wi-Fi.';
+
+  @override
+  String shareReceiveFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items available',
+      one: '1 item available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareReceiveNothingNew =>
+      'Nothing new: this phone already has everything offered.';
 }

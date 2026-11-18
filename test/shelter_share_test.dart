@@ -106,4 +106,13 @@ void main() {
     expect(settings.shelterUrl, 'http://192.168.1.20:8642');
     expect(find.byType(AlertDialog), findsNothing);
   });
+
+  test('share texts count in words people use', () {
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(en.shareNearbyItems(1), 'Sharing 1 item');
+    expect(en.shareNearbyItems(3), 'Sharing 3 items');
+    expect(en.shareReceiveFound(1), '1 item available');
+    final ja = lookupAppLocalizations(const Locale('ja'));
+    expect(ja.shareNearbyItems(3), '共有中：3件');
+  });
 }

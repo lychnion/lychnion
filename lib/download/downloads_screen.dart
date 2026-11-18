@@ -10,6 +10,7 @@ import 'catalog.dart';
 import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
+import '../shelter/share_nearby.dart';
 
 /// Download settings: mobile data and updates. A small sheet, opened from
 /// Downloads and from Settings.
@@ -246,6 +247,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     appBar: AppBar(
       title: Text(l.downloadsTitle),
       actions: [
+        IconButton(
+          tooltip: l.shareNearby,
+          icon: const Icon(Icons.share_rounded),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const ShareNearbyScreen()),
+          ),
+        ),
         IconButton(
           tooltip: l.downloadsMobileData,
           icon: const Icon(Icons.tune_rounded),

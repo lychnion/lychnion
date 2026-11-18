@@ -24,11 +24,14 @@ import 'shelter_web.dart';
 ///
 /// No login: anyone on the shelter Wi-Fi may ask. One model, so questions
 /// are answered one after another.
+///
+/// Without an [answerer] it only passes on files: a phone sharing its
+/// downloads with phones nearby (`sharePort`, no /ask, no page).
 class ShelterServer {
   ShelterServer({
     required this.answerer,
     required this.name,
-    required this.modelName,
+    this.modelName = '',
     this.facts,
     this.codec,
     this.library,
@@ -50,11 +53,18 @@ class ShelterServer {
   final FactStore? facts;
   final CompactCodec? codec;
 
-  final GroundedAnswerer answerer;
+  final GroundedAnswerer? answerer;
   final String name;
   final String modelName;
 
   static const defaultPort = 8642;
+
+  /// A phone sharing its downloads: another port, so it never clashes with
+  /// a shelter computer on the same machine.
+  static const sharePort = 8643;
+
+  /// Called after a file was sent (its name), e.g. to count on screen.
+  void Function(String file)? onBlobServed;
   static const _maxQuestionChars = 500;
 
   HttpServer? _server;
@@ -68,12 +78,28 @@ class ShelterServer {
 
   Future<void> stop() async => _server?.close(force: true);
 
-  /// IPv4 addresses phones can use, e.g. 192.168.1.20.
-  static Future<List<String>> localAddresses() async => [
-    for (final i in await NetworkInterface.list(type: InternetAddressType.IPv4))
-      for (final a in i.addresses)
-        if (!a.isLoopback) a.address,
-  ];
+  /// IPv4 addresses phones can use, e.g. 192.168.1.20: Wi-Fi and hotspot
+  /// first, never mobile data (other phones cannot reach it).
+  static Future<List<String>> localAddresses() async {
+    final found = [
+      for (final i in await NetworkInterface.list(
+        type: InternetAddressType.IPv4,
+      ))
+        for (final a in i.addresses)
+          if (!a.isLoopback && !a.isLinkLocal && !_cellular.hasMatch(i.name))
+            (i.name, a.address),
+    ];
+    int rank((String, String) x) => _wifi.hasMatch(x.$1) ? 0 : 1;
+    found.sort((a, b) => rank(a).compareTo(rank(b)));
+    return [for (final (_, a) in found) a];
+  }
+
+  /// Interface names: Android mobile data (rmnet, ccmni), iOS (pdp_ip).
+  static final _cellular = RegExp(r'^(rmnet|ccmni|pdp_ip|v4-rmnet)');
+
+  /// Wi-Fi, hotspot and wired: Android wlan/swlan/ap, Apple en/bridge
+  /// (Internet Sharing), Linux and Windows names.
+  static final _wifi = RegExp(r'^(wlan|swlan|ap|en|bridge|eth|wl|Wi-Fi)');
 
   Future<void> _handle(HttpRequest req) async {
     final res = req.response;
@@ -98,13 +124,17 @@ class ShelterServer {
           ),
         );
       } else if (req.method == 'GET' && req.uri.path == '/info') {
+        final a = answerer;
         _send(res, 200, {
           'v': shelterProtocolVersion,
           'name': name,
-          'model': modelName,
-          'package': answerer.package.id,
-          'version': answerer.package.version,
-          'answered': answered,
+          'answers': a != null,
+          if (a != null) ...{
+            'model': modelName,
+            'package': a.package.id,
+            'version': a.package.version,
+            'answered': answered,
+          },
           // Phones trust this key for the facts the shelter signs.
           'key': ?facts?.signer?.publicKeyText,
         });
@@ -133,7 +163,9 @@ class ShelterServer {
           _blob.matchAsPrefix(req.uri.path)?.end == req.uri.path.length &&
           library != null) {
         await _sendBlob(req, library!.blob(req.uri.pathSegments.last));
-      } else if (req.method == 'POST' && req.uri.path == '/ask') {
+      } else if (req.method == 'POST' &&
+          req.uri.path == '/ask' &&
+          answerer != null) {
         final body = await utf8.decodeStream(req.take(8 * 1024));
         final j = jsonDecode(body) as Map;
         final q = j['question'];
@@ -148,7 +180,7 @@ class ShelterServer {
         }
         final answer = GroundedAnswer(q.trim(), appLang: appLang);
         // One model: run questions one after another.
-        final done = _queue.then((_) => answerer.answer(answer, () {}));
+        final done = _queue.then((_) => answerer!.answer(answer, () {}));
         _queue = done.catchError((_) {});
         await done;
         answered++;
@@ -194,6 +226,7 @@ class ShelterServer {
     }
     await res.addStream(file.openRead(from));
     await res.close();
+    onBlobServed?.call(file.uri.pathSegments.last);
     // For whoever runs the shelter: what was passed on, to whom.
     debugPrint(
       'LYCHNION ${jsonEncode({'event': 'blob_served', 'file': file.uri.pathSegments.last, 'from_byte': from, 'bytes': size - from, 'to': req.connectionInfo?.remoteAddress.address})}',

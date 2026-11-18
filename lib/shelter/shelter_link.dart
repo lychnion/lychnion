@@ -64,3 +64,25 @@ class ShelterLink {
     return '${u.scheme}://${u.host}:$port';
   }
 }
+
+/// A phone sharing its downloads with phones nearby:
+/// `lychnion://share?url=http://<address>:8643`. The receiving phone adds
+/// that phone's signed catalog to Downloads; it does not ask it questions.
+class ShareLink {
+  const ShareLink(this.url);
+
+  /// Base URL, e.g. http://192.168.43.1:8643
+  final String url;
+
+  Uri toUri() => Uri(
+    scheme: ShelterLink.scheme,
+    host: 'share',
+    queryParameters: {'url': url},
+  );
+
+  static ShareLink? fromUri(Uri uri) {
+    if (uri.scheme != ShelterLink.scheme || uri.host != 'share') return null;
+    final url = ShelterLink.normalize(uri.queryParameters['url'] ?? '');
+    return url == null ? null : ShareLink(url);
+  }
+}
