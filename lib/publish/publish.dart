@@ -339,6 +339,9 @@ Future<PackageRecord> publish(
   }
 }
 
+/// Safe to run again (after a failure, or when Publish your own opens):
+/// what was done already is skipped.
+///
 /// After this computer's publisher key was replaced or revoked
 /// ([LocalPublisher.replaceKey], [LocalPublisher.revokeAndRenew]): this
 /// computer learns the key statements, so it trusts the new key; it adds
@@ -354,6 +357,9 @@ Future<List<String>> adoptNewKey(
   Directory publisherDir,
   LocalPublisher publisher,
 ) async {
+  if (publisher.statements.isNotEmpty) {
+    await LocalPublisher.writeKeysFile(publisherDir, publisher.statements);
+  }
   await store.publishers.learn(publisher.statements);
   switch (store.publishers.problemWith(publisher.link)) {
     case null:

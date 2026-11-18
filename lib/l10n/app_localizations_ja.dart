@@ -1736,7 +1736,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishReplaceKeyText =>
-      '新しい鍵を作り、今の鍵で署名します。今の鍵を信頼しているスマートフォンは、カタログや USB メモリを受け取ったときに新しい鍵を受け入れます。これまでに署名したものは有効なままです。交換後は新しいバックアップを作ってください（古いバックアップには古い鍵が入っています）。';
+      '新しい鍵を作り、今の鍵で署名します。今の鍵を信頼しているスマートフォンは、カタログや USB メモリを受け取ったときに新しい鍵を受け入れます。これまでに署名したものは有効なままです。交換後は新しいバックアップを作ってください（古いバックアップには古い鍵が入っています）。古いバックアップも安全に保管してください。古い鍵の署名はまだ有効で、その無効化の宣言はそのバックアップに入っています。';
 
   @override
   String get publishRevokeKey => '鍵を無効にする';
@@ -1766,4 +1766,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String publishRevocationSaved(String path) {
     return '無効化の宣言を $path に保存しました。カタログ（\"keys\"）に入れてください。このパソコンで作る USB メモリには既に入ります。';
   }
+
+  @override
+  String publishersReplacesRevoked(String id) {
+    return '無効にされた鍵 $id を置き換えます。その鍵を持っていた人なら誰でもこのようなリンクを作れます。発行者から直接、または公式ページで受け取った場合だけ追加してください。';
+  }
+
+  @override
+  String get publishRestoreRevoked => 'このバックアップの鍵は無効にされています。新しい鍵を作ってください。';
+
+  @override
+  String get publishRestoreReplaced => 'このバックアップの鍵は交換済みです。最新のバックアップから復元してください。';
 }

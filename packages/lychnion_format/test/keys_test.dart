@@ -315,6 +315,52 @@ void main() {
       expect(list, [r]);
       expect(await KeyStatement.checkAll('not a list'), isEmpty);
     });
+
+    test(
+      'relevantStatements: order does not matter, junk is skipped',
+      () async {
+        final a = await _key(), b = await _key();
+        final trust = TrustedKeys({
+          'jp.test': [a.pub],
+        });
+        final ab = await KeyStatement.replace(
+          publisher: 'jp.test',
+          oldKey: a.pair,
+          newKey: b.pair,
+          signed: '2026-11-19',
+        );
+        final revokeB = await KeyStatement.revoke(
+          publisher: 'jp.test',
+          key: b.pair,
+          signed: '2026-11-20',
+        );
+        final junk = [
+          for (var i = 0; i < 20; i++)
+            (await KeyStatement.revoke(
+              publisher: 'jp.test',
+              key: (await _key()).pair,
+              signed: '2026-11-19',
+            )).json,
+        ];
+        // The revocation of B comes first, junk fills the list before both.
+        final got = await relevantStatements(trust, [
+          ...junk,
+          revokeB.json,
+          ab.json,
+          'x',
+        ], max: 5);
+        expect(got.toSet(), {ab, revokeB});
+        expect(trust.withStatements(got).keysOf('jp.test'), {a.pub});
+        // Statements about publishers not given are not looked at.
+        final other = await KeyStatement.revoke(
+          publisher: 'jp.other',
+          key: a.pair,
+          signed: '2026-11-19',
+        );
+        expect(await relevantStatements(trust, [other.json]), isEmpty);
+        expect(await relevantStatements(trust, 'nope'), isEmpty);
+      },
+    );
   });
 }
 

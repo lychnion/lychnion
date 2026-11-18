@@ -180,6 +180,8 @@ Future<bool> addPublisher(
     );
     return false;
   }
+  // Its new link after a revoked key: anyone can make one, so say so.
+  final replacing = list.added.where((p) => p.name == link.name).firstOrNull;
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
@@ -201,6 +203,13 @@ Future<bool> addPublisher(
           ),
           const SizedBox(height: 12),
           Text(l.publishersAddBody(l.appName)),
+          if (replacing != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              l.publishersReplacesRevoked(replacing.keyId),
+              style: TextStyle(color: Theme.of(c).colorScheme.error),
+            ),
+          ],
         ],
       ),
       actions: [

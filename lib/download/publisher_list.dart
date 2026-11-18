@@ -188,7 +188,7 @@ class PublisherList extends ChangeNotifier {
     final now = trust.keysOf(name);
     if (now.isEmpty) return PublisherKeyState.revoked;
     final roots = switch (_added[name]) {
-      final p? => {p.key.replaceAll('=', '')},
+      final p? => {TrustedKeys.canonicalKey(p.key)},
       null => builtIn.keysOf(name),
     };
     return now.difference(roots).isEmpty
@@ -223,7 +223,7 @@ class PublisherList extends ChangeNotifier {
     final raw = json?['publishers'];
     // Each one checked again: a file edited by hand proves nothing.
     _statements.addAll(
-      (await KeyStatement.checkAll(json?['statements'])).take(maxStatements),
+      await KeyStatement.checkAll(json?['statements'], max: maxStatements),
     );
     // Each entry on its own: one bad entry does not drop the others. A
     // file edited by hand is checked like a link.
@@ -270,8 +270,10 @@ class PublisherList extends ChangeNotifier {
     final have = _added[l.name];
     if (have != null) {
       // The same key may be written with or without base64 padding.
-      final key = l.key.replaceAll('=', '');
-      if (have.key.replaceAll('=', '') == key) return PublisherProblem.known;
+      final key = TrustedKeys.canonicalKey(l.key);
+      if (TrustedKeys.canonicalKey(have.key) == key) {
+        return PublisherProblem.known;
+      }
       if (trust.keysOf(l.name).contains(key)) return PublisherProblem.known;
       // All its keys revoked: its new link replaces the entry.
       if (keyStateOf(l.name) == PublisherKeyState.revoked) return null;
@@ -289,24 +291,19 @@ class PublisherList extends ChangeNotifier {
   Future<bool> learn(Iterable<KeyStatement> learned, {bool any = false}) =>
       _serial(() async {
         final before = _keySummary();
-        final next = [..._statements];
-        for (final s in learned) {
-          if (next.length >= maxStatements) break;
-          if (next.contains(s)) continue;
-          // Only from a key trusted now for that publisher: anyone can
-          // sign a statement about a random key of their own, and such
-          // statements must not fill the list. One at a time, so a key
-          // that names a second successor stops counting at once.
-          final roots = _rootsOf(s.publisher);
-          if (any ||
-              resolveKeys(
-                s.publisher,
-                roots,
-                next,
-              ).keys.contains(_norm(s.oldKey))) {
-            next.add(s);
-          }
-        }
+        final room = maxStatements - _statements.length;
+        if (room <= 0) return false;
+        final seen = {for (final s in _statements) s.id};
+        // Only statements made by a key trusted here (see
+        // relevantStatements): statements anyone can make about keys of
+        // their own never fill the list.
+        final fresh = any
+            ? [
+                for (final s in learned)
+                  if (seen.add(s.id)) s,
+              ].take(room)
+            : await relevantStatements(trust, learned.toList(), max: room);
+        final next = [..._statements, ...fresh];
         if (next.length == _statements.length) return false;
         await _save(_added.values, next);
         _statements
@@ -317,15 +314,6 @@ class PublisherList extends ChangeNotifier {
         _changed();
         return changed;
       });
-
-  /// Keys [name] is trusted with on this device by itself: built in, or
-  /// added by its link.
-  Set<String> _rootsOf(String name) => {
-    ...builtIn.keysOf(name),
-    if (_added[name] case final p?) _norm(p.key),
-  };
-
-  static String _norm(String key) => key.replaceAll('=', '');
 
   String _keySummary() {
     final t = trust;

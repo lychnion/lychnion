@@ -20,6 +20,9 @@ const _pass = 'correct horse battery';
 const _fast = KeyBackupKdf(memory: 64, iterations: 1);
 const _name = 'jp.city.kobe';
 
+Future<LocalPublisher> _restore(Directory d, String text, String pass) async =>
+    LocalPublisher.restore(d, await KeyBackup.open(text, pass));
+
 void main() {
   late Directory tmp, pubDir;
   late DownloadStore desk;
@@ -55,10 +58,7 @@ void main() {
     test('restore refuses when a key is here; nothing is changed', () async {
       final text = await me.backup(_pass, kdf: _fast);
       final before = LocalPublisher.fileIn(pubDir).readAsStringSync();
-      expect(
-        () => LocalPublisher.restore(pubDir, text, _pass),
-        throwsArgumentError,
-      );
+      expect(() => _restore(pubDir, text, _pass), throwsArgumentError);
       expect(LocalPublisher.fileIn(pubDir).readAsStringSync(), before);
     });
 
@@ -66,15 +66,11 @@ void main() {
       final text = await me.backup(_pass, kdf: _fast);
       final d = Directory('${tmp.path}/new');
       await expectLater(
-        LocalPublisher.restore(d, text, 'wrong horse battery'),
+        _restore(d, text, 'wrong horse battery'),
         throwsA(isA<KeyBackupException>()),
       );
       await expectLater(
-        LocalPublisher.restore(
-          d,
-          text.replaceAll('"seed"', '"x"').substring(9),
-          _pass,
-        ),
+        _restore(d, text.replaceAll('"seed"', '"x"').substring(9), _pass),
         throwsA(isA<KeyBackupException>()),
       );
       expect(LocalPublisher.existsIn(d), isFalse);
@@ -83,7 +79,7 @@ void main() {
     test('export and import give the same publisher', () async {
       final text = await me.backup(_pass, kdf: _fast);
       final d = Directory('${tmp.path}/new');
-      final back = await LocalPublisher.restore(d, text, _pass);
+      final back = await _restore(d, text, _pass);
       expect(back.name, _name);
       expect(back.title, '神戸市');
       expect(back.publicKey, me.publicKey);
@@ -119,8 +115,11 @@ void main() {
       final next = await me.replaceKey(pubDir);
       expect(next.publicKey, isNot(me.publicKey));
       expect(next.statements.single.type, KeyStatementType.replace);
-      // Saved with the key, and in keys.json for the catalog.
+      // Saved with the key; keys.json (for the catalog) comes with
+      // adoptNewKey, which can run again.
       expect((await LocalPublisher.load(pubDir))!.statements, next.statements);
+      expect(await adoptNewKey(desk, pubDir, next), ['jp.city.kobe.guide']);
+      expect(await adoptNewKey(desk, pubDir, next), isEmpty);
       final keys = jsonDecode(
         LocalPublisher.keysFileIn(pubDir).readAsStringSync(),
       ) as Map;
@@ -130,8 +129,7 @@ void main() {
         isNot(contains('seed')),
       );
 
-      // This computer re-signs and keeps its item in use.
-      expect(await adoptNewKey(desk, pubDir, next), ['jp.city.kobe.guide']);
+      // This computer re-signed and keeps its item in use.
       final now = desk.installed(ItemKind.package, 'jp.city.kobe.guide')!;
       expect(now.record.keyId, next.keyId);
       expect(now.record.files.single.sha256, old.files.single.sha256);
@@ -260,6 +258,23 @@ void main() {
       expect(await p.learn(thief), isTrue);
       expect(p.statements, hasLength(2));
       expect(p.keyStateOf(_name), PublisherKeyState.revoked);
+    });
+
+    test('a revocation listed before its replacement is kept', () async {
+      final p = await phone('phone', me.link);
+      final next = await me.replaceKey(pubDir);
+      final revokeB = await KeyStatement.revoke(
+        publisher: _name,
+        key: await next.keyPair(),
+        signed: nowStamp(),
+      );
+      await p.learn([revokeB, ...next.statements]);
+      expect(p.statements, hasLength(2));
+      expect(p.trust.keysOf(_name), {me.publicKey});
+      // Also after a restart.
+      final again = PublisherList(p.file);
+      await again.load();
+      expect(again.trust.keysOf(_name), {me.publicKey});
     });
 
     test('from a catalog: new-key records count at once', () async {

@@ -121,7 +121,10 @@ to it), and a warning in English and Japanese. Keep it offline
 or on a stick you hand out. A forgotten passphrase cannot be recovered.
 "Restore from a backup" works only on a computer without a key (a key is
 never replaced silently); a wrong passphrase, a damaged or changed file,
-or another kind of file is refused and nothing is written.
+or another kind of file is refused and nothing is written. A backup of
+a key that this computer knows as revoked or replaced is refused too. A
+file asking for more than 256 MiB or 6 rounds of Argon2id is refused as
+damaged; the key is derived in a separate isolate.
 
 **Key statements.** Small signed statements, carried in a catalog's
 `keys` list (`packages/lychnion_format`, `KeyStatement`):
@@ -141,8 +144,12 @@ do (canonical JSON).
 - **Replace** ("Replace the key", the old key still there): the old key
   signs the new one and the new key countersigns. A phone that trusts the
   old key for that publisher then trusts the new one too; chains (A→B→C)
-  are followed. Records signed by the old key stay valid. Old backups hold
-  the old key: make a new backup.
+  are followed. Records signed by the old key stay valid, so the old key
+  is not retired: keep its backup safe (it holds its revocation, in case
+  the old key is stolen later), and make a new backup of the new key.
+  Whoever holds an old key can also revoke it, and phones that know only
+  that key then drop its successors too: a replacement does not protect
+  against that, only a new link does.
 - **Revoke** ("Revoke the key", when someone else may have it): signed by
   the key itself, so whoever holds it can revoke it, a thief too, which
   does no harm. The app makes a new key. Phones stop trusting the revoked
@@ -159,7 +166,8 @@ do (canonical JSON).
   not encrypted. "Revoke a lost key from a backup" uses it without the
   passphrase.
 
-After a replacement or revocation the desktop app re-signs the newest
+After a replacement or revocation (and again each time Publish your own
+opens, in case a step failed) the desktop app re-signs the newest
 record of each item it published with the new key, so what is installed
 there stays in use. The statements are kept with the key
 (`publisher/publisher.json`) and in `publisher/keys.json` (no private
@@ -172,7 +180,8 @@ to the stick and reads them from it) and a device nearby that sends them
 in its catalog. A phone keeps statements made by a key it trusts at that
 moment for that publisher (anyone can sign a statement about a key of
 their own; those are not kept), at most 1000, in `publishers.json`
-(format 2), and
+(format 2). Statements are taken in rounds, so their order in a list
+does not matter, and only those made by a trusted key are verified. It
 checks a catalog's records after applying that catalog's statements, so
 records of a new key count at once. Not yet: a base and the headless
 node passing statements on in their own catalogs (follow-up).

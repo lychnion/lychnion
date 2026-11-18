@@ -60,6 +60,15 @@ class _PublishScreenState extends State<PublishScreen> {
         widget.dir ??
         Directory('${(await appSupportDirectory()).path}/publisher');
     final me = await LocalPublisher.load(dir);
+    // Finishes a key change that stopped half way (see adoptNewKey).
+    if (me != null && me.statements.isNotEmpty) {
+      try {
+        await adoptNewKey(widget.manager.store, dir, me);
+        await widget.manager.publishersChanged();
+      } on Object {
+        // Tried again next time; publishing says what is wrong.
+      }
+    }
     if (!mounted) return;
     setState(() {
       _dir = dir;

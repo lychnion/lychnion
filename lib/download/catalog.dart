@@ -116,8 +116,8 @@ class Catalog {
     this.statements = const [],
   });
 
-  /// Valid key statements in the catalog's `keys` (any publisher; the
-  /// device keeps those about publishers it knows).
+  /// Key statements in the catalog's `keys` made by keys the device
+  /// trusts (see relevantStatements); the device keeps them.
   final List<KeyStatement> statements;
 
   final List<CatalogItem> items;
@@ -179,8 +179,9 @@ class Catalog {
     };
     // Key statements first: records signed by a successor key the
     // catalog announces are accepted at once. Older apps ignore `keys`.
-    final statements = await KeyStatement.checkAll(j['keys']);
-    final keys = (trust ?? builtInPublishers).withStatements(statements);
+    final given = trust ?? builtInPublishers;
+    final statements = await relevantStatements(given, j['keys']);
+    final keys = given.withStatements(statements);
     final items = <CatalogItem>[];
     final rejected = <String>[];
     final raw = j['records']! as List;

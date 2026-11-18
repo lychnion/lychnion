@@ -94,11 +94,14 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   await blobs.create(recursive: true);
   // Key statements on the stick stay, and this device adds the ones it
   // knows, so other devices learn of replaced and revoked keys.
-  final oldStatements = await KeyStatement.checkAll(old?.keys);
-  final statements = [...oldStatements];
-  for (final s in store.publishers.statements) {
+  // This device's own first, so statements on the stick cannot crowd
+  // them out; of those on the stick, only ones made by keys trusted here.
+  final oldStatements = await relevantStatements(store.trust, old?.keys);
+  final statements = <KeyStatement>[];
+  final seen = <String>{};
+  for (final s in [...store.publishers.statements, ...oldStatements]) {
     if (statements.length >= KeyStatement.maxPerSource) break;
-    if (!statements.contains(s)) statements.add(s);
+    if (seen.add(s.id)) statements.add(s);
   }
   final trust = store.trust.withStatements(oldStatements);
 
@@ -295,7 +298,7 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
   if (cat == null) throw const FileSystemException('no catalog');
 
   // Key statements first: they decide which records are trusted.
-  final statements = await KeyStatement.checkAll(cat.keys);
+  final statements = await relevantStatements(store.trust, cat.keys);
   try {
     result.keysChanged = await store.publishers.learn(statements);
   } on Object {

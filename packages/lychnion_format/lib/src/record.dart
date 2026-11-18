@@ -322,6 +322,14 @@ class TrustedKeys {
   /// Trusted key ids of [publisher] (empty when none, or all revoked).
   Set<String> keyIdsOf(String publisher) => {...?_keys[publisher]?.keys};
 
+  /// Keys trusted for [publisher] on their own, before statements
+  /// (unpadded base64url).
+  Set<String> rootsOf(String publisher) => {...?_roots[publisher]};
+
+  /// [key] as written in these keys: unpadded base64url. Throws
+  /// [FormatException] for a key that is not 32 bytes.
+  static String canonicalKey(String key) => _b64(_checked(key));
+
   /// Trusted keys of [publisher] (unpadded base64url).
   Set<String> keysOf(String publisher) => {
     for (final k in _keys[publisher]?.values ?? const <List<int>>[]) _b64(k),
@@ -344,8 +352,9 @@ class TrustedKeys {
   /// Statements of publishers not given here change nothing.
   TrustedKeys withStatements(Iterable<KeyStatement> more) {
     final all = [...statements];
+    final seen = {for (final s in all) s.id};
     for (final s in more) {
-      if (!all.contains(s)) all.add(s);
+      if (seen.add(s.id)) all.add(s);
     }
     return all.length == statements.length ? this : TrustedKeys._(_roots, all);
   }

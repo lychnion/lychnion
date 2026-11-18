@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:cryptography/cryptography.dart';
 
@@ -51,11 +52,11 @@ class KeyBackupKdf {
   /// What a file may ask for: more would let a file stall the app.
   bool get withinLimits =>
       memory >= 8 &&
-      memory <= 1048576 &&
+      memory <= 262144 &&
       iterations >= 1 &&
-      iterations <= 16 &&
+      iterations <= 6 &&
       parallelism >= 1 &&
-      parallelism <= 8 &&
+      parallelism <= 4 &&
       memory >= 8 * parallelism;
 }
 
@@ -86,12 +87,14 @@ class KeyBackup {
         'This file can sign packages in this publisher\'s name. Keep it '
         'offline (1Password, or a USB stick in a safe). Never put it on '
         'a server, in a repository or on a stick you hand out. Without '
-        'the passphrase it cannot be opened.',
+        'the passphrase it cannot be opened. Whoever has the file can '
+        'revoke the key with it, even without the passphrase.',
     'ja':
         'このファイルがあれば、この発行者の名前でパッケージに署名できます。'
         'オフラインで保管してください（1Password、金庫の USB メモリなど）。'
         'サーバー、リポジトリ、人に渡す USB メモリには置かないでください。'
-        'パスフレーズがないと開けません。',
+        'パスフレーズがないと開けません。このファイルがあれば、パスフレーズが'
+        'なくても鍵を無効にできます。',
   };
 
   static final _aes = AesGcm.with256bits();
@@ -111,6 +114,7 @@ class KeyBackup {
       throw ArgumentError('passphrase');
     }
     if (!publisherNamePattern.hasMatch(name)) throw ArgumentError('name');
+    if (!kdf.withinLimits) throw ArgumentError('kdf');
     final pair = await keyPairFromSeed(seed);
     final publicKey = await publicKeyOf(pair);
     final salt = SecretKeyData.random(length: 16).bytes;
@@ -147,16 +151,24 @@ class KeyBackup {
     }),
   );
 
+  /// In another isolate: Argon2id runs in Dart here and takes a while.
   static Future<SecretKey> _derive(
     String passphrase,
     List<int> salt,
     KeyBackupKdf kdf,
-  ) => Argon2id(
-    parallelism: kdf.parallelism,
-    memory: kdf.memory,
-    iterations: kdf.iterations,
-    hashLength: 32,
-  ).deriveKey(secretKey: SecretKey(utf8.encode(passphrase)), nonce: salt);
+  ) async {
+    final (p, m, t) = (kdf.parallelism, kdf.memory, kdf.iterations);
+    final bytes = await Isolate.run(() async {
+      final k = await Argon2id(
+        parallelism: p,
+        memory: m,
+        iterations: t,
+        hashLength: 32,
+      ).deriveKey(secretKey: SecretKey(utf8.encode(passphrase)), nonce: salt);
+      return k.extractBytes();
+    });
+    return SecretKey(bytes);
+  }
 
   static Map<String, Object?> _parse(String text) {
     Object? j;

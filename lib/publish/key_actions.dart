@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app/lang.dart';
 import '../download/download_manager.dart';
+import '../download/publisher_list.dart';
 import '../l10n/app_localizations.dart';
 import 'local_publisher.dart';
 import 'publish.dart';
@@ -210,7 +211,26 @@ Future<LocalPublisher?> restoreKey(
   final pass = await askPassphrase(context, title: l.publishRestore);
   if (pass == null || !context.mounted) return null;
   try {
-    final me = await LocalPublisher.restore(dir, text, pass);
+    final k = await KeyBackup.open(text, pass);
+    // A key revoked or replaced here must not become this computer's key
+    // again: what it signs is not trusted, or a second replacement would
+    // revoke it.
+    final link = PublisherLink(name: k.name, key: k.publicKey);
+    final list = manager.store.publishers;
+    if (list.problemWith(link) == PublisherProblem.revoked) {
+      if (context.mounted) _tell(context, l.publishRestoreRevoked);
+      return null;
+    }
+    if (list.statements.any(
+      (s) =>
+          s.publisher == k.name &&
+          s.type == KeyStatementType.replace &&
+          s.oldKeyId == link.keyId,
+    )) {
+      if (context.mounted) _tell(context, l.publishRestoreReplaced);
+      return null;
+    }
+    final me = await LocalPublisher.restore(dir, k);
     // Trusts its own publisher, and gets back what it signed.
     await adoptNewKey(manager.store, dir, me);
     await manager.publishersChanged();
@@ -289,10 +309,17 @@ Future<LocalPublisher?> changeKey(
     danger: revoke,
   );
   if (!ok || !context.mounted) return null;
+  final LocalPublisher next;
   try {
-    final next = revoke
-        ? await me.revokeAndRenew(dir)
-        : await me.replaceKey(dir);
+    next = revoke ? await me.revokeAndRenew(dir) : await me.replaceKey(dir);
+  } on Object catch (e) {
+    // Nothing changed: the old key is still the key.
+    if (context.mounted) _tell(context, l.publishFailed('$e'));
+    return null;
+  }
+  // The new key is saved: from here on it is the key, also if a step
+  // below fails (adoptNewKey runs again when the screen opens).
+  try {
     final ids = await adoptNewKey(manager.store, dir, next);
     await manager.publishersChanged();
     if (context.mounted) {
@@ -304,11 +331,10 @@ Future<LocalPublisher?> changeKey(
         ),
       );
     }
-    return next;
   } on Object catch (e) {
     if (context.mounted) _tell(context, l.publishFailed('$e'));
-    return null;
   }
+  return next;
 }
 
 /// The "Your key" section under the publisher's code.

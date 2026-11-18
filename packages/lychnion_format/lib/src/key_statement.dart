@@ -56,7 +56,7 @@ class KeyStatement {
   );
 
   /// Same statement (whatever the JSON formatting).
-  String get id => canonicalJson(json);
+  late final String id = canonicalJson(json);
 
   @override
   bool operator ==(Object other) => other is KeyStatement && other.id == id;
@@ -85,13 +85,19 @@ class KeyStatement {
     }
   }
 
-  /// The valid statements in [list] (a catalog's `keys`); others, and
-  /// any after the first [maxPerSource], are left out.
-  static Future<List<KeyStatement>> checkAll(Object? list) async {
+  /// The valid statements in [list] (a file this device wrote); others,
+  /// and any after the first [max] valid ones, are left out. For lists
+  /// from elsewhere use [relevantStatements].
+  static Future<List<KeyStatement>> checkAll(
+    Object? list, {
+    int max = maxPerSource,
+  }) async {
     if (list is! List) return const [];
     final out = <KeyStatement>[];
-    for (final raw in list.take(maxPerSource)) {
-      if (await check(raw) case final s? when !out.contains(s)) out.add(s);
+    final seen = <String>{};
+    for (final raw in list) {
+      if (out.length >= max) break;
+      if (await check(raw) case final s? when seen.add(s.id)) out.add(s);
     }
     return out;
   }
@@ -229,4 +235,72 @@ class KeyStatement {
     keys: trusted,
     revokedIds: {for (final k in revoked) recordKeyIdOf(unb64(k))},
   );
+}
+
+/// At most this many entries of a list from elsewhere are looked at.
+const _maxScanned = 5000;
+
+/// The statements in [list] (raw JSON, as in a catalog's `keys`, or
+/// [KeyStatement]s) that change something for [trust]: each made by a key
+/// [trust] trusts for that publisher, counting the statements taken
+/// before it. Taken in rounds until none is added, so the order in the
+/// list does not matter (a revocation of a successor listed before the
+/// replacement that names it still counts).
+///
+/// Only those statements are verified: anyone can sign statements about
+/// keys of their own, and they cost nothing here and never crowd out real
+/// ones. At most [max] are returned (not counting those [trust] has).
+Future<List<KeyStatement>> relevantStatements(
+  TrustedKeys trust,
+  Object? list, {
+  int max = KeyStatement.maxPerSource,
+}) async {
+  if (list is! List) return const [];
+  final known = trust.known.toSet();
+  String? norm(Object? k) {
+    if (k is! String) return null;
+    try {
+      final b = unb64(k);
+      return b.length == 32 ? b64(b) : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  final pending = <({String publisher, String old, Object raw})>[];
+  for (final e in list.take(_maxScanned)) {
+    final (publisher, old) = switch (e) {
+      KeyStatement s => (s.publisher, norm(s.oldKey)),
+      Map<Object?, Object?> m => (m['publisher'], norm(m['old'])),
+      _ => (null, null),
+    };
+    if (publisher is String && old != null && known.contains(publisher)) {
+      pending.add((publisher: publisher, old: old, raw: e as Object));
+    }
+  }
+  final all = [...trust.statements];
+  final seen = {for (final s in all) s.id};
+  final out = <KeyStatement>[];
+  final trustedNow = <String, Set<String>>{};
+  Set<String> keysOf(String p) =>
+      trustedNow[p] ??= resolveKeys(p, trust.rootsOf(p), all).keys;
+  var grew = true;
+  while (grew && out.length < max) {
+    grew = false;
+    for (final c in [...pending]) {
+      if (out.length >= max) break;
+      if (!keysOf(c.publisher).contains(c.old)) continue;
+      pending.remove(c);
+      final s = switch (c.raw) {
+        KeyStatement k => k,
+        final raw => await KeyStatement.check(raw),
+      };
+      if (s == null || !seen.add(s.id)) continue;
+      all.add(s);
+      out.add(s);
+      trustedNow.remove(s.publisher);
+      grew = true;
+    }
+  }
+  return out;
 }

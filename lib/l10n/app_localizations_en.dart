@@ -1836,7 +1836,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get publishReplaceKeyText =>
-      'Makes a new key, signed by the current one. Phones that trust the current key accept the new one when they get your catalog or a stick. What you signed so far stays valid. Make a new backup afterwards: old backups hold the old key.';
+      'Makes a new key, signed by the current one. Phones that trust the current key accept the new one when they get your catalog or a stick. What you signed so far stays valid. Make a new backup afterwards: old backups hold the old key. Keep the old backup safe too: the old key still signs validly, and its revocation is in that backup.';
 
   @override
   String get publishRevokeKey => 'Revoke the key';
@@ -1866,4 +1866,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String publishRevocationSaved(String path) {
     return 'Revocation saved in $path. Put it into your catalog (\"keys\"). Sticks made here carry it already.';
   }
+
+  @override
+  String publishersReplacesRevoked(String id) {
+    return 'This replaces the revoked key $id. Anyone who had that key can make such a link: add it only if you got it from the publisher in person or from its official page.';
+  }
+
+  @override
+  String get publishRestoreRevoked =>
+      'This backup holds a key that was revoked. Make a new key instead.';
+
+  @override
+  String get publishRestoreReplaced =>
+      'This backup holds a key that was replaced. Restore the newest backup.';
 }

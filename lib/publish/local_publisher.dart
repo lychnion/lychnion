@@ -97,19 +97,11 @@ class LocalPublisher {
     String? title,
   }) => _createWith(dir, name, title, null);
 
-  /// Saves the key in a backup ([KeyBackup]) as this computer's
-  /// publisher. Throws [KeyBackupException] when the backup does not
-  /// open, and what [create] throws (`exists` when a key is here: a key
-  /// is never replaced silently).
-  static Future<LocalPublisher> restore(
-    Directory dir,
-    String backup,
-    String passphrase,
-  ) async {
-    if (await fileIn(dir).exists()) throw ArgumentError('exists');
-    final k = await KeyBackup.open(backup, passphrase);
-    return _createWith(dir, k.name, k.title, k.seed);
-  }
+  /// Saves the key of an opened backup ([KeyBackup.open]) as this
+  /// computer's publisher. Throws what [create] throws (`exists` when a
+  /// key is here: a key is never replaced silently).
+  static Future<LocalPublisher> restore(Directory dir, RestoredKey k) =>
+      _createWith(dir, k.name, k.title, k.seed);
 
   /// A backup of this key, encrypted with [passphrase] (see [KeyBackup]).
   Future<String> backup(String passphrase, {KeyBackupKdf? kdf}) =>
@@ -166,7 +158,6 @@ class LocalPublisher {
     // One write replaces key and statements together: the old key is gone
     // only once its statement is saved with the new one.
     await _save(dir, f, p);
-    await writeKeysFile(dir, p.statements);
     return p;
   }
 
