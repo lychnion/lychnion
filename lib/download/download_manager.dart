@@ -925,6 +925,8 @@ class DownloadManager extends ChangeNotifier {
 
   Future<void> delete(CatalogItem item) async {
     stop(item);
+    // An old marker being checked may still write its new marker: wait.
+    await _upgrading[item.id];
     await store.delete(item);
     stateOf(item).error = null;
     catalog = _compose(); // an item only installed here goes from the list
@@ -935,6 +937,9 @@ class DownloadManager extends ChangeNotifier {
   /// Install markers from before signed records (see
   /// [DownloadStore.upgradeOldMarker]): checked against the catalog in
   /// the background, one at a time, shown as "checking".
+  /// Old markers being checked now, by id (see [delete]).
+  final _upgrading = <String, Future<void>>{};
+
   Future<void> _upgradeOldMarkers() async {
     for (final (:kind, :id) in store.oldMarkers()) {
       if (_disposed || _paused) return;
@@ -950,12 +955,15 @@ class DownloadManager extends ChangeNotifier {
           ..bytes = 0;
         notifyListeners();
       }
+      final finished = Completer<void>();
+      _upgrading[id] = finished.future;
       try {
         var done = 0;
         final r = await store.upgradeOldMarker(
           kind,
           id,
           item,
+          cancel: cancel,
           hash: (file) async {
             var lastUi = 0;
             final sum = await sha256OfFile(
@@ -978,6 +986,8 @@ class DownloadManager extends ChangeNotifier {
         // Cancelled or a read error: checked again at the next start.
         _log({'event': 'old_marker', 'id': id, 'error': '$e'});
       } finally {
+        _upgrading.removeWhere((k, _) => k == id);
+        finished.complete();
         if (s != null) {
           s
             ..cancel = null

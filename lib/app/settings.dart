@@ -61,7 +61,12 @@ class AppSettings extends ChangeNotifier {
   static const format = 1;
 
   /// Reads settings.json from app support, or from [dir] (tests).
-  Future<void> load({Directory? dir}) async {
+  Future<void> load({Directory? dir}) => _loading = _load(dir);
+
+  /// The running or finished load: saves wait for it.
+  Future<void>? _loading;
+
+  Future<void> _load(Directory? dir) async {
     dir ??= await getApplicationSupportDirectory();
     // Saves start once the file was read (and kept as a copy if needed).
     final file = File('${dir.path}/settings.json');
@@ -125,6 +130,7 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> _save() async {
+    await _loading;
     final f = _file;
     if (f == null || !mayReplace(f)) return;
     await f.writeAsString(

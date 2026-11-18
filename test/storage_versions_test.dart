@@ -315,6 +315,17 @@ void main() {
       expect(saved['format'], TrustList.format);
     });
 
+    test('a key added while loading is saved', () async {
+      final base = await FactSigner.generate();
+      final t = TrustList();
+      final loading = t.load(file('trusted_keys.json'));
+      final id = await t.add(base.publicKeyText, 'Base');
+      await loading;
+      final again = TrustList();
+      await again.load(file('trusted_keys.json'));
+      expect(again.trusts(id!), isTrue);
+    });
+
     test('a bad entry is skipped, not a crash', () async {
       final base = await FactSigner.generate();
       final t0 = TrustList();
@@ -555,6 +566,26 @@ void main() {
         ),
         throwsA(isA<DownloadCancelled>()),
       );
+      expect(s.oldMarkers().single.id, id);
+    });
+
+    test('stopped after hashing: no marker is written', () async {
+      final s = await oldDevice();
+      final cancel = CancelToken();
+      await expectLater(
+        s.upgradeOldMarker(
+          ItemKind.model,
+          id,
+          await item(),
+          hash: (f) async {
+            cancel.cancel();
+            return sum;
+          },
+          cancel: cancel,
+        ),
+        throwsA(isA<DownloadCancelled>()),
+      );
+      expect(s.installed(ItemKind.model, id), isNull);
       expect(s.oldMarkers().single.id, id);
     });
 

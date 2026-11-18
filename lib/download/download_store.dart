@@ -224,13 +224,15 @@ class DownloadStore {
   /// at every start, and the item shows as not installed. An unsigned
   /// marker is never trusted as it is.
   ///
-  /// [hash] may throw [DownloadCancelled]: then nothing changes and the
-  /// marker is checked again at the next start.
+  /// [hash] may throw [DownloadCancelled], and so does a [cancel] that
+  /// is set when hashing is done: then nothing changes and the marker is
+  /// checked again at the next start.
   Future<OldMarker> upgradeOldMarker(
     ItemKind kind,
     String id,
     CatalogItem? item, {
     Future<String> Function(File file)? hash,
+    CancelToken? cancel,
   }) async {
     final m = _marker(kind, id);
     if (!m.existsSync() || (_markerFormatOf(_readOr(m)) ?? 0) != 0) {
@@ -255,6 +257,8 @@ class DownloadStore {
       final sum = await (hash ?? sha256OfFile)(file);
       if (sum != f.sha256) return retire();
     }
+    // Stopped after the last file was hashed: nothing is written.
+    if (cancel?.isCancelled ?? false) throw DownloadCancelled();
     try {
       await markInstalled(item);
     } on UnsignedItem {

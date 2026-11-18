@@ -95,7 +95,13 @@ class TrustList extends ChangeNotifier {
   /// Reads [file]. A broken file means no trusted keys, not a crash at
   /// start: keys are added again from the shelter QR. A broken entry is
   /// skipped.
-  Future<void> load(File file) async {
+  Future<void> load(File file) => _loading = _load(file);
+
+  /// The running or finished load: [add] waits for it, so a key added
+  /// meanwhile is saved, and only after the file was kept if needed.
+  Future<void>? _loading;
+
+  Future<void> _load(File file) async {
     final keys = await readVersioned(file, format, (json, f) {
       final m = (f == 0 ? json : (json! as Map)['keys'])! as Map;
       return m.cast<String, Object?>();
@@ -118,6 +124,7 @@ class TrustList extends ChangeNotifier {
 
   /// Trusts [publicKeyText]; returns its key id, or null if malformed.
   Future<String?> add(String publicKeyText, String name) async {
+    await _loading;
     final List<int> key;
     try {
       key = _unb64(publicKeyText);
