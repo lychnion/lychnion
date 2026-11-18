@@ -20,13 +20,15 @@ here should be relied on alone in an emergency. Source only; build it as
   sources and the app checks the citation numbers; an answer without a
   valid citation is shown with a warning. When a question matches a
   hazard in a guide (for example a tsunami), the answer starts with a
-  safety line quoted word for word from an official source. Answer
-  models to download: Gemma 4 E2B for phones, E4B for computers. Search
-  with EmbeddingGemma 2. All on the device.
-- **Offline maps** for two areas: Nishinomiya (bundled) and Kushimoto
-  (download). Evacuation sites per hazard, tsunami inundation areas by
-  depth, and walking routes; tsunami routes keep to higher ground. The
-  nearest site is on Home.
+  safety line from an official source: the official text word for word,
+  or our translation (not official) when the source is in another
+  language, with the official text one tap away. Answer models to
+  download: Gemma 4 E2B for phones, E4B for computers. Search with
+  EmbeddingGemma 2. All on the device.
+- **Offline maps** for two areas to download: Nishinomiya and Kushimoto.
+  Evacuation sites per hazard, tsunami inundation areas by depth, and
+  walking routes; tsunami routes keep to higher ground. The evacuation
+  sites for Nishinomiya come with the app. The nearest site is on Home.
 - **Home, Ask and Map tabs.** Saved conversations, first steps, a guided
   tour, and a first-start notice on what the app can and cannot do.
 - **Downloads.** Models, guides and maps from catalogs of signed package
