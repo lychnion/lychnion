@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -31,7 +32,7 @@ void main() {
       } else {
         r.response.write('{"format":2}');
       }
-      r.response.close();
+      unawaited(r.response.close());
     };
     expect(await fetchCatalogText(at('c.json')), '{"format":2}');
     await expectLater(
@@ -53,7 +54,7 @@ void main() {
       } else {
         r.response.statusCode = 503;
       }
-      r.response.close();
+      unawaited(r.response.close());
     };
     final f = await Downloader().fetch(
       FileSpec(
@@ -83,7 +84,7 @@ void main() {
         // /secret must never be asked for.
         r.response.statusCode = 500;
       }
-      r.response.close();
+      unawaited(r.response.close());
     };
     final asked = <String>[];
     final f =

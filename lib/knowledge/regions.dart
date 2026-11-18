@@ -9,7 +9,7 @@ import 'package:sqlite3/sqlite3.dart';
 /// from Natural Earth admin-1 boundaries (public domain): ISO 3166-2 codes
 /// such as 'JP-28' (Hyōgo) or 'US-CA', with every point of the 1:10m
 /// outlines (about 1 km precision). Used to rank sources tagged for the user's region a little
-/// higher ([localityBoost]). The position is only used on this device.
+/// higher (`localityBoost` in knowledge_package.dart). The position is only used on this device.
 class RegionLookup {
   RegionLookup._(this._regions);
 

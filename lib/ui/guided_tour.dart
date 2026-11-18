@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app/brand.dart';
@@ -87,13 +89,15 @@ class _TourState extends State<_Tour> {
     // Bring the part into view first (Home scrolls).
     final ctx = widget.stops[i].key.currentContext;
     if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        alignment: 0.3,
-        duration: const Duration(milliseconds: 250),
-      ).then((_) {
-        if (mounted) setState(() {});
-      });
+      unawaited(
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.3,
+          duration: const Duration(milliseconds: 250),
+        ).then((_) {
+          if (mounted) setState(() {});
+        }),
+      );
     }
     setState(() => _i = i);
   }

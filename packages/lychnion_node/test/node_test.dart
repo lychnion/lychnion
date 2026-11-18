@@ -93,13 +93,16 @@ void main() {
     return r;
   }
 
-  void publish(List<PackageRecord> records, {Map? urls, List? mirrors}) =>
-      src.catalog = {
-        'format': 2,
-        'records': [for (final r in records) r.json],
-        'urls': ?urls,
-        'mirrors': ?mirrors,
-      };
+  void publish(
+    List<PackageRecord> records, {
+    Map<String, String>? urls,
+    List<String>? mirrors,
+  }) => src.catalog = {
+    'format': 2,
+    'records': [for (final r in records) r.json],
+    'urls': ?urls,
+    'mirrors': ?mirrors,
+  };
 
   Future<PullResult> go() => pull([src.url], folder, trust);
 

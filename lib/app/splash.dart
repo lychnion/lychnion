@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ class _SplashOverlayState extends State<SplashOverlay>
       _intro.value = 1;
       Future.delayed(SplashOverlay.still, _finish);
     } else {
-      _intro.forward().whenComplete(_finish);
+      unawaited(_intro.forward().whenComplete(_finish));
     }
   }
 

@@ -64,7 +64,7 @@ String _en(String country) => 'Source from $country';
 String? foreignLabel(Source s, String user, {required String lang}) {
   if (localityLevel(s.region, user) > 0) return null;
   final code = s.region.split('-').first;
-  final name = pick(_countries[code] ?? const {}, lang) ?? code;
+  final name = pick(_countries[code] ?? const <String, String>{}, lang) ?? code;
   return (_foreignLabel[lang] ?? _en)(name);
 }
 
@@ -361,12 +361,12 @@ class KnowledgePackage {
       final sources = {
         for (final r in rows)
           r['id'] as String: Source(
-            r['id'],
-            r['title'],
-            r['publisher'],
-            r['url'],
-            r['licence'],
-            r['attribution'],
+            r['id'] as String,
+            r['title'] as String,
+            r['publisher'] as String,
+            r['url'] as String,
+            r['licence'] as String,
+            r['attribution'] as String,
             region: (hasRegion ? r['region'] as String? : null) ?? 'JP',
           ),
       };
@@ -390,10 +390,10 @@ class KnowledgePackage {
       final passages = [
         for (final r in passageRows)
           Passage(
-            r['id'],
-            sources[r['source_id']]!,
-            r['heading'] ?? '',
-            r['text'],
+            r['id'] as int,
+            sources[r['source_id'] as String]!,
+            r['heading'] as String? ?? '',
+            r['text'] as String,
             original: hasOriginal ? r['original'] as String? : null,
             originalHeading: hasOriginal
                 ? r['original_heading'] as String?
@@ -415,9 +415,9 @@ class KnowledgePackage {
       final alerts = [
         for (final r in db.select('SELECT * FROM alerts'))
           Alert(
-            r['id'],
-            sources[r['source_id']]!,
-            r['text'],
+            r['id'] as String,
+            sources[r['source_id'] as String]!,
+            r['text'] as String,
             // The package language's trigger words, plus English ones.
             matchAll: {
               meta['language'] ?? 'ja': groups(r['match_all']),

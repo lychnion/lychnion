@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../knowledge/knowledge_package.dart' show PackageInfo;
@@ -49,10 +51,12 @@ class _NoticeGateState extends State<NoticeGate> {
   void initState() {
     super.initState();
     if (!widget.settings.hasAcknowledged(appNoticeKey)) {
-      widget
-          .packages()
-          .then((p) => mounted ? setState(() => _packages = p) : null)
-          .catchError((Object _) => null);
+      unawaited(
+        widget
+            .packages()
+            .then((p) => mounted ? setState(() => _packages = p) : null)
+            .catchError((Object _) => null),
+      );
     }
   }
 

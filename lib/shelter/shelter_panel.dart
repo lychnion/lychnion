@@ -436,9 +436,11 @@ class _AddressDialogState extends State<_AddressDialog> {
   @override
   void initState() {
     super.initState();
-    _finder.start().catchError((Object _) {
-      if (mounted) setState(() => _looking = false);
-    });
+    unawaited(
+      _finder.start().catchError((Object _) {
+        if (mounted) setState(() => _looking = false);
+      }),
+    );
     _wait = Timer(const Duration(seconds: 15), () {
       if (mounted) setState(() => _waited = true);
     });

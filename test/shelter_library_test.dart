@@ -61,16 +61,19 @@ void main() {
   });
   final shaA = 'a' * 64, shaB = 'b' * 64;
 
-  Future<Catalog> catalog(List<PackageRecord> rs, Uri from, {Map? urls}) =>
-      Catalog.parse(
-        jsonEncode({
-          'format': 2,
-          'records': [for (final r in rs) r.json],
-          'urls': ?urls,
-        }),
-        fetchedFrom: from,
-        trust: trust,
-      );
+  Future<Catalog> catalog(
+    List<PackageRecord> rs,
+    Uri from, {
+    Map<String, String>? urls,
+  }) => Catalog.parse(
+    jsonEncode({
+      'format': 2,
+      'records': [for (final r in rs) r.json],
+      'urls': ?urls,
+    }),
+    fetchedFrom: from,
+    trust: trust,
+  );
 
   group('merging a shelter catalog', () {
     final home = Uri.parse('https://example.org/catalog.json');

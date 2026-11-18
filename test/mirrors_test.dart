@@ -1,4 +1,5 @@
 // Files by hash, several mirrors (docs/distribution.md, step 3).
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -231,7 +232,7 @@ void main() {
           ..statusCode = 500
           ..bufferOutput = false
           ..write('still going');
-        req.response.flush(); // and never closed
+        unawaited(req.response.flush()); // and never closed
       });
       final good = await serve(data);
       final f = await Downloader().fetch(

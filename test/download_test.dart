@@ -250,8 +250,10 @@ void main() {
       }
     });
 
-    Future<String> catalogJson(List<Object?> records, {Map? urls}) async =>
-        jsonEncode({'format': 2, 'records': records, 'urls': ?urls});
+    Future<String> catalogJson(
+      List<Object?> records, {
+      Map<String, String>? urls,
+    }) async => jsonEncode({'format': 2, 'records': records, 'urls': ?urls});
 
     test(
       'resolves file URLs: listed, else by name next to the catalog',

@@ -35,14 +35,14 @@ String canonicalJson(Object? v) {
         out.write(d.toInt());
       case String s:
         _writeString(out, s);
-      case List l:
+      case List<Object?> l:
         out.write('[');
         for (var i = 0; i < l.length; i++) {
           if (i > 0) out.write(',');
           write(l[i]);
         }
         out.write(']');
-      case Map m:
+      case Map<Object?, Object?> m:
         final keys = [for (final k in m.keys) k as String]..sort();
         out.write('{');
         for (var i = 0; i < keys.length; i++) {

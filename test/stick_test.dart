@@ -325,7 +325,7 @@ void main() {
       ..writeAsStringSync('aaa');
     File(
       '${node.path}/catalog.json',
-    ).writeAsStringSync(jsonEncode({'format': 2, 'records': []}));
+    ).writeAsStringSync(jsonEncode({'format': 2, 'records': <Object?>[]}));
     File('${node.path}/.kept.json').writeAsStringSync(jsonEncode([r.json]));
     await copyToStick(store('empty'), node);
     expect(blob.existsSync(), isTrue);
