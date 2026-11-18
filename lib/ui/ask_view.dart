@@ -30,6 +30,7 @@ class AskView extends StatefulWidget {
     this.shelterName,
     this.recent,
     this.onOpenSettings,
+    this.onShowNotice,
     this.onOpenDownloads,
     this.devActions = const [],
     this.detailExtra,
@@ -70,6 +71,9 @@ class AskView extends StatefulWidget {
 
   /// First entry of the ⋮ menu.
   final VoidCallback? onOpenSettings;
+
+  /// Second entry: the first-start notice again.
+  final VoidCallback? onShowNotice;
 
   @override
   State<AskView> createState() => _AskViewState();
@@ -115,6 +119,7 @@ class _AskViewState extends State<AskView> {
           AppMenu(
             en: en,
             onOpenSettings: widget.onOpenSettings,
+            onShowNotice: widget.onShowNotice,
             devActions: widget.devActions,
           ),
           const SizedBox(width: 8),
@@ -498,17 +503,21 @@ class QuestionBar extends StatelessWidget {
   );
 }
 
-/// ⋮ menu: settings, then developer actions.
+/// ⋮ menu: settings, what the app can and cannot do, developer actions.
 class AppMenu extends StatelessWidget {
   const AppMenu({
     super.key,
     required this.en,
     this.onOpenSettings,
+    this.onShowNotice,
     this.devActions = const [],
   });
 
   final bool en;
   final VoidCallback? onOpenSettings;
+
+  /// The first-start notice again ("Before you start").
+  final VoidCallback? onShowNotice;
   final List<DevAction> devActions;
 
   @override
@@ -523,6 +532,14 @@ class AppMenu extends StatelessWidget {
             title: Text(en ? 'Settings' : '設定'),
           ),
         ),
+      if (onShowNotice != null)
+        PopupMenuItem(
+          value: -2,
+          child: ListTile(
+            leading: const Icon(Icons.info_outline_rounded),
+            title: Text(en ? 'Before you start' : 'ご利用の前に'),
+          ),
+        ),
       if (devActions.isNotEmpty) const PopupMenuDivider(),
       for (var i = 0; i < devActions.length; i++)
         PopupMenuItem(
@@ -535,7 +552,10 @@ class AppMenu extends StatelessWidget {
           ),
         ),
     ],
-    onSelected: (i) =>
-        i == -1 ? onOpenSettings?.call() : devActions[i].onTap?.call(),
+    onSelected: (i) => switch (i) {
+      -1 => onOpenSettings?.call(),
+      -2 => onShowNotice?.call(),
+      _ => devActions[i].onTap?.call(),
+    },
   );
 }

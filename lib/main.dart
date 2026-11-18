@@ -1009,6 +1009,15 @@ class _SpikePageState extends State<SpikePage> {
               onShowOnMap: widget.onShowOnMap,
             ),
       packageIds: [for (final p in _packages) p.id],
+      onShowNotice: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (c) => NoticeScreen(
+            en: en,
+            packages: _packages,
+            onAccept: () => Navigator.of(c).pop(),
+          ),
+        ),
+      ),
       packages: _packages.isEmpty
           ? null
           : PackageRow(
