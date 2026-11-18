@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../download/download_store.dart';
+import 'language.dart';
 
 class Source {
   Source(
@@ -42,24 +43,29 @@ int localityLevel(String region, String user) {
 double localityBoost(String region, String user) =>
     1 + 0.03 * localityLevel(region, user);
 
-/// Names for foreign source labels, e.g. 「海外の資料（英国）」.
-const _countries = <String, (String, String)>{
-  'GB': ('英国', 'UK'),
-  'US': ('米国', 'US'),
-  'CA': ('カナダ', 'Canada'),
-  'AU': ('オーストラリア', 'Australia'),
-  'NZ': ('ニュージーランド', 'New Zealand'),
-  'CH': ('スイス', 'Switzerland'),
-  'AT': ('オーストリア', 'Austria'),
-  'DE': ('ドイツ', 'Germany'),
+/// Country names for foreign source labels, by language.
+const _countries = <String, Map<String, String>>{
+  'GB': {'ja': '英国', 'en': 'UK'},
+  'US': {'ja': '米国', 'en': 'US'},
+  'CA': {'ja': 'カナダ', 'en': 'Canada'},
+  'AU': {'ja': 'オーストラリア', 'en': 'Australia'},
+  'NZ': {'ja': 'ニュージーランド', 'en': 'New Zealand'},
+  'CH': {'ja': 'スイス', 'en': 'Switzerland'},
+  'AT': {'ja': 'オーストリア', 'en': 'Austria'},
+  'DE': {'ja': 'ドイツ', 'en': 'Germany'},
 };
 
-/// "海外の資料（英国）" / "Source from the UK", or null for a local source.
-String? foreignLabel(Source s, String user, {required bool en}) {
+/// "Source from {country}" per language; other languages use English.
+const _foreignLabel = <String, String Function(String)>{'ja': _ja, 'en': _en};
+String _ja(String country) => '海外の資料（$country）';
+String _en(String country) => 'Source from $country';
+
+/// 「海外の資料（英国）」 / "Source from UK", or null for a local source.
+String? foreignLabel(Source s, String user, {required String lang}) {
   if (localityLevel(s.region, user) > 0) return null;
   final code = s.region.split('-').first;
-  final name = _countries[code];
-  return en ? 'Source from ${name?.$2 ?? code}' : '海外の資料（${name?.$1 ?? code}）';
+  final name = pick(_countries[code] ?? const {}, lang) ?? code;
+  return (_foreignLabel[lang] ?? _en)(name);
 }
 
 class Passage {
@@ -96,26 +102,36 @@ class Alert {
   Alert(
     this.id,
     this.source,
-    this.text,
-    this.matchAll,
-    this.textEn,
-    this.matchAllEn,
-  );
+    this.text, {
+    this.matchAll = const {},
+    this.translations = const {},
+  });
   final String id;
   final Source source;
+
+  /// The official text, word for word.
   final String text;
 
-  /// Every group needs at least one word present in the question.
-  final List<List<String>> matchAll;
+  /// Trigger words per language: every group needs at least one word
+  /// present in the question.
+  final Map<String, List<List<String>>> matchAll;
 
-  /// Our English translation (not official) and its trigger words.
-  final String? textEn;
-  final List<List<String>> matchAllEn;
+  /// Our translations (not official), by language.
+  final Map<String, String> translations;
+
+  /// The text to show for [lang]: our translation if there is one, else
+  /// the official text.
+  String textIn(String lang) => translations[lang] ?? text;
+  bool translatedFor(String lang) => translations.containsKey(lang);
 
   bool matches(String question) {
-    bool all(List<List<String>> groups, String q) =>
-        groups.isNotEmpty && groups.every((g) => g.any(q.contains));
-    return all(matchAll, question) || all(matchAllEn, question.toLowerCase());
+    final lower = question.toLowerCase();
+    bool all(List<List<String>> groups) =>
+        groups.isNotEmpty &&
+        groups.every(
+          (g) => g.any((w) => question.contains(w) || lower.contains(w)),
+        );
+    return matchAll.values.any(all);
   }
 }
 
@@ -126,16 +142,29 @@ class PackageInfo {
     this.version,
     this.passages, {
     this.notice = const {},
+    this.name = const {},
+    this.icon = '',
+    this.suggestions = const {},
   });
   final String id, title, version;
   final int passages;
+
+  /// Shown name per language (falls back to [title]), an icon name (see
+  /// lib/ui/package_icons.dart) and suggested first questions per language:
+  /// all from the package's manifest, so any publisher can bring them.
+  final Map<String, String> name;
+  final String icon;
+  final Map<String, List<({String icon, String text})>> suggestions;
+
+  String nameIn(String lang) => pick(name, lang) ?? title;
+  List<({String icon, String text})> suggestionsIn(String lang) =>
+      pick(suggestions, lang) ?? const [];
 
   /// What the package is not for, per language ('ja', 'en'): shown before
   /// people rely on it (see lib/app/notices.dart).
   final Map<String, List<String>> notice;
 
-  List<String> noticeIn({required bool en}) =>
-      notice[en ? 'en' : 'ja'] ?? notice['ja'] ?? const [];
+  List<String> noticeIn(String lang) => pick(notice, lang) ?? const [];
 
   /// Changes when the notice text changes, so people see it again.
   String get noticeKey => 'pkg:$id:${_fnv(jsonEncode(notice))}';
@@ -149,6 +178,24 @@ String _fnv(String s) {
   }
   return h.toRadixString(16);
 }
+
+/// Name, icon and suggestions from a package's meta table.
+({
+  Map<String, String> name,
+  String icon,
+  Map<String, List<({String icon, String text})>> suggestions,
+})
+parseLabels(Map<String, String> meta) => (
+  name: (jsonDecode(meta['name'] ?? '{}') as Map).cast<String, String>(),
+  icon: meta['icon'] ?? '',
+  suggestions: {
+    for (final e in (jsonDecode(meta['suggestions'] ?? '{}') as Map).entries)
+      e.key as String: [
+        for (final s in e.value as List)
+          (icon: (s as Map)['icon'] as String, text: s['text'] as String),
+      ],
+  },
+);
 
 /// The notice from a package's meta table. Packages built before notices
 /// existed get the one from their manifest here, so the released file (and
@@ -188,9 +235,21 @@ class KnowledgePackage {
     this.vectors, {
     List<PackageInfo>? parts,
     Map<String, List<String>> notice = const {},
+    Map<String, String> meta = const {},
   }) : parts =
            parts ??
-           [PackageInfo(id, title, version, passages.length, notice: notice)];
+           [
+             PackageInfo(
+               id,
+               title,
+               version,
+               passages.length,
+               notice: notice,
+               name: parseLabels(meta).name,
+               icon: parseLabels(meta).icon,
+               suggestions: parseLabels(meta).suggestions,
+             ),
+           ];
 
   final String id, title, version;
 
@@ -274,6 +333,9 @@ class KnowledgePackage {
         meta['version'] ?? '',
         0,
         notice: parseNotice(meta['notice'], id: meta['id']),
+        name: parseLabels(meta).name,
+        icon: parseLabels(meta).icon,
+        suggestions: parseLabels(meta).suggestions,
       );
     } finally {
       db.close();
@@ -356,9 +418,12 @@ class KnowledgePackage {
             r['id'],
             sources[r['source_id']]!,
             r['text'],
-            groups(r['match_all']),
-            r['text_en'] as String?,
-            groups(r['match_all_en']),
+            // The package language's trigger words, plus English ones.
+            matchAll: {
+              meta['language'] ?? 'ja': groups(r['match_all']),
+              'en': groups(r['match_all_en']),
+            },
+            translations: {'en': ?r['text_en'] as String?},
           ),
       ];
       final synonyms = {
@@ -391,6 +456,7 @@ class KnowledgePackage {
         synonyms,
         vectors,
         notice: parseNotice(meta['notice'], id: meta['id']),
+        meta: meta,
       );
     } finally {
       db.close();

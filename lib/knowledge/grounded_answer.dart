@@ -2,36 +2,84 @@ import '../llm/local_llm.dart';
 import 'hybrid_retriever.dart';
 import 'knowledge_package.dart';
 import 'retriever.dart';
+import 'language.dart';
 import 'subjects.dart';
 
-const groundedSystemInstruction =
-    'あなたは日本の防災とアウトドアの安全について答えるアシスタントです。'
-    '必ず、与えられた資料に書かれていることだけを使って、日本語で答えてください。'
-    'いちばん大切なことから、3文以内で短く答えてください。'
-    '文の終わりに、根拠にした資料の番号を [1] のように付けてください。'
-    '資料に答えが書かれていない場合は「資料に答えがありません」とだけ答えてください。'
-    '自分の知識で補ったり、資料にない数字や手順を足したりしないでください。';
+export 'language.dart' show questionLanguage, pick;
 
-const noSourceText = '資料に答えがありません';
+/// Everything the answerer says to the model or the user, by language.
+/// A language without its own entry uses English, told to answer in the
+/// question's language (better: add an entry, and package texts for it).
+class AnswerTexts {
+  const AnswerTexts({
+    required this.instruction,
+    required this.noSource,
+    required this.sources,
+    required this.question,
+    required this.foreignNote,
+  });
 
-const groundedSystemInstructionEn =
-    'You answer questions about disaster preparedness and outdoor safety in Japan. '
-    'Use only what the given sources say. The sources are mostly in Japanese; answer in plain English, '
-    'in at most three short sentences, most important first. '
-    'End each sentence with the number of the source you used, like [1]. '
-    'If the sources do not answer the question, reply only: "$noSourceTextEn". '
-    'Do not add facts, numbers or steps that are not in the sources.';
+  final String instruction, noSource, sources, question, foreignNote;
 
-const noSourceTextEn = 'No answer in the sources.';
+  static AnswerTexts of(String lang) =>
+      _texts[lang] ??
+      AnswerTexts(
+        instruction:
+            '${_texts['en']!.instruction} Answer in the language of the '
+            'question (language code "$lang").',
+        noSource: _texts['en']!.noSource,
+        sources: _texts['en']!.sources,
+        question: _texts['en']!.question,
+        foreignNote: _texts['en']!.foreignNote,
+      );
 
-final _japanese = RegExp(r'[\u3040-\u30ff\u4e00-\u9fff]');
+  /// Every "no answer" text, to recognise it in any language.
+  static Iterable<String> get allNoSource =>
+      _texts.values.map((t) => t.noSource);
+}
 
-/// 'ja' if the question contains Japanese characters, otherwise 'en'.
-String questionLanguage(String q) => _japanese.hasMatch(q) ? 'ja' : 'en';
+const _texts = <String, AnswerTexts>{
+  'ja': AnswerTexts(
+    instruction:
+        'あなたは日本の防災とアウトドアの安全について答えるアシスタントです。'
+        '必ず、与えられた資料に書かれていることだけを使って、日本語で答えてください。'
+        'いちばん大切なことから、3文以内で短く答えてください。'
+        '文の終わりに、根拠にした資料の番号を [1] のように付けてください。'
+        '資料に答えが書かれていない場合は「資料に答えがありません」とだけ答えてください。'
+        '自分の知識で補ったり、資料にない数字や手順を足したりしないでください。',
+    noSource: '資料に答えがありません',
+    sources: '資料',
+    question: '質問',
+    foreignNote:
+        '海外の資料も含まれています。すべての資料を組み合わせて答えてください。'
+        '日本の資料と海外の資料の内容が違う場合は、日本の資料に従ってください。'
+        '電話番号、法律、窓口などは海外の資料から使わないでください。',
+  ),
+  'en': AnswerTexts(
+    instruction:
+        'You answer questions about disaster preparedness and outdoor safety in Japan. '
+        'Use only what the given sources say. Answer in plain English, '
+        'in at most three short sentences, most important first. '
+        'End each sentence with the number of the source you used, like [1]. '
+        'If the sources do not answer the question, reply only: "No answer in the sources." '
+        'Do not add facts, numbers or steps that are not in the sources.',
+    noSource: 'No answer in the sources.',
+    sources: 'Sources',
+    question: 'Question',
+    foreignNote:
+        'Some sources are from abroad. Combine all sources. Where a '
+        'Japanese source and a foreign one disagree, follow the '
+        'Japanese one. Do not take phone numbers, laws or services '
+        'from foreign sources.',
+  ),
+};
 
 /// What the app shows for one question.
 class GroundedAnswer {
-  GroundedAnswer(this.question) : lang = questionLanguage(question);
+  /// [lang] when already known (from a shelter computer); otherwise from
+  /// the question, with [appLang] deciding between Latin-script languages.
+  GroundedAnswer(this.question, {String? lang, String appLang = 'en'})
+    : lang = lang ?? questionLanguage(question, appLang: appLang);
 
   final String question;
   final String lang;
@@ -83,9 +131,12 @@ class GroundedAnswer {
       if (n >= 1 && n <= hits.length) hits[n - 1],
   ];
 
-  bool get saysNoSource =>
-      text.contains(noSourceText) ||
-      text.toLowerCase().contains('no answer in the sources');
+  bool get saysNoSource {
+    final t = text.toLowerCase();
+    return AnswerTexts.allNoSource.any(
+      (n) => t.contains(n.toLowerCase().replaceAll('.', '')),
+    );
+  }
 
   /// The check the UI relies on: an answer without valid citations is not shown as fact.
   bool get isGrounded =>
@@ -146,12 +197,13 @@ class GroundedAnswerer {
   /// Fills [answer] step by step; [onUpdate] is called as tokens arrive.
   Future<void> answer(GroundedAnswer answer, void Function() onUpdate) async {
     final q = answer.question;
-    final en = answer.lang == 'en';
+    final lang = answer.lang;
+    final say = AnswerTexts.of(lang);
     // Vector search is multilingual: an English question finds Japanese
     // passages as it is. Translating first cost 6-10 s on a Pixel 5a and
     // went wrong at times ("avalanche" became 「あらわせ」). Keyword search
     // alone (no search model installed) still needs a Japanese question.
-    final search = en && hybrid == null ? await _toJapanese(q) : q;
+    final search = lang != 'ja' && hybrid == null ? await _toJapanese(q) : q;
     if (search != q) answer.searchQuery = search;
     answer.alerts = package.alerts
         .where((a) => a.matches(q) || a.matches(search))
@@ -167,7 +219,7 @@ class GroundedAnswerer {
     onUpdate();
     if (answer.hits.isEmpty) {
       // Nothing relevant in the package: do not let the model guess.
-      answer.text = en ? noSourceTextEn : noSourceText;
+      answer.text = say.noSource;
       onUpdate();
       return;
     }
@@ -175,18 +227,14 @@ class GroundedAnswerer {
       answer.judgedRelevant = await _answersQuestion(search, answer.hits);
       if (answer.relatedOnly) {
         // Related but not an answer: show the passages, do not generate.
-        answer.text = en ? noSourceTextEn : noSourceText;
+        answer.text = say.noSource;
         onUpdate();
         return;
       }
     }
-    await llm.newChat(
-      systemInstruction: en
-          ? groundedSystemInstructionEn
-          : groundedSystemInstruction,
-    );
+    await llm.newChat(systemInstruction: say.instruction);
     await for (final t in llm.ask(
-      _prompt(q, answer.hits, en, userRegion: userRegion),
+      _prompt(q, answer.hits, lang, userRegion: userRegion),
       onDone: (s) => answer.stats = s,
     )) {
       answer.text += t;
@@ -204,7 +252,7 @@ class GroundedAnswerer {
       maxOutputTokens: 8,
     );
     final b =
-        StringBuffer(_prompt(question, hits, false, userRegion: userRegion))
+        StringBuffer(_prompt(question, hits, 'ja', userRegion: userRegion))
           ..writeln()
           ..writeln(
             'この資料を使って、この質問に答えられますか？'
@@ -241,41 +289,33 @@ class GroundedAnswerer {
   static String _prompt(
     String question,
     List<Hit> hits,
-    bool en, {
+    String lang, {
     String userRegion = 'JP',
   }) {
-    final b = StringBuffer(en ? 'Sources:\n' : '資料:\n');
+    final say = AnswerTexts.of(lang);
+    final b = StringBuffer('${say.sources}:\n');
     var foreign = false;
     for (var i = 0; i < hits.length; i++) {
       final p = hits[i].passage;
-      final label = foreignLabel(p.source, userRegion, en: en);
+      final label = foreignLabel(p.source, userRegion, lang: lang);
       foreign |= label != null;
       // Each question reads the passages in its own language, translated
       // when the package was built: the phone model never translates.
-      final heading = p.headingIn(en ? 'en' : 'ja');
+      final heading = p.headingIn(lang);
       b.writeln(
         '[${i + 1}] ${p.source.publisher}「${p.source.title}」'
         '${heading.isEmpty ? '' : ' / $heading'}'
         '${label == null ? '' : ' [$label]'}',
       );
-      b.writeln(p.textIn(en ? 'en' : 'ja'));
+      b.writeln(p.textIn(lang));
       b.writeln();
     }
     if (foreign) {
       // Combine both; only where they disagree does the local one win.
-      b.writeln(
-        en
-            ? 'Some sources are from abroad. Combine all sources. Where a '
-                  'Japanese source and a foreign one disagree, follow the '
-                  'Japanese one. Do not take phone numbers, laws or services '
-                  'from foreign sources.'
-            : '海外の資料も含まれています。すべての資料を組み合わせて答えてください。'
-                  '日本の資料と海外の資料の内容が違う場合は、日本の資料に従ってください。'
-                  '電話番号、法律、窓口などは海外の資料から使わないでください。',
-      );
+      b.writeln(say.foreignNote);
       b.writeln();
     }
-    b.writeln(en ? 'Question: $question' : '質問: $question');
+    b.writeln('${say.question}: $question');
     return b.toString();
   }
 }

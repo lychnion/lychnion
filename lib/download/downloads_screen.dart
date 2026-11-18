@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../app/lang.dart';
+import '../l10n/app_localizations.dart';
+
 import 'catalog.dart';
 import 'download_manager.dart';
 import 'downloader.dart';
@@ -10,14 +13,9 @@ import 'downloader.dart';
 /// Lists models, knowledge packages and map areas: size, progress,
 /// resume, checksum, delete.
 class DownloadsScreen extends StatefulWidget {
-  const DownloadsScreen({
-    super.key,
-    required this.manager,
-    required this.english,
-  });
+  const DownloadsScreen({super.key, required this.manager});
 
   final DownloadManager manager;
-  final bool english;
 
   @override
   State<DownloadsScreen> createState() => _DownloadsScreenState();
@@ -25,7 +23,6 @@ class DownloadsScreen extends StatefulWidget {
 
 class _DownloadsScreenState extends State<DownloadsScreen> {
   DownloadManager get m => widget.manager;
-  bool get en => widget.english;
 
   bool get _isPhone =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -37,32 +34,18 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     unawaited(m.refreshCatalog());
   }
 
-  String _t(String ja, String english) => en ? english : ja;
+  AppLocalizations get l => context.l10n;
+  String get lang => context.lang;
 
   String _errorText(String e) => switch (e) {
-    'offline' => _t('インターネットに接続されていません。', 'No internet connection.'),
-    'wifi-only' => _t(
-      'Wi-Fi に接続してください（モバイルデータは設定でオフ）。',
-      'Connect to Wi-Fi (mobile data is off in the setting above).',
-    ),
-    'network' => _t(
-      '接続が切れました。「再開」で続きから取得します。',
-      'The connection dropped. "Resume" continues where it stopped.',
-    ),
-    'checksum' => _t(
-      'ファイルが壊れていたため削除しました。もう一度ダウンロードしてください。',
-      'The file was damaged and has been removed. Please download again.',
-    ),
-    'checksum-local' => _t(
-      'このファイルはカタログの版と一致しません。削除してダウンロードしてください。',
-      'This file does not match the catalog. Delete it and download again.',
-    ),
-    'busy' => _t(
-      '別のウィンドウでダウンロード中です。',
-      'Already downloading in another window.',
-    ),
-    'disk-full' => _t('空き容量が足りません。', 'Not enough free space.'),
-    'disk' => _t('ファイルを保存できませんでした。', 'Could not save the file.'),
+    'offline' => l.downloadsErrorOffline,
+    'wifi-only' => l.downloadsErrorWifiOnly,
+    'network' => l.downloadsErrorNetwork,
+    'checksum' => l.downloadsErrorChecksum,
+    'checksum-local' => l.downloadsErrorChecksumLocal,
+    'busy' => l.downloadsErrorBusy,
+    'disk-full' => l.downloadsErrorDiskFull,
+    'disk' => l.downloadsErrorDisk,
     _ => e,
   };
 
@@ -71,25 +54,16 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(item.title(en)),
-          content: Text(
-            _t(
-              '${formatBytes(item.size)} をダウンロードします。Wi-Fi で行ってください。'
-                  '空き容量が ${formatBytes(item.size)} 以上必要です。'
-                  '途中で止まっても、続きから再開できます。',
-              'This downloads ${formatBytes(item.size)}. Please use Wi-Fi. '
-                  'You need at least ${formatBytes(item.size)} of free space. '
-                  'If it stops, you can resume where it left off.',
-            ),
-          ),
+          title: Text(item.title(lang)),
+          content: Text(l.downloadsLargeWarning(formatBytes(item.size))),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c, false),
-              child: Text(_t('キャンセル', 'Cancel')),
+              child: Text(l.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, true),
-              child: Text(_t('ダウンロード', 'Download')),
+              child: Text(l.downloadsDownload),
             ),
           ],
         ),
@@ -103,23 +77,18 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(_t('削除しますか？', 'Delete?')),
+        title: Text(l.downloadsDeleteTitle),
         content: Text(
-          _t(
-            '${item.title(en)}（${formatBytes(item.size)}）を端末から削除します。'
-                'オフラインでは再取得できません。',
-            'Removes ${item.title(en)} (${formatBytes(item.size)}) from this '
-                'device. You cannot get it back while offline.',
-          ),
+          l.downloadsDeleteBody(item.title(lang), formatBytes(item.size)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: Text(_t('キャンセル', 'Cancel')),
+            child: Text(l.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: Text(_t('削除', 'Delete')),
+            child: Text(l.delete),
           ),
         ],
       ),
@@ -129,7 +98,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(_t('ダウンロード', 'Downloads'))),
+    appBar: AppBar(title: Text(l.downloadsTitle)),
     body: ListenableBuilder(
       listenable: m,
       builder: (context, _) {
@@ -138,13 +107,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             SwitchListTile(
-              title: Text(_t('Wi-Fi のときだけダウンロード', 'Download on Wi-Fi only')),
-              subtitle: Text(
-                _t(
-                  'オフにするとモバイルデータも使います（数 GB になることがあります）。',
-                  'When off, mobile data is used too (can be several GB).',
-                ),
-              ),
+              title: Text(l.downloadsWifiOnly),
+              subtitle: Text(l.downloadsWifiOnlyHint),
               value: m.wifiOnly,
               onChanged: m.setWifiOnly,
             ),
@@ -157,12 +121,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                _t(
-                  'ダウンロードしたものはすべてオフラインで使えます。'
-                      'ファイルはチェックサム（SHA-256）で確認してから使います。',
-                  'Everything downloaded works offline. Files are checked '
-                      '(SHA-256) before the app uses them.',
-                ),
+                l.downloadsFooter,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -175,9 +134,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   Widget _header(ItemKind k) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
     child: Text(switch (k) {
-      ItemKind.model => _t('モデル', 'Models'),
-      ItemKind.package => _t('知識パッケージ', 'Knowledge packages'),
-      ItemKind.map => _t('地図', 'Map areas'),
+      ItemKind.model => l.downloadsKindModels,
+      ItemKind.package => l.downloadsKindPackages,
+      ItemKind.map => l.downloadsKindMaps,
     }, style: Theme.of(context).textTheme.titleSmall),
   );
 
@@ -197,33 +156,21 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         formatBytes(item.size),
         if (item.licence.isNotEmpty) item.licence,
       ].join(' · '),
-      if (item.note(en).isNotEmpty) item.note(en),
-      if (item.desktop && _isPhone)
-        _t('多くのスマートフォンには大きすぎます。', 'Too large for most phones.'),
+      if (item.note(lang).isNotEmpty) item.note(lang),
+      if (item.desktop && _isPhone) l.downloadsTooLargeForPhone,
     ];
 
     final status = switch (s.status) {
       ItemStatus.absent =>
-        canGet
-            ? _t('未ダウンロード', 'Not downloaded')
-            : _t(
-                'ダウンロード元が未設定（アプリ内蔵版を使用）',
-                'No download source yet (uses the copy in the app)',
-              ),
-      ItemStatus.partial => _t(
-        '一時停止中：${formatBytes(s.bytes)} / ${formatBytes(s.total)}',
-        'Paused: ${formatBytes(s.bytes)} of ${formatBytes(s.total)}',
+        canGet ? l.downloadsNotDownloaded : l.downloadsNoSource,
+      ItemStatus.partial => l.downloadsPaused(
+        formatBytes(s.bytes),
+        formatBytes(s.total),
       ),
-      ItemStatus.unverified => _t(
-        'ファイルあり（未確認）',
-        'File present (not checked yet)',
-      ),
+      ItemStatus.unverified => l.downloadsUnverified,
       ItemStatus.running => _runningText(s),
-      ItemStatus.installed => _t('ダウンロード済み・確認済み', 'Downloaded and checked'),
-      ItemStatus.update => _t(
-        '新しい版があります（端末: ${s.installedVersion}）',
-        'Update available (on device: ${s.installedVersion})',
-      ),
+      ItemStatus.installed => l.downloadsInstalled,
+      ItemStatus.update => l.downloadsUpdateAvailable('${s.installedVersion}'),
     };
 
     return Card(
@@ -237,7 +184,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    item.title(en),
+                    item.title(lang),
                     style: theme.textTheme.titleMedium,
                   ),
                 ),
@@ -269,39 +216,39 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 if (running)
                   OutlinedButton(
                     onPressed: () => m.stop(item),
-                    child: Text(_t('停止', 'Stop')),
+                    child: Text(l.downloadsStop),
                   ),
                 if (!running && canGet && s.status == ItemStatus.absent)
                   FilledButton(
                     onPressed: () => _download(item),
-                    child: Text(_t('ダウンロード', 'Download')),
+                    child: Text(l.downloadsDownload),
                   ),
                 if (!running && canGet && s.status == ItemStatus.partial)
                   FilledButton(
                     onPressed: () => _download(item),
-                    child: Text(_t('再開', 'Resume')),
+                    child: Text(l.downloadsResume),
                   ),
                 if (!running && canGet && s.status == ItemStatus.update)
                   FilledButton(
                     onPressed: () => _download(item),
-                    child: Text(_t('更新', 'Update')),
+                    child: Text(l.downloadsUpdate),
                   ),
                 if (!running && s.status == ItemStatus.unverified)
                   FilledButton(
                     onPressed: () => m.verifyExisting(item),
-                    child: Text(_t('ファイルを確認', 'Check file')),
+                    child: Text(l.downloadsCheckFile),
                   ),
                 if (chatPick)
                   usedChat
-                      ? Chip(label: Text(_t('使用中', 'In use')))
+                      ? Chip(label: Text(l.downloadsInUse))
                       : OutlinedButton(
                           onPressed: () => m.useChatModel(item),
-                          child: Text(_t('このモデルを使う', 'Use this model')),
+                          child: Text(l.downloadsUseModel),
                         ),
                 if (!running && s.status != ItemStatus.absent)
                   TextButton(
                     onPressed: () => _delete(item),
-                    child: Text(_t('削除', 'Delete')),
+                    child: Text(l.delete),
                   ),
               ],
             ),
@@ -316,14 +263,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   String _runningText(ItemState s) {
     final pct = s.total > 0 ? (100 * s.bytes / s.total).floor() : 0;
     return switch (s.phase) {
-      DownloadPhase.checkingPart => _t(
-        '途中までのファイルを確認中…',
-        'Checking the part already downloaded…',
-      ),
-      DownloadPhase.verifying => _t(
-        'チェックサムを確認中… $pct%',
-        'Checking the checksum… $pct%',
-      ),
+      DownloadPhase.checkingPart => l.downloadsCheckingPart,
+      DownloadPhase.verifying => l.downloadsVerifying('$pct'),
       _ =>
         '$pct% · ${formatBytes(s.bytes)} / ${formatBytes(s.total)}'
             '${s.speed > 0 ? ' · ${formatBytes(s.speed.round())}/s' : ''}'
@@ -333,7 +274,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   String _eta(double seconds) {
     final m = (seconds / 60).ceil();
-    if (m < 2) return _t('残り約1分', 'about 1 min left');
-    return _t('残り約$m分', 'about $m min left');
+    if (m < 2) return l.downloadsEtaOneMinute;
+    return l.downloadsEtaMinutes('$m');
   }
 }

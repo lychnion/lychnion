@@ -456,21 +456,8 @@ const depthBounds = [0.0, 0.3, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
 /// metres; hi = 9: no upper bound.
 typedef Depth = ({int lo, int hi});
 
-String _m(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
-
-/// 「1〜2 m」 / "1–2 m", 「0.3 m未満」, 「5 m以上」.
-String depthLabel(Depth d, {required bool en}) {
-  if (d.hi >= depthBounds.length) {
-    final lo = _m(depthBounds[d.lo]);
-    return en ? '$lo m or more' : '$lo m以上';
-  }
-  final hi = _m(depthBounds[d.hi]);
-  if (d.lo == 0) return en ? 'under $hi m' : '$hi m未満';
-  final lo = _m(depthBounds[d.lo]);
-  return en ? '$lo–$hi m' : '$lo〜$hi m';
+/// depthBounds[i] as shown: "0.3", "1", "20".
+String depthMetres(int i) {
+  final v = depthBounds[i];
+  return v == v.roundToDouble() ? '${v.round()}' : '$v';
 }
-
-/// Legend entry for colour [lo]: 「0.3 m未満」, then 「1 m〜」 / "from 1 m".
-String depthFromLabel(int lo, {required bool en}) => lo == 0
-    ? (en ? 'under 0.3 m' : '0.3 m未満')
-    : (en ? 'from ${_m(depthBounds[lo])} m' : '${_m(depthBounds[lo])} m〜');

@@ -165,10 +165,10 @@ ThemeData buildTheme(Brightness brightness) {
   );
 }
 
-/// English: headings in Lexend (brand canvas), body text stays BIZ
-/// UDPGothic. Japanese words inside a heading (a site name) fall back to
-/// BIZ UDPGothic, which Lexend lacks.
-ThemeData withEnglishHeadings(ThemeData t) {
+/// Languages written in Latin letters (English, …): headings in Lexend
+/// (brand canvas), body text stays BIZ UDPGothic. Japanese words inside a
+/// heading (a site name) fall back to BIZ UDPGothic, which Lexend lacks.
+ThemeData withLatinHeadings(ThemeData t) {
   TextStyle? lex(TextStyle? s) => s?.copyWith(
     fontFamily: Brand.wordmarkFont,
     fontFamilyFallback: const [Brand.textFont],

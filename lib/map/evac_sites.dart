@@ -7,19 +7,17 @@ import 'package:sqlite3/sqlite3.dart';
 import '../download/download_store.dart';
 import 'route_graph.dart';
 
-/// Hazard types as the GSI data defines them.
+/// Hazard types as the GSI data defines them. Names shown to people come
+/// from the app texts (`hazardName`, keyed by [name]).
 enum Hazard {
-  tsunami('津波', 'Tsunami'),
-  earthquake('地震', 'Earthquake'),
-  flood('洪水', 'Flood'),
-  landslide('崖崩れ・土石流・地滑り', 'Landslide'),
-  stormSurge('高潮', 'Storm surge'),
-  fire('大規模な火事', 'Large fire'),
-  inlandFlood('内水氾濫', 'Inland flooding'),
-  volcano('火山現象', 'Volcano');
-
-  const Hazard(this.ja, this.en);
-  final String ja, en;
+  tsunami,
+  earthquake,
+  flood,
+  landslide,
+  stormSurge,
+  fire,
+  inlandFlood,
+  volcano;
 
   static Hazard? fromKey(String key) => switch (key) {
     'tsunami' => tsunami,
@@ -87,54 +85,19 @@ class SiteDistance {
   /// is within the noise of flat coastal ground.
   static const minDip = 2.0;
 
-  /// "海抜 5 m" for the ground near the site, and how low the way goes when
-  /// it dips [minDip] or more below the start. Empty without heights.
-  String heightLabel(bool en) {
-    final r = route, h = r?.endHeight;
-    if (r == null || h == null) return '';
-    final parts = [
-      en ? '${_h(h)} m above sea level' : '海抜${_h(h)} m',
-      if (r.endDepth case final d?)
-        en
-            ? 'expected flooding ${depthLabel(d, en: true)}'
-            : '浸水想定${depthLabel(d, en: false)}',
-      if (r.dip >= minDip && r.lowest != null)
-        en
-            ? 'dips to ${_h(r.lowest!)} m on the way'
-            : '途中で海抜${_h(r.lowest!)} mまで下がる',
-    ];
-    return parts.join(' · ');
-  }
-
-  static String _h(double m) =>
+  /// A height in metres as shown: one decimal below 10 m.
+  static String formatHeight(double m) =>
       m.abs() < 10 ? m.toStringAsFixed(1) : m.round().toString();
 
   /// Walking minutes at 60 m a minute (1 m/s): slower than everyday
   /// walking, as tsunami evacuation plans assume.
   int? get minutes => walk == null ? null : max(1, (walk! / 60).round());
 
-  /// "Walk 850 m · about 14 min", or the straight line and direction.
-  String label(bool en) {
-    final w = walk;
-    if (w != null) {
-      return en
-          ? '${_fmt(w)} walk · about $minutes min'
-          : '徒歩${_fmt(w)}・約$minutes分';
-    }
-    return en
-        ? '${_fmt(meters)} ${direction(true)} · straight line'
-        : '${direction(false)}へ${_fmt(meters)} · 直線距離';
-  }
-
-  static String _fmt(double m) =>
-      m < 1000 ? '${m.round()} m' : '${(m / 1000).toStringAsFixed(1)} km';
-
-  /// 8-point compass direction in Japanese or English.
-  String direction(bool en) {
-    const ja = ['北', '北東', '東', '南東', '南', '南西', '西', '北西'];
-    const enDirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    final i = (((bearing % 360) + 22.5) ~/ 45) % 8;
-    return en ? enDirs[i] : ja[i];
+  /// 8-point compass direction as a key (`n`, `ne`, … `nw`); the app texts
+  /// (`compassPoint`) name it.
+  String get compassPoint {
+    const points = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+    return points[(((bearing % 360) + 22.5) ~/ 45) % 8];
   }
 }
 

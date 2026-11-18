@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/lang.dart';
+import '../l10n/app_localizations.dart';
 import 'fact.dart';
 
 /// Who enters facts on this device, e.g. the shelter computer's name.
@@ -9,14 +11,12 @@ class FactEditor {
   final String sourceName;
 }
 
-/// A choice in the form: the stored value and its labels.
-typedef FactChoice = ({String value, String ja, String en});
+/// A choice in the form: the stored value and its label.
+typedef FactChoice = ({String value, String label});
 
-const shelterChoices = <FactChoice>[
-  (value: 'open', ja: '開設', en: 'open'),
-  (value: 'crowded', ja: '混雑', en: 'crowded'),
-  (value: 'full', ja: '満員', en: 'full'),
-  (value: 'closed', ja: '閉鎖', en: 'closed'),
+List<FactChoice> shelterChoices(AppLocalizations l) => [
+  for (final s in ShelterStatus.values)
+    (value: s.key, label: l.shelterStatus(s.key)),
 ];
 
 /// How long a fact stays valid before it must be confirmed again.
@@ -33,7 +33,6 @@ Future<Fact?> showFactForm(
   required FactKind kind,
   required String subject,
   required String title,
-  required bool en,
   List<FactChoice>? choices,
   Fact? current,
 }) => showModalBottomSheet<Fact>(
@@ -44,7 +43,6 @@ Future<Fact?> showFactForm(
     kind: kind,
     subject: subject,
     title: title,
-    en: en,
     choices: choices,
     current: current,
   ),
@@ -56,7 +54,6 @@ class _FactForm extends StatefulWidget {
     required this.kind,
     required this.subject,
     required this.title,
-    required this.en,
     this.choices,
     this.current,
   });
@@ -65,7 +62,6 @@ class _FactForm extends StatefulWidget {
   final FactKind kind;
   final String subject;
   final String title;
-  final bool en;
   final List<FactChoice>? choices;
   final Fact? current;
 
@@ -81,8 +77,6 @@ class _FactFormState extends State<_FactForm> {
   final _note = TextEditingController();
   int _hours = 3;
   SourceType _source = SourceType.official;
-
-  bool get en => widget.en;
 
   @override
   void dispose() {
@@ -110,6 +104,7 @@ class _FactFormState extends State<_FactForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cur = widget.current;
     final canClear = cur != null && widget.kind != FactKind.shelterStatus;
@@ -133,7 +128,7 @@ class _FactFormState extends State<_FactForm> {
               children: [
                 for (final c in choices)
                   ChoiceChip(
-                    label: Text(en ? c.en : c.ja),
+                    label: Text(c.label),
                     selected: _value == c.value,
                     onSelected: (_) => setState(() => _value = c.value),
                   ),
@@ -143,25 +138,21 @@ class _FactFormState extends State<_FactForm> {
             TextField(
               controller: _text,
               autofocus: true,
-              decoration: InputDecoration(
-                labelText: en ? 'Warning (e.g. 津波警報)' : '警報・注意報（例：津波警報）',
-              ),
+              decoration: InputDecoration(labelText: l.factFormWarning),
               onChanged: (_) => setState(() {}),
             ),
           TextField(
             controller: _note,
             maxLength: 40,
-            decoration: InputDecoration(
-              labelText: en ? 'Note (optional)' : '補足（任意）',
-            ),
+            decoration: InputDecoration(labelText: l.factFormNote),
           ),
-          Text(en ? 'Valid for' : '有効時間', style: theme.textTheme.labelMedium),
+          Text(l.factFormValidFor, style: theme.textTheme.labelMedium),
           Wrap(
             spacing: 6,
             children: [
               for (final h in _lifetimes)
                 ChoiceChip(
-                  label: Text(en ? '$h h' : '$h時間'),
+                  label: Text(l.factFormHours('$h')),
                   selected: _hours == h,
                   onSelected: (_) => setState(() => _hours = h),
                 ),
@@ -172,11 +163,11 @@ class _FactFormState extends State<_FactForm> {
             segments: [
               ButtonSegment(
                 value: SourceType.official,
-                label: Text(en ? 'Official (staff, city)' : '公式（運営者・市）'),
+                label: Text(l.factFormOfficial),
               ),
               ButtonSegment(
                 value: SourceType.citizen,
-                label: Text(en ? 'Resident report' : '住民の報告'),
+                label: Text(l.factFormResident),
               ),
             ],
             selected: {_source},
@@ -188,19 +179,19 @@ class _FactFormState extends State<_FactForm> {
               if (canClear)
                 TextButton(
                   onPressed: () => Navigator.pop(context, _make(Fact.cleared)),
-                  child: Text(en ? 'No longer true' : '解除する'),
+                  child: Text(l.factFormClear),
                 ),
               const Spacer(),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(en ? 'Cancel' : 'キャンセル'),
+                child: Text(l.cancel),
               ),
               const SizedBox(width: 8),
               FilledButton(
                 onPressed: chosen == null || chosen.isEmpty
                     ? null
                     : () => Navigator.pop(context, _make(chosen)),
-                child: Text(en ? 'Save' : '保存'),
+                child: Text(l.save),
               ),
             ],
           ),

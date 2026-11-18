@@ -7,7 +7,6 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app/settings.dart';
@@ -49,6 +48,8 @@ import 'util/paths.dart';
 import 'app/brand.dart';
 import 'app/splash.dart';
 import 'app/notices.dart';
+import 'app/lang.dart';
+import 'l10n/app_localizations.dart';
 
 /// Spike app: load a GGUF model, chat with it, and time a fixed question set.
 ///
@@ -133,21 +134,21 @@ class LychnionApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
-      locale: settings.language.locale,
-      supportedLocales: const [Locale('ja'), Locale('en')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      locale: settings.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: HomePage(settings: settings),
       // Dev screenshots include pages pushed on top (conversations).
-      // English headings use Lexend; the language is known only here
-      // (it may follow the device).
+      // Headings in Latin-script languages use Lexend; the language is
+      // known only here (it may follow the device).
       builder: (context, child) {
-        final en = Localizations.localeOf(context).languageCode != 'ja';
+        final latin = usesLatinScript(context.lang);
         final shot = RepaintBoundary(key: _appShotKey, child: child);
         // The splash stays at the top, so a language change keeps its state.
         return SplashOverlay(
-          child: en
+          child: latin
               ? Theme(
-                  data: withEnglishHeadings(Theme.of(context)),
+                  data: withLatinHeadings(Theme.of(context)),
                   child: _gate(shot),
                 )
               : _gate(shot),
@@ -218,8 +219,7 @@ class _HomePageState extends State<HomePage> {
     if (link.url == widget.settings.shelterUrl) return; // already connected
     _asking = true;
     try {
-      final en = Localizations.localeOf(context).languageCode != 'ja';
-      if (await confirmShelter(context, link, en: en)) {
+      if (await confirmShelter(context, link)) {
         await widget.settings.setShelter(
           link.url,
           name: link.name,
@@ -346,44 +346,36 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _openSettings(bool _) => Navigator.of(context).push(
+  void _openSettings() => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      // Language can change while settings are open: read it here.
-      builder: (context) {
-        final en = Localizations.localeOf(context).languageCode != 'ja';
-        return SettingsScreen(
-          settings: widget.settings,
-          downloads: _downloads,
-          en: en,
-          shelter: ValueListenableBuilder(
-            valueListenable: _shelterUrls,
-            builder: (_, urls, _) => _shelterServer
-                ? ShelterQrCard(
-                    urls: urls,
-                    name: _shelterName,
-                    en: en,
-                    keyText: _facts.signer?.publicKeyText,
-                  )
-                : ShelterSettingsTile(settings: widget.settings, en: en),
-          ),
-        );
-      },
+      builder: (context) => SettingsScreen(
+        settings: widget.settings,
+        downloads: _downloads,
+        shelter: ValueListenableBuilder(
+          valueListenable: _shelterUrls,
+          builder: (_, urls, _) => _shelterServer
+              ? ShelterQrCard(
+                  urls: urls,
+                  name: _shelterName,
+                  keyText: _facts.signer?.publicKeyText,
+                )
+              : ShelterSettingsTile(settings: widget.settings),
+        ),
+      ),
     ),
   );
 
-  void _openDownloads(bool en) {
+  void _openDownloads() {
     final dm = _downloads;
     if (dm == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => DownloadsScreen(manager: dm, english: en),
-      ),
+      MaterialPageRoute<void>(builder: (_) => DownloadsScreen(manager: dm)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final en = Localizations.localeOf(context).languageCode != 'ja';
+    final l = context.l10n;
     return RepaintBoundary(
       child: Scaffold(
         body: IndexedStack(
@@ -391,7 +383,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             SpikePage(
               view: _tab == 1 ? AskPageView.conversations : AskPageView.home,
-              onOpenSettings: () => _openSettings(en),
+              onOpenSettings: _openSettings,
               onShowAsk: () => setState(() => _tab = 1),
               map: _map,
               facts: _facts,
@@ -402,24 +394,21 @@ class _HomePageState extends State<HomePage> {
                 Navigator.of(context).popUntil((r) => r.isFirst);
                 setState(() => _tab = 2);
               },
-              onOpenDownloads: () => _openDownloads(en),
+              onOpenDownloads: _openDownloads,
               onDemoDone: _demoDone,
             ),
             Scaffold(
               body: _map == null
                   ? EmptyHint(
                       icon: Icons.map_outlined,
-                      title: en ? 'No map yet' : '地図がありません',
-                      text: en
-                          ? 'Download your area to see evacuation sites without internet.'
-                          : 'お住まいの地域をダウンロードすると、インターネットなしで避難場所を確認できます。',
-                      action: en ? 'Download a map' : '地図をダウンロード',
-                      onAction: () => _openDownloads(en),
+                      title: l.mapNoMap,
+                      text: l.mapNoMapText,
+                      action: l.mapDownloadMap,
+                      onAction: _openDownloads,
                     )
                   : MapScreen(
                       key: ObjectKey(_map),
                       state: _map!,
-                      english: en,
                       editor: _shelterServer || _factsEdit
                           ? const FactEditor(sourceName: _shelterName)
                           : null,
@@ -434,17 +423,17 @@ class _HomePageState extends State<HomePage> {
             NavigationDestination(
               icon: const Icon(Icons.home_outlined),
               selectedIcon: const Icon(Icons.home_rounded),
-              label: en ? 'Home' : 'ホーム',
+              label: l.navHome,
             ),
             NavigationDestination(
               icon: const Icon(Icons.chat_bubble_outline_rounded),
               selectedIcon: const Icon(Icons.chat_bubble_rounded),
-              label: en ? 'Ask' : '質問',
+              label: l.navAsk,
             ),
             NavigationDestination(
               icon: const Icon(Icons.map_outlined),
               selectedIcon: const Icon(Icons.map_rounded),
-              label: en ? 'Map' : '地図',
+              label: l.navMap,
             ),
           ],
         ),
@@ -690,10 +679,7 @@ class _SpikePageState extends State<SpikePage> {
         });
         _packages = pkg.parts;
         if (mounted && widget.settings != null) {
-          final en = Localizations.localeOf(context).languageCode != 'ja';
-          unawaited(
-            showPackageNotices(context, widget.settings!, _packages, en: en),
-          );
+          unawaited(showPackageNotices(context, widget.settings!, _packages));
         }
       }
       _log({
@@ -857,10 +843,12 @@ class _SpikePageState extends State<SpikePage> {
 
   Future<void> _ask(String question) async {
     final thread = _current ??= _threads.create();
+    final lang = appLang(context);
     // A shelter computer answers first: faster and better than a phone.
     final shelter = _shelter;
     if (shelter != null && _shelterReady) {
-      final placeholder = GroundedAnswer(question)..answeredBy = shelter.name;
+      final placeholder = GroundedAnswer(question, appLang: lang)
+        ..answeredBy = shelter.name;
       setState(() {
         _busy = true;
         thread.entries.add(placeholder);
@@ -879,7 +867,7 @@ class _SpikePageState extends State<SpikePage> {
         _log({'event': 'shelter_failed', 'error': '$e'});
         setState(() => thread.entries.remove(placeholder));
         if (!_llm.isLoaded) {
-          final failed = GroundedAnswer(question)
+          final failed = GroundedAnswer(question, appLang: lang)
             ..text = 'Shelter not reachable and no model on this device: $e';
           setState(() {
             thread.entries.add(failed);
@@ -889,7 +877,7 @@ class _SpikePageState extends State<SpikePage> {
         }
       }
     }
-    final entry = GroundedAnswer(question);
+    final entry = GroundedAnswer(question, appLang: lang);
     setState(() {
       _busy = true;
       thread.entries.add(entry);
@@ -978,15 +966,12 @@ class _SpikePageState extends State<SpikePage> {
   @override
   Widget build(BuildContext context) {
     final ready = (_llm.isLoaded || _shelterReady) && !_busy;
-    final en = Localizations.localeOf(context).languageCode != 'ja';
     if (widget.view == AskPageView.conversations) {
       return ConversationsView(
-        en: en,
         store: _threads,
         onOpen: _openThread,
         onOpenSettings: widget.onOpenSettings,
         bar: QuestionBar(
-          en: en,
           input: _input,
           ready: ready,
           busy: _busy,
@@ -997,22 +982,16 @@ class _SpikePageState extends State<SpikePage> {
     }
     return AskView(
       onOpenSettings: widget.onOpenSettings,
-      en: en,
       phase: _phase,
       detail: _status,
       shelterName: _shelter?.name,
       home: widget.map == null
           ? null
-          : NearestSiteCard(
-              map: widget.map!,
-              en: en,
-              onShowOnMap: widget.onShowOnMap,
-            ),
-      packageIds: [for (final p in _packages) p.id],
+          : NearestSiteCard(map: widget.map!, onShowOnMap: widget.onShowOnMap),
+      packageInfos: _packages,
       onShowNotice: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (c) => NoticeScreen(
-            en: en,
             packages: _packages,
             onAccept: () => Navigator.of(c).pop(),
           ),
@@ -1020,17 +999,12 @@ class _SpikePageState extends State<SpikePage> {
       ),
       packages: _packages.isEmpty
           ? null
-          : PackageRow(
-              packages: _packages,
-              en: en,
-              onAdd: widget.onOpenDownloads,
-            ),
+          : PackageRow(packages: _packages, onAdd: widget.onOpenDownloads),
       detailExtra: _server == null
           ? null
           : ShelterQrCard(
               urls: widget.shelterUrls?.value ?? const [],
               name: _shelterName,
-              en: en,
               keyText: widget.facts?.signer?.publicKeyText,
             ),
       ready: ready,
@@ -1043,7 +1017,6 @@ class _SpikePageState extends State<SpikePage> {
       },
       recent: ThreadList(
         store: _threads,
-        en: en,
         onOpen: _openThread,
         max: 3,
         onSeeAll: widget.onShowAsk,
@@ -1063,11 +1036,10 @@ class _SpikePageState extends State<SpikePage> {
   /// The conversation page for [t], rebuilt on every state change.
   Widget _conversation(BuildContext context, Thread t) {
     final ready = (_llm.isLoaded || _shelterReady) && !_busy;
-    final en = Localizations.localeOf(context).languageCode != 'ja';
+    final l = context.l10n;
     final settings = widget.settings;
     return ConversationPage(
       title: t.title,
-      en: en,
       actions: [
         PopupMenuButton<String>(
           itemBuilder: (_) => [
@@ -1080,9 +1052,7 @@ class _SpikePageState extends State<SpikePage> {
                       : Icons.archive_outlined,
                 ),
                 title: Text(
-                  t.archived
-                      ? (en ? 'Move back' : '元に戻す')
-                      : (en ? 'Archive' : 'アーカイブ'),
+                  t.archived ? l.conversationMoveBack : l.conversationArchive,
                 ),
               ),
             ),
@@ -1090,7 +1060,7 @@ class _SpikePageState extends State<SpikePage> {
               value: 'delete',
               child: ListTile(
                 leading: const Icon(Icons.delete_outline_rounded),
-                title: Text(en ? 'Delete' : '削除'),
+                title: Text(l.delete),
               ),
             ),
           ],
@@ -1099,7 +1069,7 @@ class _SpikePageState extends State<SpikePage> {
             if (v == 'archive') {
               _threads.setArchived(t, !t.archived);
               nav.pop();
-            } else if (await _confirmDelete(context, en)) {
+            } else if (await _confirmDelete(context)) {
               _threads.delete(t);
               nav.pop();
             }
@@ -1123,7 +1093,6 @@ class _SpikePageState extends State<SpikePage> {
         ),
       ),
       bar: QuestionBar(
-        en: en,
         input: _threadInput,
         ready: ready,
         busy: _busy,
@@ -1139,22 +1108,20 @@ class _SpikePageState extends State<SpikePage> {
     );
   }
 
-  Future<bool> _confirmDelete(BuildContext context, bool en) async =>
+  Future<bool> _confirmDelete(BuildContext context) async =>
       await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(en ? 'Delete this conversation?' : 'この会話を削除しますか？'),
-          content: Text(
-            en ? 'It is removed from this device.' : 'この端末から削除されます。',
-          ),
+          title: Text(c.l10n.conversationDeleteTitle),
+          content: Text(c.l10n.conversationDeleteBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c, false),
-              child: Text(en ? 'Cancel' : 'キャンセル'),
+              child: Text(c.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, true),
-              child: Text(en ? 'Delete' : '削除'),
+              child: Text(c.l10n.delete),
             ),
           ],
         ),

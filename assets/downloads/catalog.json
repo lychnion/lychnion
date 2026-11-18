@@ -80,7 +80,7 @@
         "ja": "防災（基本）",
         "en": "Disaster preparedness (basics)"
       },
-      "version": "2026.11.1",
+      "version": "2026.11.2",
       "licence": "PDL 1.0（出典は各回答に表示）",
       "note": {
         "ja": "アプリ内蔵版より新しい版があれば更新",
@@ -90,8 +90,8 @@
         {
           "name": "jp.bousai.core.sqlite",
           "size": 1028096,
-          "sha256": "7640033841c441878444fececeaf6a7da55847fcf93aa5324031a0ab5555e044",
-          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.bousai.core.sqlite"
+          "sha256": "9fbf77b2acfb61bd119824853b8e0ecafa97a1d04a2e154ac49e37cf93c7b1aa",
+          "url": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.3/jp.bousai.core.sqlite"
         }
       ]
     },

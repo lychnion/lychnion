@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../app/lang.dart';
 import '../facts/fact.dart';
 import '../facts/fact_view.dart';
 import '../map/evac_sites.dart';
+import '../map/map_labels.dart';
 import '../map/map_state.dart';
 
 /// Home screen: active warnings and the nearest evacuation site that can
 /// take people, before any question is asked.
 class NearestSiteCard extends StatelessWidget {
-  const NearestSiteCard({
-    super.key,
-    required this.map,
-    required this.en,
-    this.onShowOnMap,
-  });
+  const NearestSiteCard({super.key, required this.map, this.onShowOnMap});
 
   final MapState map;
-  final bool en;
   final VoidCallback? onShowOnMap;
 
   @override
@@ -24,6 +20,7 @@ class NearestSiteCard extends StatelessWidget {
     listenable: map,
     builder: (context, _) {
       if (!map.ready) return const SizedBox.shrink();
+      final l = context.l10n;
       final theme = Theme.of(context);
       final scheme = theme.colorScheme;
       // During a warning, the nearest site for its hazard (a tsunami
@@ -67,7 +64,7 @@ class NearestSiteCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${w.subject} · ${w.age(facts!.now, en: en)} · ${w.sourceLabel(en: en)}',
+                          '${w.subject} · ${factAge(l, w, facts!.now)} · ${factSourceLabel(l, w)}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onError,
                           ),
@@ -105,14 +102,11 @@ class NearestSiteCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              switch ((hazard, en)) {
-                                (null, true) =>
-                                  'Nearest emergency evacuation site',
-                                (null, false) => '近くの指定緊急避難場所',
-                                (final h?, true) =>
-                                  'Nearest evacuation site for ${h.en.toLowerCase()}',
-                                (final h?, false) => '近くの指定緊急避難場所（${h.ja}）',
-                              },
+                              hazard == null
+                                  ? l.nearestEmergencySite
+                                  : l.nearestSiteFor(
+                                      hazardInSentence(l, hazard),
+                                    ),
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: scheme.onSecondaryContainer,
                               ),
@@ -125,7 +119,7 @@ class NearestSiteCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              near.first.label(en),
+                              siteLabel(l, near.first),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: scheme.onSecondaryContainer,
                               ),
@@ -133,11 +127,7 @@ class NearestSiteCard extends StatelessWidget {
                             if (map.statusOf(near.first.site) case final f?)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
-                                child: StatusChip(
-                                  fact: f,
-                                  now: facts!.now,
-                                  en: en,
-                                ),
+                                child: StatusChip(fact: f, now: facts!.now),
                               ),
                           ],
                         ),

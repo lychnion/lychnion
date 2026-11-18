@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../knowledge/language.dart';
 import 'downloader.dart';
 
 enum ItemKind { model, package, map }
@@ -26,47 +27,47 @@ class CatalogItem {
   const CatalogItem({
     required this.id,
     required this.kind,
-    required this.titleJa,
-    required this.titleEn,
+    required this.titles,
     required this.version,
     required this.licence,
     required this.files,
     this.role,
     this.desktop = false,
-    this.noteJa = '',
-    this.noteEn = '',
+    this.notes = const {},
   });
 
   final String id;
   final ItemKind kind;
-  final String titleJa, titleEn, version, licence;
+  final String version, licence;
+
+  /// Title and note by language code (`{ja: …, en: …}`).
+  final Map<String, String> titles, notes;
 
   /// Models only: `chat` or `embed`.
   final String? role;
 
   /// Too large for most phones; shown with a note there.
   final bool desktop;
-  final String noteJa, noteEn;
   final List<CatalogFile> files;
 
   int get size => files.fold(0, (a, f) => a + f.size);
-  String title(bool en) => en ? titleEn : titleJa;
-  String note(bool en) => en ? noteEn : noteJa;
+  String title(String lang) => pick(titles, lang) ?? id;
+  String note(String lang) => pick(notes, lang) ?? '';
 
   factory CatalogItem.fromJson(Map<String, Object?> j) {
-    final title = j['title']! as Map;
-    final note = (j['note'] as Map?) ?? const {};
+    Map<String, String> texts(Object? m) => {
+      for (final e in ((m as Map?) ?? const {}).entries)
+        if (e.value is String) e.key as String: e.value as String,
+    };
     return CatalogItem(
       id: j['id']! as String,
       kind: ItemKind.values.byName(j['kind']! as String),
-      titleJa: title['ja'] as String,
-      titleEn: title['en'] as String,
+      titles: texts(j['title']!),
       version: j['version']! as String,
       licence: j['licence'] as String? ?? '',
       role: j['role'] as String?,
       desktop: j['desktop'] as bool? ?? false,
-      noteJa: note['ja'] as String? ?? '',
-      noteEn: note['en'] as String? ?? '',
+      notes: texts(j['note']),
       files: [
         for (final f in j['files']! as List)
           CatalogFile.fromJson((f as Map).cast()),

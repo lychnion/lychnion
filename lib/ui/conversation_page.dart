@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/lang.dart';
 import 'ask_view.dart';
 
 /// One thread: questions and answers, with the question bar at the bottom.
@@ -7,7 +8,6 @@ class ConversationPage extends StatefulWidget {
   const ConversationPage({
     super.key,
     required this.title,
-    required this.en,
     required this.itemCount,
     required this.itemBuilder,
     required this.bar,
@@ -18,7 +18,6 @@ class ConversationPage extends StatefulWidget {
   final List<Widget> actions;
 
   final String title;
-  final bool en;
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final QuestionBar bar;
@@ -67,7 +66,7 @@ class _ConversationPageState extends State<ConversationPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       // The question itself is the first bubble; no need to repeat it.
-      title: Text(widget.en ? 'Conversation' : '会話'),
+      title: Text(context.l10n.conversationTitle),
       actions: widget.actions,
     ),
     body: Column(

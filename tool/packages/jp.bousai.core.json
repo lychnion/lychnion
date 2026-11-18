@@ -2,7 +2,7 @@
   "id": "jp.bousai.core",
   "title": "防災（基本）",
   "language": "ja",
-  "version": "2026.11.1",
+  "version": "2026.11.2",
   "note": "Spike 2 test package. Small on purpose: covers the eight test questions where official open sources exist.",
   "sources": [
     {
@@ -276,6 +276,49 @@
     ],
     "en": [
       "For evacuation, follow your city's evacuation information and the Japan Meteorological Agency's warnings first."
+    ]
+  },
+  "name": {
+    "ja": "防災",
+    "en": "Disasters"
+  },
+  "icon": "health_and_safety",
+  "suggestions": {
+    "ja": [
+      {
+        "icon": "waves",
+        "text": "海の近くで強い揺れを感じたら？"
+      },
+      {
+        "icon": "healing",
+        "text": "けがをして出血しているときは？"
+      },
+      {
+        "icon": "water_drop",
+        "text": "非常用の水はどれくらい必要？"
+      },
+      {
+        "icon": "forest",
+        "text": "山でクマに出会ったら？"
+      }
+    ],
+    "en": [
+      {
+        "icon": "waves",
+        "text": "Strong shaking near the sea: what should I do?"
+      },
+      {
+        "icon": "healing",
+        "text": "How do I stop heavy bleeding?"
+      },
+      {
+        "icon": "water_drop",
+        "text": "How much emergency water do I need?"
+      },
+      {
+        "icon": "forest",
+        "text": "What if I meet a bear in the mountains?"
+      }
     ]
   }
 }

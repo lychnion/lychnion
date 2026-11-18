@@ -1,6 +1,7 @@
 import 'package:lychnion/facts/fact.dart';
 import 'package:lychnion/facts/fact_form.dart';
 import 'package:flutter/material.dart';
+import 'package:lychnion/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -14,6 +15,9 @@ void main() {
     Fact? result;
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('ja'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) => TextButton(
             onPressed: () async => result = await showFactForm(
@@ -22,7 +26,6 @@ void main() {
               kind: kind,
               subject: 'E1',
               title: '市役所',
-              en: false,
               choices: choices,
               current: current,
             ),
@@ -49,7 +52,7 @@ void main() {
       await tester.tap(find.text('6時間'));
       await tester.enterText(find.byType(TextField).last, '受け入れ停止');
       await tester.pump();
-    }, choices: shelterChoices);
+    }, choices: shelterChoices(lookupAppLocalizations(const Locale('ja'))));
     expect(f!.value, 'full');
     expect(f.sourceType, SourceType.official);
     expect(f.sourceName, 'テスト避難所');

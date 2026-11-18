@@ -251,6 +251,11 @@ def main(manifest_path, max_chars=MAX_CHARS):
         db.execute("INSERT INTO meta VALUES(?,?)", (k, manifest.get(k, "")))
     # What the package is not for, shown to users before they rely on it.
     db.execute("INSERT INTO meta VALUES('notice',?)", (json.dumps(manifest.get("notice", {}), ensure_ascii=False),))
+    # Shown name per language, an icon name and suggested first questions
+    # per language: the app shows them without knowing the package.
+    db.execute("INSERT INTO meta VALUES('name',?)", (json.dumps(manifest.get("name", {}), ensure_ascii=False),))
+    db.execute("INSERT INTO meta VALUES('icon',?)", (manifest.get("icon", ""),))
+    db.execute("INSERT INTO meta VALUES('suggestions',?)", (json.dumps(manifest.get("suggestions", {}), ensure_ascii=False),))
     db.execute("INSERT INTO meta VALUES('gaps',?)", (json.dumps(manifest.get("gaps", []), ensure_ascii=False),))
     # Query expansion for keyword search, until vector search is added.
     db.execute("INSERT INTO meta VALUES('synonyms',?)", (json.dumps(manifest.get("synonyms", {}), ensure_ascii=False),))
@@ -289,6 +294,9 @@ if __name__ == "__main__":
         m = json.loads(Path(args[0]).read_text(encoding="utf-8"))
         db = sqlite3.connect(OUT / f"{m['id']}.sqlite")
         for k, v in (("notice", json.dumps(m.get("notice", {}), ensure_ascii=False)),
+                     ("name", json.dumps(m.get("name", {}), ensure_ascii=False)),
+                     ("icon", m.get("icon", "")),
+                     ("suggestions", json.dumps(m.get("suggestions", {}), ensure_ascii=False)),
                      ("title", m.get("title", "")), ("note", m.get("note", ""))):
             db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)", (k, v))
         db.commit()

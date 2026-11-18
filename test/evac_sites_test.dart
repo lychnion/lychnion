@@ -1,8 +1,13 @@
 import 'package:lychnion/map/evac_sites.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:lychnion/map/map_labels.dart';
+import 'package:lychnion/l10n/app_localizations.dart';
+import 'package:flutter/widgets.dart';
 
 void main() {
+  final ja = lookupAppLocalizations(const Locale('ja'));
+  final en = lookupAppLocalizations(const Locale('en'));
   final sites = EvacSites.open('assets/maps/jp.map.nishinomiya.sites.sqlite');
   const cityHall = LatLng(34.7376, 135.3417); // 西宮市役所
 
@@ -19,7 +24,7 @@ void main() {
     // ignore: avoid_print
     print([
       for (final n in near)
-        '${n.site.name} ${n.meters.round()} m ${n.direction(false)}',
+        '${n.site.name} ${n.meters.round()} m ${siteDirection(ja, n)}',
     ]);
   });
 
@@ -31,8 +36,8 @@ void main() {
   test('compass direction', () {
     final north = SiteDistance(sites.sites.first, 0, 0);
     final southWest = SiteDistance(sites.sites.first, 0, 225);
-    expect(north.direction(true), 'N');
-    expect(southWest.direction(false), '南西');
+    expect(siteDirection(en, north), 'N');
+    expect(siteDirection(ja, southWest), '南西');
   });
 
   test('keeps the GSI usage notes for the app', () {

@@ -4,22 +4,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// App language: follow the device, or always Japanese / English.
-enum AppLanguage {
-  system,
-  ja,
-  en;
-
-  Locale? get locale => switch (this) {
-    system => null,
-    ja => const Locale('ja'),
-    en => const Locale('en'),
-  };
-}
-
 /// User settings kept on the device (settings.json in app support).
 class AppSettings extends ChangeNotifier {
-  AppLanguage language = AppLanguage.system;
+  /// App language as a code ('ja', 'en', …); null: follow the device.
+  String? language;
+
+  Locale? get locale => language == null ? null : Locale(language!);
 
   /// Developer aid: speed and memory under each answer.
   bool showStats = false;
@@ -50,10 +40,11 @@ class AppSettings extends ChangeNotifier {
     _file = File('${dir.path}/settings.json');
     try {
       final j = jsonDecode(await _file!.readAsString()) as Map;
-      language = AppLanguage.values.firstWhere(
-        (l) => l.name == j['language'],
-        orElse: () => AppLanguage.system,
-      );
+      // Older files wrote 'system' for "follow the device".
+      final lang = j['language'];
+      language = lang is String && lang.isNotEmpty && lang != 'system'
+          ? lang
+          : null;
       showStats = j['show_stats'] == true;
       shelterUrl = j['shelter_url'] as String?;
       shelterName = j['shelter_name'] as String?;
@@ -65,8 +56,9 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setLanguage(AppLanguage l) async {
-    language = l;
+  /// [lang] null: follow the device.
+  Future<void> setLanguage(String? lang) async {
+    language = lang;
     notifyListeners();
     await _save();
   }
@@ -88,7 +80,7 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> _save() async => _file?.writeAsString(
     jsonEncode({
-      'language': language.name,
+      'language': ?language,
       'show_stats': showStats,
       'shelter_url': ?shelterUrl,
       'shelter_name': ?shelterName,

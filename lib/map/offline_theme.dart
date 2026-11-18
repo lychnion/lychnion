@@ -11,10 +11,10 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 ///   wanted language, falling back to the local name.
 /// - No icons: the theme loads sprites from the internet.
 /// - No minor-road labels: in Japan these are mostly road numbers.
-Theme offlineLightTheme({required bool english}) {
+Theme offlineLightTheme({required String lang}) {
   final nameField = [
     'coalesce',
-    ['get', english ? 'name:en' : 'name:ja'],
+    ['get', 'name:$lang'],
     ['get', 'name'],
   ];
   final layers = <Map<String, Object>>[];

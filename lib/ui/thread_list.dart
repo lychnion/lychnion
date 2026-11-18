@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/lang.dart';
 import 'threads.dart';
 
 /// Conversations on the home screen (or the archive): tap to open, swipe
@@ -8,7 +9,6 @@ class ThreadList extends StatelessWidget {
   const ThreadList({
     super.key,
     required this.store,
-    required this.en,
     required this.onOpen,
     this.archive = false,
     this.max = 6,
@@ -23,21 +23,16 @@ class ThreadList extends StatelessWidget {
   final VoidCallback? onSeeAll;
 
   final ThreadStore store;
-  final bool en;
   final void Function(Thread) onOpen;
 
   /// Lists archived threads instead of recent ones.
   final bool archive;
   final int max;
 
-  String _when(DateTime t) {
+  String _when(BuildContext context, DateTime t) {
     final d = DateTime.now().difference(t);
-    if (d.inMinutes < 60) {
-      return en ? '${d.inMinutes} min ago' : '${d.inMinutes}分前';
-    }
-    if (d.inHours < 24) {
-      return en ? '${d.inHours} h ago' : '${d.inHours}時間前';
-    }
+    if (d.inMinutes < 60) return context.l10n.minutesAgo('${d.inMinutes}');
+    if (d.inHours < 24) return context.l10n.hoursAgo('${d.inHours}');
     return '${t.month}/${t.day}';
   }
 
@@ -48,7 +43,10 @@ class ThreadList extends StatelessWidget {
         SnackBar(
           content: Text(text),
           behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(label: en ? 'Undo' : '元に戻す', onPressed: undo),
+          action: SnackBarAction(
+            label: context.l10n.threadsUndo,
+            onPressed: undo,
+          ),
         ),
       );
   }
@@ -57,6 +55,7 @@ class ThreadList extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: store,
     builder: (context, _) {
+      final l = context.l10n;
       final theme = Theme.of(context);
       final scheme = theme.colorScheme;
       final all = archive ? store.archived : store.recent;
@@ -67,7 +66,7 @@ class ThreadList extends StatelessWidget {
             ? Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  en ? 'No archived conversations.' : 'アーカイブした会話はありません。',
+                  l.threadsNoArchived,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -89,7 +88,7 @@ class ThreadList extends StatelessWidget {
           if (!archive && heading && shown.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(
-              en ? 'Recent questions' : '最近の質問',
+              l.threadsRecent,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: scheme.primary,
               ),
@@ -124,16 +123,14 @@ class ThreadList extends StatelessWidget {
                           store.setArchived(t, !archive);
                           _undoable(
                             context,
-                            archive
-                                ? (en ? 'Moved back' : '元に戻しました')
-                                : (en ? 'Archived' : 'アーカイブしました'),
+                            archive ? l.threadsMovedBack : l.threadsArchived,
                             () => store.setArchived(t, archive),
                           );
                         } else {
                           store.delete(t);
                           _undoable(
                             context,
-                            en ? 'Deleted' : '削除しました',
+                            l.threadsDeleted,
                             () => store.restore(t),
                           );
                         }
@@ -153,7 +150,7 @@ class ThreadList extends StatelessWidget {
                           style: theme.textTheme.bodyMedium,
                         ),
                         trailing: Text(
-                          _when(t.created),
+                          _when(context, t.created),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -169,9 +166,7 @@ class ThreadList extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton(
                 onPressed: onSeeAll,
-                child: Text(
-                  en ? 'See all (${all.length})' : 'すべて表示（${all.length}）',
-                ),
+                child: Text(l.threadsSeeAll('${all.length}')),
               ),
             ),
           if (!archive && onSeeAll == null && archivedCount > 0) ...[
@@ -182,21 +177,18 @@ class ThreadList extends StatelessWidget {
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => Scaffold(
-                      appBar: AppBar(title: Text(en ? 'Archive' : 'アーカイブ')),
+                      appBar: AppBar(title: Text(l.threadsArchive)),
                       body: ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
                           ThreadList(
                             store: store,
-                            en: en,
                             archive: true,
                             onOpen: onOpen,
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            en
-                                ? 'Swipe right to move back, left to delete.'
-                                : '右にスワイプで戻す、左にスワイプで削除。',
+                            l.threadsArchiveHint,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
@@ -208,9 +200,7 @@ class ThreadList extends StatelessWidget {
                   ),
                 ),
                 icon: const Icon(Icons.archive_outlined, size: 18),
-                label: Text(
-                  en ? 'Archive ($archivedCount)' : 'アーカイブ（$archivedCount）',
-                ),
+                label: Text(l.threadsArchiveCount('$archivedCount')),
               ),
             ),
           ],
@@ -224,14 +214,12 @@ class ThreadList extends StatelessWidget {
 class ConversationsView extends StatelessWidget {
   const ConversationsView({
     super.key,
-    required this.en,
     required this.store,
     required this.onOpen,
     required this.bar,
     this.onOpenSettings,
   });
 
-  final bool en;
   final ThreadStore store;
   final void Function(Thread) onOpen;
   final Widget bar;
@@ -239,15 +227,16 @@ class ConversationsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 20,
-        title: Text(en ? 'Ask' : '質問'),
+        title: Text(l.threadsAsk),
         actions: [
           if (onOpenSettings != null)
             IconButton(
-              tooltip: en ? 'Settings' : '設定',
+              tooltip: l.settings,
               onPressed: onOpenSettings,
               icon: const Icon(Icons.settings_outlined),
             ),
@@ -274,9 +263,7 @@ class ConversationsView extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            en
-                                ? 'No questions yet. Ask below.'
-                                : 'まだ質問はありません。下から質問できます。',
+                            l.threadsNone,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -286,7 +273,6 @@ class ConversationsView extends StatelessWidget {
                     ),
                   ThreadList(
                     store: store,
-                    en: en,
                     onOpen: onOpen,
                     max: 1000,
                     heading: false,
@@ -295,9 +281,7 @@ class ConversationsView extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
                       child: Text(
-                        en
-                            ? 'Swipe right to archive, left to delete.'
-                            : '右にスワイプでアーカイブ、左にスワイプで削除。',
+                        l.threadsSwipeHint,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,

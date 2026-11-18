@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../app/lang.dart';
 import '../app/settings.dart';
 import 'shelter_link.dart';
-import '../app/brand.dart';
 
 /// Shelter computer: a QR code phones scan to connect.
 class ShelterQrCard extends StatelessWidget {
@@ -11,7 +11,6 @@ class ShelterQrCard extends StatelessWidget {
     super.key,
     required this.urls,
     required this.name,
-    required this.en,
     this.keyText,
   });
 
@@ -21,18 +20,12 @@ class ShelterQrCard extends StatelessWidget {
 
   /// Public signing key, put in the code so phones trust signed facts.
   final String? keyText;
-  final bool en;
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
-    if (urls.isEmpty) {
-      return Text(
-        en
-            ? 'No network address found. Connect this computer to the shelter Wi-Fi.'
-            : 'ネットワークのアドレスがありません。この端末を施設のWi-Fiに接続してください。',
-      );
-    }
+    if (urls.isEmpty) return Text(l.shelterNoAddress);
     final link = ShelterLink(
       urls.first,
       name: name,
@@ -63,21 +56,19 @@ class ShelterQrCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    en ? 'Connect phones' : 'スマートフォンを接続',
+                    l.shelterConnectPhones,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    en
-                        ? 'On the shelter Wi-Fi, scan this code with the phone camera. ${Brand.name} opens and connects to "$name".'
-                        : '施設のWi-Fiに接続したスマートフォンのカメラで読み取ると、${Brand.nameJa}が開き「$name」に接続します。',
+                    l.shelterScanHint(l.appName, name),
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    en ? 'Or enter the address:' : 'またはアドレスを入力：',
+                    l.shelterOrEnterAddress,
                     style: theme.textTheme.bodySmall,
                   ),
                   for (final u in urls)
@@ -98,35 +89,25 @@ class ShelterQrCard extends StatelessWidget {
 }
 
 /// Asks before connecting to a shelter from a scanned link.
-Future<bool> confirmShelter(
-  BuildContext context,
-  ShelterLink link, {
-  required bool en,
-}) async =>
+Future<bool> confirmShelter(BuildContext context, ShelterLink link) async =>
     await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         icon: const Icon(Icons.cell_tower_rounded),
         title: Text(
-          en
-              ? 'Connect to ${link.name ?? 'this shelter'}?'
-              : '${link.name ?? 'この避難所'}に接続しますか？',
+          c.l10n.shelterConnectTo(link.name ?? c.l10n.shelterThisShelter),
         ),
         content: Text(
-          en
-              ? 'The shelter computer (${link.url.replaceFirst('http://', '')}) will answer your questions and share current information. '
-                    'Only connect to a shelter you are at.'
-              : '避難所のコンピューター（${link.url.replaceFirst('http://', '')}）が質問に答え、最新の情報を共有します。'
-                    'いま居る避難所のコードだけを読み取ってください。',
+          c.l10n.shelterConnectBody(link.url.replaceFirst('http://', '')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: Text(en ? 'Cancel' : 'キャンセル'),
+            child: Text(c.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: Text(en ? 'Connect' : '接続'),
+            child: Text(c.l10n.shelterConnect),
           ),
         ],
       ),
@@ -135,14 +116,9 @@ Future<bool> confirmShelter(
 
 /// Settings section on a phone: the saved shelter, connect by address.
 class ShelterSettingsTile extends StatelessWidget {
-  const ShelterSettingsTile({
-    super.key,
-    required this.settings,
-    required this.en,
-  });
+  const ShelterSettingsTile({super.key, required this.settings});
 
   final AppSettings settings;
-  final bool en;
 
   Future<void> _enter(BuildContext context) async {
     final ctrl = TextEditingController();
@@ -152,16 +128,14 @@ class ShelterSettingsTile extends StatelessWidget {
         builder: (c, setState) {
           final ok = ShelterLink.normalize(ctrl.text);
           return AlertDialog(
-            title: Text(en ? 'Shelter address' : '避難所のアドレス'),
+            title: Text(c.l10n.shelterAddress),
             content: TextField(
               controller: ctrl,
               autofocus: true,
               keyboardType: TextInputType.url,
               decoration: InputDecoration(
                 hintText: '192.168.1.20',
-                helperText: en
-                    ? 'Shown on the shelter computer, under the QR code.'
-                    : '避難所の端末のQRコードの横に表示されています。',
+                helperText: c.l10n.shelterAddressHelper,
               ),
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => ok == null ? null : Navigator.pop(c, ok),
@@ -169,11 +143,11 @@ class ShelterSettingsTile extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(c),
-                child: Text(en ? 'Cancel' : 'キャンセル'),
+                child: Text(c.l10n.cancel),
               ),
               FilledButton(
                 onPressed: ok == null ? null : () => Navigator.pop(c, ok),
-                child: Text(en ? 'Connect' : '接続'),
+                child: Text(c.l10n.shelterConnect),
               ),
             ],
           );
@@ -186,6 +160,7 @@ class ShelterSettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final url = settings.shelterUrl;
     return ListTile(
@@ -196,22 +171,18 @@ class ShelterSettingsTile extends StatelessWidget {
       ),
       title: Text(
         url == null
-            ? (en ? 'Connect to a shelter computer' : '避難所のコンピューターに接続')
+            ? l.shelterConnectComputer
             : (settings.shelterName ?? url.replaceFirst('http://', '')),
       ),
       subtitle: Text(
         url == null
-            ? (en
-                  ? 'Scan the QR code at the shelter, or enter its address. Answers come faster.'
-                  : '避難所のQRコードを読み取るか、アドレスを入力します。回答が速くなります。')
-            : (en
-                  ? 'Asked first · ${url.replaceFirst('http://', '')}'
-                  : '先にこちらに質問 · ${url.replaceFirst('http://', '')}'),
+            ? l.shelterConnectComputerHint
+            : l.shelterAskedFirst(url.replaceFirst('http://', '')),
       ),
       trailing: url == null
           ? const Icon(Icons.chevron_right)
           : IconButton(
-              tooltip: en ? 'Disconnect' : '切断',
+              tooltip: l.shelterDisconnect,
               onPressed: () => settings.setShelter(null),
               icon: const Icon(Icons.link_off_rounded),
             ),

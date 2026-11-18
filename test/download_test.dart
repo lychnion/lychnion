@@ -237,8 +237,7 @@ void main() {
     }) => CatalogItem(
       id: id,
       kind: kind,
-      titleJa: id,
-      titleEn: id,
+      titles: {'en': id},
       version: version,
       licence: '',
       role: role,

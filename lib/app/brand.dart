@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../knowledge/language.dart';
+
 /// Lychnion brand colours (brand canvas, board 4). No red: red and orange
 /// stay reserved for official warnings the app relays.
 abstract final class Brand {
@@ -11,8 +13,8 @@ abstract final class Brand {
   static const name = 'Lychnion';
   static const nameJa = 'リクニオン';
 
-  /// The name in running text: リクニオン in Japanese, Lychnion in English.
-  static String nameIn({required bool en}) => en ? name : nameJa;
+  // The name in running text is the app text `appName` (リクニオン in
+  // Japanese, Lychnion in English).
 
   static const night = Color(0xFF16233F);
   static const night2 = Color(0xFF22314F);
@@ -37,9 +39,10 @@ abstract final class Brand {
   /// リクニオン in the logo (only these letters are bundled).
   static const wordmarkFontJa = 'ZenMaruGothic';
 
-  /// The name as a wordmark: "Lychnion" in Lexend for English,
-  /// 「リクニオン」 in Zen Maru Gothic for Japanese.
-  static TextStyle wordmarkStyle({required bool en, Color? color}) => en
+  /// The name as a wordmark: "Lychnion" in Lexend for languages written in
+  /// Latin letters, 「リクニオン」 in Zen Maru Gothic for Japanese.
+  static TextStyle wordmarkStyle({required String lang, Color? color}) =>
+      usesLatinScript(lang)
       ? TextStyle(
           fontFamily: wordmarkFont,
           fontWeight: FontWeight.w500,

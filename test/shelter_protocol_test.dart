@@ -38,7 +38,8 @@ void main() {
       pkg.passages[3].source.attribution,
     );
     expect(got.alerts.single.text, tsunami.text);
-    expect(got.alerts.single.textEn, tsunami.textEn);
+    expect(got.alerts.single.translations, tsunami.translations);
+    expect(got.lang, sent.lang);
     expect(got.stats!.inputTokens, 800);
   });
 

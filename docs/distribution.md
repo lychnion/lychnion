@@ -1,6 +1,7 @@
 # Distribution: apps and data packages
 
-Design note, 2026-11-18. Status: agreed direction, nothing built yet.
+Design note, 2026-11-18. Status: step 1 (signed records) built; storage,
+node sync and publishing extended the same day.
 Not over-engineered on purpose: every step below works on its own.
 
 ## The situation we design for
@@ -119,6 +120,68 @@ directly: from a catalog over the internet when they can, from the shelter
 computer when they are on its Wi-Fi. They check the signature and hash,
 keep the newest version, and the app loads it.
 
+### Storage: files by hash, any server
+
+GitHub release files are where Lychnion's packages start, not what the
+system depends on: maps for all of Japan reach many gigabytes, and other
+publishers (cities, clubs) need their own place.
+
+- Every node keeps files under the same layout, `blobs/sha256/<hash>`, and
+  a signed record lists its files by hash (and may name mirrors). A phone
+  or node can fetch a file from **any** node it can reach and knows by the
+  hash that it is the right one.
+- So the host does not matter: GitHub, an object store without download
+  fees (for example Cloudflare R2), a city's web server, the shelter
+  laptop, a USB stick.
+
+### Sync between nodes
+
+- A node follows publishers (their keys and catalogs) and keeps their
+  records and files. Records keep their publisher's signature, so any
+  node can carry anyone's packages: a city mirrors Lychnion's, Lychnion
+  may mirror a city's. Every extra node is one more place to get the data
+  from.
+- Nodes sync whenever any connection exists: mobile data on one phone,
+  satellite, the hours when the network is back, or a USB stick carried
+  between places. The newest signed version wins; versions only go up.
+- Finding nodes without a central server: a short built-in list of known
+  nodes (first start), the shelter's QR code, and discovery on the local
+  Wi-Fi.
+
+### Updates during a disaster
+
+A city signs a new version of its local package on its node (new shelter
+information, a local map). It spreads to the shelter laptops as soon as
+they have any connection, and phones on a shelter's Wi-Fi get it there.
+Current facts (shelter status, closed roads) already travel the same way,
+signed, from shelter computers.
+
+### Publishing your own packages
+
+Cities and others need two things:
+
+- **A guide:** what makes a good package (clear scope; every source with a
+  licence; a notice saying what it is not for), translations and their
+  review, and the signing key (kept offline, with a plan for replacing it).
+- **A tool:** a "package studio" in the desktop app (and the same as a
+  command line for developers) that turns web pages, PDFs and shelter
+  lists into a package, checks licences, translates with a larger model
+  and marks the texts for human review, signs, and publishes to the
+  publisher's node.
+- **Import from your own website:** a city points the studio at its own
+  web pages (disaster pages, shelter lists, hazard maps) and gets a draft
+  package. The city owns that content, so it decides itself what may be
+  published, with no licence questions; nothing is published without its
+  review and signature. Built from the tools we already have
+  (`tool/build_package.py`, `tool/add_translations.py`,
+  `tool/pdf_sections.py`).
+
+### Open: whom to trust
+
+The app has Lychnion's key built in; other keys are added by QR code at a
+shelter. Lychnion could also vouch for known city keys with a signed
+list, so people do not have to judge keys themselves. To decide later.
+
 ## Security
 
 | Risk | Answer |
@@ -134,16 +197,20 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
 
 ## Steps
 
-1. **Signed records.** Sign the records of the Lychnion packages in
+1. **Signed records** (built 2026-11-18). Sign the records of the Lychnion packages in
    `lychnion-data` and make the app check them. Bundled packages stay as
    they are; downloads and updates must be signed.
 2. **Shelter computer serves packages.** The desktop app serves its
    records and files on the local network; phones connected to it update
    from it without internet. (Phones already talk to it for answers.)
-3. **Nodes for others.** Following catalogs and publishing own packages
+3. **Files by hash, several mirrors.** The `blobs/sha256/` layout on every
+   node, mirrors in the records, the app fetching from any node it knows.
+4. **Nodes for others.** Following catalogs and publishing own packages
    in the desktop app, plus the headless node. A city or a club runs one
    without Git or a server background; phones trust its key by QR.
-4. **On-site help.** A web page served by the shelter computer, so phones
+5. **Sync between nodes**, including updates during a disaster.
+6. **Publisher guide and package studio.**
+7. **On-site help.** A web page served by the shelter computer, so phones
    without the app (all iPhones without it, since iOS installs apps only
    from the App Store) can ask questions in the browser. A "shelter kit":
    one folder or stick with the desktop app, all packages and maps, and

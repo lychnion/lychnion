@@ -5,6 +5,9 @@ import 'package:lychnion/facts/fact.dart';
 import 'package:lychnion/facts/fact_store.dart';
 import 'package:lychnion/map/evac_sites.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/l10n/app_localizations.dart';
+import 'package:lychnion/facts/fact_view.dart';
+import 'package:flutter/widgets.dart' show Locale;
 
 void main() {
   final now = DateTime.utc(2026, 11, 5, 14, 20);
@@ -104,9 +107,11 @@ void main() {
 
   test('age and source labels', () {
     final f = status('full', SourceType.official, minutesAgo: 120);
-    expect(f.age(now, en: false), '2時間前');
-    expect(f.age(now, en: true), '2 h ago');
-    expect(f.sourceLabel(en: false), '西宮市 · 公式');
+    final ja = lookupAppLocalizations(const Locale('ja'));
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(factAge(ja, f, now), '2時間前');
+    expect(factAge(en, f, now), '2 h ago');
+    expect(factSourceLabel(ja, f), '西宮市 · 公式');
     expect(f.shelterStatus!.avoid, isTrue);
   });
 
