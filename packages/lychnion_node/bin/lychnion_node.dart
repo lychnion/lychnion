@@ -8,14 +8,21 @@ const _usage = '''
 Lychnion node: serves signed packages and maps to the app and other nodes.
 
   lychnion_node serve DIR [--port 8642] [--host 0.0.0.0]
-      Serve DIR (catalog.json and blobs/sha256/) over HTTP.
+                     [--pull URL]... [--every 30m] [--publisher NAME=KEY]...
+                     [--kind KIND]...
+      Serve DIR (catalog.json and blobs/sha256/) over HTTP. With --pull,
+      also pull those catalogs into DIR now and every 30 minutes (or
+      --every), in the same process: one container is enough.
 
-  lychnion_node pull --into DIR [--publisher NAME=KEY]... [--kind KIND]... URL...
+  lychnion_node pull --into DIR [--publisher NAME=KEY]... [--kind KIND]...
+                     [--every 30m] URL...
       Fetch the catalogs at URL..., keep the records signed by Lychnion
       or by the publishers given, fetch their files by hash into DIR and
       write DIR/catalog.json. Versions only go up. --kind package / map /
-      model takes only those (models are gigabytes). Run it from cron to
-      keep the node current.
+      model takes only those (models are gigabytes). With --every it
+      keeps going: again after that time, and sooner after a failed run
+      (1, 2, 4 … minutes), so short internet windows are not missed.
+      Without it, run it from cron.
 
   lychnion_node check DIR [--publisher NAME=KEY]...
       Check every record's signature and every file's hash in DIR.
@@ -53,6 +60,10 @@ Future<void> main(List<String> argv) async {
     stderr.writeln(e.message);
     exitCode = 1;
   }
+  // Signal listeners would keep the process alive; end it here.
+  await stdout.flush();
+  await stderr.flush();
+  exit(exitCode);
 }
 
 class _Usage implements Exception {
@@ -100,6 +111,92 @@ TrustedKeys _trust(List<String> args) {
   }
 }
 
+/// The options of a pull: sources, trust and kinds, taken out of [args].
+({List<Uri> sources, TrustedKeys trust, Set<String> kinds}) _pullOptions(
+  List<String> args,
+  List<String> urls,
+) {
+  final trust = _trust(args);
+  final kinds = _opts(args, '--kind').toSet();
+  for (final k in kinds) {
+    if (!const {'package', 'map', 'model'}.contains(k)) {
+      throw _Usage('--kind is package, map or model');
+    }
+  }
+  final sources = <Uri>[];
+  for (final a in urls) {
+    final u = Uri.tryParse(a);
+    if (u == null || !(u.isScheme('http') || u.isScheme('https'))) {
+      throw _Usage('not an http(s) address: $a');
+    }
+    sources.add(u);
+  }
+  return (sources: sources, trust: trust, kinds: kinds);
+}
+
+Duration? _every(List<String> args) {
+  final text = _opt(args, '--every');
+  if (text == null) return null;
+  return parseEvery(text) ??
+      (throw _Usage('--every wants a time of at least 1m, like 30m or 2h'));
+}
+
+/// Completes on Ctrl-C or SIGTERM (docker stop).
+Future<void> _stopSignal() {
+  final done = Completer<void>();
+  for (final s in [
+    ProcessSignal.sigint,
+    if (!Platform.isWindows) ProcessSignal.sigterm,
+  ]) {
+    s.watch().listen((_) {
+      if (!done.isCompleted) done.complete();
+    });
+  }
+  return done.future;
+}
+
+/// One pull with its report. True when nothing failed (another pull
+/// running counts as done: that one does the work).
+Future<bool> _pullOnce(
+  ({List<Uri> sources, TrustedKeys trust, Set<String> kinds}) o,
+  NodeFolder folder,
+) async {
+  final PullResult r;
+  try {
+    r = await pull(
+      o.sources,
+      folder,
+      o.trust,
+      kinds: o.kinds,
+      log: stdout.writeln,
+    );
+  } on PullBusy catch (e) {
+    stdout.writeln('$e');
+    return true;
+  }
+  for (final c in r.changed) {
+    stdout.writeln('new: $c');
+  }
+  for (final t in r.taken) {
+    stdout.writeln('not taken (another publisher has this id here): $t');
+  }
+  for (final f in r.failed) {
+    stderr.writeln('failed: $f');
+  }
+  if (r.keptUntrusted > 0) {
+    stdout.writeln(
+      '${r.keptUntrusted} records here are from publishers not given now: '
+      'left out of the catalog, their files kept',
+    );
+  }
+  stdout.writeln(
+    '${DateTime.now().toUtc().toIso8601String()} '
+    '${r.changed.length} new, ${r.notTrusted} not trusted, '
+    '${r.pruned} old files removed, ${r.failed.length} failed',
+  );
+  return r.failed.isEmpty;
+}
+
 Directory _dir(List<String> args) {
   if (args.length != 1) throw _Usage('give one folder');
   return Directory(args.single);
@@ -122,8 +219,11 @@ Future<int> _serve(List<String> args) async {
       address = found.first;
     }
   }
+  final pulls = _opts(args, '--pull');
+  final every = _every(args) ?? const Duration(minutes: 30);
+  final options = pulls.isEmpty ? null : _pullOptions(args, pulls);
   final folder = NodeFolder(_dir(args));
-  if (!await folder.catalogFile.exists()) {
+  if (options == null && !await folder.catalogFile.exists()) {
     stderr.writeln('${folder.catalogFile.path} is missing (run pull first)');
     return 1;
   }
@@ -136,66 +236,73 @@ Future<int> _serve(List<String> args) async {
   );
   await server.start();
   stdout.writeln('Serving ${folder.dir.path} on port ${server.boundPort}');
-  final done = Completer<void>();
-  for (final s in [
-    ProcessSignal.sigint,
-    if (!Platform.isWindows) ProcessSignal.sigterm,
-  ]) {
-    s.watch().listen((_) {
-      if (!done.isCompleted) done.complete();
-    });
-  }
-  await done.future;
+  final stop = _stopSignal();
+  // Pulls run next to the server; until the first one is done, the
+  // server answers 404 for a catalog it does not have yet.
+  final pulling = options == null
+      ? Future<void>.value()
+      : runEvery(
+          () => _pullOnce(options, folder),
+          every,
+          stop: stop,
+          log: stdout.writeln,
+        );
+  await stop;
   await server.stop();
+  // A pull in the middle of a download is not waited for: the part file
+  // resumes next time, and the lock ends with the process.
+  unawaited(pulling);
   return 0;
 }
 
 Future<int> _pull(List<String> args) async {
   final into = _opt(args, '--into');
   if (into == null) throw _Usage('pull needs --into DIR');
-  final trust = _trust(args);
-  final kinds = _opts(args, '--kind').toSet();
-  for (final k in kinds) {
-    if (!const {'package', 'map', 'model'}.contains(k)) {
-      throw _Usage('--kind is package, map or model');
-    }
+  final every = _every(args);
+  // The options are taken out of args first; what is left are the
+  // catalog addresses.
+  final all = _pullOptions(args, args);
+  if (all.sources.isEmpty) {
+    throw _Usage('pull needs at least one catalog URL');
   }
-  if (args.isEmpty) throw _Usage('pull needs at least one catalog URL');
-  final sources = <Uri>[];
-  for (final a in args) {
-    final u = Uri.tryParse(a);
-    if (u == null || !(u.isScheme('http') || u.isScheme('https'))) {
-      throw _Usage('not an http(s) address: $a');
+  final folder = NodeFolder(Directory(into));
+  if (every == null) {
+    // One run; another pull running is exit 75 (main), as before.
+    final r = await pull(
+      all.sources,
+      folder,
+      all.trust,
+      kinds: all.kinds,
+      log: stdout.writeln,
+    );
+    for (final c in r.changed) {
+      stdout.writeln('new: $c');
     }
-    sources.add(u);
+    for (final t in r.taken) {
+      stdout.writeln('not taken (another publisher has this id here): $t');
+    }
+    for (final f in r.failed) {
+      stderr.writeln('failed: $f');
+    }
+    if (r.keptUntrusted > 0) {
+      stdout.writeln(
+        '${r.keptUntrusted} records here are from publishers not given '
+        'now: left out of the catalog, their files kept',
+      );
+    }
+    stdout.writeln(
+      '${r.changed.length} new, ${r.notTrusted} not trusted, '
+      '${r.pruned} old files removed, ${r.failed.length} failed',
+    );
+    return r.failed.isEmpty ? 0 : 1;
   }
-  final r = await pull(
-    sources,
-    NodeFolder(Directory(into)),
-    trust,
-    kinds: kinds,
+  await runEvery(
+    () => _pullOnce(all, folder),
+    every,
+    stop: _stopSignal(),
     log: stdout.writeln,
   );
-  for (final c in r.changed) {
-    stdout.writeln('new: $c');
-  }
-  for (final t in r.taken) {
-    stdout.writeln('not taken (another publisher has this id here): $t');
-  }
-  for (final f in r.failed) {
-    stderr.writeln('failed: $f');
-  }
-  if (r.keptUntrusted > 0) {
-    stdout.writeln(
-      '${r.keptUntrusted} records here are from publishers not given now: '
-      'left out of the catalog, their files kept',
-    );
-  }
-  stdout.writeln(
-    '${r.changed.length} new, ${r.notTrusted} not trusted, '
-    '${r.pruned} old files removed, ${r.failed.length} failed',
-  );
-  return r.failed.isEmpty ? 0 : 1;
+  return 0;
 }
 
 Future<int> _check(List<String> args) async {

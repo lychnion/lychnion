@@ -306,8 +306,10 @@ Built (2026-11-18, steps 5a and 5b):
   phones on the base's Wi-Fi get all of it there. The settings show
   what is still to fetch. An item stopped or deleted by hand waits 30
   minutes; to keep items away for good, turn the switch off.
-- The headless node keeps itself current with `pull` from cron
-  (step 4d).
+- The headless node keeps itself current with `pull --every 30m`, or
+  `serve --pull URL --every 30m` in one process (step 5c): after a
+  failed run it tries again after 1, 2, 4 … minutes, so a short
+  internet window is not missed (README in `packages/lychnion_node`).
 
 ### Updates during a disaster
 
@@ -381,8 +383,9 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
 5. **Sync between nodes**, including updates during a disaster. In
    parts: (a) short internet windows and (b) a base that keeps
    everything (both built 2026-11-18, see "Sync between nodes");
-   (c) the headless node pulling by itself at an interval; (d) a USB
-   stick between places; (e) finding bases on the local Wi-Fi.
+   (c) the headless node pulling by itself at an interval (built
+   2026-11-18: `pull --every`, `serve --pull`); (d) a USB stick between
+   places; (e) finding bases on the local Wi-Fi.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones
    without the app (all iPhones without it, since iOS installs apps only

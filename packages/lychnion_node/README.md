@@ -50,6 +50,26 @@ node current, for example every hour.
 `/blobs/sha256/<hash>` (with Range, so downloads resume), and one line
 at `/`; nothing else. It logs one line per request.
 
+## Keeping itself current
+
+Instead of cron:
+
+```sh
+# pull now, then every 30 minutes; after a failed run (no internet)
+# again after 1, 2, 4 … minutes, so a short window is not missed
+lychnion_node pull --into /srv/lychnion --every 30m --kind package --kind map \
+  https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json
+
+# or serve and pull in one process (one container)
+lychnion_node serve /srv/lychnion --every 30m --kind package --kind map \
+  --pull https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json
+```
+
+`--every` takes `30m`, `1h`, `2h30m` (at least a minute). After a run
+that worked the next one comes after that time, give or take a tenth
+(so many nodes do not ask at the same second). Ctrl-C or `docker stop`
+ends it; a download in the middle resumes next time.
+
 In the app, a node is a catalog to follow (Settings → Catalogs):
 `http://<node>:8642/catalog.json`.
 
@@ -68,6 +88,11 @@ docker run -d -v /srv/lychnion:/data -p 8642:8642 lychnion-node
 docker run --rm -v /srv/lychnion:/data lychnion-node \
   pull --into /data --kind package \
   https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json
+
+# one container that serves and keeps itself current
+docker run -d --restart unless-stopped -v lychnion:/data -p 8642:8642 \
+  lychnion-node serve /data --every 30m --kind package --kind map \
+  --pull https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json
 ```
 
 The image holds only the compiled program and its runtime files, and

@@ -6,4 +6,5 @@ library;
 export 'src/check.dart';
 export 'src/node_folder.dart';
 export 'src/pull.dart';
+export 'src/schedule.dart';
 export 'src/server.dart';
