@@ -22,6 +22,7 @@ class SettingsScreen extends StatelessWidget {
     this.shelter,
     this.onShareNearby,
     this.region,
+    this.userRegion,
   });
 
   final AppSettings settings;
@@ -35,6 +36,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// The region local sources are ranked for (RegionTile).
   final Widget? region;
+
+  /// For Downloads: items for the user's region first.
+  final Future<String> Function()? userRegion;
 
   /// Segment value for "follow the device".
   static const _device = '';
@@ -97,8 +101,10 @@ class SettingsScreen extends StatelessWidget {
                       ? null
                       : () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) =>
-                                DownloadsScreen(manager: downloads!),
+                            builder: (_) => DownloadsScreen(
+                              manager: downloads!,
+                              userRegion: userRegion,
+                            ),
                           ),
                         ),
                 ),

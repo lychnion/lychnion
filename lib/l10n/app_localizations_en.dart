@@ -1119,6 +1119,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get regionJapan => 'Japan (no prefecture)';
 
   @override
+  String get areaJapan => 'Japan';
+
+  @override
   String get publishersTitle => 'Publishers';
 
   @override

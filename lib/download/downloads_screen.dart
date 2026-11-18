@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
+import '../app/region.dart';
+import '../knowledge/regions.dart';
 import '../l10n/app_localizations.dart';
 
 import 'catalog.dart';
@@ -105,9 +107,13 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
 /// Lists models, knowledge packages and map areas: size, progress,
 /// resume, checksum, delete. Filters keep the list short.
 class DownloadsScreen extends StatefulWidget {
-  const DownloadsScreen({super.key, required this.manager});
+  const DownloadsScreen({super.key, required this.manager, this.userRegion});
 
   final DownloadManager manager;
+
+  /// The user's region ('JP-30'): items made for it come first. None in
+  /// tests; the list then keeps catalog order.
+  final Future<String> Function()? userRegion;
 
   @override
   State<DownloadsScreen> createState() => _DownloadsScreenState();
@@ -124,7 +130,30 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   void initState() {
     super.initState();
     unawaited(m.refreshCatalog());
+    unawaited(_loadRegion());
   }
+
+  /// The user's region, and region names for the area labels.
+  String? _region;
+  RegionLookup? _regions;
+
+  Future<void> _loadRegion() async {
+    final regions = await UserRegion.lookup();
+    final region = await widget.userRegion?.call();
+    if (!mounted) return;
+    setState(() {
+      _regions = regions;
+      _region = region;
+    });
+  }
+
+  /// "和歌山県" or "大阪府、兵庫県" for an item's area; '' for anywhere.
+  String _areaText(List<String> area) => [
+    for (final c in area)
+      c.contains('-')
+          ? (_regions?.nameOf(c, lang) ?? c)
+          : (c == 'JP' ? l.areaJapan : c),
+  ].join(lang == 'ja' ? '、' : ', ');
 
   AppLocalizations get l => context.l10n;
 
@@ -265,7 +294,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     body: ListenableBuilder(
       listenable: m,
       builder: (context, _) {
-        final items = m.catalog.items;
+        final items = byArea(m.catalog.items, _region);
         return ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
@@ -413,6 +442,28 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                           item.title(lang),
                           style: theme.textTheme.titleSmall,
                         ),
+                        if (item.area.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.place_outlined,
+                                size: 14,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  _areaText(item.area),
+                                  style: muted,
+                                  overflow: TextOverflow.ellipsis,
+                                  semanticsLabel:
+                                      '${l.settingsRegion}: ${_areaText(item.area)}',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 2),
                         Row(
                           children: [

@@ -470,7 +470,16 @@ class _HomePageState extends State<HomePage> {
         settings: widget.settings,
         downloads: _downloads,
         onShareNearby: _isDesktop ? null : _openShareNearby,
-        region: RegionTile(settings: widget.settings, map: _map),
+        region: RegionTile(
+          settings: widget.settings,
+          map: _map,
+          mockLocation: _mockLocation,
+        ),
+        userRegion: () => UserRegion.current(
+          widget.settings,
+          _map,
+          mockLocation: _mockLocation,
+        ),
         shelter: _isDesktop
             ? ShelterShareSection(
                 settings: widget.settings,
@@ -492,7 +501,16 @@ class _HomePageState extends State<HomePage> {
     final dm = _downloads;
     if (dm == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => DownloadsScreen(manager: dm)),
+      MaterialPageRoute<void>(
+        builder: (_) => DownloadsScreen(
+          manager: dm,
+          userRegion: () => UserRegion.current(
+            widget.settings,
+            _map,
+            mockLocation: _mockLocation,
+          ),
+        ),
+      ),
     );
   }
 
@@ -1144,7 +1162,11 @@ class _SpikePageState extends State<SpikePage> {
     }
     // Local sources rank a little higher: the region where the user is,
     // from the real (or mock) position only, never from the map area alone.
-    final region = await UserRegion.current(widget.settings, widget.map);
+    final region = await UserRegion.current(
+      widget.settings,
+      widget.map,
+      mockLocation: _mockLocation,
+    );
     if (_answerer case final a? when a.userRegion != region) {
       a.userRegion = region;
       _log({'event': 'region', 'region': region});

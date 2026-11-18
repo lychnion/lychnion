@@ -721,6 +721,8 @@
   },
   "regionHint": "Sources for this region rank a little higher. Your location never leaves this device.",
   "regionJapan": "Japan (no prefecture)",
+  "areaJapan": "Japan",
+  "@areaJapan": {"description": "Downloads: the area of an item made for all of Japan."},
   "publishersTitle": "Publishers",
   "publishersHint": "Who may sign the guides and maps you install",
   "publishersBuiltIn": "Built into the app",

@@ -77,6 +77,17 @@ void main() {
     );
   });
 
+  test('area: codes of the right form, empty when absent', () async {
+    final key = await keyPairFromSeed((await newKeyPair()).seed);
+    final none = await PackageRecord.sign(_unsigned(), key);
+    expect(none.area, isEmpty);
+    final some = await PackageRecord.sign(
+      _unsigned()..['area'] = ['JP-27', 'JP-28', 'jp', 7, 'JP-'],
+      key,
+    );
+    expect(some.area, ['JP-27', 'JP-28']);
+  });
+
   test("Lychnion's key is built in", () {
     expect(lychnionPublicKey, hasLength(43));
   });

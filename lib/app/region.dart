@@ -25,8 +25,14 @@ class UserRegion {
   /// The region at the user's position, or null when it is not known: the
   /// map's position (GPS or MOCK_LOCATION), else the phone's last known
   /// position when location is already allowed (no prompt just for this).
-  static Future<String?> detect(MapState? map) async {
+  static Future<String?> detect(MapState? map, {String? mockLocation}) async {
     double? lat = map?.here?.latitude, lon = map?.here?.longitude;
+    // MOCK_LOCATION counts even before a map area is loaded.
+    final mock = (mockLocation ?? map?.mockLocation)?.split(',');
+    if (lat == null && mock != null && mock.length == 2) {
+      lat = double.tryParse(mock[0]);
+      lon = double.tryParse(mock[1]);
+    }
     final phone =
         defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
@@ -49,16 +55,28 @@ class UserRegion {
 
   /// What answers use: the manual choice, else the detected region, else
   /// 'JP'.
-  static Future<String> current(AppSettings? settings, MapState? map) async =>
-      settings?.region ?? await detect(map) ?? 'JP';
+  static Future<String> current(
+    AppSettings? settings,
+    MapState? map, {
+    String? mockLocation,
+  }) async =>
+      settings?.region ?? await detect(map, mockLocation: mockLocation) ?? 'JP';
 }
 
 /// Settings row: the region in use, and a picker to set it by hand.
 class RegionTile extends StatefulWidget {
-  const RegionTile({super.key, required this.settings, this.map});
+  const RegionTile({
+    super.key,
+    required this.settings,
+    this.map,
+    this.mockLocation,
+  });
 
   final AppSettings settings;
   final MapState? map;
+
+  /// MOCK_LOCATION, for tests without a map area.
+  final String? mockLocation;
 
   @override
   State<RegionTile> createState() => _RegionTileState();
@@ -77,7 +95,10 @@ class _RegionTileState extends State<RegionTile> {
 
   Future<void> _load() async {
     final lookup = await UserRegion.lookup();
-    final detected = await UserRegion.detect(widget.map);
+    final detected = await UserRegion.detect(
+      widget.map,
+      mockLocation: widget.mockLocation,
+    );
     if (!mounted) return;
     setState(() {
       _lookup = lookup;
