@@ -102,8 +102,8 @@ unchanged.
 ### 2026-11-19: Gemma 4 E2B and E4B on the Mac
 
 App at `6ee5dea`, packages as bundled, EmbeddingGemma 2 search, 4 passages, Apple M4 Max
-(release build, engine's default backend). Judges: Claude Opus 5.5 subagents. Harmful
-answers: before Daniel's check (`human.json` not written yet).
+(release build, engine's default backend). Judges: Claude Opus 5.5 subagents. Daniel
+checked all 9 harmful answers blind and agreed with the skeptic on each (`human.json`).
 
 | Model | Lang | Accuracy | Main point right | Harmful (could kill) | Source found | No answer when not covered | s/answer |
 |---|---|---|---|---|---|---|---|
