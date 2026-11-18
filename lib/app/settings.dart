@@ -26,7 +26,8 @@ class AppSettings extends ChangeNotifier {
 
   /// The QR key whose base has signed an answer: from then on the phone
   /// takes no unsigned answer from it (someone on the Wi-Fi could take
-  /// the signature off). Scanning a base's QR code again starts over.
+  /// the signature off). Forgotten when the base is disconnected or
+  /// another key is pinned, not when the same key is pinned again.
   String? baseSignedKey;
 
   /// Base computer: answer phones on the local network (desktop), and
@@ -115,8 +116,11 @@ class AppSettings extends ChangeNotifier {
   Future<void> setBase(String? url, {String? name, String? key}) async {
     baseUrl = url;
     baseName = url == null ? null : name;
-    baseKey = url == null ? null : key;
-    baseSignedKey = null;
+    final newKey = url == null ? null : key;
+    // Kept for the same key (the base got a new address): forgetting it
+    // would let someone take the signature off again.
+    if (newKey != baseKey) baseSignedKey = null;
+    baseKey = newKey;
     notifyListeners();
     await _save();
   }
