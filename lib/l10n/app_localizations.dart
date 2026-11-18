@@ -2749,6 +2749,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied'**
   String get aboutCopied;
+
+  /// No description provided for @stickClashed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not copied, the stick has another publisher\'s item with this id: {items}'**
+  String stickClashed(String items);
 }
 
 class _AppLocalizationsDelegate

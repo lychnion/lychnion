@@ -1659,4 +1659,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutCopied => 'Copied';
+
+  @override
+  String stickClashed(String items) {
+    return 'Not copied, the stick has another publisher\'s item with this id: $items';
+  }
 }

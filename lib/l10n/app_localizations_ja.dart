@@ -1579,4 +1579,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aboutCopied => 'コピーしました';
+
+  @override
+  String stickClashed(String items) {
+    return 'コピーしていません（同じ ID の別の発行元のものが USB メモリにあります）：$items';
+  }
 }

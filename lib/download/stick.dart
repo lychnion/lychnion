@@ -45,6 +45,10 @@ class StickResult {
   /// Ids or files that belong to another publisher here.
   var taken = 0;
 
+  /// Items not copied: the stick holds another publisher's item of the
+  /// same id, trusted here.
+  final clashed = <String>[];
+
   /// Items whose files were missing, did not match or could not be
   /// written.
   final failed = <String>[];
@@ -107,6 +111,12 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
     for (final i in store.allInstalled(kind)) {
       final r = i.record;
       final there = onStick[r.id];
+      if (there != null &&
+          trusted.contains(r.id) &&
+          there.publisher != r.publisher) {
+        result.clashed.add('${r.id} (${there.publisher})');
+        continue;
+      }
       final kept =
           there != null &&
           trusted.contains(r.id) &&
@@ -115,9 +125,13 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
       if (kept && isOlder(r.version, there.version)) {
         // Newer on the stick: kept, but its files must be there.
         result.notNewer++;
-        if (!await _onStick(there, blobs)) {
-          result.failed.add('${there.id} ${there.version}');
+        var ok = false;
+        try {
+          ok = await _onStick(there, blobs);
+        } on FileSystemException {
+          // Cannot be read: reported below.
         }
+        if (!ok) result.failed.add('${there.id} ${there.version}');
         continue;
       }
       // New, newer here, or the same version (its files on the stick are
@@ -167,6 +181,11 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
     for (final r in records)
       for (final f in r.files) f.sha256,
   };
+  // A node folder keeps the files of records whose publisher it was not
+  // given (.kept.json); when that cannot be read, nothing is removed.
+  final setAside = _keptHashes(folder);
+  if (setAside == null) return result;
+  keep.addAll(setAside);
   final hash = RegExp(r'^[0-9a-f]{64}(\.copy)?$');
   for (final f in blobs.listSync().whereType<File>()) {
     final name = f.uri.pathSegments.last;
@@ -205,6 +224,23 @@ Future<bool> _copyItem(
     }
   }
   return true;
+}
+
+/// The file hashes of the records a node set aside in `.kept.json`
+/// (empty when there is none); null when it cannot be read.
+Set<String>? _keptHashes(Directory folder) {
+  final f = File('${folder.path}/.kept.json');
+  if (!f.existsSync()) return {};
+  try {
+    final j = jsonDecode(f.readAsStringSync());
+    return {
+      for (final r in j as List)
+        for (final file in (r as Map)['files'] as List)
+          (file as Map)['sha256'] as String,
+    };
+  } on Object {
+    return null;
+  }
 }
 
 /// Whether every file of [r] is in [blobs] and matches its hash.
@@ -284,6 +320,9 @@ Future<bool> _install(
   Directory folder,
   Map urls,
 ) async {
+  // Names that differ only in case are one file on macOS and Windows.
+  final names = {for (final f in r.files) f.name.toLowerCase()};
+  if (names.length != r.files.length) return false;
   final dir = store.dirFor(item.kind);
   await dir.create(recursive: true);
   final staged = <(File part, File target)>[];

@@ -207,6 +207,9 @@ Future<void> _stick(
       if (r.failed.isNotEmpty) {
         text += '\n${l.stickFailedItems(r.failed.join(', '))}';
       }
+      if (r.clashed.isNotEmpty) {
+        text += '\n${l.stickClashed(r.clashed.join(', '))}';
+      }
     } else {
       if (m.busy) throw const _Busy();
       final r = await m.withoutDownloads(() => loadFromStick(m.store, dir));

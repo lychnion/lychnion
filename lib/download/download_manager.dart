@@ -307,6 +307,8 @@ class DownloadManager extends ChangeNotifier {
       while (true) {
         final updates = updateMode == UpdateMode.auto;
         if (!updates && !keepAll) break;
+        // A load from a USB stick: started again when it is done.
+        if (_paused) break;
         // Checked before every item: a phone that falls back to mobile
         // data, or loses the connection, stops here without blaming the
         // items (they are fetched in the next window).
@@ -335,6 +337,8 @@ class DownloadManager extends ChangeNotifier {
           'keep_all': keepAll,
         });
         await download(item, auto: true);
+        // Skipped for a load from a USB stick: not the item's fault.
+        if (_paused) break;
         final error = stateOf(item).error;
         // The connection or the disk, not the item: stop this run.
         if (const {

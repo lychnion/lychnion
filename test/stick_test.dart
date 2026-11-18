@@ -35,15 +35,17 @@ void main() {
     DownloadStore s,
     String id,
     String version,
-    String content,
-  ) async {
+    String content, {
+    String publisher = 'lychnion',
+    SimpleKeyPair? by,
+  }) async {
     final data = utf8.encode(content);
     final r = await PackageRecord.sign({
       'format': 1,
       'id': id,
       'kind': 'package',
       'version': version,
-      'publisher': 'lychnion',
+      'publisher': publisher,
       'title': {'en': id},
       'files': [
         {
@@ -53,7 +55,7 @@ void main() {
         },
       ],
       'signed': '2026-11-18T09:00:00+09:00',
-    }, key);
+    }, by ?? key);
     final f = File('${s.dirFor(ItemKind.package).path}/$id.sqlite');
     await f.create(recursive: true);
     await f.writeAsBytes(data);
@@ -282,5 +284,87 @@ void main() {
       throwsA(isA<UnreadableStick>()),
     );
     expect(keep.existsSync(), isTrue);
+  });
+
+  test("another trusted publisher's item of the same id stays", () async {
+    final city = await Ed25519().newKeyPair();
+    final both = TrustedKeys({
+      'lychnion': [await publicKeyOf(key)],
+      'city': [await publicKeyOf(city)],
+    });
+    final a = store('a', keys: both);
+    final theirs = await install(
+      a,
+      'jp.a',
+      '2',
+      'city',
+      publisher: 'city',
+      by: city,
+    );
+    await copyToStick(a, stick);
+    final b = store('b', keys: both);
+    await install(b, 'jp.a', '1', 'ours');
+    final c = await copyToStick(b, stick);
+    expect(c.added, 0);
+    expect(c.clashed, ['jp.a (city)']);
+    expect(
+      File(
+        '${stickFolder(stick).path}/blobs/sha256/${theirs.files.single.sha256}',
+      ).existsSync(),
+      isTrue,
+    );
+  });
+
+  test('files a node set aside (.kept.json) stay', () async {
+    final here = store('here');
+    final r = await install(here, 'jp.a', '1', 'aaa');
+    // A node folder that set jp.a aside (its publisher was not given).
+    final node = Directory('${tmp.path}/node')..createSync();
+    final blob = File('${node.path}/blobs/sha256/${r.files.single.sha256}')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('aaa');
+    File(
+      '${node.path}/catalog.json',
+    ).writeAsStringSync(jsonEncode({'format': 2, 'records': []}));
+    File('${node.path}/.kept.json').writeAsStringSync(jsonEncode([r.json]));
+    await copyToStick(store('empty'), node);
+    expect(blob.existsSync(), isTrue);
+    // Unreadable: nothing is removed.
+    File('${node.path}/.kept.json').writeAsStringSync('[');
+    final other = File('${node.path}/blobs/sha256/${'1' * 64}')
+      ..writeAsStringSync('x');
+    await copyToStick(store('empty2'), node);
+    expect(other.existsSync(), isTrue);
+  });
+
+  test('file names that differ only in case are not installed', () async {
+    final data = utf8.encode('aaa');
+    final f = {'size': data.length, 'sha256': sha256.convert(data).toString()};
+    final r = await PackageRecord.sign({
+      'format': 1,
+      'id': 'jp.a',
+      'kind': 'package',
+      'version': '1',
+      'publisher': 'lychnion',
+      'title': {'en': 'a'},
+      'files': [
+        {'name': 'jp.a.sqlite', ...f},
+        {'name': 'JP.A.sqlite', ...f},
+      ],
+      'signed': '2026-11-18T09:00:00+09:00',
+    }, key);
+    final folder = Directory('${stick.path}/lychnion');
+    File('${folder.path}/blobs/sha256/${f['sha256']}')
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(data);
+    File('${folder.path}/catalog.json').writeAsStringSync(
+      jsonEncode({
+        'format': 2,
+        'records': [r.json],
+      }),
+    );
+    final l = await loadFromStick(store('there'), stick);
+    expect(l.added, 0);
+    expect(l.failed, ['jp.a 1']);
   });
 }

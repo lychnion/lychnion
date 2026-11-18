@@ -1027,5 +1027,7 @@
   "@aboutVersionValue": {"placeholders": {"version": {"type": "String"}, "build": {"type": "String"}}},
   "aboutData": "Installed data",
   "aboutCopyHint": "Long press to copy (for reports)",
-  "aboutCopied": "Copied"
+  "aboutCopied": "Copied",
+  "stickClashed": "Not copied, the stick has another publisher's item with this id: {items}",
+  "@stickClashed": {"placeholders": {"items": {"type": "String"}}}
 }
