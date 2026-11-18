@@ -609,7 +609,12 @@ class DownloadManager extends ChangeNotifier {
       'event': 'key_statements_learned',
       'from': from == null ? null : redactedUrl(from),
     });
-    unawaited(publishersChanged());
+    unawaited(
+      publishersChanged().catchError(
+        (Object e) =>
+            _log({'event': 'publishers_changed_failed', 'error': '$e'}),
+      ),
+    );
   }
 
   /// Records with a bad signature are left out of the catalog and logged.

@@ -137,8 +137,28 @@ class KeyStatement {
     }
   }
 
+  /// The fields a statement may have; other fields would let anyone who
+  /// holds a key make statements large enough to fill a catalog.
+  static const _fields = {
+    'format',
+    'type',
+    'publisher',
+    'old',
+    'new',
+    'signed',
+    'signature',
+    'new_signature',
+  };
+
   static bool _shapeOk(Map<String, Object?> j) {
     if (j['format'] != format) return false;
+    if (!j.keys.every(_fields.contains)) return false;
+    bool short(Object? v, int max) => v is String && v.length <= max;
+    if (!short(j['signed'], 64) ||
+        !short(j['signature'], 100) ||
+        (j.containsKey('new_signature') && !short(j['new_signature'], 100))) {
+      return false;
+    }
     final type = j['type'];
     final publisher = j['publisher'];
     if (publisher is! String || !publisherNamePattern.hasMatch(publisher)) {
@@ -340,6 +360,23 @@ Future<List<KeyStatement>> relevantStatements(
       if (out.length >= max) break;
       if (!keysOf(c.publisher).contains(c.old)) continue;
       pending.remove(c);
+      // A replacement past the cap counts only as proof of a theft: its
+      // old key already names another successor. Checked before
+      // verifying, so statements past the cap cost nothing.
+      final isReplace = switch (c.raw) {
+        KeyStatement k => k.type == KeyStatementType.replace,
+        Map<Object?, Object?> m => m['type'] == 'replace',
+        _ => false,
+      };
+      final newKey = norm(switch (c.raw) {
+        KeyStatement k => k.newKey,
+        Map<Object?, Object?> m => m['new'],
+        _ => null,
+      });
+      final atCap =
+          isReplace &&
+          (replaces[c.publisher] ?? 0) >= KeyStatement.maxReplacesPerPublisher;
+      if (atCap && !_namesOther(all, c.publisher, c.old, newKey)) continue;
       final KeyStatement? s;
       if (c.raw case final KeyStatement k) {
         s = k;
@@ -349,11 +386,7 @@ Future<List<KeyStatement>> relevantStatements(
         if (s == null) bad++;
       }
       if (s == null || !seen.add(s.id)) continue;
-      if (s.type == KeyStatementType.replace) {
-        final n = replaces[s.publisher] ?? 0;
-        if (n >= KeyStatement.maxReplacesPerPublisher) continue;
-        replaces[s.publisher] = n + 1;
-      }
+      if (isReplace) replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
       all.add(s);
       out.add(s);
       trustedNow.remove(s.publisher);
@@ -362,3 +395,35 @@ Future<List<KeyStatement>> relevantStatements(
   }
   return out;
 }
+
+/// True when [statements] already have [publisher]'s key [old] name a
+/// successor other than [newKey]: one more replacement of [old] is then
+/// proof that two people hold it.
+bool _namesOther(
+  Iterable<KeyStatement> statements,
+  String publisher,
+  String old,
+  String? newKey,
+) {
+  for (final s in statements) {
+    if (s.publisher == publisher &&
+        s.type == KeyStatementType.replace &&
+        b64(unb64(s.oldKey)) == old &&
+        b64(unb64(s.newKey!)) != newKey) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// True when [s] is a replacement whose old key already names another
+/// successor in [statements] (see [resolveKeys]: the key then counts as
+/// revoked). Such a statement protects like a revocation.
+bool provesTheft(KeyStatement s, Iterable<KeyStatement> statements) =>
+    s.type == KeyStatementType.replace &&
+    _namesOther(
+      statements,
+      s.publisher,
+      b64(unb64(s.oldKey)),
+      b64(unb64(s.newKey!)),
+    );
