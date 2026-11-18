@@ -348,9 +348,18 @@ until its QR code is scanned: only the QR code, checked in person, pins
 its key (a computer at that address with another key is then refused).
 Scanning the QR code of the base already connected pins the key and
 checks the earlier facts again (also at every start). At most 20 bases
-are listed, one per announced name, at its latest address. Networks that block multicast (some guest Wi-Fi) hide the list; the
-address and the QR code still work. Not yet: a phone following its base
-to a new address by itself, and the headless node announcing itself.
+are listed, one per announced name, at its latest address. Not yet: a
+phone following its base to a new address by itself, and the headless
+node announcing itself.
+
+**The base's network.** Many shared and guest Wi-Fi networks (offices,
+co-working spaces) block traffic between devices (client isolation).
+There a phone neither finds the base nor reaches it by its address or
+QR code. A base needs its own Wi-Fi (the computer's hotspot or a small
+router it controls) or a network that allows traffic between devices;
+see "Finding: Wi-Fi that blocks devices from each other" in
+`docs/shelter-results.md`. A network that only blocks multicast hides
+the list of bases; the address and the QR code still work there.
 
 ### Updates during a disaster
 
