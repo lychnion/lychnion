@@ -1,6 +1,6 @@
 {
   "format": 2,
-  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.4/",
+  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.5/",
   "refresh": "https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json",
   "records": [
     {
@@ -89,7 +89,7 @@
       "format": 1,
       "id": "jp.bousai.core",
       "kind": "package",
-      "version": "2026.11.3",
+      "version": "2026.11.4",
       "publisher": "lychnion",
       "title": {
         "ja": "防災（基本）",
@@ -108,22 +108,25 @@
           "For evacuation, follow your city's evacuation information and the Japan Meteorological Agency's warnings first."
         ]
       },
+      "area": [
+        "JP"
+      ],
       "files": [
         {
           "name": "jp.bousai.core.sqlite",
           "size": 1011712,
-          "sha256": "39902613a956d5a48b0b7838234452017cee527c8acbd0af83329cf390a77274"
+          "sha256": "a5efd3562214728dd7964101cd313dd3a23425a8d1ab6e0a42147333cdc2e55a"
         }
       ],
-      "signed": "2026-11-18T13:24:41+09:00",
+      "signed": "2026-11-18T17:58:07+09:00",
       "key": "vRIbo4Gi",
-      "signature": "8c4VV1Apj1PoY8CcxvMDptGU2j2U0NZChcU9ZdGyVhR5_brhMqBqzjXLV8agvJiiJY5p7A8a4PmFks3wUS4GBQ"
+      "signature": "XtAK9u6eqG5PyM93IuSFXp803C65bDNElpDf5pa5mHj7lYKo11H3q7DuRY9tVMnhP48f1jlYDwui8ZD0iEmXCQ"
     },
     {
       "format": 1,
       "id": "jp.map.nishinomiya",
       "kind": "map",
-      "version": "2026.11.1",
+      "version": "2026.11.2",
       "publisher": "lychnion",
       "title": {
         "ja": "地図：西宮周辺",
@@ -134,6 +137,10 @@
         "en": "Eastern Kobe to western Osaka, with evacuation sites, walking routes and tsunami inundation areas"
       },
       "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ・標高タイル; 国土数値情報（津波浸水想定）CC BY 4.0",
+      "area": [
+        "JP-27",
+        "JP-28"
+      ],
       "files": [
         {
           "name": "jp.map.nishinomiya.pmtiles",
@@ -143,7 +150,7 @@
         {
           "name": "jp.map.nishinomiya.sites.sqlite",
           "size": 401408,
-          "sha256": "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371"
+          "sha256": "5c39eefb96bf448ef98a17b154798f9f1d60c31ce2decb31079002b3524d4cab"
         },
         {
           "name": "jp.map.nishinomiya.routes.bin",
@@ -156,15 +163,15 @@
           "sha256": "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8"
         }
       ],
-      "signed": "2026-11-18T11:40:40+09:00",
+      "signed": "2026-11-18T17:58:07+09:00",
       "key": "vRIbo4Gi",
-      "signature": "IqaNAwLlJOQ5HChlzXOdqNuI49iDA_0v0sXB7tC_fTbEx1Mr_MGwCKG0nOx_aWkRHqrEtxhH_QiFAfzl-R-UCQ"
+      "signature": "xqQPIHRMWOrnqIqy9UZPAO4pBMWKKkG6mmLqHtPA53zP4-fj-mAU3UdeTgVSrkxygqo2-lUrLSOnr0IIABZZCQ"
     },
     {
       "format": 1,
       "id": "jp.outdoor.hiking",
       "kind": "package",
-      "version": "2026.11.2",
+      "version": "2026.11.3",
       "publisher": "lychnion",
       "title": {
         "ja": "登山（基本）",
@@ -185,16 +192,19 @@
           "Not suitable for judging avalanche risk."
         ]
       },
+      "area": [
+        "JP"
+      ],
       "files": [
         {
           "name": "jp.outdoor.hiking.sqlite",
           "size": 442368,
-          "sha256": "e03f42539d8dbf582d794b96309860c12d54f304442d5060619ec4ad04224c7f"
+          "sha256": "e4df3f4c8e6a8a4bdb8e494f5fb5a37571353c3cc369202b0a63cab9b0d0cbf9"
         }
       ],
-      "signed": "2026-11-18T13:24:41+09:00",
+      "signed": "2026-11-18T17:58:07+09:00",
       "key": "vRIbo4Gi",
-      "signature": "p97m03BJOyiJSG2kIf-7qe4la5P0-mEe6B_7Bm8shRnCzdK3LScPSksqVucWn7f1PZBdS6r8zwnMVoYYPqq9Cg"
+      "signature": "DzXiUGiBU8bbmkhOJ5RMQLEmraeQFyeDEyTfbQIqSuOsvYwlrtWNBV6SB19CinI1Axel8gECWiDnhkkbqa3zAg"
     },
     {
       "format": 1,
@@ -236,7 +246,7 @@
       "format": 1,
       "id": "jp.map.kushimoto",
       "kind": "map",
-      "version": "2026.11.0",
+      "version": "2026.11.1",
       "publisher": "lychnion",
       "title": {
         "ja": "地図：串本町（和歌山県）",
@@ -247,6 +257,9 @@
         "en": "Kushimoto and around, with evacuation sites, walking routes and tsunami inundation areas"
       },
       "licence": "© OpenStreetMap contributors (ODbL), Protomaps; 国土地理院 避難場所データ・標高タイル; 国土数値情報（津波浸水想定）CC BY 4.0",
+      "area": [
+        "JP-30"
+      ],
       "files": [
         {
           "name": "jp.map.kushimoto.pmtiles",
@@ -256,7 +269,7 @@
         {
           "name": "jp.map.kushimoto.sites.sqlite",
           "size": 90112,
-          "sha256": "b145b475ed0bca4a5be79b1910e2be604daa1a8e9f23e67a910090a8f9857cd2"
+          "sha256": "12f41c5bb9a89b5c19c8093dcc1447ca4398c8949631cf499a4c7c4c5d4f9412"
         },
         {
           "name": "jp.map.kushimoto.routes.bin",
@@ -269,9 +282,9 @@
           "sha256": "c73441a12d360cabc42f7aa67fc80ad0e97869bb694d1307fbd60ac2866de456"
         }
       ],
-      "signed": "2026-11-18T11:40:40+09:00",
+      "signed": "2026-11-18T17:58:07+09:00",
       "key": "vRIbo4Gi",
-      "signature": "L248tg-hNjcrUvgwdYWd12I_eOz12hnphfNNLGwpXShavWYFUYgELgpvUcIHerCURpiGwlc7TwKBoVHNY_kLCw"
+      "signature": "57KR03EqhjKrpQjfEKTmfMQseGAZ9FUaDELc84YeHnzcV0MEEY8qyg8OzfIsAGWCny1MapJOXfNJr-ZBYBYZAA"
     }
   ],
   "urls": {
@@ -279,11 +292,11 @@
     "a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2": "https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_0.gguf",
     "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135": "https://huggingface.co/ggml-org/embeddinggemma-2-GGUF/resolve/main/embeddinggemma-2-Q8_0.gguf",
     "9735700f8ffebbfba32edca5ea6ff04891718e13a0346eae705565c324e97d25": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.pmtiles",
-    "bd39728ef33c7f7c1fe0cef91c87fa0549794c0d7fb7d3a71cf2f2f2a7cb6371": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.0/jp.map.nishinomiya.sites.sqlite",
+    "5c39eefb96bf448ef98a17b154798f9f1d60c31ce2decb31079002b3524d4cab": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.5/jp.map.nishinomiya.sites.sqlite",
     "94a5f22980f5fbba04facec8f6c169a4c8ab70cfc2cc6263a372130de71a725d": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.routes.bin",
     "2cb40ab4b55116b0b20cae4bc222295cd55d98704a6ff2d9069ccb376a25d5e8": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.inundation.mbtiles",
     "4ae3d25c19a3489c99653beee432d57344093411664315b0a46d1e9d6e3cd651": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.pmtiles",
-    "b145b475ed0bca4a5be79b1910e2be604daa1a8e9f23e67a910090a8f9857cd2": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.sites.sqlite",
+    "12f41c5bb9a89b5c19c8093dcc1447ca4398c8949631cf499a4c7c4c5d4f9412": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.5/jp.map.kushimoto.sites.sqlite",
     "82d0f8f448907f94347a1b0424e10f77f11f586dd3c5a5bcb0b2cf1c8ada4ce4": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.routes.bin",
     "c73441a12d360cabc42f7aa67fc80ad0e97869bb694d1307fbd60ac2866de456": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.inundation.mbtiles"
   }
