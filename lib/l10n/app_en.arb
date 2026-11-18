@@ -310,7 +310,7 @@
   "mapBlockedConsidered": "blocked roads considered",
   "mapAboutData": "About this data",
   "mapMyLocation": "My location",
-  "mapShelterHint": "Shelter computer: ✎ sets a site's status; long-press the map for a blocked road or water point.",
+  "mapShelterHint": "Base: ✎ sets a site's status; long-press the map for a blocked road or water point.",
   "mapInFloodArea": "You are in the tsunami inundation area (expected {depth})",
   "@mapInFloodArea": {
     "placeholders": {
@@ -359,7 +359,7 @@
       }
     }
   },
-  "answerShelterComputer": "Shelter computer · {name}",
+  "answerShelterComputer": "Base · {name}",
   "@answerShelterComputer": {
     "placeholders": {
       "name": {
@@ -463,7 +463,7 @@
   "languageName": "English",
   "settingsLanguage": "Language",
   "settingsLanguageDevice": "Device",
-  "settingsShelter": "Shelter",
+  "settingsShelter": "Base",
   "settingsOfflineData": "Offline data",
   "settingsDownloadsHint": "AI models, safety guides and maps",
   "settingsAboutGroup": "About",
@@ -511,13 +511,13 @@
   "askPhaseNoModel": "Setup needed",
   "askPhaseLoading": "Getting ready…",
   "askPhaseReady": "Offline ready",
-  "askPhaseShelter": "Shelter",
+  "askPhaseShelter": "Base",
   "askPhaseServing": "Sharing",
   "askPhaseFailed": "Not ready",
   "askExplainNoModel": "Download the AI model and the safety guides under Settings → Downloads.",
   "askExplainLoading": "Loading the AI model on this device.",
   "askExplainReady": "The AI runs on this device. No internet is needed.",
-  "askExplainShelter": "A computer at the shelter answers, over the local Wi-Fi. Faster than this phone.",
+  "askExplainShelter": "A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.",
   "askExplainServing": "This computer answers phones on the same Wi-Fi, and shares guides, maps and current information. You can stop it in Settings.",
   "askExplainFailed": "The AI model could not be loaded.",
   "askHint": "Ask a question",
@@ -554,9 +554,9 @@
   "packagesTitle": "Answers from",
   "packagesAdd": "Add",
   "packagesAddTooltip": "Get more packages",
-  "shelterNoAddress": "No network address found. Connect this computer to the shelter Wi-Fi.",
+  "shelterNoAddress": "No network address found. Connect this computer to Wi-Fi.",
   "shelterConnectPhones": "Connect phones",
-  "shelterScanHint": "On the shelter Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".",
+  "shelterScanHint": "On the same Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".",
   "@shelterScanHint": {
     "placeholders": {
       "appName": {
@@ -576,8 +576,8 @@
       }
     }
   },
-  "shelterThisShelter": "this shelter",
-  "shelterConnectBody": "The shelter computer ({address}) will answer your questions and share current information. Only connect to a shelter you are at.",
+  "shelterThisShelter": "this base",
+  "shelterConnectBody": "The base ({address}) will answer your questions and share current information. Only connect to a base where you are.",
   "@shelterConnectBody": {
     "placeholders": {
       "address": {
@@ -586,10 +586,10 @@
     }
   },
   "shelterConnect": "Connect",
-  "shelterAddress": "Shelter address",
-  "shelterAddressHelper": "Shown on the shelter computer, under the QR code.",
-  "shelterConnectComputer": "Connect to a shelter computer",
-  "shelterConnectComputerHint": "Scan the QR code at the shelter, or enter its address. Answers come faster.",
+  "shelterAddress": "Base address",
+  "shelterAddressHelper": "Shown on the base, under the QR code.",
+  "shelterConnectComputer": "Connect to a base",
+  "shelterConnectComputerHint": "Scan the base's QR code, or enter its address. Answers come faster.",
   "shelterAskedFirst": "Asked first · {address}",
   "@shelterAskedFirst": {
     "placeholders": {
@@ -610,7 +610,7 @@
   "conversationDeleteTitle": "Delete this conversation?",
   "conversationDeleteBody": "It is removed from this device.",
   "downloadsMobileTitle": "{size} over mobile data?",
-  "downloadsMobileBody": "Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A shelter computer, if there is one nearby, also has the downloads on its Wi-Fi.",
+  "downloadsMobileBody": "Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A base nearby, if there is one, also has the downloads on its Wi-Fi.",
   "@downloadsMobileTitle": {
     "placeholders": {
       "size": {
@@ -646,14 +646,57 @@
   "downloadsSignedOn": "Signed on",
   "downloadsKey": "Key",
   "downloadsFilterKind": "Kind",
-  "webError": "The shelter computer could not answer. Please try again.",
+  "webError": "The base could not answer. Please try again.",
   "shelterWithApp": "With the app",
   "shelterInBrowser": "In the browser",
-  "shelterBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.",
-  "shareOnNetwork": "Share on the local network",
+  "shelterBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.",
+  "shareOnNetwork": "Use this computer as a base",
   "shareOnNetworkHint": "Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.",
-  "shareName": "Shelter name",
-  "shareNameHint": "Shown on phones (for example: Minami Elementary School shelter)",
+  "shareName": "Base name",
+  "shareNameHint": "Shown on phones (for example: Minami Elementary School shelter, a mountain hut)",
   "shareStarting": "Starts as soon as the app is ready.",
-  "shareShowLarge": "Show large"
+  "shareShowLarge": "Show large",
+  "shareNearby": "Share with people nearby",
+  "shareNearbyIntro": "Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.",
+  "shareNearbyKeepOpen": "Sharing runs only while this screen is open. The screen stays on meanwhile.",
+  "shareNearbyNothing": "Nothing downloaded yet. You can share guides, maps and models you have downloaded.",
+  "shareNearbyItems": "{count, plural, =1{Sharing 1 item} other{Sharing {count} items}}",
+  "@shareNearbyItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbySent": "{count, plural, =1{Sent: 1 file} other{Sent: {count} files}}",
+  "@shareNearbySent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbyNoNetwork": "Not on Wi-Fi. Connect both phones to the same Wi-Fi or hotspot.",
+  "shareReceiveTitle": "Get downloads from a phone nearby?",
+  "shareReceiveBody": "Shows the guides, maps and models at {address} in Downloads. They are saved only after their signatures are checked.",
+  "@shareReceiveBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "shareReceiveShow": "Show",
+  "shareReceiveNone": "Nothing found. Check that both phones are on the same Wi-Fi.",
+  "shareReceiveFound": "{count, plural, =1{1 item available} other{{count} items available}}",
+  "@shareReceiveFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareReceiveNothingNew": "Nothing new: this phone already has everything offered.",
+  "answerBaseUnreachable": "Can't reach the base, and this phone has no answer model of its own. Join the base's Wi-Fi and try again.",
+  "shareNearbyHint": "Pass on your downloaded guides, maps and models to phones nearby"
 }

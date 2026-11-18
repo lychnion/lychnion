@@ -247,6 +247,19 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
+  /// Items the catalog at [url] (added with [addCatalogFrom]) offers that
+  /// this device does not have, or has in an older version.
+  int newItemsAt(Uri url) {
+    final other = _shelterCatalogs[url];
+    if (other == null) return 0;
+    var n = 0;
+    for (final i in other.items) {
+      final have = store.installed(i.kind, i.id);
+      if (have == null || compareVersions(have.version, i.version) < 0) n++;
+    }
+    return n;
+  }
+
   void _refreshStates() {
     for (final item in catalog.items) {
       final s = stateOf(item);

@@ -35,6 +35,7 @@ class AskView extends StatefulWidget {
     this.recent,
     this.onOpenSettings,
     this.onShowNotice,
+    this.onShareNearby,
     this.updates,
     this.onOpenDownloads,
     this.devActions = const [],
@@ -77,6 +78,9 @@ class AskView extends StatefulWidget {
   final VoidCallback? onOpenSettings;
 
   /// Second entry: the first-start notice again.
+  /// Phones: pass on downloads to phones nearby (in the ⋮ menu).
+  final VoidCallback? onShareNearby;
+
   final VoidCallback? onShowNotice;
 
   /// New versions of installed downloads: a badge on the ⋮ menu.
@@ -128,6 +132,7 @@ class _AskViewState extends State<AskView> {
           AppMenu(
             onOpenSettings: widget.onOpenSettings,
             onShowNotice: widget.onShowNotice,
+            onShareNearby: widget.onShareNearby,
             updates: widget.updates,
             devActions: [
               DevAction(
@@ -533,6 +538,7 @@ class AppMenu extends StatelessWidget {
   const AppMenu({
     super.key,
     this.onOpenSettings,
+    this.onShareNearby,
     this.onShowNotice,
     this.updates,
     this.devActions = const [],
@@ -543,6 +549,9 @@ class AppMenu extends StatelessWidget {
   final ValueListenable<int>? updates;
 
   final VoidCallback? onOpenSettings;
+
+  /// Phones: pass on downloads to phones nearby.
+  final VoidCallback? onShareNearby;
 
   /// The first-start notice again ("Before you start").
   final VoidCallback? onShowNotice;
@@ -565,6 +574,14 @@ class AppMenu extends StatelessWidget {
           child: ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: Text(context.l10n.settings),
+          ),
+        ),
+      if (onShareNearby != null)
+        PopupMenuItem(
+          value: -3,
+          child: ListTile(
+            leading: const Icon(Icons.share_rounded),
+            title: Text(context.l10n.shareNearby),
           ),
         ),
       if (onShowNotice != null)
@@ -598,6 +615,7 @@ class AppMenu extends StatelessWidget {
     onSelected: (i) => switch (i) {
       -1 => onOpenSettings?.call(),
       -2 => onShowNotice?.call(),
+      -3 => onShareNearby?.call(),
       _ => devActions[i].onTap?.call(),
     },
   );

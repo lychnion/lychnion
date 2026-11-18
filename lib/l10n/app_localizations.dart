@@ -737,7 +737,7 @@ abstract class AppLocalizations {
   /// No description provided for @mapShelterHint.
   ///
   /// In en, this message translates to:
-  /// **'Shelter computer: ✎ sets a site\'s status; long-press the map for a blocked road or water point.'**
+  /// **'Base: ✎ sets a site\'s status; long-press the map for a blocked road or water point.'**
   String get mapShelterHint;
 
   /// No description provided for @mapInFloodArea.
@@ -827,7 +827,7 @@ abstract class AppLocalizations {
   /// No description provided for @answerShelterComputer.
   ///
   /// In en, this message translates to:
-  /// **'Shelter computer · {name}'**
+  /// **'Base · {name}'**
   String answerShelterComputer(String name);
 
   /// No description provided for @answerLooking.
@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsShelter.
   ///
   /// In en, this message translates to:
-  /// **'Shelter'**
+  /// **'Base'**
   String get settingsShelter;
 
   /// No description provided for @settingsOfflineData.
@@ -1205,7 +1205,7 @@ abstract class AppLocalizations {
   /// No description provided for @askPhaseShelter.
   ///
   /// In en, this message translates to:
-  /// **'Shelter'**
+  /// **'Base'**
   String get askPhaseShelter;
 
   /// No description provided for @askPhaseServing.
@@ -1241,7 +1241,7 @@ abstract class AppLocalizations {
   /// No description provided for @askExplainShelter.
   ///
   /// In en, this message translates to:
-  /// **'A computer at the shelter answers, over the local Wi-Fi. Faster than this phone.'**
+  /// **'A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.'**
   String get askExplainShelter;
 
   /// No description provided for @askExplainServing.
@@ -1379,7 +1379,7 @@ abstract class AppLocalizations {
   /// No description provided for @shelterNoAddress.
   ///
   /// In en, this message translates to:
-  /// **'No network address found. Connect this computer to the shelter Wi-Fi.'**
+  /// **'No network address found. Connect this computer to Wi-Fi.'**
   String get shelterNoAddress;
 
   /// No description provided for @shelterConnectPhones.
@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @shelterScanHint.
   ///
   /// In en, this message translates to:
-  /// **'On the shelter Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".'**
+  /// **'On the same Wi-Fi, scan this code with the phone camera. {appName} opens and connects to \"{name}\".'**
   String shelterScanHint(String appName, String name);
 
   /// No description provided for @shelterOrEnterAddress.
@@ -1409,13 +1409,13 @@ abstract class AppLocalizations {
   /// No description provided for @shelterThisShelter.
   ///
   /// In en, this message translates to:
-  /// **'this shelter'**
+  /// **'this base'**
   String get shelterThisShelter;
 
   /// No description provided for @shelterConnectBody.
   ///
   /// In en, this message translates to:
-  /// **'The shelter computer ({address}) will answer your questions and share current information. Only connect to a shelter you are at.'**
+  /// **'The base ({address}) will answer your questions and share current information. Only connect to a base where you are.'**
   String shelterConnectBody(String address);
 
   /// No description provided for @shelterConnect.
@@ -1427,25 +1427,25 @@ abstract class AppLocalizations {
   /// No description provided for @shelterAddress.
   ///
   /// In en, this message translates to:
-  /// **'Shelter address'**
+  /// **'Base address'**
   String get shelterAddress;
 
   /// No description provided for @shelterAddressHelper.
   ///
   /// In en, this message translates to:
-  /// **'Shown on the shelter computer, under the QR code.'**
+  /// **'Shown on the base, under the QR code.'**
   String get shelterAddressHelper;
 
   /// No description provided for @shelterConnectComputer.
   ///
   /// In en, this message translates to:
-  /// **'Connect to a shelter computer'**
+  /// **'Connect to a base'**
   String get shelterConnectComputer;
 
   /// No description provided for @shelterConnectComputerHint.
   ///
   /// In en, this message translates to:
-  /// **'Scan the QR code at the shelter, or enter its address. Answers come faster.'**
+  /// **'Scan the base\'s QR code, or enter its address. Answers come faster.'**
   String get shelterConnectComputerHint;
 
   /// No description provided for @shelterAskedFirst.
@@ -1529,7 +1529,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloadsMobileBody.
   ///
   /// In en, this message translates to:
-  /// **'Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A shelter computer, if there is one nearby, also has the downloads on its Wi-Fi.'**
+  /// **'Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A base nearby, if there is one, also has the downloads on its Wi-Fi.'**
   String get downloadsMobileBody;
 
   /// No description provided for @downloadsMobileData.
@@ -1661,7 +1661,7 @@ abstract class AppLocalizations {
   /// No description provided for @webError.
   ///
   /// In en, this message translates to:
-  /// **'The shelter computer could not answer. Please try again.'**
+  /// **'The base could not answer. Please try again.'**
   String get webError;
 
   /// No description provided for @shelterWithApp.
@@ -1679,13 +1679,13 @@ abstract class AppLocalizations {
   /// No description provided for @shelterBrowserHint.
   ///
   /// In en, this message translates to:
-  /// **'For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.'**
+  /// **'For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.'**
   String get shelterBrowserHint;
 
   /// No description provided for @shareOnNetwork.
   ///
   /// In en, this message translates to:
-  /// **'Share on the local network'**
+  /// **'Use this computer as a base'**
   String get shareOnNetwork;
 
   /// No description provided for @shareOnNetworkHint.
@@ -1697,13 +1697,13 @@ abstract class AppLocalizations {
   /// No description provided for @shareName.
   ///
   /// In en, this message translates to:
-  /// **'Shelter name'**
+  /// **'Base name'**
   String get shareName;
 
   /// No description provided for @shareNameHint.
   ///
   /// In en, this message translates to:
-  /// **'Shown on phones (for example: Minami Elementary School shelter)'**
+  /// **'Shown on phones (for example: Minami Elementary School shelter, a mountain hut)'**
   String get shareNameHint;
 
   /// No description provided for @shareStarting.
@@ -1717,6 +1717,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show large'**
   String get shareShowLarge;
+
+  /// No description provided for @shareNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'Share with people nearby'**
+  String get shareNearby;
+
+  /// No description provided for @shareNearbyIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.'**
+  String get shareNearbyIntro;
+
+  /// No description provided for @shareNearbyKeepOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing runs only while this screen is open. The screen stays on meanwhile.'**
+  String get shareNearbyKeepOpen;
+
+  /// No description provided for @shareNearbyNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded yet. You can share guides, maps and models you have downloaded.'**
+  String get shareNearbyNothing;
+
+  /// No description provided for @shareNearbyItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sharing 1 item} other{Sharing {count} items}}'**
+  String shareNearbyItems(int count);
+
+  /// No description provided for @shareNearbySent.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sent: 1 file} other{Sent: {count} files}}'**
+  String shareNearbySent(int count);
+
+  /// No description provided for @shareNearbyNoNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Not on Wi-Fi. Connect both phones to the same Wi-Fi or hotspot.'**
+  String get shareNearbyNoNetwork;
+
+  /// No description provided for @shareReceiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get downloads from a phone nearby?'**
+  String get shareReceiveTitle;
+
+  /// No description provided for @shareReceiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows the guides, maps and models at {address} in Downloads. They are saved only after their signatures are checked.'**
+  String shareReceiveBody(String address);
+
+  /// No description provided for @shareReceiveShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get shareReceiveShow;
+
+  /// No description provided for @shareReceiveNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Check that both phones are on the same Wi-Fi.'**
+  String get shareReceiveNone;
+
+  /// No description provided for @shareReceiveFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item available} other{{count} items available}}'**
+  String shareReceiveFound(int count);
+
+  /// No description provided for @shareReceiveNothingNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing new: this phone already has everything offered.'**
+  String get shareReceiveNothingNew;
+
+  /// No description provided for @answerBaseUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the base, and this phone has no answer model of its own. Join the base\'s Wi-Fi and try again.'**
+  String get answerBaseUnreachable;
+
+  /// No description provided for @shareNearbyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pass on your downloaded guides, maps and models to phones nearby'**
+  String get shareNearbyHint;
 }
 
 class _AppLocalizationsDelegate

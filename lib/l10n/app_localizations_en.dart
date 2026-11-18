@@ -432,7 +432,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mapShelterHint =>
-      'Shelter computer: ✎ sets a site\'s status; long-press the map for a blocked road or water point.';
+      'Base: ✎ sets a site\'s status; long-press the map for a blocked road or water point.';
 
   @override
   String mapInFloodArea(String depth) {
@@ -491,7 +491,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String answerShelterComputer(String name) {
-    return 'Shelter computer · $name';
+    return 'Base · $name';
   }
 
   @override
@@ -586,7 +586,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLanguageDevice => 'Device';
 
   @override
-  String get settingsShelter => 'Shelter';
+  String get settingsShelter => 'Base';
 
   @override
   String get settingsOfflineData => 'Offline data';
@@ -724,7 +724,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askPhaseReady => 'Offline ready';
 
   @override
-  String get askPhaseShelter => 'Shelter';
+  String get askPhaseShelter => 'Base';
 
   @override
   String get askPhaseServing => 'Sharing';
@@ -745,7 +745,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askExplainShelter =>
-      'A computer at the shelter answers, over the local Wi-Fi. Faster than this phone.';
+      'A base nearby (a computer) answers over the same Wi-Fi. Faster than this phone.';
 
   @override
   String get askExplainServing =>
@@ -820,14 +820,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shelterNoAddress =>
-      'No network address found. Connect this computer to the shelter Wi-Fi.';
+      'No network address found. Connect this computer to Wi-Fi.';
 
   @override
   String get shelterConnectPhones => 'Connect phones';
 
   @override
   String shelterScanHint(String appName, String name) {
-    return 'On the shelter Wi-Fi, scan this code with the phone camera. $appName opens and connects to \"$name\".';
+    return 'On the same Wi-Fi, scan this code with the phone camera. $appName opens and connects to \"$name\".';
   }
 
   @override
@@ -839,29 +839,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get shelterThisShelter => 'this shelter';
+  String get shelterThisShelter => 'this base';
 
   @override
   String shelterConnectBody(String address) {
-    return 'The shelter computer ($address) will answer your questions and share current information. Only connect to a shelter you are at.';
+    return 'The base ($address) will answer your questions and share current information. Only connect to a base where you are.';
   }
 
   @override
   String get shelterConnect => 'Connect';
 
   @override
-  String get shelterAddress => 'Shelter address';
+  String get shelterAddress => 'Base address';
 
   @override
-  String get shelterAddressHelper =>
-      'Shown on the shelter computer, under the QR code.';
+  String get shelterAddressHelper => 'Shown on the base, under the QR code.';
 
   @override
-  String get shelterConnectComputer => 'Connect to a shelter computer';
+  String get shelterConnectComputer => 'Connect to a base';
 
   @override
   String get shelterConnectComputerHint =>
-      'Scan the QR code at the shelter, or enter its address. Answers come faster.';
+      'Scan the base\'s QR code, or enter its address. Answers come faster.';
 
   @override
   String shelterAskedFirst(String address) {
@@ -909,7 +908,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadsMobileBody =>
-      'Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A shelter computer, if there is one nearby, also has the downloads on its Wi-Fi.';
+      'Your phone is not on Wi-Fi. This uses your data plan, and with many plans it is cheaper on Wi-Fi. A base nearby, if there is one, also has the downloads on its Wi-Fi.';
 
   @override
   String get downloadsMobileData => 'Mobile data';
@@ -978,8 +977,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadsFilterKind => 'Kind';
 
   @override
-  String get webError =>
-      'The shelter computer could not answer. Please try again.';
+  String get webError => 'The base could not answer. Please try again.';
 
   @override
   String get shelterWithApp => 'With the app';
@@ -989,25 +987,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shelterBrowserHint =>
-      'For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.';
+      'For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.';
 
   @override
-  String get shareOnNetwork => 'Share on the local network';
+  String get shareOnNetwork => 'Use this computer as a base';
 
   @override
   String get shareOnNetworkHint =>
       'Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.';
 
   @override
-  String get shareName => 'Shelter name';
+  String get shareName => 'Base name';
 
   @override
   String get shareNameHint =>
-      'Shown on phones (for example: Minami Elementary School shelter)';
+      'Shown on phones (for example: Minami Elementary School shelter, a mountain hut)';
 
   @override
   String get shareStarting => 'Starts as soon as the app is ready.';
 
   @override
   String get shareShowLarge => 'Show large';
+
+  @override
+  String get shareNearby => 'Share with people nearby';
+
+  @override
+  String get shareNearbyIntro =>
+      'Phones on the same Wi-Fi or hotspot can scan this code and get the guides, maps and models downloaded to this phone. No internet needed.';
+
+  @override
+  String get shareNearbyKeepOpen =>
+      'Sharing runs only while this screen is open. The screen stays on meanwhile.';
+
+  @override
+  String get shareNearbyNothing =>
+      'Nothing downloaded yet. You can share guides, maps and models you have downloaded.';
+
+  @override
+  String shareNearbyItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sharing $count items',
+      one: 'Sharing 1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareNearbySent(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sent: $count files',
+      one: 'Sent: 1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareNearbyNoNetwork =>
+      'Not on Wi-Fi. Connect both phones to the same Wi-Fi or hotspot.';
+
+  @override
+  String get shareReceiveTitle => 'Get downloads from a phone nearby?';
+
+  @override
+  String shareReceiveBody(String address) {
+    return 'Shows the guides, maps and models at $address in Downloads. They are saved only after their signatures are checked.';
+  }
+
+  @override
+  String get shareReceiveShow => 'Show';
+
+  @override
+  String get shareReceiveNone =>
+      'Nothing found. Check that both phones are on the same Wi-Fi.';
+
+  @override
+  String shareReceiveFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items available',
+      one: '1 item available',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareReceiveNothingNew =>
+      'Nothing new: this phone already has everything offered.';
+
+  @override
+  String get answerBaseUnreachable =>
+      'Can\'t reach the base, and this phone has no answer model of its own. Join the base\'s Wi-Fi and try again.';
+
+  @override
+  String get shareNearbyHint =>
+      'Pass on your downloaded guides, maps and models to phones nearby';
 }

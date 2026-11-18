@@ -33,6 +33,7 @@ dependencies:
   url_launcher: ^6.3.3
   cryptography: ^2.9.0
   intl: any
+  wakelock_plus: ^1.8.0
 
 dev_dependencies:
   flutter_test:

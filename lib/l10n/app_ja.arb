@@ -106,7 +106,7 @@
   "mapBlockedConsidered": "通行止めを考慮",
   "mapAboutData": "データについて",
   "mapMyLocation": "現在地",
-  "mapShelterHint": "避難所の端末：✎で状況を入力。地図を長押しで通行止め・給水を登録。",
+  "mapShelterHint": "ベース：✎で避難所の状況を入力。地図を長押しで通行止め・給水を登録。",
   "mapInFloodArea": "現在地は津波浸水想定区域内です（想定{depth}）",
   "mapNearFloodArea": "現在地は津波浸水想定区域のすぐ近くです",
   "mapOutsideFloodArea": "現在地は津波浸水想定区域の外です",
@@ -121,7 +121,7 @@
   "mapAboutSites": "指定緊急避難場所は災害の種類ごとに指定されています。指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、最新の状況は市町村に確認してください。",
   "mapGsiNotes": "国土地理院 ご利用上の注意",
   "mapNoSiteWarning": "国土地理院のデータでは、{city}に{hazard}の指定緊急避難場所が登録されていません。最寄りの場所は別の市町村の可能性があります。{city}のハザードマップや避難情報を確認してください。",
-  "answerShelterComputer": "避難所のコンピューター · {name}",
+  "answerShelterComputer": "ベース · {name}",
   "answerLooking": "資料を確認しています…",
   "answerRelatedOnly": "資料に関連する情報はありますが、直接の答えはありません。",
   "answerNotCovered": "この質問に答える資料は入っていません。",
@@ -143,7 +143,7 @@
   "languageName": "日本語",
   "settingsLanguage": "言語",
   "settingsLanguageDevice": "端末の設定",
-  "settingsShelter": "避難所",
+  "settingsShelter": "ベース",
   "settingsOfflineData": "オフラインデータ",
   "settingsDownloadsHint": "AIモデル・防災の資料・地図",
   "settingsAboutGroup": "このアプリについて",
@@ -184,13 +184,13 @@
   "askPhaseNoModel": "準備が必要",
   "askPhaseLoading": "準備中…",
   "askPhaseReady": "オフラインで利用可",
-  "askPhaseShelter": "避難所",
+  "askPhaseShelter": "ベース",
   "askPhaseServing": "公開中",
   "askPhaseFailed": "利用できません",
   "askExplainNoModel": "「設定」→「ダウンロード」でAIモデルと資料を取得してください。",
   "askExplainLoading": "この端末でAIモデルを読み込んでいます。",
   "askExplainReady": "AIはこの端末の中で動いています。インターネットは不要です。",
-  "askExplainShelter": "避難所のコンピューターが、施設内のWi-Fiで回答します。この端末より速く答えます。",
+  "askExplainShelter": "近くのベース（パソコン）が、同じWi-Fiで回答します。この端末より速く答えます。",
   "askExplainServing": "この端末が、同じWi-Fiのスマートフォンからの質問に答え、資料・地図と最新の情報を共有しています。設定から止められます。",
   "askExplainFailed": "AIモデルを読み込めませんでした。",
   "askHint": "質問を入力",
@@ -213,18 +213,18 @@
   "packagesTitle": "答えられる分野",
   "packagesAdd": "追加",
   "packagesAddTooltip": "分野を追加",
-  "shelterNoAddress": "ネットワークのアドレスがありません。この端末を施設のWi-Fiに接続してください。",
+  "shelterNoAddress": "ネットワークのアドレスがありません。この端末をWi-Fiに接続してください。",
   "shelterConnectPhones": "スマートフォンを接続",
-  "shelterScanHint": "施設のWi-Fiに接続したスマートフォンのカメラで読み取ると、{appName}が開き「{name}」に接続します。",
+  "shelterScanHint": "同じWi-Fiにつないだスマートフォンのカメラで読み取ると、{appName}が開き「{name}」に接続します。",
   "shelterOrEnterAddress": "またはアドレスを入力：",
   "shelterConnectTo": "{name}に接続しますか？",
-  "shelterThisShelter": "この避難所",
-  "shelterConnectBody": "避難所のコンピューター（{address}）が質問に答え、最新の情報を共有します。いま居る避難所のコードだけを読み取ってください。",
+  "shelterThisShelter": "このベース",
+  "shelterConnectBody": "ベース（{address}）が質問に答え、最新の情報を共有します。いま居る場所のコードだけを読み取ってください。",
   "shelterConnect": "接続",
-  "shelterAddress": "避難所のアドレス",
-  "shelterAddressHelper": "避難所の端末のQRコードの横に表示されています。",
-  "shelterConnectComputer": "避難所のコンピューターに接続",
-  "shelterConnectComputerHint": "避難所のQRコードを読み取るか、アドレスを入力します。回答が速くなります。",
+  "shelterAddress": "ベースのアドレス",
+  "shelterAddressHelper": "ベースのQRコードの横に表示されています。",
+  "shelterConnectComputer": "ベースに接続",
+  "shelterConnectComputerHint": "ベースのQRコードを読み取るか、アドレスを入力します。回答が速くなります。",
   "shelterAskedFirst": "先にこちらに質問 · {address}",
   "shelterDisconnect": "切断",
   "mapNoMap": "地図がありません",
@@ -238,7 +238,7 @@
   "conversationDeleteTitle": "この会話を削除しますか？",
   "conversationDeleteBody": "この端末から削除されます。",
   "downloadsMobileTitle": "モバイルデータで {size} をダウンロードしますか？",
-  "downloadsMobileBody": "Wi-Fi につながっていません。データ通信量を使います。多くの料金プランでは Wi-Fi のほうが安くすみます。近くに避難所のコンピューターがあれば、その Wi-Fi からもダウンロードできます。",
+  "downloadsMobileBody": "Wi-Fi につながっていません。データ通信量を使います。多くの料金プランでは Wi-Fi のほうが安くすみます。近くにベースがあれば、その Wi-Fi からもダウンロードできます。",
   "downloadsMobileData": "モバイルデータ",
   "downloadsMobileNever": "Wi-Fi のみ",
   "downloadsMobileAsk": "確認する",
@@ -260,14 +260,57 @@
   "downloadsSignedOn": "署名日",
   "downloadsKey": "鍵",
   "downloadsFilterKind": "種類",
-  "webError": "避難所のコンピューターが回答できませんでした。もう一度お試しください。",
+  "webError": "ベースが回答できませんでした。もう一度お試しください。",
   "shelterWithApp": "アプリで",
   "shelterInBrowser": "ブラウザで",
-  "shelterBrowserHint": "アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は避難所の Wi-Fi の中だけでやりとりします。",
-  "shareOnNetwork": "この端末を避難所として公開",
+  "shelterBrowserHint": "アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は同じ Wi-Fi の中だけでやりとりします。",
+  "shareOnNetwork": "この端末をベースにする",
   "shareOnNetworkHint": "同じWi-Fiのスマホから、このコンピューターに質問したり、資料や地図をダウンロードしたりできます。",
-  "shareName": "避難所の名前",
-  "shareNameHint": "スマホに表示されます（例：南小学校 避難所）",
+  "shareName": "ベースの名前",
+  "shareNameHint": "スマホに表示されます（例：南小学校 避難所、〇〇山荘）",
   "shareStarting": "準備ができしだい公開します。",
-  "shareShowLarge": "大きく表示"
+  "shareShowLarge": "大きく表示",
+  "shareNearby": "近くの人に共有",
+  "shareNearbyIntro": "同じWi-Fiやテザリングにつないだスマートフォンで、このQRコードを読み取ると、このスマートフォンにダウンロードした資料・地図・モデルを受け取れます。インターネットは要りません。",
+  "shareNearbyKeepOpen": "この画面を開いている間だけ共有します。その間、画面は消えません。",
+  "shareNearbyNothing": "まだダウンロードしたものがありません。共有できるのは、ダウンロードした資料・地図・モデルです。",
+  "shareNearbyItems": "共有中：{count}件",
+  "@shareNearbyItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbySent": "送信済み：{count}ファイル",
+  "@shareNearbySent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareNearbyNoNetwork": "Wi-Fiにつながっていません。両方のスマートフォンを同じWi-Fiかテザリングにつないでください。",
+  "shareReceiveTitle": "近くのスマートフォンから受け取りますか？",
+  "shareReceiveBody": "{address} にある資料・地図・モデルを、ダウンロード画面に表示します。署名を確認してから保存します。",
+  "@shareReceiveBody": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "shareReceiveShow": "表示",
+  "shareReceiveNone": "受け取れるものが見つかりませんでした。同じWi-Fiにつながっているか確認してください。",
+  "shareReceiveFound": "{count}件を受け取れます",
+  "@shareReceiveFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareReceiveNothingNew": "新しいものはありません。このスマートフォンにはすべてそろっています。",
+  "answerBaseUnreachable": "ベースにつながらず、この端末にも回答モデルがありません。ベースと同じWi-Fiにつないでから、もう一度お試しください。",
+  "shareNearbyHint": "ダウンロードした資料・地図・モデルを、近くのスマートフォンに渡します"
 }

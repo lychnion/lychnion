@@ -33,6 +33,7 @@ import 'map/hazard_detect.dart';
 import 'map/map_state.dart';
 import 'package:app_links/app_links.dart';
 
+import 'shelter/share_nearby.dart';
 import 'shelter/shelter_client.dart';
 import 'shelter/shelter_link.dart';
 import 'shelter/shelter_panel.dart';
@@ -230,6 +231,10 @@ class _HomePageState extends State<HomePage> {
   /// A scanned lychnion://shelter link: ask, then connect. The same link can
   /// arrive twice (at launch and from the stream): ask only once.
   Future<void> _openLink(Uri uri) async {
+    if (ShareLink.fromUri(uri) case final share?) {
+      await _receiveShare(share);
+      return;
+    }
     final link = ShelterLink.fromUri(uri);
     if (link == null || !mounted || _asking) return;
     if (link.url == widget.settings.shelterUrl) return; // already connected
@@ -256,6 +261,57 @@ class _HomePageState extends State<HomePage> {
 
   /// A shelter's catalog that arrived before Downloads was ready.
   Uri? _pendingShelterCatalog;
+
+  /// A phone nearby shares its downloads: ask, then show what it offers in
+  /// Downloads. Records and files are checked as for any download.
+  Future<void> _receiveShare(ShareLink link) async {
+    final dm = _downloads;
+    if (dm == null || !mounted || _asking) return;
+    _asking = true;
+    try {
+      final l = context.l10n;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          icon: const Icon(Icons.share_rounded),
+          title: Text(l.shareReceiveTitle),
+          content: Text(
+            l.shareReceiveBody(link.url.replaceFirst('http://', '')),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(l.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(l.shareReceiveShow),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+      final url = Uri.parse(link.url).resolve('/catalog.json');
+      final offered = await dm.addCatalogFrom(url);
+      if (!mounted) return;
+      // Count only what this phone does not have yet.
+      final n = offered == null ? 0 : dm.newItemsAt(url);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            offered == null
+                ? l.shareReceiveNone
+                : n == 0
+                ? l.shareReceiveNothingNew
+                : l.shareReceiveFound(n),
+          ),
+        ),
+      );
+      if (offered != null) _openDownloads();
+    } finally {
+      _asking = false;
+    }
+  }
 
   void _addShelterCatalog(Uri url) {
     final dm = _downloads;
@@ -387,6 +443,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => SettingsScreen(
         settings: widget.settings,
         downloads: _downloads,
+        onShareNearby: _isDesktop ? null : _openShareNearby,
         shelter: _isDesktop
             ? ShelterShareSection(
                 settings: widget.settings,
@@ -397,6 +454,12 @@ class _HomePageState extends State<HomePage> {
       ),
     ),
   );
+
+  /// Phones pass on their downloads to phones nearby (computers do it as
+  /// a base).
+  void _openShareNearby() => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ShareNearbyScreen()));
 
   void _openDownloads() {
     final dm = _downloads;
@@ -833,7 +896,7 @@ class _SpikePageState extends State<SpikePage> {
       setState(() {
         _status =
             'Ready · ${_llm.backend} · loaded in ${_llm.lastLoadTime!.inMilliseconds} ms'
-            '${_server != null ? ' · shelter server on port ${ShelterServer.defaultPort}' : ''}';
+            '${_server != null ? ' · base server on port ${ShelterServer.defaultPort}' : ''}';
         // A connected shelter still answers first.
         _phase = _server != null
             ? AskPhase.serving
@@ -913,7 +976,7 @@ class _SpikePageState extends State<SpikePage> {
     if (expected != null && key != expected) {
       _log({'event': 'shelter_key_mismatch'});
       setState(() {
-        _status = 'Shelter key does not match the QR code: not connected.';
+        _status = 'Base key does not match the QR code: not connected.';
         _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
       });
       return false;
@@ -958,7 +1021,7 @@ class _SpikePageState extends State<SpikePage> {
     } catch (e) {
       _log({'event': 'shelter_unreachable', 'error': '$e'});
       if (!mounted || !identical(shelter, _shelter)) return;
-      setState(() => _status = 'Shelter not reachable: $e');
+      setState(() => _status = 'Base not reachable: $e');
       // The phone may join the shelter Wi-Fi later: try again.
       _retry = Timer(const Duration(seconds: 30), () {
         if (identical(shelter, _shelter)) unawaited(_connectShelter());
@@ -1015,8 +1078,9 @@ class _SpikePageState extends State<SpikePage> {
           return;
         }
         if (!_llm.isLoaded) {
+          if (!mounted) return;
           final failed = GroundedAnswer(question, appLang: lang)
-            ..text = 'Shelter not reachable and no model on this device: $e';
+            ..text = context.l10n.answerBaseUnreachable;
           setState(() {
             thread.entries.add(failed);
             _answering = false;
@@ -1145,6 +1209,13 @@ class _SpikePageState extends State<SpikePage> {
           : NearestSiteCard(map: widget.map!, onShowOnMap: widget.onShowOnMap),
       packageInfos: _packages,
       updates: widget.updates,
+      onShareNearby: _usesDownload
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ShareNearbyScreen(),
+              ),
+            )
+          : null,
       onShowNotice: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (c) => NoticeScreen(

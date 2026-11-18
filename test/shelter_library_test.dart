@@ -12,6 +12,7 @@ import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/llm/local_llm.dart';
 import 'package:lychnion/shelter/shelter_library.dart';
+import 'package:lychnion/shelter/shelter_link.dart';
 import 'package:lychnion/shelter/shelter_server.dart';
 
 Future<PackageRecord> _record(
@@ -215,6 +216,66 @@ void main() {
       final (_, fr, _) = await get('/web.json?lang=fr');
       // No French app texts: English.
       expect((jsonDecode(utf8.decode(fr)) as Map)['lang'], 'en');
+    });
+  });
+
+  group('a phone sharing with phones nearby', () {
+    test('passes on files, does not answer', () async {
+      final tmp = await Directory.systemTemp.createTemp('lychnion-share');
+      final data = List<int>.generate(1000, (i) => i & 0xff);
+      final sha = sha256.convert(data).toString();
+      final file = File('${tmp.path}/x.sqlite')..writeAsBytesSync(data);
+      final port = 20000 + Random().nextInt(2000);
+      final sent = <String>[];
+      final server = ShelterServer(
+        answerer: null,
+        name: '',
+        library: _OneFile(file, sha, {
+          'format': 2,
+          'records': const [],
+          'urls': {sha: 'blobs/sha256/$sha'},
+        }),
+      )..onBlobServed = sent.add;
+      await server.start(port: port);
+      final c = HttpClient();
+      try {
+        Future<(int, List<int>)> call(String method, String path) async {
+          final req = await c.openUrl(
+            method,
+            Uri.parse('http://127.0.0.1:$port$path'),
+          );
+          if (method == 'POST') req.add(utf8.encode('{"question":"津波"}'));
+          final res = await req.close();
+          return (
+            res.statusCode,
+            await res.fold<List<int>>([], (a, b) => a..addAll(b)),
+          );
+        }
+
+        final (s1, info) = await call('GET', '/info');
+        expect(s1, 200);
+        expect((jsonDecode(utf8.decode(info)) as Map)['answers'], isFalse);
+        expect((await call('POST', '/ask')).$1, 404);
+        expect((await call('GET', '/')).$1, 404);
+        expect((await call('GET', '/catalog.json')).$1, 200);
+        final (s2, bytes) = await call('GET', '/blobs/sha256/$sha');
+        expect(s2, 200);
+        expect(bytes, data);
+        expect(sent, ['x.sqlite']);
+      } finally {
+        c.close(force: true);
+        await server.stop();
+        await tmp.delete(recursive: true);
+      }
+    });
+
+    test('share links keep their port and are not shelter links', () {
+      final link = ShareLink('http://192.168.43.1:8643');
+      final uri = link.toUri();
+      expect(uri.toString(), startsWith('lychnion://share?'));
+      expect(ShareLink.fromUri(uri)!.url, 'http://192.168.43.1:8643');
+      expect(ShelterLink.fromUri(uri), isNull);
+      expect(ShareLink.fromUri(Uri.parse('lychnion://shelter?url=x')), isNull);
     });
   });
 }
