@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
@@ -48,10 +50,12 @@ class _ConversationPageState extends State<ConversationPage> {
 
   void _toEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_scroll.hasClients) {
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+      unawaited(
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        ),
       );
     }
   });

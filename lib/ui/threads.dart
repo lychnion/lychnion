@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -46,7 +47,7 @@ class ThreadStore extends ChangeNotifier {
   void setArchived(Thread t, bool archived) {
     t.archived = archived;
     notifyListeners();
-    save();
+    unawaited(save());
   }
 
   /// Puts a deleted thread back (undo).
@@ -56,7 +57,7 @@ class ThreadStore extends ChangeNotifier {
       ..add(t)
       ..sort((a, b) => a.created.compareTo(b.created));
     notifyListeners();
-    save();
+    unawaited(save());
   }
 
   Future<void> load() async {
@@ -91,7 +92,7 @@ class ThreadStore extends ChangeNotifier {
   void delete(Thread t) {
     threads.remove(t);
     notifyListeners();
-    save();
+    unawaited(save());
   }
 
   /// Saves finished answers (call after an answer is complete).

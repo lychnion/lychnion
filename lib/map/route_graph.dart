@@ -452,7 +452,7 @@ class _Heap {
 /// Depth bounds in metres, as in lychnion-data/tool/build_routes.py.
 const depthBounds = [0.0, 0.3, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
 
-/// Expected inundation depth between depthBounds[lo] and depthBounds[hi]
+/// Expected inundation depth between `depthBounds[lo]` and `depthBounds[hi]`
 /// metres; hi = 9: no upper bound.
 typedef Depth = ({int lo, int hi});
 

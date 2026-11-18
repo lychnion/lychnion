@@ -81,7 +81,7 @@ Uint8List encode(
   return b.toBytes();
 }
 
-/// Whether [path] passes [p] (coordinates are stored to 6 decimals).
+/// Whether a path passes [p] (coordinates are stored to 6 decimals).
 Matcher passes(LatLng p) => predicate<List<LatLng>>(
   (path) => path.any(
     (q) =>

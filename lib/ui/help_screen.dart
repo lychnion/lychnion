@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
@@ -36,9 +38,11 @@ class _HelpScreenState extends State<HelpScreen> {
     if (given != null) {
       _book = given;
     } else {
-      HelpBook.load().then((b) {
-        if (mounted) setState(() => _book = b);
-      });
+      unawaited(
+        HelpBook.load().then((b) {
+          if (mounted) setState(() => _book = b);
+        }),
+      );
     }
     _query.addListener(() => setState(() {}));
   }

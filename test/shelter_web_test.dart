@@ -56,7 +56,7 @@ void main() {
         f(FactKind.warning, '西宮市', '津波警報'),
       ],
     );
-    final facts = (info['facts'] as List).cast<Map>();
+    final facts = (info['facts'] as List).cast<Map<String, Object?>>();
     expect(facts[0]['subject'], '市役所');
     expect(facts[0]['avoid'], isTrue);
     expect(facts[1]['subject'], isNull);

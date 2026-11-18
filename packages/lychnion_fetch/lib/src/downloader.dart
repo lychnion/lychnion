@@ -64,7 +64,7 @@ class DownloadBusy implements Exception {
   String toString() => 'Already downloading in another window';
 }
 
-/// Phases reported to [Downloader.onProgress].
+/// Phases reported to the `onProgress` callback of [Downloader.fetch].
 enum DownloadPhase { checkingPart, downloading, verifying }
 
 /// Downloads one file with resume (HTTP Range) and SHA-256 check.
@@ -451,6 +451,8 @@ class _Sha256Sink {
   _Sha256Sink() {
     _input = sha256.startChunkedConversion(_out);
   }
+  // Closed by _input.close().
+  // ignore: close_sinks
   final _out = _DigestSink();
   late final ByteConversionSink _input;
 

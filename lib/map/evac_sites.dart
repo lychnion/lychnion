@@ -144,9 +144,9 @@ class EvacSites {
       final sites = [
         for (final r in db.select('SELECT * FROM sites'))
           EvacSite(
-            r['name'],
-            r['address'] ?? '',
-            LatLng(r['lat'], r['lon']),
+            r['name'] as String,
+            r['address'] as String? ?? '',
+            LatLng((r['lat'] as num).toDouble(), (r['lon'] as num).toDouble()),
             r['kind'] == 'emergency',
             {
               for (final k in (r['hazards'] as String).split(','))

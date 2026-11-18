@@ -49,8 +49,11 @@ class ItemState {
 class DownloadManager extends ChangeNotifier {
   DownloadManager._(this.store);
 
-  static Future<DownloadManager> create() async =>
-      DownloadManager._(await DownloadStore.instance()).._init();
+  static Future<DownloadManager> create() async {
+    final m = DownloadManager._(await DownloadStore.instance());
+    unawaited(m._init());
+    return m;
+  }
 
   final DownloadStore store;
   Catalog catalog = Catalog(const []);
@@ -982,7 +985,7 @@ class DownloadManager extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _connection?.cancel();
+    unawaited(_connection?.cancel());
     _every?.cancel();
     changes.dispose();
     super.dispose();

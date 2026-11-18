@@ -318,7 +318,7 @@ Future<bool> _install(
   CatalogItem item,
   PackageRecord r,
   Directory folder,
-  Map urls,
+  Map<Object?, Object?> urls,
 ) async {
   // Names that differ only in case are one file on macOS and Windows.
   final names = {for (final f in r.files) f.name.toLowerCase()};
@@ -409,7 +409,7 @@ File? _blobOnStick(Directory folder, RecordFile f, Object? listed) {
 
 /// The records and `urls` of the catalog in [folder]; null when there is
 /// none. Throws [UnreadableStick] when it is there but cannot be read.
-Future<({List<Object?> records, Map urls})?> _readCatalog(
+Future<({List<Object?> records, Map<Object?, Object?> urls})?> _readCatalog(
   Directory folder,
 ) async {
   final file = File('${folder.path}/catalog.json');
@@ -428,7 +428,9 @@ Future<({List<Object?> records, Map urls})?> _readCatalog(
   }
   return (
     records: j['records'] as List<Object?>,
-    urls: j['urls'] is Map ? j['urls'] as Map : const {},
+    urls: j['urls'] is Map
+        ? j['urls'] as Map<Object?, Object?>
+        : const <Object?, Object?>{},
   );
 }
 

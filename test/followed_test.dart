@@ -1,4 +1,5 @@
 // Followed catalogs (docs/distribution.md, step 4c).
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -213,9 +214,8 @@ void main() {
         throwsA(isA<CatalogFetchError>().having((e) => e.code, 'code', c));
 
     test('reads a catalog', () async {
-      handle = (r) => r.response
-        ..write('{"format":2,"records":[]}')
-        ..close();
+      handle = (r) =>
+          unawaited((r.response..write('{"format":2,"records":[]}')).close());
       expect(await fetchCatalogText(at('c.json')), '{"format":2,"records":[]}');
     });
 
@@ -225,7 +225,7 @@ void main() {
           ..statusCode = 404
           ..bufferOutput = false
           ..write('still going');
-        r.response.flush(); // and never closed
+        unawaited(r.response.flush()); // and never closed
       };
       final sw = Stopwatch()..start();
       await expectLater(fetchCatalogText(at('x')), code('HTTP 404'));
@@ -233,10 +233,12 @@ void main() {
     });
 
     test('too large: by its length, and while it arrives', () async {
-      handle = (r) => r.response
-        ..contentLength = 100
-        ..add(List.filled(100, 32))
-        ..close();
+      handle = (r) => unawaited(
+        (r.response
+              ..contentLength = 100
+              ..add(List.filled(100, 32)))
+            .close(),
+      );
       await expectLater(
         fetchCatalogText(at('x'), maxBytes: 50),
         code('too large'),
@@ -246,7 +248,7 @@ void main() {
         for (var i = 0; i < 20; i++) {
           r.response.add(List.filled(10, 32));
         }
-        r.response.close();
+        unawaited(r.response.close());
       };
       await expectLater(
         fetchCatalogText(at('x'), maxBytes: 50),
@@ -255,9 +257,7 @@ void main() {
     });
 
     test('not text is invalid', () async {
-      handle = (r) => r.response
-        ..add([0xff, 0xfe, 0xfd])
-        ..close();
+      handle = (r) => unawaited((r.response..add([0xff, 0xfe, 0xfd])).close());
       await expectLater(fetchCatalogText(at('x')), code('invalid'));
     });
 

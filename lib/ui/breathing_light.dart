@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -36,7 +37,7 @@ class _BreathingLightState extends State<BreathingLight>
         ..stop()
         ..value = 0.5;
     } else if (!_c.isAnimating) {
-      _c.repeat();
+      unawaited(_c.repeat());
     }
   }
 
