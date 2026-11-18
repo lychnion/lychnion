@@ -545,7 +545,31 @@ class DownloadManager extends ChangeNotifier {
   /// A publisher was added or removed: install records are checked again,
   /// and every catalog is read again, so the publisher's records show up
   /// (or go). Base catalogs are read from what they sent, no network.
-  Future<void> publishersChanged() async {
+  ///
+  /// One run at a time: a call while one runs (for example from key
+  /// statements a catalog brought) makes it run once more, and waits for
+  /// that, so a slower old run never overwrites a newer one.
+  Future<void> publishersChanged() {
+    if (_changing case final running?) {
+      _changeAgain = true;
+      return running;
+    }
+    return _changing = () async {
+      try {
+        do {
+          _changeAgain = false;
+          await _publishersChanged();
+        } while (_changeAgain);
+      } finally {
+        _changing = null;
+      }
+    }();
+  }
+
+  Future<void>? _changing;
+  bool _changeAgain = false;
+
+  Future<void> _publishersChanged() async {
     _trustGeneration++;
     await store.reverify();
     _main = await _localCatalog();

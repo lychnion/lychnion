@@ -361,6 +361,84 @@ void main() {
         expect(await relevantStatements(trust, 'nope'), isEmpty);
       },
     );
+
+    test('a long chain is cut, a revocation still counts', () async {
+      final root = await _key();
+      final trust = TrustedKeys({
+        'jp.test': [root.pub],
+      });
+      var prev = root.pair;
+      final chain = <KeyStatement>[];
+      for (var i = 0; i < KeyStatement.maxReplacesPerPublisher + 10; i++) {
+        final next = (await _key()).pair;
+        chain.add(
+          await KeyStatement.replace(
+            publisher: 'jp.test',
+            oldKey: prev,
+            newKey: next,
+            signed: '2026-11-19',
+          ),
+        );
+        prev = next;
+      }
+      final got = await relevantStatements(trust, [
+        for (final s in chain) s.json,
+      ]);
+      expect(got, hasLength(KeyStatement.maxReplacesPerPublisher));
+      final revoke = await KeyStatement.revoke(
+        publisher: 'jp.test',
+        key: root.pair,
+        signed: '2026-11-20',
+      );
+      final more = await relevantStatements(trust.withStatements(got), [
+        revoke.json,
+      ]);
+      expect(more, [revoke]);
+      expect(trust.withStatements([...got, ...more]).publishers, isEmpty);
+    });
+
+    test(
+      'forged entries stop being verified; one list cannot block another',
+      () async {
+        final a = await _key();
+        final trust = TrustedKeys({
+          'jp.test': [a.pub],
+        });
+        final revoke = await KeyStatement.revoke(
+          publisher: 'jp.test',
+          key: a.pair,
+          signed: '2026-11-20',
+        );
+        final forged = [
+          for (var i = 0; i < 200; i++) {...revoke.json, 'signed': 'x$i'},
+        ];
+        final sw = Stopwatch()..start();
+        expect(await relevantStatements(trust, forged), isEmpty);
+        expect(sw.elapsed, lessThan(const Duration(seconds: 5)));
+        // A valid statement in another list (another catalog) still counts.
+        expect(await relevantStatements(trust, [revoke.json]), [revoke]);
+      },
+    );
+
+    test('capped keeps revocations first, then the newest', () async {
+      final a = await _key();
+      final rs = [
+        for (var i = 0; i < 3; i++)
+          await KeyStatement.replace(
+            publisher: 'jp.test',
+            oldKey: a.pair,
+            newKey: (await _key()).pair,
+            signed: '$i',
+          ),
+      ];
+      final rev = await KeyStatement.revoke(
+        publisher: 'jp.test',
+        key: a.pair,
+        signed: 'r',
+      );
+      expect(KeyStatement.capped([...rs, rev], 2), [rs[2], rev]);
+      expect(KeyStatement.capped([rev, ...rs], 9), [rev, ...rs]);
+    });
   });
 }
 

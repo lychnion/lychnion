@@ -223,6 +223,7 @@ Future<void> _stick(
       if (r.failed.isNotEmpty) {
         text += '\n${l.stickFailedItems(r.failed.join(', '))}';
       }
+      if (r.keysNotSaved) text += '\n${l.publishersSaveFailed}';
     }
   } on _Busy {
     text = l.stickBusy;

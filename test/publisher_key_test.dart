@@ -261,6 +261,33 @@ void main() {
       expect(p.keyStateOf(_name), PublisherKeyState.revoked);
     });
 
+    test('a thief\'s long chain cannot keep out the revocation', () async {
+      final p = await phone('phone', me.link);
+      var prev = await me.keyPair();
+      final chain = <KeyStatement>[];
+      for (var i = 0; i < KeyStatement.maxReplacesPerPublisher + 5; i++) {
+        final next = await Ed25519().newKeyPair();
+        chain.add(
+          await KeyStatement.replace(
+            publisher: _name,
+            oldKey: prev,
+            newKey: next,
+            signed: nowStamp(),
+          ),
+        );
+        prev = next;
+      }
+      await p.learn(chain);
+      expect(p.statements, hasLength(KeyStatement.maxReplacesPerPublisher));
+      final revoke = await KeyStatement.revoke(
+        publisher: _name,
+        key: await me.keyPair(),
+        signed: nowStamp(),
+      );
+      expect(await p.learn([revoke]), isTrue);
+      expect(p.keyStateOf(_name), PublisherKeyState.revoked);
+    });
+
     test('a revocation listed before its replacement is kept', () async {
       final p = await phone('phone', me.link);
       final next = await me.replaceKey(pubDir);

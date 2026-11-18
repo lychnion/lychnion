@@ -123,8 +123,11 @@ or on a stick you hand out. A forgotten passphrase cannot be recovered.
 never replaced silently); a wrong passphrase, a damaged or changed file,
 or another kind of file is refused and nothing is written. A backup of
 a key that this computer knows as revoked or replaced is refused too. A
-file asking for more than 256 MiB or 6 rounds of Argon2id is refused as
-damaged; the key is derived in a separate isolate.
+file asking for more than 128 MiB or 4 rounds of Argon2id is refused as
+damaged; the key is derived in a separate isolate. A computer that never saw the
+publisher's statements cannot tell that a backup holds a replaced key:
+restore the newest backup only, and destroy backups of replaced keys or
+keep them as safely as the newest one.
 
 **Key statements.** Small signed statements, carried in a catalog's
 `keys` list (`packages/lychnion_format`, `KeyStatement`):
@@ -183,7 +186,11 @@ them; a record whose key was revoked is set aside, its files kept). A phone keep
 moment for that publisher (anyone can sign a statement about a key of
 their own; those are not kept), at most 1000, in `publishers.json`
 (format 2). Statements are taken in rounds, so their order in a list
-does not matter, and only those made by a trusted key are verified. It
+does not matter, and only those made by a trusted key are verified;
+after a few bad signatures in one list the rest of that list is not
+verified (another catalog still counts). At most 50 replacements are
+kept per publisher, so a thief cannot fill the list with a chain of keys
+of its own, and revocations are kept even when the list is full. It
 checks a catalog's records after applying that catalog's statements, so
 records of a new key count at once.
 

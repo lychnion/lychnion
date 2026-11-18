@@ -31,6 +31,32 @@ class KeyStatement {
   /// At most this many statements are read from one catalog or stick.
   static const maxPerSource = 500;
 
+  /// At most this many replacements are kept per publisher (a key that is
+  /// replaced every month needs 50 in four years).
+  static const maxReplacesPerPublisher = 50;
+
+  /// At most [max] of [statements] to pass on: revocations first (losing
+  /// one would trust a stolen key again), then the newest replacements;
+  /// order otherwise kept.
+  static List<KeyStatement> capped(
+    Iterable<KeyStatement> statements, [
+    int max = maxPerSource,
+  ]) {
+    final all = statements.toList();
+    if (all.length <= max) return all;
+    final keep = <KeyStatement>{
+      ...all.where((s) => s.type == KeyStatementType.revoke).take(max),
+    };
+    for (final s in all.reversed) {
+      if (keep.length >= max) break;
+      keep.add(s);
+    }
+    return [
+      for (final s in all)
+        if (keep.contains(s)) s,
+    ];
+  }
+
   /// The whole statement as published, signatures included.
   final Map<String, Object?> json;
 
@@ -238,7 +264,12 @@ class KeyStatement {
 }
 
 /// At most this many entries of a list from elsewhere are looked at.
-const _maxScanned = 5000;
+const _maxScanned = 2000;
+
+/// Verifying stops after this many bad signatures in one list: entries
+/// that name a trusted key but are not signed by it cost a verification
+/// each, and anyone can make them.
+const _maxBadSignatures = 32;
 
 /// The statements in [list] (raw JSON, as in a catalog's `keys`, or
 /// [KeyStatement]s) that change something for [trust]: each made by a key
@@ -249,7 +280,12 @@ const _maxScanned = 5000;
 ///
 /// Only those statements are verified: anyone can sign statements about
 /// keys of their own, and they cost nothing here and never crowd out real
-/// ones. At most [max] are returned (not counting those [trust] has).
+/// ones. Entries that name a trusted key with a bad signature stop being
+/// verified after a few; repeated entries are verified once. At most
+/// [max] are returned (not counting those [trust] has), and at most
+/// [KeyStatement.maxReplacesPerPublisher] replacements are kept per
+/// publisher (a thief could sign a long chain of keys of its own);
+/// revocations always count.
 Future<List<KeyStatement>> relevantStatements(
   TrustedKeys trust,
   Object? list, {
@@ -268,7 +304,13 @@ Future<List<KeyStatement>> relevantStatements(
   }
 
   final pending = <({String publisher, String old, Object raw})>[];
+  final rawSeen = <String>{};
   for (final e in list.take(_maxScanned)) {
+    try {
+      if (!rawSeen.add(e is KeyStatement ? e.id : canonicalJson(e))) continue;
+    } on FormatException {
+      continue;
+    }
     final (publisher, old) = switch (e) {
       KeyStatement s => (s.publisher, norm(s.oldKey)),
       Map<Object?, Object?> m => (m['publisher'], norm(m['old'])),
@@ -284,6 +326,13 @@ Future<List<KeyStatement>> relevantStatements(
   final trustedNow = <String, Set<String>>{};
   Set<String> keysOf(String p) =>
       trustedNow[p] ??= resolveKeys(p, trust.rootsOf(p), all).keys;
+  final replaces = <String, int>{};
+  for (final s in all) {
+    if (s.type == KeyStatementType.replace) {
+      replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
+    }
+  }
+  var bad = 0;
   var grew = true;
   while (grew && out.length < max) {
     grew = false;
@@ -291,11 +340,20 @@ Future<List<KeyStatement>> relevantStatements(
       if (out.length >= max) break;
       if (!keysOf(c.publisher).contains(c.old)) continue;
       pending.remove(c);
-      final s = switch (c.raw) {
-        KeyStatement k => k,
-        final raw => await KeyStatement.check(raw),
-      };
+      final KeyStatement? s;
+      if (c.raw case final KeyStatement k) {
+        s = k;
+      } else {
+        if (bad >= _maxBadSignatures) continue;
+        s = await KeyStatement.check(c.raw);
+        if (s == null) bad++;
+      }
       if (s == null || !seen.add(s.id)) continue;
+      if (s.type == KeyStatementType.replace) {
+        final n = replaces[s.publisher] ?? 0;
+        if (n >= KeyStatement.maxReplacesPerPublisher) continue;
+        replaces[s.publisher] = n + 1;
+      }
       all.add(s);
       out.add(s);
       trustedNow.remove(s.publisher);

@@ -394,7 +394,7 @@ Future<List<String>> adoptNewKey(
       ...old.json,
       'signed': nowStamp(),
     }, pair);
-    final tmp = File('${f.path}.tmp');
+    final tmp = File('${f.path}.$pid.tmp');
     await tmp.writeAsString(
       '${const JsonEncoder.withIndent('  ').convert(r.json)}\n',
       flush: true,
