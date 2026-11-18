@@ -2,14 +2,14 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:cd48015f89897c5be23cb9d7b7a5c913327ed21410dd922d2048bb7307b6c25b
+prose_version: threat-model.md@sha256:69a9368b748c8fa30c4538f9ea8508404f0a3b1ea270359c83f5c7775aae1598
 model_status: under-review
 triage_policy: strict
 confidence:
   documented: 120
-  maintainer: 108
+  maintainer: 109
   inferred: 6
-  assumption: 31
+  assumption: 32
 generation:
   model: Claude Opus 5.5 (claude-opus-5-5)
   effort: low
@@ -128,7 +128,7 @@ host_side_effects:
   stance: conditional
   components:
   - publishing
-  conditions: chmod for the publisher key on Linux and macOS desktops
+  conditions: chmod for the publisher key, on desktops other than Windows
   provenance: *id001
 - effect: listening-sockets
   stance: conditional
@@ -163,7 +163,7 @@ host_side_effects:
   - base-server
   - base-client
   - device-data
-  conditions: llama.cpp (llamadart, flutter_edge_ai), bonsoir, geolocator
+  conditions: llama.cpp (flutter_edge_ai, llamadart_llama_cpp_flutter), bonsoir, geolocator
   provenance: *id001
 - effect: key-backup-file
   stance: conditional
@@ -232,7 +232,8 @@ entry_points:
     caller_must_enforce: disk space
     provenance:
       kind: documented
-      source: docs/distribution.md "Security"
+      source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+        "a full disk ends the run"
     obligation_id: disk-space
 - id: Catalog.parse
   component: downloads
@@ -308,7 +309,8 @@ entry_points:
     caller_must_enforce: accept slow downloads
     provenance:
       kind: documented
-      source: docs/distribution.md "Security"
+      source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+        "a full disk ends the run"
     obligation_id: accept-slow-downloads
 - id: Downloader._open
   component: downloads
@@ -545,7 +547,7 @@ entry_points:
     caller_must_enforce: the user confirms one base
     provenance:
       kind: documented
-      source: docs/distribution.md "Sync between nodes"
+      source: docs/distribution.md "Security", row "Fake base announced on the Wi-Fi"
     obligation_id: the-user-confirms-one-base
 - id: lychnion://base link (also shelter)
   component: base-client
@@ -574,7 +576,7 @@ entry_points:
 - id: FactStore.addAll
   component: facts
   parameters:
-  - name: facts from a base (≤500 per pull)
+  - name: facts from a base
     attacker_controllable: true
     control_kinds:
     - data
@@ -752,7 +754,7 @@ contract_dimensions:
 - component: downloads
   dimension: concurrency-reentrancy
   status: claimed
-  conditions: only a matching file is renamed, also under races
+  conditions: only a file whose size and hash match is renamed
   provenance:
     kind: documented
     source: packages/lychnion_fetch/lib/src/downloader.dart `Downloader` doc comment
@@ -763,7 +765,8 @@ contract_dimensions:
   conditions: no overall download deadline, no disk quota
   provenance:
     kind: documented
-    source: docs/distribution.md "Security"
+    source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+      "a full disk ends the run"
   property_id: download-time-and-disk
 - component: records
   dimension: numeric-domain
@@ -779,7 +782,7 @@ contract_dimensions:
   conditions: a record that fails is ignored
   provenance:
     kind: documented
-    source: lychnion-data README "How the app trusts a file"
+    source: packages/lychnion_format/lib/src/record.dart `TrustedKeys.check` doc comment
   property_id: signed-install-only
 - component: records
   dimension: recursive-cyclic-topology
@@ -939,7 +942,7 @@ contract_dimensions:
   conditions: one question per phone; questions answered one after another
   provenance:
     kind: documented
-    source: docs/shelter-results.md "How it works"
+    source: docs/shelter-results.md "How it works"; lib/base/base_server.dart `BaseServer` doc comment
   property_id: base-request-limits
 - component: base-server
   dimension: resource-complexity
@@ -1069,7 +1072,7 @@ contract_dimensions:
   conditions: ≤5,000 facts kept, ≤500 per pull
   provenance:
     kind: documented
-    source: CHANGELOG.md "Security"
+    source: CHANGELOG.md "Security"; lib/base/base_client.dart `maxFacts` comment
   property_id: client-response-limits
 - component: device-data
   dimension: numeric-domain
@@ -1380,7 +1383,7 @@ adversaries:
 - name: sender-of-links-web-page-message-other-a
   scope: in
   capabilities:
-  - Open lychnion:// and fieldkit:// links with any parameters
+  - Open lychnion:// links and legacy fieldkit:// base links with any parameters
   excluded_capabilities:
   - Confirming the dialog for the user
   - being scanned in person as a base's QR code
@@ -1469,7 +1472,7 @@ adversaries:
   goals: []
   provenance:
     kind: documented
-    source: SECURITY.md "Out of scope"
+    source: SECURITY.md "In scope", the "Out of scope:" paragraph
 - name: the-user-asking
   scope: out
   capabilities:
@@ -1485,7 +1488,7 @@ dependency_policy:
     kind: maintainer
     date: 2026-11
 dependencies:
-- name: llama.cpp through llamadart, flutter_edge_ai, flutter_edge_ai_llama
+- name: llama.cpp through flutter_edge_ai, flutter_edge_ai_llama, llamadart_llama_cpp_flutter
   relied_on_for: parsing GGUF models and running the chat template
   relied_on_properties: []
   caller_obligations_acknowledged: []
@@ -1612,8 +1615,6 @@ build_flags:
   affects_properties:
   - property_id: base-request-limits
     effect: preserves
-  - property_id: lan-only-exposure
-    effect: preserves
   provenance:
     kind: documented
     source: help/en/05-base.md "How do I make my computer a base?"
@@ -1697,6 +1698,10 @@ properties_claimed:
   - records
   - node
   tier: security-critical
+  x-known-violations:
+  - a stick record for a Lychnion id not installed yet passes, because the owner check only looks at installed
+    markers (`lib/download/download_store.dart:371`), and the installed copy then wins over the bundled
+    one (`lib/download/download_store.dart:581`).
   conditions: an added publisher never replaces Lychnion's items or files, or another publisher's ids,
     also not by upper or lower case, and its key statements count only for its own name.
   violation_symptoms:
@@ -1724,6 +1729,9 @@ properties_claimed:
   - downloads
   - base-client
   tier: security-critical
+  x-known-violations:
+  - any `lychnion://base` or `lychnion://shelter` link, from a web page too, pins its key after one tap
+    (`lib/app/incoming_links.dart:67`).
   conditions: 'a publisher key or base key becomes trusted only after the user says yes, and a base key
     gets fact trust only from an in-person QR scan. Two exceptions come from the publisher''s own statements:
     a successor named by a trusted key''s replacement is trusted without a dialog, and a revoked publisher''s
@@ -1738,6 +1746,8 @@ properties_claimed:
   components:
   - answers
   tier: security-critical
+  x-known-violations:
+  - when loading fails after the model is up, the warning is drawn only if `grounded` is true (`lib/ask/ask_page.dart:587`).
   conditions: an answer is built only from installed guides and shows its sources; an answer whose citations
     do not check out carries a warning; the app never shows bare-model text as an answer.
   violation_symptoms:
@@ -1750,6 +1760,8 @@ properties_claimed:
   components:
   - answers
   tier: security-critical
+  x-known-violations:
+  - alerts of every installed package match (`lib/knowledge/grounded_answer.dart:253`).
   conditions: when a hazard question matches, the fixed safety line from a Lychnion-signed package is
     shown word for word above the AI text; no other publisher supplies it.
   violation_symptoms:
@@ -1763,6 +1775,8 @@ properties_claimed:
   - downloads
   - answers
   tier: security-critical
+  x-known-violations:
+  - any trusted publisher's record kind is accepted (`lib/download/catalog.dart:186`).
   conditions: only models signed by Lychnion are installed and loaded.
   violation_symptoms:
   - integrity-bypass
@@ -1802,6 +1816,8 @@ properties_claimed:
   components:
   - facts
   tier: security-critical
+  x-known-violations:
+  - shelters are avoided whatever the trust (`lib/map/map_state.dart:59`).
   conditions: only verified facts change the suggested evacuation site or walking route.
   violation_symptoms:
   - bad-data-accepted
@@ -1813,6 +1829,8 @@ properties_claimed:
   components:
   - facts
   tier: security-critical
+  x-known-violations:
+  - the newest `observedAt` wins with no cap (`lib/facts/fact_store.dart:275`).
   conditions: a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.
   violation_symptoms:
   - bad-data-accepted
@@ -1824,16 +1842,16 @@ properties_claimed:
   components:
   - base-server
   tier: security-critical
-  conditions: 'every request has limits: body 8 KiB within 10 s, question 500 characters, 8 live questions,
-    one per address, 30 s idle, 30 s send stall, answers stop when the phone leaves. No single request
-    makes the base hang, crash or allocate without bound. Threshold: a hang or unbounded allocation is
-    a bug; slow under a flood is not (§1.12 `lan-availability`).'
+  conditions: 'every request has limits: 100 connections in all, body 8 KiB within 10 s, question 500
+    characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone
+    leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang
+    or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).'
   violation_symptoms:
   - hang
   - unbounded-allocation
   provenance:
     kind: documented
-    source: "docs/shelter-results.md \"How it\n  works\""
+    source: "docs/shelter-results.md \"How it works\"; lib/base/base_server.dart\n  `BaseServer` doc comment"
 - id: client-response-limits
   kind: resource-bound
   components:
@@ -1894,6 +1912,9 @@ properties_claimed:
   - device-data
   - base-client
   tier: security-critical
+  x-known-violations:
+  - a base link may name any host (`lib/base/base_link.dart:93`), and questions, answers and the region
+    go to the system log (`lib/ask/ask_page.dart:164`, with the phone's own answers at `lib/ask/ask_page.dart:384`).
   conditions: questions leave the device only to a base the user connected to on the local network; position
     never leaves; release builds do not log questions, answers or position.
   violation_symptoms:
@@ -1906,6 +1927,8 @@ properties_claimed:
   components:
   - downloads
   tier: correctness-only
+  x-known-violations:
+  - the local-network test misses 100.64/10 and plain hostnames (`packages/lychnion_fetch/lib/src/downloader.dart:421`).
   conditions: from a base or a nearby phone, the app downloads only files on that device, never from other
     addresses its catalog names or redirects to.
   violation_symptoms:
@@ -2160,12 +2183,13 @@ properties_disclaimed:
   - downloads
   - node
   conditions: A time limit per download, or a disk quota. Size and hash still decide; a bad mirror costs
-    time
+    time; a full disk ends a run
   tier: correctness-only
   false_friend: false
   provenance:
     kind: documented
-    source: docs/distribution.md "Security"
+    source: docs/distribution.md "Security", "A bad mirror costs time, not safety"; "Sync between nodes",
+      "a full disk ends the run"
 - id: catalog-network-reach
   components:
   - downloads

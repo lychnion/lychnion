@@ -6,8 +6,8 @@
   "scope_subpath": null,
   "description": "Lychnion is an offline safety assistant for Japan. A phone or computer runs a small language model over installed, signed knowledge packages and shows sources and fixed official safety lines. Packages, maps and models come from signed catalogs over the internet, a base computer on the local Wi-Fi, a nearby phone, a USB stick or a headless node. A base also shares signed current facts such as shelter status.",
   "confidence": {
-    "documented": 228,
-    "inferred": 37
+    "documented": 229,
+    "inferred": 38
   },
   "components": [
     {
@@ -180,7 +180,7 @@
     },
     {
       "component": "base-client",
-      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` / `fieldkit://` link (`base`, `shelter`, `share`, `publisher`, `catalog`).",
+      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` link (`base`, `shelter`, `share`, `publisher`, `catalog`) or a legacy `fieldkit://` base link.",
       "provenance": "documented",
       "reachability_precondition": "reachable from a base's responses, an mDNS record, or a lychnion:// or fieldkit:// link"
     },
@@ -247,7 +247,7 @@
       "component": "records",
       "caller_must_enforce": "disk space",
       "provenance": "documented",
-      "source": "docs/distribution.md \"Security\""
+      "source": "docs/distribution.md \"Security\", \"A bad mirror costs time, not safety\"; \"Sync between nodes\", \"a full disk ends the run\""
     },
     {
       "entry_point": "Catalog.parse",
@@ -310,7 +310,7 @@
       "component": "downloads",
       "caller_must_enforce": "accept slow downloads",
       "provenance": "documented",
-      "source": "docs/distribution.md \"Security\""
+      "source": "docs/distribution.md \"Security\", \"A bad mirror costs time, not safety\"; \"Sync between nodes\", \"a full disk ends the run\""
     },
     {
       "entry_point": "Downloader._open",
@@ -499,7 +499,7 @@
       "component": "base-client",
       "caller_must_enforce": "the user confirms one base",
       "provenance": "documented",
-      "source": "docs/distribution.md \"Sync between nodes\""
+      "source": "docs/distribution.md \"Security\", row \"Fake base announced on the Wi-Fi\""
     },
     {
       "entry_point": "lychnion://base link (also shelter)",
@@ -521,7 +521,7 @@
     },
     {
       "entry_point": "FactStore.addAll",
-      "parameter": "facts from a base (≤500 per pull)",
+      "parameter": "facts from a base",
       "attacker_controllable": "yes",
       "component": "facts",
       "caller_must_enforce": "none — fact-verification",
@@ -576,7 +576,7 @@
   ],
   "environment": {
     "assumes": [
-      "**Platforms**: Android, iOS, macOS and Windows from one Flutter codebase. Linux runs the headless node.",
+      "**Platforms**: Android, iOS, macOS and Windows from one Flutter codebase. The headless node runs as a program or container on a server.",
       "**Network**: a base needs a Wi-Fi that lets devices reach each other; the safest is a hotspot or router the shelter controls. The base page uses plain http.",
       "**OS protections**: the app folder is private to the app (sandbox on macOS, iOS and Android; per-user AppData on Windows). The desktop publisher key relies on them.",
       "**Files after install** are trusted. The app checks size and SHA-256 at install and only the signed record and the size at load."
@@ -608,7 +608,7 @@
     {
       "name": "Base switch",
       "default": "off",
-      "effect": "preserves base-request-limits; preserves lan-only-exposure",
+      "effect": "preserves base-request-limits",
       "discouraged": false,
       "provenance": "documented",
       "source": "help/en/05-base.md \"How do I make my computer a base?\""
@@ -773,9 +773,9 @@
       "property": "base-request-limits",
       "violation_symptom": "hang, unbounded-allocation",
       "severity_tier": "security",
-      "conditions": "every request has limits: body 8 KiB within 10 s, question 500 characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).",
+      "conditions": "every request has limits: 100 connections in all, body 8 KiB within 10 s, question 500 characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).",
       "provenance": "documented",
-      "source": "docs/shelter-results.md \"How it\n  works\""
+      "source": "docs/shelter-results.md \"How it works\"; lib/base/base_server.dart\n  `BaseServer` doc comment"
     },
     {
       "property": "client-response-limits",
@@ -983,10 +983,10 @@
     },
     {
       "property": "download-time-and-disk",
-      "reason": "A time limit per download, or a disk quota. Size and hash still decide; a bad mirror costs time",
+      "reason": "A time limit per download, or a disk quota. Size and hash still decide; a bad mirror costs time; a full disk ends a run",
       "false_friend": false,
       "provenance": "documented",
-      "source": "docs/distribution.md \"Security\""
+      "source": "docs/distribution.md \"Security\", \"A bad mirror costs time, not safety\"; \"Sync between nodes\", \"a full disk ends the run\""
     },
     {
       "property": "catalog-network-reach",
@@ -1168,7 +1168,7 @@
       "proposed": "yes; findings there route `OUT-OF-MODEL: unsupported-component`."
     },
     {
-      "claim": "Q30: Are the rows tagged Q30 correct? These are the matrix rows marked N/A for the reason given, the node's side effects in §1.5, and its log in §1.8.",
+      "claim": "Q30: Are the rows tagged Q30 correct? These are the matrix rows marked N/A for the reason given, the node's side effects in §1.5, its log in §1.8, and \"no vendored third-party code\" in §1.9.",
       "field": "environment",
       "proposed": "yes, as written."
     },

@@ -140,7 +140,7 @@ maintainer chose the proposed answer every time.
 | Q3 | Dev flags | Every `--dart-define` flag and `DEV_MENU` tester builds are unsupported for users. |
 | Q4 | `SECURITY.md` | Stays the reporting channel with a short summary; the model wins; this change links it. |
 | Q5 | Adversaries at a base | Anyone on the Wi-Fi is in scope. A QR-pinned base's operator is trusted for content. Device control is out. |
-| Q6 | Publishers and keys | The Lychnion key (1Password, never on a server or in CI) is the root; its theft is out of model; no rotation yet. Added publishers are trusted for content under their own name only; replacing Lychnion's or another publisher's items is a vulnerability. |
+| Q6 | Publishers and keys | The Lychnion key (1Password, never on a server or in CI) is the root; its theft is out of model; no rotation yet (key statements landed later, see Q32). Added publishers are trusted for content under their own name only; replacing Lychnion's or another publisher's items is a vulnerability. |
 | Q7 | Releases | Maintainer accounts and build machines are trusted. CI ships nothing and holds no secrets. |
 | Q8 | Licence | Not a security property. |
 | Q9 | Headless node | Trusts the built-in key plus `--publisher` keys. A non-publisher host is in scope. LAN plain HTTP supported; a reverse proxy is required on the internet. Pull a stick, do not serve it. |
@@ -155,7 +155,6 @@ maintainer chose the proposed answer every time.
 | Q18 | Wi-Fi limits | Disclaimed: confidentiality on the Wi-Fi, browser-page integrity, signature stripping before the first signed answer, cross-site requests while bases are offline. |
 | Q19 | Files after install | Trusted after install; a half-failed multi-file update is a correctness bug; parser defects go upstream. |
 | Q20 | Side effects | The inventory in §1.5 is right, including the assumption that native libraries do not use the network. |
-
 | Q32 | Lychnion's key and key statements | Statements for the built-in `lychnion` key are claimed and verified like any publisher's; theft of the key itself stays out of model. |
 | Q33 | Old keys and backups | Claimed: a backup's key is readable only with the passphrase; restore never brings back a revoked or replaced key. Disclaimed: denial by an old-key holder, offline guessing of a weak passphrase, where the backup is kept. |
 

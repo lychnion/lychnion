@@ -69,8 +69,9 @@ proven. The property is the §1.11 claim each one breaks.
 6. **A USB stick can squat a Lychnion id** (confirmed, `publisher-namespace`):
    a stick record from an added publisher for a bundled or not yet installed
    Lychnion id is installed and then used, because the owner check sees only
-   installed markers (`lib/download/stick.dart:305`,
-   `lib/download/download_store.dart:581`).
+   installed markers (`lib/download/stick.dart:313` calls
+   `lib/download/download_store.dart:371`), and the installed copy then
+   wins over the bundled one (`lib/download/download_store.dart:581`).
 7. **Unconfirmed facts steer the map** (confirmed,
    `unverified-facts-not-acted-on`): `lib/map/map_state.dart:59` and
    `lib/map/map_state.dart:174` use facts whatever their trust, and
@@ -78,8 +79,10 @@ proven. The property is the §1.11 claim each one breaks.
 8. **Facts from the future win** (confirmed, `fact-time-bounds`): no cap on
    `observedAt` or `expiresAt` (`lib/facts/fact_store.dart:275`).
 9. **Questions and answers in the release log** (confirmed, `device-egress`):
-   `lib/ask/ask_page.dart:164` (`debugPrint`), with answers at
-   `lib/ask/ask_page.dart:316` and the region at `lib/ask/ask_page.dart:363`.
+   `lib/ask/ask_page.dart:164` (`debugPrint`); each logged answer carries
+   its question. Base answers are logged at `lib/ask/ask_page.dart:316`,
+   the phone's own at `lib/ask/ask_page.dart:384`, and the region at
+   `lib/ask/ask_page.dart:363`.
 10. **A base may be any host** (confirmed, `device-egress`):
     `lib/base/base_link.dart:93` accepts public hosts, and Android allows
     cleartext to every host. `help/en/08-privacy.md` also needs the base
