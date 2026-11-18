@@ -130,4 +130,18 @@ void main() {
     expect(t.names, isEmpty);
     await dir.delete(recursive: true);
   });
+
+  test('facts from a base become verified once its key is trusted', () async {
+    final base = await FactSigner.generate();
+    final store = FactStore(clock: () => now, trust: trust);
+    await store.addAll([
+      await base.sign(status('open', SourceType.official, 5)),
+    ]);
+    expect(store.all.single.verified, isFalse);
+    // Its QR code is scanned.
+    await trust.add(base.publicKeyText, 'Base');
+    expect(await store.reverify(), 1);
+    expect(store.all.single.verified, isTrue);
+    expect(await store.reverify(), 0);
+  });
 }

@@ -1679,4 +1679,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shelterFoundNone =>
       'No base found yet. Enter its address below, or scan its QR code.';
+
+  @override
+  String get shelterScanToTrust =>
+      'Scan the base\'s QR code to trust its notices.';
 }

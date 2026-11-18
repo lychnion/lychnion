@@ -71,6 +71,23 @@ class FactStore extends ChangeNotifier {
     return fresh.length;
   }
 
+  /// Checks the unverified facts again (a key was trusted since, e.g. a
+  /// base's QR code was scanned); returns how many are verified now.
+  Future<int> reverify() async {
+    final t = trust;
+    if (t == null) return 0;
+    var n = 0;
+    for (final f in _facts) {
+      if (f.verified || f.sourceType == SourceType.citizen) continue;
+      if (await t.verify(f)) {
+        f.verified = true;
+        n++;
+      }
+    }
+    if (n > 0) notifyListeners();
+    return n;
+  }
+
   /// Facts entered on this device: official and sensor ones are signed
   /// with [signer] first, so other devices can check them.
   Future<int> addOwn(Iterable<Fact> facts) async {

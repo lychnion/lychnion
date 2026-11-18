@@ -242,7 +242,9 @@ class ShelterSettingsTile extends StatelessWidget {
     if (found) {
       if (!context.mounted || !await confirmShelter(context, link)) return;
     }
-    await settings.setShelter(link.url, name: link.name, key: link.key);
+    // No key: an announcement is not checked in person, so the base's
+    // facts are trusted only after its QR code is scanned.
+    await settings.setShelter(link.url, name: link.name);
   }
 
   @override
@@ -264,6 +266,9 @@ class ShelterSettingsTile extends StatelessWidget {
       subtitle: Text(
         url == null
             ? l.shelterConnectComputerHint
+            : settings.shelterKey == null
+            ? '${l.shelterAskedFirst(url.replaceFirst('http://', ''))}\n'
+                  '${l.shelterScanToTrust}'
             : l.shelterAskedFirst(url.replaceFirst('http://', '')),
       ),
       trailing: url == null
@@ -481,17 +486,25 @@ class _AddressDialogState extends State<_AddressDialog> {
                           _waited ? l.shelterFoundNone : l.shelterFoundLooking,
                         ),
                       )
-                    : Column(
-                        children: [
-                          for (final b in found)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.cell_tower_rounded),
-                              title: Text(b.name ?? l.shelterThisShelter),
-                              subtitle: Text(b.url.replaceFirst('http://', '')),
-                              onTap: () => Navigator.pop(context, (b, true)),
-                            ),
-                        ],
+                    : ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 220),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              for (final b in found)
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const Icon(Icons.cell_tower_rounded),
+                                  title: Text(b.name ?? l.shelterThisShelter),
+                                  subtitle: Text(
+                                    b.url.replaceFirst('http://', ''),
+                                  ),
+                                  onTap: () =>
+                                      Navigator.pop(context, (b, true)),
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
               ),
               const SizedBox(height: 12),

@@ -1034,5 +1034,6 @@
   "@publishErrorPackage": {"placeholders": {"detail": {"type": "String"}}},
   "shelterFoundTitle": "Bases on this Wi-Fi",
   "shelterFoundLooking": "Looking…",
-  "shelterFoundNone": "No base found yet. Enter its address below, or scan its QR code."
+  "shelterFoundNone": "No base found yet. Enter its address below, or scan its QR code.",
+  "shelterScanToTrust": "Scan the base's QR code to trust its notices."
 }

@@ -488,5 +488,6 @@
   "publishErrorPackage": "このファイルはアプリで使えるガイドではありません（{detail}）。lychnion-data のツールで作り直してください。",
   "shelterFoundTitle": "この Wi-Fi のベース",
   "shelterFoundLooking": "探しています…",
-  "shelterFoundNone": "まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。"
+  "shelterFoundNone": "まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。",
+  "shelterScanToTrust": "お知らせを信頼するには、ベースの QR コードを読み取ってください。"
 }

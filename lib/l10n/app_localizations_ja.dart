@@ -1599,4 +1599,7 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get shelterFoundNone =>
       'まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。';
+
+  @override
+  String get shelterScanToTrust => 'お知らせを信頼するには、ベースの QR コードを読み取ってください。';
 }

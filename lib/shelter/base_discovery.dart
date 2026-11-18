@@ -4,9 +4,10 @@
 // with Bonjour/mDNS as `_lychnion._tcp`, with its name and signing key.
 // A phone lists the bases it finds; it connects only after the user picks
 // one and answers the same question as for a scanned QR code. Nothing in
-// an announcement is trusted: the address is only where to ask, and the
-// key works as from a QR code (a computer there with another key is
-// refused).
+// an announcement is trusted: the address is only where to ask (a private
+// address), and the announced key is not kept. A base found here gives
+// answers and downloads (checked by signature anyway); its facts are
+// trusted only after its QR code is scanned.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -30,9 +31,11 @@ Map<String, String> baseAttributes({required String name, String? key}) => {
   if (key != null && isKeyText(key)) 'key': key,
 };
 
+final _keyText = RegExp(r'^[A-Za-z0-9_-]{43}$');
+
 /// A signing key as /info and QR codes give it: 32 bytes, base64url
 /// without padding.
-bool isKeyText(String s) => RegExp(r'^[A-Za-z0-9_-]{43}$').hasMatch(s);
+bool isKeyText(String s) => _keyText.hasMatch(s);
 
 /// The Bonjour instance name for [name]: at most 63 bytes (a DNS label).
 String instanceName(String name) {
@@ -43,9 +46,21 @@ String instanceName(String name) {
   return s;
 }
 
+/// Whether [a] is a private IPv4 address, as on a local Wi-Fi or a phone's
+/// hotspot: 10/8, 172.16/12, 192.168/16 and 100.64/10 (some hotspots).
+bool isPrivateIPv4(InternetAddress a) {
+  if (a.type != InternetAddressType.IPv4) return false;
+  final b = a.rawAddress;
+  return b[0] == 10 ||
+      (b[0] == 172 && b[1] >= 16 && b[1] <= 31) ||
+      (b[0] == 192 && b[1] == 168) ||
+      (b[0] == 100 && b[1] >= 64 && b[1] <= 127);
+}
+
 /// A found base as a link, or null when its announcement is not usable:
-/// the first IPv4 address on the local network (bases are reached by
-/// IPv4, see ShelterServer.localAddresses), the port, the name and key.
+/// the first private IPv4 address (bases are reached by IPv4 on the local
+/// network, see ShelterServer.localAddresses), the port and the name. The
+/// announced key is not used: nothing here was checked in person.
 ShelterLink? baseLinkFrom({
   required List<String> addresses,
   required int port,
@@ -56,11 +71,7 @@ ShelterLink? baseLinkFrom({
   InternetAddress? v4;
   for (final a in addresses) {
     final ip = InternetAddress.tryParse(a);
-    if (ip != null &&
-        ip.type == InternetAddressType.IPv4 &&
-        !ip.isLoopback &&
-        !ip.isLinkLocal &&
-        !ip.isMulticast) {
+    if (ip != null && isPrivateIPv4(ip)) {
       v4 = ip;
       break;
     }
@@ -68,38 +79,56 @@ ShelterLink? baseLinkFrom({
   if (v4 == null) return null;
   final url = ShelterLink.normalize('${v4.address}:$port');
   if (url == null) return null;
-  final key = attributes['key'];
   return ShelterLink(
     url,
     name: cleanShownText(attributes['name']) ?? cleanShownText(serviceName),
-    key: key != null && isKeyText(key) ? key : null,
   );
 }
 
-/// Announces this computer as a base while it shares.
+/// Announces this computer as a base while it shares. Calls run one after
+/// the other, so a quick restart never leaves two announcements.
 class BaseAnnouncer {
   BonsoirBroadcast? _broadcast;
+  Future<void> _last = Future.value();
+  var _disposed = false;
 
-  Future<void> start({
-    required String name,
-    required int port,
-    String? key,
-  }) async {
-    await stop();
-    final b = BonsoirBroadcast(
-      service: BonsoirService(
-        name: instanceName(name),
-        type: baseServiceType,
-        port: port,
-        attributes: baseAttributes(name: name, key: key),
-      ),
-    );
-    await b.initialize();
-    await b.start();
-    _broadcast = b;
+  Future<void> _serial(Future<void> Function() f) {
+    final run = _last.then((_) => f());
+    _last = run.catchError((Object _) {});
+    return run;
   }
 
-  Future<void> stop() async {
+  Future<void> start({required String name, required int port, String? key}) =>
+      _serial(() async {
+        await _stopNow();
+        if (_disposed) return;
+        final b = BonsoirBroadcast(
+          service: BonsoirService(
+            name: instanceName(name),
+            type: baseServiceType,
+            port: port,
+            attributes: baseAttributes(name: name, key: key),
+          ),
+        );
+        try {
+          await b.initialize();
+          await b.start();
+        } on Object {
+          await Future.sync(b.stop).catchError((Object _) {});
+          rethrow;
+        }
+        _broadcast = b;
+      });
+
+  Future<void> stop() => _serial(_stopNow);
+
+  /// Stops, and no later start announces again.
+  Future<void> dispose() {
+    _disposed = true;
+    return stop();
+  }
+
+  Future<void> _stopNow() async {
     final b = _broadcast;
     _broadcast = null;
     await b?.stop();
@@ -111,28 +140,38 @@ class BaseFinder {
   /// The bases found so far, by the order they were found.
   final found = ValueNotifier<List<ShelterLink>>(const []);
 
-  final _byService = <String, ShelterLink>{};
+  /// By service name and address: a second device announcing the same
+  /// name is listed next to the first, never in its place.
+  final _entries = <(String, String), ShelterLink>{};
   BonsoirDiscovery? _discovery;
-  var _disposed = false;
   StreamSubscription<BonsoirDiscoveryEvent>? _events;
+  var _started = false;
+  var _disposed = false;
 
   /// Starts looking. Throws when this platform cannot (then nothing is
   /// listed; a base can still be added by its address or QR code).
   Future<void> start() async {
+    if (_started || _disposed) return;
+    _started = true;
     final d = BonsoirDiscovery(type: baseServiceType);
     await d.initialize();
+    if (_disposed) {
+      await Future.sync(d.stop).catchError((Object _) {});
+      return;
+    }
     _discovery = d;
     _events = d.eventStream?.listen((e) => _on(d, e));
     await d.start();
   }
 
   void _on(BonsoirDiscovery d, BonsoirDiscoveryEvent e) {
+    if (_disposed) return;
     switch (e) {
       case BonsoirDiscoveryServiceFoundEvent(:final service):
         unawaited(
           Future.sync(
             () => d.serviceResolver.resolveService(service),
-          ).catchError((Object _) {}),
+          ).catchError((Object e) => debugPrint('base not resolved: $e')),
         );
       case BonsoirDiscoveryServiceResolvedEvent(:final service) ||
           BonsoirDiscoveryServiceUpdatedEvent(:final service):
@@ -142,15 +181,15 @@ class BaseFinder {
           attributes: service.attributes,
           serviceName: service.name,
         );
-        if (link == null) {
-          _byService.remove(service.name);
-        } else if (_byService.containsKey(service.name) ||
-            _byService.length < maxFoundBases) {
-          _byService[service.name] = link;
+        if (link != null) {
+          final k = (service.name, link.url);
+          if (_entries.containsKey(k) || _entries.length < maxFoundBases) {
+            _entries[k] = link;
+          }
         }
         _publish();
       case BonsoirDiscoveryServiceLostEvent(:final service):
-        _byService.remove(service.name);
+        _entries.removeWhere((k, _) => k.$1 == service.name);
         _publish();
       default:
         break;
@@ -162,7 +201,7 @@ class BaseFinder {
     // One entry per address (a base on two interfaces, or announced twice).
     final seen = <String>{};
     found.value = [
-      for (final l in _byService.values)
+      for (final l in _entries.values)
         if (seen.add(l.url)) l,
     ];
   }

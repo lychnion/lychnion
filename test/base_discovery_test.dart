@@ -34,29 +34,40 @@ void main() {
       serviceName: 'Base',
     );
 
-    test('gives the first IPv4 address on the network, name and key', () {
+    test('gives the first private IPv4 address and the name', () {
       final l = link(
-        ['fe80::1', '127.0.0.1', '169.254.3.4', '192.168.1.20', '10.0.0.2'],
+        [
+          'fe80::1',
+          '127.0.0.1',
+          '169.254.3.4',
+          '8.8.8.8',
+          '192.168.1.20',
+          '10.0.0.2',
+        ],
         attributes: {'name': '中央小学校', 'key': key},
       )!;
       expect(l.url, 'http://192.168.1.20:8642');
       expect(l.name, '中央小学校');
-      expect(l.key, key);
+      // An announced key is not checked in person: not kept.
+      expect(l.key, isNull);
+      expect(link(['172.20.10.2'])!.url, 'http://172.20.10.2:8642');
+      expect(link(['100.64.0.5'])!.url, 'http://100.64.0.5:8642');
     });
 
     test('without a usable address or port it is left out', () {
       expect(link(['fe80::1', '2001:db8::1']), isNull);
+      expect(link(['8.8.8.8', '0.0.0.0', '255.255.255.255']), isNull);
+      expect(link(['172.32.0.1', '192.169.0.1']), isNull);
       expect(link(['not an address']), isNull);
       expect(link(['192.168.1.20'], port: 0), isNull);
       expect(link(['192.168.1.20'], port: 70000), isNull);
     });
 
-    test('a broken key is dropped, the name is cleaned', () {
+    test('the name is cleaned', () {
       final l = link(
         ['192.168.1.20'],
-        attributes: {'name': '\u202eevil\u0000 base', 'key': 'short'},
+        attributes: {'name': '\u202eevil\u0000 base'},
       )!;
-      expect(l.key, isNull);
       expect(l.name, 'evil base');
       // No name in the announcement: the service name.
       expect(link(['192.168.1.20'])!.name, 'Base');
@@ -77,10 +88,9 @@ void main() {
     t,
   ) async {
     final settings = AppSettings();
-    final base = ShelterLink(
+    const base = ShelterLink(
       'http://192.168.1.20:8642',
       name: 'Central school',
-      key: key,
     );
     await t.pumpWidget(
       MaterialApp(
@@ -109,6 +119,8 @@ void main() {
     await t.pumpAndSettle();
     expect(settings.shelterUrl, base.url);
     expect(settings.shelterName, 'Central school');
-    expect(settings.shelterKey, key);
+    // Its facts are trusted only after its QR code is scanned.
+    expect(settings.shelterKey, isNull);
+    expect(find.textContaining('QR code to trust'), findsOneWidget);
   });
 }

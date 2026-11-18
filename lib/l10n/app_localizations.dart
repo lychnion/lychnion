@@ -2779,6 +2779,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No base found yet. Enter its address below, or scan its QR code.'**
   String get shelterFoundNone;
+
+  /// No description provided for @shelterScanToTrust.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the base\'s QR code to trust its notices.'**
+  String get shelterScanToTrust;
 }
 
 class _AppLocalizationsDelegate
