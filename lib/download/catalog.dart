@@ -253,9 +253,13 @@ class Catalog {
   /// for a file is kept, absolute: [other]'s first, then this catalog's
   /// (the internet copy when the shelter's Wi-Fi is gone). Mirrors of both
   /// are kept too.
-  Catalog mergedWith(Catalog other) {
+  ///
+  /// With [preferOther] false (a followed catalog), this catalog keeps an
+  /// item of the same version and its addresses come first; [other] only
+  /// adds items and newer versions.
+  Catalog mergedWith(Catalog other, {bool preferOther = true}) {
     final addresses = <String, List<String>>{};
-    for (final c in [other, this]) {
+    for (final c in preferOther ? [other, this] : [this, other]) {
       for (final i in c.items) {
         for (final f in i.files) {
           final list = addresses.putIfAbsent(f.sha256, () => []);
@@ -276,7 +280,12 @@ class Catalog {
     final byId = {for (final i in items) i.id: i};
     for (final o in other.items) {
       final mine = byId[o.id];
-      if (mine != null && isOlder(o.version, mine.version)) continue;
+      if (mine != null &&
+          (preferOther
+              ? isOlder(o.version, mine.version)
+              : !isOlder(mine.version, o.version))) {
+        continue;
+      }
       // An id stays with its publisher: another publisher's item of the
       // same id (a city's catalog on a base) never replaces it.
       if (mine?.record case final m? when m.publisher != o.record?.publisher) {

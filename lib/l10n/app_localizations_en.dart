@@ -1335,4 +1335,88 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publishKeyPrivateFailed =>
       'The key file could not be made private, so no key was made.';
+
+  @override
+  String get catalogsTitle => 'Catalogs';
+
+  @override
+  String catalogsHint(String app) {
+    return 'Lists of guides and maps from cities and clubs, next to $app\'s';
+  }
+
+  @override
+  String get catalogsNone =>
+      'No other catalogs yet. A city or club that offers its own guides gives you a link or QR code.';
+
+  @override
+  String get catalogsAdd => 'Follow a catalog';
+
+  @override
+  String get catalogsUrlLabel => 'Catalog address or link';
+
+  @override
+  String get catalogsNotALink => 'This is not a catalog address.';
+
+  @override
+  String get catalogsAddTitle => 'Follow this catalog?';
+
+  @override
+  String catalogsAddBody(String app) {
+    return 'Its guides and maps appear in Downloads. $app only shows those signed by itself or by a publisher you added.';
+  }
+
+  @override
+  String get catalogsFollow => 'Follow';
+
+  @override
+  String catalogsStatus(String shown, String notShown) {
+    return '$shown shown · $notShown not shown';
+  }
+
+  @override
+  String get catalogsNotShownHint =>
+      'Not shown: from a publisher you have not added, not validly signed, or an ID that belongs to another publisher.';
+
+  @override
+  String catalogsFetched(String date) {
+    return 'Updated $date';
+  }
+
+  @override
+  String get catalogsNeverFetched => 'Not loaded yet';
+
+  @override
+  String catalogsError(String error) {
+    return 'Could not load ($error); the last copy is used.';
+  }
+
+  @override
+  String get catalogsRemove => 'Stop following';
+
+  @override
+  String catalogsRemoveTitle(String name) {
+    return 'Stop following $name?';
+  }
+
+  @override
+  String get catalogsRemoveBody =>
+      'Its items no longer appear in Downloads. What you installed from it stays.';
+
+  @override
+  String get catalogsKnown =>
+      'This catalog is followed already, or the list is full.';
+
+  @override
+  String get catalogsSaveFailed =>
+      'Could not save the list of catalogs. Nothing was changed.';
+
+  @override
+  String get catalogsRefresh => 'Refresh';
+
+  @override
+  String get catalogsOffline => 'Could not connect; the last copy is used.';
+
+  @override
+  String get catalogsInvalid =>
+      'This is not a valid catalog, or it is too large; the last copy is used.';
 }

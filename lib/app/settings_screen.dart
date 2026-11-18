@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../download/download_manager.dart';
 import '../download/download_store.dart' show MobileData, UpdateMode;
+import '../download/catalogs_screen.dart';
 import '../download/downloads_screen.dart';
 import '../download/publishers_screen.dart';
 import '../l10n/app_localizations.dart';
@@ -116,6 +117,17 @@ class SettingsScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => PublishersScreen(manager: downloads!),
+                      ),
+                    ),
+                  ),
+                if (downloads != null)
+                  _NavTile(
+                    icon: Icons.list_alt_rounded,
+                    title: l.catalogsTitle,
+                    subtitle: l.catalogsHint(l.appName),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => CatalogsScreen(manager: downloads!),
                       ),
                     ),
                   ),

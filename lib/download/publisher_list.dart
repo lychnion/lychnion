@@ -4,6 +4,22 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
+/// Text from a link or a file, made safe to show: no control or
+/// direction-changing characters, at most 60 characters; null when empty.
+String? cleanShownText(String? t) {
+  if (t == null) return null;
+  var s = t
+      .replaceAll(
+        RegExp(
+          r'[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]',
+        ),
+        '',
+      )
+      .trim();
+  if (s.runes.length > 60) s = String.fromCharCodes(s.runes.take(60));
+  return s.isEmpty ? null : s;
+}
+
 // Publishers the user added (docs/distribution.md, step 4): a city or a
 // club that signs its own packages. Added only by an explicit action (a
 // scanned or pasted link, then a question), shown with their name, and
@@ -35,16 +51,8 @@ class PublisherLink {
   /// never the app's own name (`Lychnion`, `リクニオン`), so a publisher
   /// cannot pass itself off as the built-in one.
   static String? cleanTitle(String? t) {
-    if (t == null) return null;
-    var s = t
-        .replaceAll(
-          RegExp(
-            r'[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]',
-          ),
-          '',
-        )
-        .trim();
-    if (s.runes.length > 60) s = String.fromCharCodes(s.runes.take(60));
+    final s = cleanShownText(t);
+    if (s == null) return null;
     final plain = s.toLowerCase().replaceAll(' ', '');
     if (s.isEmpty || plain == 'lychnion' || plain == 'リクニオン') return null;
     return s;

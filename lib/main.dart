@@ -16,7 +16,9 @@ import 'app/theme.dart';
 import 'download/catalog.dart';
 import 'download/download_manager.dart';
 import 'download/download_store.dart';
+import 'download/catalogs_screen.dart';
 import 'download/downloads_screen.dart';
+import 'download/followed_catalogs.dart';
 import 'download/publisher_list.dart';
 import 'download/publishers_screen.dart';
 import 'ui/ask_view.dart';
@@ -238,6 +240,22 @@ class _HomePageState extends State<HomePage> {
       await _receiveShare(share);
       return;
     }
+    if (CatalogLink.fromUri(uri) case final catalog?) {
+      final dm = _downloads;
+      // At a cold start Downloads may not be ready yet: ask once it is.
+      if (dm == null) {
+        _pendingCatalog = catalog;
+        return;
+      }
+      if (!mounted || _asking) return;
+      _asking = true;
+      try {
+        await followCatalog(context, dm, catalog);
+      } finally {
+        _asking = false;
+      }
+      return;
+    }
     if (PublisherLink.fromUri(uri) case final publisher?) {
       final dm = _downloads;
       // At a cold start Downloads may not be ready yet: ask once it is.
@@ -283,6 +301,9 @@ class _HomePageState extends State<HomePage> {
 
   /// A publisher link that arrived before Downloads was ready.
   PublisherLink? _pendingPublisher;
+
+  /// A catalog link that arrived before Downloads was ready.
+  CatalogLink? _pendingCatalog;
 
   /// A phone nearby shares its downloads: ask, then show what it offers in
   /// Downloads. Records and files are checked as for any download.
@@ -359,7 +380,11 @@ class _HomePageState extends State<HomePage> {
     }
     if (_pendingPublisher case final p?) {
       _pendingPublisher = null;
-      unawaited(_openLink(p.toUri()));
+      await _openLink(p.toUri());
+    }
+    if (_pendingCatalog case final c?) {
+      _pendingCatalog = null;
+      await _openLink(c.toUri());
     }
   }
 

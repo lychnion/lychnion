@@ -165,6 +165,45 @@ flowchart LR
 Open question: how a city makes its own package without our Python build
 tools (for example from its own web pages or PDFs, in the desktop app).
 
+### Following catalogs
+
+Built 2026-11-18 (step 4c), in the app on every platform. Settings →
+Catalogs lists the catalogs this device follows next to Lychnion's: a
+city's or a club's `catalog.json` on its web server (or a static node,
+or a base's address).
+
+- Added by pasting an address or by a link
+  `lychnion://catalog?url=<address>&name=<shown name>` (text or QR),
+  after a question. At most 20.
+- Each is fetched at app start and when Downloads refreshes, one after
+  another; the last copy is kept (`downloads/followed/`), so it works
+  offline. The screen shows per catalog how many items are shown, how
+  many are not (publisher not added, or a bad signature), when it was
+  fetched, and why the last fetch failed.
+- Its items join Downloads with the same rules as everywhere: only
+  records of Lychnion and of added publishers, ids stay with their
+  publisher, versions only go up. Lychnion's catalog keeps an item of
+  the same version (its addresses first); a followed catalog adds items
+  and newer versions. A connected base still comes first.
+- Following never trusts a key; that is the publisher link. Removing a
+  catalog keeps what was installed from it. A base passes on what it
+  installed, as before.
+- Limits: a catalog over 2 MB is refused while it arrives, each fetch
+  has a time limit (about 45 s), and all followed catalogs are fetched
+  at the same time. Only a copy that reads as a catalog replaces the
+  last good one. The same size and time limits apply to Lychnion's own
+  catalog and to a base's.
+- Network: a followed catalog may point anywhere (any web server, a
+  base on the local Wi-Fi, redirects included), and its unsigned
+  `urls` and `mirrors` add download addresses, also for Lychnion's
+  items. A hostile catalog can therefore make the app ask other servers
+  for files by hash, and those servers see which files are downloaded;
+  it cannot make the app use a wrong file (hashes decide). Two followed
+  catalogs offering the same id from different added publishers: the
+  one higher in the list wins.
+- Not yet: downloading new versions by itself, and nodes syncing with
+  each other (step 5).
+
 ### What phones do
 
 Phones do not join any network of nodes. They fetch records and files
@@ -311,7 +350,8 @@ A threat model for nodes (Alpha-Omega style) should come with step 3.
    without Git or a server background; phones trust its key by QR.
    In parts: (a) publisher keys in the app and (b) publishing own
    packages on the desktop (both built 2026-11-18, see "Publishers and
-   keys"); (c) following catalogs on the desktop; (d) the headless node.
+   keys"); (c) following catalogs (built 2026-11-18, see "Following
+   catalogs"); (d) the headless node.
 5. **Sync between nodes**, including updates during a disaster.
 6. **Publisher guide and package studio.**
 7. **On-site help.** A web page served by the shelter computer, so phones

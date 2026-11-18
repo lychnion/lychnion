@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'catalog.dart';
 import 'download_store.dart';
 import 'downloader.dart';
+import 'followed_catalogs.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
 /// Dev flags: where the catalog and relative file URLs come from.
@@ -75,6 +76,142 @@ class DownloadManager extends ChangeNotifier {
     return c;
   }
 
+  /// Lychnion's catalog (bundled, or the one fetched last).
+  Catalog _main = Catalog(const []);
+
+  /// Followed catalogs as last read (step 4c). Their text stays on disk
+  /// (FollowedCatalogs.cached), not in memory.
+  final _followed = <Uri, Catalog>{};
+
+  /// What Downloads shows: Lychnion's catalog, then the followed ones
+  /// (they add items and newer versions; Lychnion's keeps the rest), then
+  /// connected bases (first, as on the local Wi-Fi).
+  Catalog _compose() {
+    var c = _main;
+    for (final f in store.followed.all) {
+      if (_followed[f.url] case final other?) {
+        c = c.mergedWith(other, preferOther: false);
+      }
+    }
+    return _withShelters(c);
+  }
+
+  /// Counts publisher changes: a catalog read before one is read again
+  /// before it is used (its records were checked against the old keys).
+  int _trustGeneration = 0;
+
+  /// [body] as a catalog, or [CatalogFetchError] `invalid`.
+  Future<Catalog> _parseFollowed(String body, Uri url) async {
+    try {
+      return await _parse(body, url);
+    } on Object {
+      throw CatalogFetchError('invalid');
+    }
+  }
+
+  void _useFollowed(Uri url, Catalog c, DateTime fetched, {String? error}) {
+    _followed[url] = c;
+    store.followed.setStatus(
+      url,
+      CatalogStatus(
+        shown: c.items.length,
+        notShown: c.rejected.length,
+        fetched: fetched,
+        error: error,
+      ),
+    );
+  }
+
+  void _failedFollowed(Uri url, String code) {
+    final old = store.followed.status[url];
+    store.followed.setStatus(
+      url,
+      CatalogStatus(
+        shown: old?.shown ?? 0,
+        notShown: old?.notShown ?? 0,
+        fetched: old?.fetched,
+        error: code,
+      ),
+    );
+  }
+
+  /// The followed catalogs from their last copies (offline is fine). A
+  /// copy that cannot be read is skipped; the others still load.
+  Future<void> _loadFollowed() async {
+    for (final f in store.followed.all) {
+      final copy = await store.followed.cached(f.url);
+      if (copy == null) continue;
+      try {
+        final c = await _parseFollowed(copy.body, f.url);
+        _useFollowed(
+          f.url,
+          c,
+          copy.fetched,
+          error: store.followed.status[f.url]?.error,
+        );
+      } on CatalogFetchError catch (e) {
+        _followed.remove(f.url);
+        _failedFollowed(f.url, e.code);
+      }
+    }
+  }
+
+  /// Fetches one followed catalog. Only a copy that reads as a catalog is
+  /// kept; on any failure the last good copy stays in use. A catalog
+  /// removed meanwhile is left alone.
+  Future<void> _fetchFollowed(Uri url) async {
+    try {
+      final body = await fetchCatalogText(url);
+      var gen = _trustGeneration;
+      var c = await _parseFollowed(body, url);
+      // Kept only while still followed (one write at a time).
+      if (!await store.followed.keep(url, body)) return;
+      // Publishers changed meanwhile: check the records again.
+      while (gen != _trustGeneration) {
+        gen = _trustGeneration;
+        c = await _parseFollowed(body, url);
+      }
+      if (!store.followed.follows(url)) return;
+      _useFollowed(url, c, DateTime.now());
+    } on CatalogFetchError catch (e) {
+      if (!store.followed.follows(url)) return;
+      _failedFollowed(url, e.code);
+      _log({
+        'event': 'followed_catalog_failed',
+        'url': redactedUrl(url),
+        'error': e.code,
+      });
+    } on Object catch (e) {
+      // The copy could not be kept (disk): the last one stays.
+      if (!store.followed.follows(url)) return;
+      _failedFollowed(url, 'disk');
+      _log({
+        'event': 'followed_catalog_failed',
+        'url': redactedUrl(url),
+        'error': e.runtimeType.toString(),
+      });
+    }
+  }
+
+  /// Follows a catalog (after the user agreed): saves it, fetches it and
+  /// shows its items. Returns its status, or null when it was followed
+  /// already or the list is full. Throws when the list cannot be saved.
+  Future<CatalogStatus?> follow(CatalogLink link) async {
+    if (!await store.followed.add(link)) return null;
+    await _fetchFollowed(link.url);
+    catalog = _compose();
+    _refreshStates();
+    return store.followed.status[link.url];
+  }
+
+  /// Stops following [url]. What was installed from it stays.
+  Future<void> unfollow(Uri url) async {
+    await store.followed.remove(url);
+    _followed.remove(url);
+    catalog = _compose();
+    _refreshStates();
+  }
+
   ItemState stateOf(CatalogItem i) => _states[i.id] ??= ItemState();
 
   /// Installed items with a newer version in the catalog (for badges).
@@ -117,7 +254,9 @@ class DownloadManager extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    catalog = await _localCatalog();
+    _main = await _localCatalog();
+    await _loadFollowed();
+    catalog = _compose();
     _refreshStates();
     if (_autoDownload.isNotEmpty) {
       unawaited(_runAuto());
@@ -189,14 +328,14 @@ class DownloadManager extends ChangeNotifier {
   /// and every catalog is read again, so the publisher's records show up
   /// (or go). Shelter catalogs are read from what they sent, no network.
   Future<void> publishersChanged() async {
+    _trustGeneration++;
     await store.reverify();
-    var c = await _localCatalog();
+    _main = await _localCatalog();
+    await _loadFollowed();
     for (final e in _shelterBodies.entries) {
-      final other = await _parse(e.value, e.key);
-      _shelterCatalogs[e.key] = other;
-      c = c.mergedWith(other);
+      _shelterCatalogs[e.key] = await _parse(e.value, e.key);
     }
-    catalog = c;
+    catalog = _compose();
     changes.value++;
     _refreshStates();
   }
@@ -209,8 +348,22 @@ class DownloadManager extends ChangeNotifier {
       baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
       trust: store.trust,
     );
-    for (final r in c.rejected) {
-      _log({'event': 'catalog_rejected', 'record': r, 'from': '$from'});
+    // A few lines, not one per record: a catalog may hold thousands of
+    // records from publishers not added.
+    for (final r in c.rejected.take(10)) {
+      final text = r.length > 200 ? '${r.substring(0, 200)}…' : r;
+      _log({
+        'event': 'catalog_rejected',
+        'record': text,
+        'from': from == null ? null : redactedUrl(from),
+      });
+    }
+    if (c.rejected.length > 10) {
+      _log({
+        'event': 'catalog_rejected_more',
+        'count': c.rejected.length - 10,
+        'from': from == null ? null : redactedUrl(from),
+      });
     }
     return c;
   }
@@ -221,27 +374,30 @@ class DownloadManager extends ChangeNotifier {
     final url = _catalogUrl.isNotEmpty
         ? Uri.parse(_catalogUrl)
         : catalog.refreshUrl;
-    if (url == null || refreshing) return;
+    if (refreshing) return;
     refreshing = true;
     catalogError = null;
     // Not during a build (Downloads starts a refresh in initState).
     scheduleMicrotask(notifyListeners);
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10);
     try {
-      final req = await client.getUrl(url);
-      final res = await req.close().timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) throw HttpException('HTTP ${res.statusCode}');
-      final body = await res.transform(utf8.decoder).join();
-      catalog = _withShelters(await _parse(body, url));
-      await store.cachedCatalog.parent.create(recursive: true);
-      await store.cachedCatalog.writeAsString(
-        jsonEncode({'url': '$url', 'body': body}),
-      );
+      // No address of its own (dev setups): only the followed catalogs.
+      if (url != null) {
+        final body = await fetchCatalogText(url);
+        _main = await _parse(body, url);
+        await store.cachedCatalog.parent.create(recursive: true);
+        await store.cachedCatalog.writeAsString(
+          jsonEncode({'url': '$url', 'body': body}),
+        );
+      }
     } catch (e) {
       catalogError = 'offline';
     } finally {
-      client.close(force: true);
+      // Followed catalogs too, at the same time; each keeps its last copy
+      // when it cannot be reached, and each fetch has its own time limit.
+      await Future.wait([
+        for (final f in store.followed.all) _fetchFollowed(f.url),
+      ]);
+      catalog = _compose();
       refreshing = false;
       _refreshStates();
     }
@@ -253,29 +409,27 @@ class DownloadManager extends ChangeNotifier {
   /// download. Returns how many items the shelter offers, or null when it
   /// could not be read.
   Future<int?> addCatalogFrom(Uri url) async {
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 10);
     try {
-      final req = await client.getUrl(url);
-      final res = await req.close().timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) return null;
-      final body = await res.transform(utf8.decoder).join();
+      // Size and time limited, like every catalog fetch.
+      final body = await fetchCatalogText(url);
       final other = await _parse(body, url);
       _shelterCatalogs[url] = other;
       _shelterBodies[url] = body;
       catalog = catalog.mergedWith(other);
       _log({
         'event': 'shelter_catalog',
-        'from': '$url',
+        'from': redactedUrl(url),
         'items': other.items.length,
       });
       _refreshStates();
       return other.items.length;
     } catch (e) {
-      _log({'event': 'shelter_catalog_failed', 'from': '$url', 'error': '$e'});
+      _log({
+        'event': 'shelter_catalog_failed',
+        'from': redactedUrl(url),
+        'error': e.runtimeType.toString(),
+      });
       return null;
-    } finally {
-      client.close(force: true);
     }
   }
 
@@ -292,7 +446,35 @@ class DownloadManager extends ChangeNotifier {
     return n;
   }
 
+  /// Counts per followed catalog as Downloads shows them: an item left
+  /// out by the merge (its id belongs to another publisher) counts as
+  /// not shown.
+  void _countFollowed() {
+    for (final e in _followed.entries) {
+      final old = store.followed.status[e.key];
+      if (old == null) continue;
+      var shown = 0;
+      for (final i in e.value.items) {
+        if (catalog.byId(i.id)?.record?.publisher == i.record?.publisher) {
+          shown++;
+        }
+      }
+      final notShown = e.value.rejected.length + e.value.items.length - shown;
+      if (old.shown == shown && old.notShown == notShown) continue;
+      store.followed.setStatus(
+        e.key,
+        CatalogStatus(
+          shown: shown,
+          notShown: notShown,
+          fetched: old.fetched,
+          error: old.error,
+        ),
+      );
+    }
+  }
+
   void _refreshStates() {
+    _countFollowed();
     for (final item in catalog.items) {
       final s = stateOf(item);
       if (s.status == ItemStatus.running) continue;

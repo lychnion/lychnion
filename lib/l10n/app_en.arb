@@ -865,9 +865,88 @@
   "publishErrorTitle": "Give a title.",
   "publishErrorKey": "Another key is added under this publisher name. Remove it in Publishers first.",
   "publishFailed": "Could not publish: {detail}",
-  "@publishFailed": {"placeholders": {"detail": {"type": "String"}}},
+  "@publishFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "publishKeyUnreadable": "The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.",
-  "@publishKeyUnreadable": {"placeholders": {"path": {"type": "String"}}},
+  "@publishKeyUnreadable": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "publishKeyExists": "A key file is already there. It is never replaced.",
-  "publishKeyPrivateFailed": "The key file could not be made private, so no key was made."
+  "publishKeyPrivateFailed": "The key file could not be made private, so no key was made.",
+  "catalogsTitle": "Catalogs",
+  "catalogsHint": "Lists of guides and maps from cities and clubs, next to {app}'s",
+  "@catalogsHint": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogsNone": "No other catalogs yet. A city or club that offers its own guides gives you a link or QR code.",
+  "catalogsAdd": "Follow a catalog",
+  "catalogsUrlLabel": "Catalog address or link",
+  "catalogsNotALink": "This is not a catalog address.",
+  "catalogsAddTitle": "Follow this catalog?",
+  "catalogsAddBody": "Its guides and maps appear in Downloads. {app} only shows those signed by itself or by a publisher you added.",
+  "@catalogsAddBody": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogsFollow": "Follow",
+  "catalogsStatus": "{shown} shown · {notShown} not shown",
+  "@catalogsStatus": {
+    "placeholders": {
+      "shown": {
+        "type": "String"
+      },
+      "notShown": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogsNotShownHint": "Not shown: from a publisher you have not added, not validly signed, or an ID that belongs to another publisher.",
+  "catalogsFetched": "Updated {date}",
+  "@catalogsFetched": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogsNeverFetched": "Not loaded yet",
+  "catalogsError": "Could not load ({error}); the last copy is used.",
+  "@catalogsError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogsRemove": "Stop following",
+  "catalogsRemoveTitle": "Stop following {name}?",
+  "@catalogsRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogsRemoveBody": "Its items no longer appear in Downloads. What you installed from it stays.",
+  "catalogsKnown": "This catalog is followed already, or the list is full.",
+  "catalogsSaveFailed": "Could not save the list of catalogs. Nothing was changed.",
+  "catalogsRefresh": "Refresh",
+  "catalogsOffline": "Could not connect; the last copy is used.",
+  "catalogsInvalid": "This is not a valid catalog, or it is too large; the last copy is used."
 }
