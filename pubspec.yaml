@@ -43,9 +43,9 @@ dependencies:
   # The app's version for Settings → About.
   package_info_plus: ^10.2.2
   bonsoir: ^7.1.5
-  # Material and Cupertino moved out of the Flutter SDK (Flutter 3.47).
+  # Material moved out of the Flutter SDK (Flutter 3.47); it brings
+  # cupertino_ui with it.
   material_ui: ^1.11.1
-  cupertino_ui: ^1.1.7
 
 dev_dependencies:
   flutter_test:
