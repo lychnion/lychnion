@@ -94,7 +94,20 @@ class DownloadManager extends ChangeNotifier {
         c = c.mergedWith(other, preferOther: false);
       }
     }
-    return _withShelters(c);
+    c = _withShelters(c);
+    final listed = {for (final i in c.items) i.id};
+    final here = [
+      for (final kind in ItemKind.values)
+        for (final i in store.allInstalled(kind))
+          if (!listed.contains(i.record.id)) CatalogItem.fromRecord(i.record),
+    ];
+    if (here.isEmpty) return c;
+    return Catalog(
+      [...c.items, ...here],
+      base: c.base,
+      refreshUrl: c.refreshUrl,
+      mirrors: c.mirrors,
+    )..rejected.addAll(c.rejected);
   }
 
   /// Counts publisher changes: a catalog read before one is read again
@@ -356,6 +369,7 @@ class DownloadManager extends ChangeNotifier {
   /// Something was installed outside a download (from a USB stick): the
   /// loaders and the lists look again.
   void installedChanged() {
+    catalog = _compose();
     changes.value++;
     _refreshStates();
   }
@@ -756,6 +770,8 @@ class DownloadManager extends ChangeNotifier {
     if (s.status == ItemStatus.running || _paused) return;
     s.error = await _refusal(item) ?? await networkProblem(auto: auto);
     if (s.error != null) return notifyListeners();
+    // A load from a USB stick may have started meanwhile.
+    if (s.status == ItemStatus.running || _paused) return;
     final dir = store.dirFor(item.kind);
     final cancel = CancelToken();
     s
@@ -903,6 +919,7 @@ class DownloadManager extends ChangeNotifier {
     stop(item);
     await store.delete(item);
     stateOf(item).error = null;
+    catalog = _compose(); // an item only installed here goes from the list
     changes.value++;
     _refreshStates();
   }
@@ -914,6 +931,7 @@ class DownloadManager extends ChangeNotifier {
     if (s.status == ItemStatus.running || _paused) return;
     s.error = await _refusal(item);
     if (s.error != null) return notifyListeners();
+    if (s.status == ItemStatus.running || _paused) return;
     final cancel = CancelToken();
     s
       ..status = ItemStatus.running

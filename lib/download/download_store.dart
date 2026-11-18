@@ -281,10 +281,19 @@ class DownloadStore {
       throw OlderVersion(item.id, r.version, have);
     }
     await dirFor(item.kind).create(recursive: true);
-    await _marker(
-      item.kind,
-      item.id,
-    ).writeAsString(jsonEncode({'record': r.json}));
+    // Written next to it first: a full disk must not leave a cut-off
+    // record of what was installed before.
+    final marker = _marker(item.kind, item.id);
+    final tmp = File('${marker.path}.tmp');
+    await tmp.writeAsString(jsonEncode({'record': r.json}), flush: true);
+    try {
+      await tmp.rename(marker.path);
+    } on FileSystemException {
+      // Windows may not replace on rename.
+      if (!marker.existsSync()) rethrow;
+      await marker.delete();
+      await tmp.rename(marker.path);
+    }
     _verified.add(canonicalJson(r.json));
   }
 

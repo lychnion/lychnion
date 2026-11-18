@@ -167,7 +167,7 @@ Future<PullResult> _pull(
         ];
       }
       final fetched = local != null
-          ? await _copyFiles(folder, r, local, cat, log)
+          ? await _copyFilesSafely(folder, r, local, cat, log)
           : await _fetchFiles(
               folder,
               r,
@@ -288,6 +288,23 @@ Future<String> _readLocal(Directory dir) async {
     throw const FormatException('too large');
   }
   return f.readAsString();
+}
+
+/// [_copyFiles], false on any file error (the stick pulled out, the disk
+/// full): the item fails, the others go on.
+Future<bool> _copyFilesSafely(
+  NodeFolder folder,
+  PackageRecord r,
+  Directory from,
+  _Catalog cat,
+  void Function(String line)? log,
+) async {
+  try {
+    return await _copyFiles(folder, r, from, cat, log);
+  } on FileSystemException catch (e) {
+    log?.call('${r.id} ${r.version}: ${e.message}');
+    return false;
+  }
 }
 
 /// Copies the files of [r] from the folder [from] into [folder], each

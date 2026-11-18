@@ -222,4 +222,65 @@ void main() {
     final picked = Directory('${stick.path}/lychnion')..createSync();
     expect(stickFolder(picked).path, picked.path);
   });
+
+  test('a file missing on the stick is copied again', () async {
+    final here = store('here');
+    final r = await install(here, 'jp.a', '1', 'aaa');
+    await copyToStick(here, stick);
+    final blob = File(
+      '${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}',
+    )..deleteSync();
+    final c = await copyToStick(here, stick);
+    expect((c.added, c.notNewer), (0, 1));
+    expect(c.failed, isEmpty);
+    expect(blob.readAsStringSync(), 'aaa');
+  });
+
+  test(
+    'a newer version on the stick with a missing file is reported',
+    () async {
+      final newer = store('newer');
+      final r = await install(newer, 'jp.a', '2', 'two');
+      await copyToStick(newer, stick);
+      File(
+        '${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}',
+      ).deleteSync();
+      final older = store('older');
+      await install(older, 'jp.a', '1', 'one');
+      final c = await copyToStick(older, stick);
+      expect(c.notNewer, 1);
+      expect(c.failed, ['jp.a 2']);
+    },
+  );
+
+  test('a file damaged here is not copied to the stick', () async {
+    final here = store('here');
+    final r = await install(here, 'jp.a', '1', 'aaa');
+    File(
+      here.path(here.installed(ItemKind.package, 'jp.a')!, 'jp.a.sqlite'),
+    ).writeAsStringSync('bbb'); // same size
+    final c = await copyToStick(here, stick);
+    expect(c.added, 0);
+    expect(c.failed, ['jp.a 1']);
+    expect(
+      File(
+        '${stickFolder(stick).path}/blobs/sha256/${r.files.single.sha256}',
+      ).existsSync(),
+      isFalse,
+    );
+  });
+
+  test('a linked folder on the stick is refused', () async {
+    final elsewhere = Directory('${tmp.path}/elsewhere')..createSync();
+    final keep = File('${elsewhere.path}/${'0' * 64}')..writeAsStringSync('x');
+    Directory('${stick.path}/lychnion/blobs').createSync(recursive: true);
+    Link('${stick.path}/lychnion/blobs/sha256').createSync(elsewhere.path);
+    final here = store('here');
+    await install(here, 'jp.a', '1', 'aaa');
+    await expectLater(
+      copyToStick(here, stick),
+      throwsA(isA<UnreadableStick>()),
+    );
+    expect(keep.existsSync(), isTrue);
+  });
 }

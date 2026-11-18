@@ -70,8 +70,19 @@ class UnreadableStick implements Exception {
 Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   final result = StickResult();
   final folder = stickFolder(stick);
-  final old = await _readCatalog(folder);
   final blobs = Directory('${folder.path}/blobs/sha256');
+  // A linked folder would send the writes and the clean-up elsewhere.
+  for (final d in [
+    if (folder.path != stick.path) folder,
+    Directory('${folder.path}/blobs'),
+    blobs,
+  ]) {
+    if (FileSystemEntity.typeSync(d.path, followLinks: false) ==
+        FileSystemEntityType.link) {
+      throw const UnreadableStick('a linked folder');
+    }
+  }
+  final old = await _readCatalog(folder);
   await blobs.create(recursive: true);
 
   // What the stick has, by id (signatures are kept as they are: the
@@ -96,22 +107,34 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
     for (final i in store.allInstalled(kind)) {
       final r = i.record;
       final there = onStick[r.id];
-      if (there != null &&
+      final kept =
+          there != null &&
           trusted.contains(r.id) &&
           there.publisher == r.publisher &&
-          !isOlder(there.version, r.version)) {
+          !isOlder(there.version, r.version);
+      if (kept && isOlder(r.version, there.version)) {
+        // Newer on the stick: kept, but its files must be there.
         result.notNewer++;
+        if (!await _onStick(there, blobs)) {
+          result.failed.add('${there.id} ${there.version}');
+        }
         continue;
       }
+      // New, newer here, or the same version (its files on the stick are
+      // checked, and copied again when missing or damaged).
+      var ok = false;
       try {
-        if (!await _copyItem(store, i, r, blobs)) {
-          result.failed.add('${r.id} ${r.version}');
-          continue;
-        }
+        ok = await _copyItem(store, i, r, blobs);
       } on FileSystemException {
         // Stick full, a file too large for it, or pulled out: the items
         // copied so far are still listed below.
+      }
+      if (!ok) {
         result.failed.add('${r.id} ${r.version}');
+        continue;
+      }
+      if (kept) {
+        result.notNewer++;
         continue;
       }
       onStick[r.id] = r;
@@ -121,16 +144,21 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   }
 
   final records = onStick.values.toList()..sort((a, b) => a.id.compareTo(b.id));
+  final text =
+      '${const JsonEncoder.withIndent('  ').convert({
+        'format': 2,
+        'records': [for (final r in records) r.json],
+        'urls': {for (final r in records)
+          for (final f in r.files) f.sha256: 'blobs/sha256/${f.sha256}'},
+      })}\n';
+  final bytes = utf8.encode(text);
+  // Larger, and no device would read the stick any more.
+  if (bytes.length > maxCatalogBytes) {
+    throw const FileSystemException('catalog.json would be over 2 MB');
+  }
   final tmp = File('${folder.path}/catalog.json.copy');
-  await tmp.writeAsString(
-    '${const JsonEncoder.withIndent('  ').convert({
-      'format': 2,
-      'records': [for (final r in records) r.json],
-      'urls': {for (final r in records)
-        for (final f in r.files) f.sha256: 'blobs/sha256/${f.sha256}'},
-    })}\n',
-    flush: true,
-  );
+  _clear(tmp);
+  await tmp.writeAsBytes(bytes, flush: true);
   await _replace(tmp, File('${folder.path}/catalog.json'));
 
   // Files of versions replaced on the stick, and copies left by a stick
@@ -166,14 +194,43 @@ Future<bool> _copyItem(
     final source = File(store.path(i, f.name));
     if (!source.existsSync() || source.lengthSync() != f.size) return false;
     final part = File('${target.path}.copy');
+    _clear(part);
     try {
       await source.copy(part.path);
+      // A file here damaged since it was installed is not passed on.
+      if (await sha256OfFile(part) != f.sha256) return false;
       await _replace(part, target);
     } finally {
       if (part.existsSync()) await part.delete();
     }
   }
   return true;
+}
+
+/// Whether every file of [r] is in [blobs] and matches its hash.
+Future<bool> _onStick(PackageRecord r, Directory blobs) async {
+  for (final f in r.files) {
+    final b = File('${blobs.path}/${f.sha256}');
+    if (!_isFile(b) ||
+        b.lengthSync() != f.size ||
+        await sha256OfFile(b) != f.sha256) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/// Removes whatever is at [f] (a link is removed, not what it points to),
+/// so a write there cannot reach another file.
+void _clear(File f) {
+  switch (FileSystemEntity.typeSync(f.path, followLinks: false)) {
+    case FileSystemEntityType.notFound:
+      return;
+    case FileSystemEntityType.link:
+      Link(f.path).deleteSync();
+    default:
+      f.deleteSync();
+  }
 }
 
 /// Installs from [stick] what is newer than what [store] has: records of

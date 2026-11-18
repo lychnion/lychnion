@@ -28,7 +28,7 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
         final l = c.l10n;
         return ListenableBuilder(
           listenable: m,
-          builder: (c, _) => Padding(
+          builder: (c, _) => SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
