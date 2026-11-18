@@ -24,6 +24,12 @@ class AppSettings extends ChangeNotifier {
   /// (then the key is taken on first connect).
   String? baseKey;
 
+  /// The QR key whose base has signed an answer: from then on the phone
+  /// takes no unsigned answer from it (someone on the Wi-Fi could take
+  /// the signature off). Forgotten when the base is disconnected or
+  /// another key is pinned, not when the same key is pinned again.
+  String? baseSignedKey;
+
   /// Base computer: answer phones on the local network (desktop), and
   /// the name phones see. Off until the user turns it on.
   bool sharing = false;
@@ -82,6 +88,7 @@ class AppSettings extends ChangeNotifier {
       baseUrl = (j['base_url'] ?? j['shelter_url']) as String?;
       baseName = (j['base_name'] ?? j['shelter_name']) as String?;
       baseKey = (j['base_key'] ?? j['shelter_key']) as String?;
+      baseSignedKey = j['base_signed_key'] as String?;
       sharing = j['sharing'] == true;
       region = j['region'] as String?;
       sharingName = j['sharing_name'] as String?;
@@ -109,7 +116,19 @@ class AppSettings extends ChangeNotifier {
   Future<void> setBase(String? url, {String? name, String? key}) async {
     baseUrl = url;
     baseName = url == null ? null : name;
-    baseKey = url == null ? null : key;
+    final newKey = url == null ? null : key;
+    // Kept for the same key (the base got a new address): forgetting it
+    // would let someone take the signature off again.
+    if (newKey != baseKey) baseSignedKey = null;
+    baseKey = newKey;
+    notifyListeners();
+    await _save();
+  }
+
+  /// The base with QR key [key] signed an answer (see [baseSignedKey]).
+  Future<void> setBaseSigned(String key) async {
+    if (baseSignedKey == key) return;
+    baseSignedKey = key;
     notifyListeners();
     await _save();
   }
@@ -142,6 +161,7 @@ class AppSettings extends ChangeNotifier {
         'base_url': ?baseUrl,
         'base_name': ?baseName,
         'base_key': ?baseKey,
+        'base_signed_key': ?baseSignedKey,
         'sharing': sharing,
         'sharing_name': ?sharingName,
         'region': ?region,

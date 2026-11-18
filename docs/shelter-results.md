@@ -14,9 +14,18 @@ slow or older phones get fast answers from a bigger model. This is the
   starts a small HTTP server on port 8642 after the model has loaded
   (`lib/base/base_server.dart`).
   - `GET /info`: name, model, package and version, number of answers.
-  - `POST /ask` `{"question": "…"}`: the full answer: safety lines,
-    answer text, the passages given to the model with source and licence,
-    timings (`lib/base/base_protocol.dart`, version 1).
+  - `POST /ask` `{"question": "…", "nonce": "…"}`: the full answer:
+    safety lines, answer text, the passages given to the model with source
+    and licence, timings (`lib/base/base_protocol.dart`, version 1).
+  - Signed answers (`lib/base/answer_signing.dart`): the app sends a new
+    random `nonce` (base64url, 16 to 64 characters) with each question.
+    The base then sends `X-Lychnion-Signature: <keyId>.<signature>`, an
+    Ed25519 signature with its key over
+    `lychnion-answer-1\n<nonce>\n<SHA-256 of the request body, hex>\n`
+    followed by the response body as sent. A phone that scanned the base's
+    QR code checks it; once a base has signed, the phone refuses unsigned
+    answers from it. `GET /info` says `signs_answers`. Without a nonce
+    (the browser page, older phones) the answer is not signed.
   - One model, so questions are answered one after another. Questions are
     limited to 500 characters and request bodies to 8 KB.
 - **Phone:** `SHELTER_URL=http://<shelter>:8642` connects at start-up. Questions

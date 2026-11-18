@@ -141,11 +141,14 @@ class AnswerCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (answer.answeredBy != null && answer.baseUnchecked)
+                if (answer.answeredBy != null &&
+                    (answer.baseUnchecked || answer.baseUnsigned))
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      l.answerBaseUnchecked,
+                      answer.baseUnchecked
+                          ? l.answerBaseUnchecked
+                          : l.answerBaseUnsigned,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
