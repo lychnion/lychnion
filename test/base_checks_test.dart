@@ -22,7 +22,11 @@ class _FakeBase extends BaseClient {
   final Exception? error;
 
   @override
-  Future<GroundedAnswer> ask(String question, {String? pinnedKey}) async {
+  Future<GroundedAnswer> ask(
+    String question, {
+    String? pinnedKey,
+    bool requireSignature = false,
+  }) async {
     if (error case final e?) throw e;
     return GroundedAnswer(question)..text = reply!;
   }

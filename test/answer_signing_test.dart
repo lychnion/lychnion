@@ -5,8 +5,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' show sha256;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/base/answer_signing.dart';
+import 'package:lychnion/base/base_checks.dart';
 import 'package:lychnion/base/base_client.dart';
 import 'package:lychnion/base/base_server.dart';
 import 'package:lychnion/facts/fact_store.dart';
@@ -31,20 +33,26 @@ void main() {
   group('checkAnswerSignature', () {
     final body = utf8.encode('{"text":"高い所へ"}');
     const nonce = 'AAAAAAAAAAAAAAAAAAAAAA';
+    final request = utf8.encode('{"question":"津波は？","nonce":"$nonce"}');
 
-    Future<AnswerSignature> check(String? header, {String? n, List<int>? b}) =>
+    Future<String> sign(
+      FactSigner by, {
+      String n = nonce,
+      List<int>? r,
+      List<int>? b,
+    }) => signAnswer(by, nonce: n, request: r ?? request, body: b ?? body);
+
+    Future<AnswerSignature> check(String? header, {List<int>? b}) =>
         checkAnswerSignature(
           header: header,
-          nonce: n ?? nonce,
+          nonce: nonce,
+          request: request,
           body: b ?? body,
           pinnedKey: signer.publicKeyText,
         );
 
     test('a signature by the pinned key over this answer is valid', () async {
-      expect(
-        await check(await signAnswer(signer, nonce, body)),
-        AnswerSignature.valid,
-      );
+      expect(await check(await sign(signer)), AnswerSignature.valid);
     });
 
     test('no signature is missing, not bad', () async {
@@ -53,31 +61,35 @@ void main() {
     });
 
     test('a changed answer is bad', () async {
-      final sig = await signAnswer(signer, nonce, body);
       expect(
-        await check(sig, b: utf8.encode('{"text":"低い所へ"}')),
+        await check(await sign(signer), b: utf8.encode('{"text":"低い所へ"}')),
         AnswerSignature.bad,
       );
     });
 
     test('another key is bad, also under the pinned key id', () async {
-      final sig = await signAnswer(other, nonce, body);
+      final sig = await sign(other);
       expect(await check(sig), AnswerSignature.bad);
       final forged = '${signer.keyId}${sig.substring(sig.indexOf('.'))}';
       expect(await check(forged), AnswerSignature.bad);
     });
 
     test('an answer signed for another nonce is bad (replayed)', () async {
-      final sig = await signAnswer(signer, 'BBBBBBBBBBBBBBBBBBBBBB', body);
+      final sig = await sign(signer, n: 'BBBBBBBBBBBBBBBBBBBBBB');
       expect(await check(sig), AnswerSignature.bad);
     });
 
+    test('an answer to a changed question is bad', () async {
+      final changed = utf8.encode('{"question":"地震は？","nonce":"$nonce"}');
+      expect(await check(await sign(signer, r: changed)), AnswerSignature.bad);
+    });
+
     test('only a signature made for answers passes', () async {
-      // The same key signs facts: a signature over the same nonce and
-      // answer, but not made as an answer signature, must not pass.
+      // The same key signs facts: a signature over the same nonce, question
+      // and answer, but not made as an answer signature, must not pass.
       for (final signed in [
         body,
-        [...utf8.encode('$nonce\n'), ...body],
+        [...utf8.encode('$nonce\n${sha256.convert(request)}\n'), ...body],
       ]) {
         final sig = await signer.signBytes(signed);
         expect(await check('${signer.keyId}.$sig'), AnswerSignature.bad);
@@ -141,8 +153,9 @@ void main() {
 
     /// A client whose requests pass [between] on their way to the base.
     Future<BaseClient> through(
-      Future<_Sent> Function(Map<String, dynamic> request) between,
-    ) async {
+      Future<_Sent> Function(Map<String, dynamic> request) between, {
+      bool twice = false,
+    }) async {
       final mid = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       addTearDown(() => mid.close(force: true));
       mid.listen((req) async {
@@ -152,6 +165,7 @@ void main() {
         req.response.headers.contentType = ContentType.json;
         if (sent.signature case final s?) {
           req.response.headers.set(answerSignatureHeader, s);
+          if (twice) req.response.headers.add(answerSignatureHeader, s);
         }
         req.response.add(sent.body);
         await req.response.close();
@@ -218,15 +232,72 @@ void main() {
       final c = await through((r) => forward({...r, 'question': '地震が来たら？'}));
       await expectLater(
         c.ask('津波は一回だけですか？', pinnedKey: signer.publicKeyText),
-        throwsA(
-          isA<BadAnswerSignature>().having(
-            (e) => e.reason,
-            'reason',
-            'answers another question',
-          ),
-        ),
+        throwsA(isA<BadAnswerSignature>()),
       );
     });
+
+    test('a question with another field added on the way is refused', () async {
+      // The base reads `lang`: the signature covers the whole request.
+      final c = await through((r) => forward({...r, 'lang': 'en'}));
+      await expectLater(
+        c.ask('津波は一回だけですか？', pinnedKey: signer.publicKeyText),
+        throwsA(isA<BadAnswerSignature>()),
+      );
+    });
+
+    test('a signature sent twice is refused', () async {
+      final c = await through(forward, twice: true);
+      await expectLater(
+        c.ask('津波は一回だけですか？', pinnedKey: signer.publicKeyText),
+        throwsA(isA<BadAnswerSignature>()),
+      );
+      // Without a QR key nothing is checked: still answered.
+      expect((await c.ask('津波は一回だけですか？')).text, contains('高い所へ'));
+    });
+
+    test('once a base has signed, an unsigned answer is refused', () async {
+      var strip = false;
+      final c = await through((r) async {
+        final sent = await forward(r);
+        return (body: sent.body, signature: strip ? null : sent.signature);
+      });
+      final key = signer.publicKeyText;
+      String? signed;
+      final errors = <Object>[];
+      Future<GroundedAnswer?> ask() => answerFromBase(
+        c,
+        '津波は一回だけですか？',
+        pinnedKey: key,
+        signedKey: signed,
+        onSigned: (k) => signed = k,
+        onError: errors.add,
+      );
+      expect((await ask())!.baseUnsigned, isFalse);
+      expect(signed, key);
+      strip = true;
+      expect(await ask(), isNull);
+      expect(errors.single, isA<BadAnswerSignature>());
+      expect('${errors.single}', contains('signature missing'));
+    });
+
+    test(
+      'an unsigned answer from a base never seen signing is taken',
+      () async {
+        final c = await through((r) async {
+          final sent = await forward(r);
+          return (body: sent.body, signature: null);
+        });
+        String? signed;
+        final a = await answerFromBase(
+          c,
+          '津波は一回だけですか？',
+          pinnedKey: signer.publicKeyText,
+          onSigned: (k) => signed = k,
+        );
+        expect(a!.baseUnsigned, isTrue);
+        expect(signed, isNull);
+      },
+    );
 
     test('an answer without a signature (old base) is marked', () async {
       final c = await through((r) async {

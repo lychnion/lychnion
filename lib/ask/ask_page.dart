@@ -293,6 +293,8 @@ class _AskPageState extends _AskPageBase
         base,
         question,
         pinnedKey: _baseKeyUsed,
+        signedKey: widget.settings?.baseSignedKey,
+        onSigned: (key) => unawaited(widget.settings?.setBaseSigned(key)),
         onError: (e) => _log({
           'event': e is BadAnswerSignature
               ? 'base_answer_bad_signature'

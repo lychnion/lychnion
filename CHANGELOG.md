@@ -86,10 +86,12 @@ here should be relied on alone in an emergency. Source only; build it as
 - An answer from a base that was not connected by its QR code says so.
 - Base answers are signed. A phone that scanned the base's QR code sends
   a new random value with each question, and the base signs its answer
-  together with it. The phone refuses an answer that was changed, signed
-  by another key, sent before, or answers another question, and answers
-  itself. An answer from an older base without a signature says so. The
-  page for phones without the app stays unsigned.
+  together with it and the question as received. The phone refuses an
+  answer that was changed, signed by another key, sent before, or made
+  for a changed question, and answers itself. An answer from an older
+  base without a signature says so; once a base has signed, the phone
+  refuses unsigned answers from it. The page for phones without the app
+  stays unsigned.
 - A phone keeps at most 5,000 facts and drops expired ones.
 - A base stops an answer when the phone that asked has left.
 - From a base or a phone nearby, the app downloads only files on that

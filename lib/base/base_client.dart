@@ -75,12 +75,17 @@ class BaseClient {
   /// caller can fall back to the phone's own model.
   ///
   /// With [pinnedKey] (the key from the base's QR code) the answer must be
-  /// signed by that key for this question: a bad signature, or an answer
-  /// to another question, throws [BadAnswerSignature]. An answer without
-  /// a signature (an old base) comes back with [GroundedAnswer.baseUnsigned].
-  Future<GroundedAnswer> ask(String question, {String? pinnedKey}) async {
+  /// signed by that key for this question, or [BadAnswerSignature] is
+  /// thrown. An answer without a signature (an older base) comes back
+  /// with [GroundedAnswer.baseUnsigned], unless [requireSignature] (this
+  /// base has signed before: someone took the signature off on the way).
+  Future<GroundedAnswer> ask(
+    String question, {
+    String? pinnedKey,
+    bool requireSignature = false,
+  }) async {
     final nonce = newAnswerNonce();
-    final (j, body, signature) = await _request(
+    final (j, sent, body, signature) = await _request(
       'POST',
       '/ask',
       body: {'question': question, 'nonce': nonce},
@@ -92,19 +97,17 @@ class BaseClient {
     switch (await checkAnswerSignature(
       header: signature,
       nonce: nonce,
+      request: sent,
       body: body,
       pinnedKey: pinnedKey,
     )) {
       case AnswerSignature.bad:
         throw const BadAnswerSignature('bad signature');
+      case AnswerSignature.missing when requireSignature:
+        throw const BadAnswerSignature('signature missing');
       case AnswerSignature.missing:
         return answer..baseUnsigned = true;
       case AnswerSignature.valid:
-        // Signed, but someone in between may have sent the base another
-        // question with this phone's nonce.
-        if (answer.question != question.trim()) {
-          throw const BadAnswerSignature('answers another question');
-        }
         return answer;
     }
   }
@@ -124,22 +127,24 @@ class BaseClient {
     maxBytes: maxBytes,
   )).$1;
 
-  /// One request: the decoded body, its bytes as received, and the
-  /// base's answer signature if it sent one.
-  Future<(Map<String, dynamic>, Uint8List, String?)> _request(
+  /// One request: the decoded answer, the request body as sent, the
+  /// answer's bytes as received, and the base's answer signature if it
+  /// sent one.
+  Future<(Map<String, dynamic>, List<int>, Uint8List, String?)> _request(
     String method,
     String path, {
     Map<String, Object?>? body,
     required Duration timeout,
     required int maxBytes,
   }) async {
+    final sent = body == null ? const <int>[] : utf8.encode(jsonEncode(body));
     final (int, Uint8List, String?) got;
     final pending = _Pending();
     try {
       got = await _fetch(
         method,
         path,
-        body,
+        body == null ? null : sent,
         maxBytes,
         pending,
       ).timeout(timeout);
@@ -167,13 +172,13 @@ class BaseClient {
         'base: $status ${cleanShownText(e is String ? e : null) ?? ''}'.trim(),
       );
     }
-    return (j, bytes, signature);
+    return (j, sent, bytes, signature);
   }
 
   Future<(int, Uint8List, String?)> _fetch(
     String method,
     String path,
-    Map<String, Object?>? body,
+    List<int>? body,
     int maxBytes,
     _Pending pending,
   ) async {
@@ -184,7 +189,7 @@ class BaseClient {
     req.followRedirects = false;
     if (body != null) {
       req.headers.contentType = ContentType.json;
-      req.write(jsonEncode(body));
+      req.add(body);
     }
     final res = await req.close();
     if (res.contentLength > maxBytes) {
@@ -219,7 +224,9 @@ class BaseClient {
     return (
       res.statusCode,
       out.takeBytes(),
-      res.headers.value(answerSignatureHeader),
+      // Sent more than once: never one valid signature, and never a
+      // throw (HttpHeaders.value would throw on a list).
+      res.headers[answerSignatureHeader]?.join(','),
     );
   }
 

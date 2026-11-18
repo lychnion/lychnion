@@ -343,6 +343,8 @@ class BaseServer {
   Future<void> _answer(HttpRequest req, _Question question) async {
     final res = req.response;
     final Object? j;
+    // The question as received: an answer signature covers it.
+    final List<int> request;
     try {
       final body = await _readBody(req).timeout(bodyTimeout);
       if (body == null) {
@@ -354,6 +356,7 @@ class BaseServer {
           bodyRead: req.contentLength <= maxBodyBytes,
         );
       }
+      request = body;
       j = jsonDecode(utf8.decode(body));
     } on TimeoutException {
       return _refuse(
@@ -420,10 +423,12 @@ class BaseServer {
       return _send(res, 503, {'error': 'busy, try again soon'});
     }
     answered++;
-    await _sendAnswer(res, {
-      ...answerToWire(answer),
-      'web': webAnswer(answer),
-    }, nonce: isAnswerNonce(nonce) ? nonce as String : null);
+    await _sendAnswer(
+      res,
+      {...answerToWire(answer), 'web': webAnswer(answer)},
+      nonce: isAnswerNonce(nonce) ? nonce as String : null,
+      request: request,
+    );
   }
 
   /// The body, or null when it is larger than [maxBodyBytes]. Not read
@@ -564,17 +569,18 @@ class BaseServer {
   }
 
   /// An answer, signed with the base key when the phone sent a [nonce]:
-  /// the signature covers these exact bytes.
+  /// the signature covers these exact bytes and the [request] they answer.
   Future<void> _sendAnswer(
     HttpResponse res,
     Map<String, Object?> body, {
     required String? nonce,
+    required List<int> request,
   }) async {
     final bytes = utf8.encode(jsonEncode(body));
     final signer = facts?.signer;
     final signature = signer == null || nonce == null
         ? null
-        : await signAnswer(signer, nonce, bytes);
+        : await signAnswer(signer, nonce: nonce, request: request, body: bytes);
     try {
       if (signature != null) {
         res.headers.set(answerSignatureHeader, signature);

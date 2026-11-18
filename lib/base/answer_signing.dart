@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart' show sha256;
 import 'package:cryptography/cryptography.dart';
 
 import '../facts/signing.dart';
@@ -10,10 +11,11 @@ import '../facts/signing.dart';
 /// The phone sends a new random nonce with each question. The base signs
 /// the exact bytes of its answer together with that nonce, with the key
 /// phones pin from its QR code, and sends the signature in
-/// [answerSignatureHeader]. So an answer cannot be changed on the way,
-/// sent by another computer, or replayed for a later question. The phone
-/// also checks that the answer is for the question it asked: someone in
-/// between could send the base another question with the phone's nonce.
+/// [answerSignatureHeader]. The signature also covers a hash of the
+/// question as the base received it (the request body). So an answer
+/// cannot be changed on the way, sent by another computer, replayed for a
+/// later question, or made for a question changed on the way (someone in
+/// between could send the base another question with the phone's nonce).
 ///
 /// The answer format itself is unchanged (still protocol 1): old phones
 /// send no nonce and get no signature, and the browser page stays
@@ -37,18 +39,20 @@ String newAnswerNonce() => base64Url
     .encode([for (var i = 0; i < 16; i++) _random.nextInt(256)])
     .replaceAll('=', '');
 
-List<int> _message(String nonce, List<int> body) => [
-  ...utf8.encode('$_domain\n$nonce\n'),
+List<int> _message(String nonce, List<int> request, List<int> body) => [
+  ...utf8.encode('$_domain\n$nonce\n${sha256.convert(request)}\n'),
   ...body,
 ];
 
-/// The header value for [body] answering the question sent with [nonce]:
-/// `<keyId>.<signature>`.
+/// The header value for [body] answering [request] (the question's body
+/// as received), which carried [nonce]: `<keyId>.<signature>`.
 Future<String> signAnswer(
-  FactSigner signer,
-  String nonce,
-  List<int> body,
-) async => '${signer.keyId}.${await signer.signBytes(_message(nonce, body))}';
+  FactSigner signer, {
+  required String nonce,
+  required List<int> request,
+  required List<int> body,
+}) async =>
+    '${signer.keyId}.${await signer.signBytes(_message(nonce, request, body))}';
 
 /// What the phone made of an answer's signature.
 enum AnswerSignature {
@@ -71,11 +75,13 @@ List<int>? _unb64(String s) {
 }
 
 /// Checks [header] (the base's [answerSignatureHeader]) over [body], the
-/// answer bytes as received, for the question sent with [nonce], against
-/// [pinnedKey] (the public key from the base's QR code).
+/// answer bytes as received, for [request] (the question's body as sent,
+/// with [nonce]), against [pinnedKey] (the public key from the base's QR
+/// code).
 Future<AnswerSignature> checkAnswerSignature({
   required String? header,
   required String nonce,
+  required List<int> request,
   required List<int> body,
   required String pinnedKey,
 }) async {
@@ -89,7 +95,7 @@ Future<AnswerSignature> checkAnswerSignature({
   if (sig == null || sig.length != 64) return AnswerSignature.bad;
   try {
     final ok = await Ed25519().verify(
-      _message(nonce, body),
+      _message(nonce, request, body),
       signature: Signature(
         sig,
         publicKey: SimplePublicKey(key, type: KeyPairType.ed25519),
@@ -102,7 +108,8 @@ Future<AnswerSignature> checkAnswerSignature({
 }
 
 /// A base answer whose signature did not check out against the pinned
-/// key, or that answers another question: the phone answers itself.
+/// key, or without one from a base known to sign: the phone answers
+/// itself.
 class BadAnswerSignature implements Exception {
   const BadAnswerSignature(this.reason);
   final String reason;

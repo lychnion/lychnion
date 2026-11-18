@@ -162,6 +162,27 @@ void main() {
       expect(j.containsKey('shelter_url'), isFalse);
     });
 
+    test(
+      'a base known to sign is kept until a QR code is scanned again',
+      () async {
+        final s = AppSettings();
+        await s.load(dir: tmp);
+        await s.setBase('http://192.168.1.20:8642', name: 'Hall', key: 'k1');
+        await s.setBaseSigned('k1');
+        final again = AppSettings();
+        await again.load(dir: tmp);
+        expect(again.baseSignedKey, 'k1');
+        await again.setBase(
+          'http://192.168.1.20:8642',
+          name: 'Hall',
+          key: 'k1',
+        );
+        expect(again.baseSignedKey, isNull);
+        final j = jsonDecode(file('settings.json').readAsStringSync()) as Map;
+        expect(j.containsKey('base_signed_key'), isFalse);
+      },
+    );
+
     test('a newer file: defaults, and a copy survives the next save', () async {
       const newer = '{"format":99,"region":"JP-30"}';
       file('settings.json').writeAsStringSync(newer);
