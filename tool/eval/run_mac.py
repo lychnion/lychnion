@@ -21,6 +21,7 @@ import os
 import platform
 import subprocess
 import sys
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -110,7 +111,7 @@ def main():
     if a.only:
         keep = set(a.only.split(","))
         qs = [q for q in qs if q[0].rsplit("-", 1)[0] in keep]
-    by_text = {text: (qid, lang) for qid, lang, text in qs}
+    by_text = {text.strip(): (qid, lang) for qid, lang, text in qs}  # the app trims each question
     out = a.out or os.path.join(HERE, "results", datetime.date.today().isoformat(), f"{a.label}.jsonl")
 
     # The container must exist before the models can go in; the docs: paths are fixed, so build
@@ -140,26 +141,38 @@ def main():
     }
     os.makedirs(os.path.dirname(out), exist_ok=True)
     print(f"asking {len(qs)} questions with {meta['model']} -> {os.path.relpath(out, REPO)}", flush=True)
-    answers = []
-    t0 = time.time()
+    answers, seen = [], set()
     p = subprocess.Popen([exe], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    watchdog = threading.Timer(a.timeout, p.kill)  # also ends a run that hangs without output
+    watchdog.start()
     try:
         for line in p.stdout:
             i = line.find("LYCHNION {")
             if i < 0:
                 continue
-            ev = json.loads(line[i + len("LYCHNION "):])
+            try:
+                ev = json.loads(line[i + len("LYCHNION "):])
+            except json.JSONDecodeError:
+                print(f"  skipped a broken log line: {line[:120]!r}", flush=True)
+                continue
             if ev.get("event") == "load_failed":
                 sys.exit(f"model did not load: {ev.get('error')}")
             if ev.get("event") != "answer":
                 continue
-            qid, lang = by_text.get(ev.get("q"), (None, None))
-            ev = {"qid": qid, **ev}
-            answers.append(ev)
+            if ev.get("answered_by"):
+                sys.exit(f"answered by the base {ev['answered_by']!r}, not this Mac: remove the base "
+                         "from the test app's settings")
+            qid, lang = by_text.get((ev.get("q") or "").strip(), (None, None))
+            if qid is None or qid in seen:
+                print(f"  ignored an answer to an unexpected or repeated question: {ev.get('q')!r}", flush=True)
+                continue
+            seen.add(qid)
+            answers.append({"qid": qid, **ev})
             print(f"  {len(answers):2}/{len(qs)} {qid}: {ev.get('total_ms', 0) / 1000:.1f} s", flush=True)
-            if len(answers) >= len(qs) or time.time() - t0 > a.timeout:
+            if len(seen) == len(qs):
                 break
     finally:
+        watchdog.cancel()
         p.terminate()
         try:
             p.wait(timeout=20)

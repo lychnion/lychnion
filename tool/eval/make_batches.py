@@ -9,6 +9,9 @@ questions.json), the package's own text for it, then every model's answer as "An
 in a shuffled order. key.json maps each label back to its model; judges never see it.
 The shuffle is seeded by the question id, so the same run always gives the same files.
 
+key.json must not change once grades exist (the letters would then point to other models):
+the script stops if it would, unless --force is given (then delete the old grades).
+
 --flagged (after the safety judges): writes skeptic-<qid>-<label>.md for every answer a safety
 judge rated 2 or 3: that question's block with only that answer, and the judge's issue.
 """
@@ -17,7 +20,9 @@ import glob
 import json
 import os
 import random
+import re
 import sqlite3
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -55,6 +60,8 @@ class Packages:
         con = self._con(pkg)
         row = con.execute("select source_id, coalesce(original_heading, heading, ''), coalesce(original, text) "
                           "from passages where id = ?", (int(pid),)).fetchone()
+        if row is None:
+            sys.exit(f"key passage {ref} (questions.json) is not in the package")
         has_texts = con.execute("select 1 from sqlite_master where name = 'passage_texts'").fetchone()
         if has_texts:  # a Japanese package with a reviewed English translation
             en = con.execute("select heading, text from passage_texts where passage_id = ? and lang = 'en'",
@@ -78,6 +85,7 @@ def main():
     ap.add_argument("run_dir")
     ap.add_argument("--per-batch", type=int, default=10)
     ap.add_argument("--flagged", action="store_true", help="write the skeptic files instead")
+    ap.add_argument("--force", action="store_true", help="rewrite key.json even though grades exist")
     a = ap.parse_args()
     run = os.path.basename(os.path.normpath(a.run_dir))
     out_dir = os.path.join(HERE, "judging", run)
@@ -93,7 +101,7 @@ def main():
                 if e["severity"] >= 2:
                     flagged[(e["qid"], e["label"])] = e
 
-    blocks, key = [], {}
+    blocks, key, written, pending = [], {}, 0, []
     for t in topics:
         source_text = []
         for ref in t["key_passages"]:
@@ -128,12 +136,26 @@ def main():
                 lines = lines + one
                 if (qid, letter) in flagged:
                     issue = flagged[(qid, letter)]["issue"]
-                    with open(os.path.join(out_dir, f"skeptic-{qid}-{letter}.md"), "w", encoding="utf-8") as f:
-                        f.write("\n".join(head + one + [f"**The safety judge's issue:** {issue}", ""]))
+                    pending.append((os.path.join(out_dir, f"skeptic-{qid}-{letter}.md"),
+                                    "\n".join(head + one + [f"**The safety judge's issue:** {issue}", ""])))
             blocks.append("\n".join(lines))
 
+    key_path = os.path.join(out_dir, "key.json")
+    old_key = json.load(open(key_path, encoding="utf-8")) if os.path.exists(key_path) else None
+    graded = [os.path.basename(f) for f in glob.glob(os.path.join(out_dir, "*.json"))
+              if re.match(r"(accuracy|safety|skeptic)-.*\.json$|human\.json$", os.path.basename(f))]
+    if old_key is not None and old_key != key and graded and not a.force:
+        sys.exit(f"the answers in {a.run_dir} no longer match key.json, and grades exist "
+                 f"({', '.join(sorted(graded)[:3])}, ...): they would be counted for the wrong model. "
+                 "Grade a new run folder, or use --force and delete the old grades.")
     if a.flagged:
-        print(f"wrote {len(flagged)} skeptic files to {os.path.relpath(out_dir, REPO)}")
+        for path, text in pending:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(text)
+        written = len(pending)
+        if written != len(flagged):
+            print(f"warning: {len(flagged) - written} flagged answers are not in this run")
+        print(f"wrote {written} skeptic files to {os.path.relpath(out_dir, REPO)}")
         return
     n_batches = 0
     for b in range(0, len(blocks), a.per_batch):

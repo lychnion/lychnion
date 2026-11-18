@@ -58,7 +58,8 @@ expected source ids, and the key passages that the judges see (`package:passage 
 
    Writes `judging/<date>/batch-N.md` (10 questions each: question, key point, harms, the
    package's text, then every model's answer as A, B, … in a shuffle seeded by the question) and
-   `key.json` (label → model).
+   `key.json` (label → model). Once grades exist, the script refuses to change `key.json`
+   (the letters would point to other models); grade a new run folder instead.
 
 3. **Judges** (Claude Code subagents, no API key or extra bill). In Claude Code, ask:
 

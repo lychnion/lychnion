@@ -29,7 +29,10 @@ def grades(judge_dir):
     out = defaultdict(dict)
 
     def model(e):
-        return key[f"{e['qid']}:{e['label']}"]
+        k = f"{e['qid']}:{e['label']}"
+        if k not in key:
+            raise SystemExit(f"grade for {k} has no entry in {judge_dir}/key.json")
+        return key[k]
 
     for path in sorted(glob.glob(os.path.join(judge_dir, "accuracy-*.json"))):
         for e in read_json(path, []):
@@ -124,6 +127,10 @@ def main():
         for h in sorted(harms, key=lambda h: (h["model"], h["qid"])):
             md.append(f"- **{h['model']} {h['qid']}** (severity {h['severity']}, {h['by']}): {h['issue']}")
             md.append(f"  > {' '.join(h['answer'].split())}")
+    ungraded = [f"{m} {q}" for (m, lang), rs in rows.items() for r in rs
+                for q in [r["qid"]] if g and ("acc" not in g.get((q, m), {}) or "sev" not in g.get((q, m), {}))]
+    if ungraded:
+        md += ["", f"**Not fully graded ({len(ungraded)}):** " + ", ".join(sorted(ungraded))]
     text = "\n".join(md)
     print(text)
     os.makedirs(judge_dir, exist_ok=True)
