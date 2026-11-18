@@ -645,5 +645,9 @@
   "downloadsPublisher": "Publisher",
   "downloadsSignedOn": "Signed on",
   "downloadsKey": "Key",
-  "downloadsFilterKind": "Kind"
+  "downloadsFilterKind": "Kind",
+  "webError": "The shelter computer could not answer. Please try again.",
+  "shelterWithApp": "With the app",
+  "shelterInBrowser": "In the browser",
+  "shelterBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi."
 }

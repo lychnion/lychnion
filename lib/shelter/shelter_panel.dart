@@ -31,56 +31,65 @@ class ShelterQrCard extends StatelessWidget {
       name: name,
       key: keyText,
     ).toUri().toString();
+    final web = urls.first;
+    Widget qr(String data, String title, String hint) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            // QR codes need a light background, also in dark mode.
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: QrImageView(data: data, size: 160, padding: EdgeInsets.zero),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: 176,
+          child: Text(hint, style: theme.textTheme.bodySmall),
+        ),
+      ],
+    );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                // QR codes need a light background, also in dark mode.
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: QrImageView(
-                data: link,
-                size: 168,
-                padding: EdgeInsets.zero,
+            Text(
+              l.shelterConnectPhones,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l.shelterConnectPhones,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    l.shelterScanHint(l.appName, name),
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    l.shelterOrEnterAddress,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  for (final u in urls)
-                    SelectableText(
-                      u.replaceFirst('http://', ''),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                ],
-              ),
+            const SizedBox(height: 16),
+            // Two codes: the app (signed facts, its own map), and the
+            // browser for phones without the app.
+            Wrap(
+              spacing: 28,
+              runSpacing: 20,
+              children: [
+                qr(link, l.shelterWithApp, l.shelterScanHint(l.appName, name)),
+                qr(web, l.shelterInBrowser, l.shelterBrowserHint),
+              ],
             ),
+            const SizedBox(height: 14),
+            Text(l.shelterOrEnterAddress, style: theme.textTheme.bodySmall),
+            for (final u in urls)
+              SelectableText(
+                u.replaceFirst('http://', ''),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
           ],
         ),
       ),

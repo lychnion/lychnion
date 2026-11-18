@@ -1657,6 +1657,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Kind'**
   String get downloadsFilterKind;
+
+  /// No description provided for @webError.
+  ///
+  /// In en, this message translates to:
+  /// **'The shelter computer could not answer. Please try again.'**
+  String get webError;
+
+  /// No description provided for @shelterWithApp.
+  ///
+  /// In en, this message translates to:
+  /// **'With the app'**
+  String get shelterWithApp;
+
+  /// No description provided for @shelterInBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'In the browser'**
+  String get shelterInBrowser;
+
+  /// No description provided for @shelterBrowserHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.'**
+  String get shelterBrowserHint;
 }
 
 class _AppLocalizationsDelegate

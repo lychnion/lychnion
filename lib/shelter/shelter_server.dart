@@ -10,9 +10,12 @@ import '../facts/signing.dart';
 import '../knowledge/grounded_answer.dart';
 import 'shelter_library.dart';
 import 'shelter_protocol.dart';
+import 'shelter_web.dart';
 
 /// Answers questions from phones on the shelter's local network.
 ///
+/// GET /       → a page for phones without the app (assets/web/shelter.html)
+/// GET /web.json?lang=ja → that page's texts and the current facts
 /// GET /info  → {name, model, package, version}
 /// GET /facts → current facts (JSON, or ?compact=1 for radio-sized messages)
 /// POST /ask  {"question": "…"} → an answer (shelter_protocol.dart)
@@ -29,7 +32,11 @@ class ShelterServer {
     this.facts,
     this.codec,
     this.library,
+    this.page,
   });
+
+  /// The page for phones without the app (HTML), or null for none.
+  final String? page;
 
   /// Packages, maps and models passed on to phones (null: none).
   final ShelterLibrary? library;
@@ -67,7 +74,24 @@ class ShelterServer {
     final res = req.response;
     res.headers.contentType = ContentType.json;
     try {
-      if (req.method == 'GET' && req.uri.path == '/info') {
+      if (req.method == 'GET' && req.uri.path == '/' && page != null) {
+        res.headers.contentType = ContentType.html;
+        res.headers.set('Cache-Control', 'no-cache');
+        res.write(page);
+        unawaited(res.close());
+      } else if (req.method == 'GET' && req.uri.path == '/web.json') {
+        final lang = req.uri.queryParameters['lang'] ?? 'en';
+        _send(
+          res,
+          200,
+          webInfo(
+            lang: lang,
+            name: name,
+            facts: facts?.current ?? const [],
+            now: facts?.now ?? DateTime.now(),
+          ),
+        );
+      } else if (req.method == 'GET' && req.uri.path == '/info') {
         _send(res, 200, {
           'v': shelterProtocolVersion,
           'name': name,
@@ -105,20 +129,24 @@ class ShelterServer {
         await _sendBlob(req, library!.blob(req.uri.pathSegments.last));
       } else if (req.method == 'POST' && req.uri.path == '/ask') {
         final body = await utf8.decodeStream(req.take(8 * 1024));
-        final q = (jsonDecode(body) as Map)['question'];
+        final j = jsonDecode(body) as Map;
+        final q = j['question'];
+        // The browser page sends its language: it decides between
+        // Latin-script languages (an English or Spanish question).
+        final appLang = j['lang'] is String ? j['lang'] as String : 'en';
         if (q is! String || q.trim().isEmpty || q.length > _maxQuestionChars) {
           _send(res, 400, {
             'error': 'question must be 1 to $_maxQuestionChars characters',
           });
           return;
         }
-        final answer = GroundedAnswer(q.trim());
+        final answer = GroundedAnswer(q.trim(), appLang: appLang);
         // One model: run questions one after another.
         final done = _queue.then((_) => answerer.answer(answer, () {}));
         _queue = done.catchError((_) {});
         await done;
         answered++;
-        _send(res, 200, answerToWire(answer));
+        _send(res, 200, {...answerToWire(answer), 'web': webAnswer(answer)});
       } else {
         _send(res, 404, {'error': 'not found'});
       }

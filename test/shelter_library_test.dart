@@ -142,6 +142,7 @@ void main() {
         ),
         name: 'Test shelter',
         modelName: 'none',
+        page: '<!doctype html><title>Lychnion</title>',
         library: _OneFile(file, sha, {
           'format': 2,
           'records': const [],
@@ -194,6 +195,26 @@ void main() {
       expect((await get('/blobs/sha256/${'0' * 64}')).$1, 404);
       expect((await get('/blobs/sha256/../../etc/passwd')).$1, 404);
       expect((await get('/blobs/x.sqlite')).$1, 404);
+    });
+
+    test('serves the browser page and its texts', () async {
+      final (s1, page, h) = await get('/');
+      expect(s1, 200);
+      expect(utf8.decode(page), contains('Lychnion'));
+      expect(h.contentType?.mimeType, 'text/html');
+      final (s2, ja, _) = await get('/web.json?lang=ja');
+      expect(s2, 200);
+      final j = jsonDecode(utf8.decode(ja)) as Map;
+      expect(j['lang'], 'ja');
+      expect((j['texts'] as Map)['hint'], '質問を入力');
+      expect(((j['texts'] as Map)['notice'] as List).join(), contains('119'));
+      expect(j['languages'], [
+        {'code': 'ja', 'name': '日本語'},
+        {'code': 'en', 'name': 'English'},
+      ]);
+      final (_, fr, _) = await get('/web.json?lang=fr');
+      // No French app texts: English.
+      expect((jsonDecode(utf8.decode(fr)) as Map)['lang'], 'en');
     });
   });
 }

@@ -7,6 +7,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
 import 'app/settings.dart';
@@ -740,6 +741,7 @@ class _SpikePageState extends State<SpikePage> {
           // Pass on what this computer has installed (packages, maps,
           // models), so phones can update here without internet.
           library: ShelterLibrary(await DownloadStore.instance()),
+          page: await rootBundle.loadString('assets/web/shelter.html'),
         );
         await _server!.start();
         final addrs = await ShelterServer.localAddresses();

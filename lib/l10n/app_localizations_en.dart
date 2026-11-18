@@ -976,4 +976,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadsFilterKind => 'Kind';
+
+  @override
+  String get webError =>
+      'The shelter computer could not answer. Please try again.';
+
+  @override
+  String get shelterWithApp => 'With the app';
+
+  @override
+  String get shelterInBrowser => 'In the browser';
+
+  @override
+  String get shelterBrowserHint =>
+      'For phones without the app: opens a page from this computer. Questions and answers stay on the shelter Wi-Fi.';
 }

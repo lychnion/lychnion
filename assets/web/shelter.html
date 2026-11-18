@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lychnion</title>
+<!--
+  Served by the Lychnion shelter computer (lib/shelter/shelter_server.dart)
+  to phones on its Wi-Fi that do not have the app. Self-contained: no
+  internet, no files from elsewhere. Texts come from the app's ARB files
+  (GET /web.json?lang=..), answers from POST /ask (field "web").
+-->
+<style>
+  :root {
+    --night: #16233F; --glow: #F2B544; --paper: #FAF7F0; --mist: #E6E2D8;
+    --line: #C9C4B8; --stone: #5F5E5A; --ink: #1A1C22; --harbor: #1D4F7A;
+    --warn-bg: #FBE3DD; --warn: #7A1C10;
+    --bg: var(--paper); --fg: var(--ink); --card: #fff; --muted: var(--stone);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: var(--night); --fg: #EDEBE4; --card: #22314F; --muted: #A9B0BF;
+            --line: #3A4A6B; --warn-bg: #5A1E16; --warn: #FFDAD3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.6 system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+  header svg { width: 30px; height: 30px; }
+  header svg { flex: none; }
+  header .name { font-weight: 700; font-size: 18px; white-space: nowrap; }
+  header select { margin-left: auto; }
+  .shelter { font-size: 14px; color: var(--muted); margin: 0; }
+  header select { font: inherit; font-size: 14px; color: var(--fg); background: var(--card);
+                  border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px; }
+  main { max-width: 640px; margin: 0 auto; padding: 0 16px 120px; }
+  h1 { font-size: 24px; line-height: 1.35; margin: 8px 0 6px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+          padding: 14px 16px; margin: 14px 0; }
+  .facts h2, .card h2 { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+  .fact { padding: 4px 0; } .fact.avoid { color: var(--warn); font-weight: 600; }
+  details.notice summary { cursor: pointer; font-weight: 600; }
+  details.notice li { margin: 6px 0; font-size: 14px; }
+  .q { margin: 16px 0 6px; text-align: right; }
+  .q span { display: inline-block; background: var(--harbor); color: #fff;
+            border-radius: 18px 18px 6px 18px; padding: 8px 14px; }
+  .alert { background: var(--warn-bg); color: var(--warn); border-radius: 12px;
+           padding: 10px 12px; margin: 8px 0; font-weight: 700; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .src { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .src a { color: inherit; }
+  .light { display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+           background: var(--glow); vertical-align: middle; margin-right: 8px;
+           animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 50% { box-shadow: 0 0 0 8px rgba(242,181,68,.35); } }
+  @media (prefers-reduced-motion: reduce) { .light { animation: none; } }
+  form { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg);
+         padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 8px;
+         border-top: 1px solid var(--line); }
+  form input { flex: 1; font: inherit; padding: 12px 16px; border-radius: 24px;
+               border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  form button { font: inherit; border: 0; border-radius: 24px; padding: 0 18px;
+                background: var(--harbor); color: #fff; font-weight: 700; }
+  form button:disabled { opacity: .5; }
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <path d="M12 25 L32 10 L52 25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="32" cy="36" r="11" fill="#F2B544"/>
+    <path d="M26.5 51 H37.5 L32 59 Z" fill="currentColor"/>
+  </svg>
+  <span class="name" id="app"></span>
+  <select id="lang" hidden></select>
+</header>
+<main>
+  <p class="shelter" id="shelter"></p>
+  <h1 id="intro"></h1>
+  <details class="notice card"><summary id="before"></summary><ul id="notice"></ul></details>
+  <div class="card facts" id="facts" hidden><h2 id="factsTitle"></h2></div>
+  <div id="thread"></div>
+</main>
+<form id="ask">
+  <input id="q" autocomplete="off" maxlength="500">
+  <button id="send"></button>
+</form>
+<script>
+  // Everything is shown with textContent: answers and facts are never HTML.
+  // The language: the one picked in the menu (kept on this phone), else
+  // the phone's. The server falls back to English for others.
+  const stored = () => { try { return localStorage.getItem('lang'); } catch (_) { return null; } };
+  let lang = stored() || (navigator.language || 'en').slice(0, 2).toLowerCase();
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  let T = {};
+
+  async function load() {
+    const r = await fetch('/web.json?lang=' + encodeURIComponent(lang));
+    const d = await r.json();
+    T = d.texts;
+    lang = d.lang;
+    document.documentElement.lang = d.lang;
+    const menu = $('lang');
+    menu.replaceChildren(...d.languages.map((x) => {
+      const o = el('option', null, x.name);
+      o.value = x.code; o.lang = x.code;
+      return o;
+    }));
+    menu.value = d.lang;
+    menu.setAttribute('aria-label', T.language);
+    menu.hidden = d.languages.length < 2;
+    document.title = T.appName;
+    $('app').textContent = T.appName;
+    $('shelter').textContent = T.shelter;
+    $('intro').textContent = T.intro;
+    $('before').textContent = T.beforeYouStart;
+    $('q').placeholder = T.hint;
+    $('send').textContent = T.send;
+    $('notice').replaceChildren(...T.notice.map((n) => el('li', null, n)));
+    $('factsTitle').textContent = T.factsTitle;
+    const box = $('facts');
+    box.querySelectorAll('.fact').forEach((f) => f.remove());
+    for (const f of d.facts) {
+      box.append(el('div', 'fact' + (f.avoid ? ' avoid' : ''), (f.subject ? f.subject + ' — ' : '') + f.line));
+    }
+    box.hidden = d.facts.length === 0;
+  }
+
+  $('ask').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = $('q').value.trim();
+    if (!q) return;
+    $('q').value = '';
+    $('send').disabled = true;
+    const thread = $('thread');
+    const qd = el('div', 'q'); qd.append(el('span', null, q)); thread.append(qd);
+    const card = el('div', 'card');
+    const wait = el('div', 'muted'); wait.append(el('span', 'light')); wait.append(T.looking);
+    card.append(wait); thread.append(card);
+    card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    try {
+      const r = await fetch('/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, lang }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const a = (await r.json()).web;
+      const L = Object.assign({}, T, a.texts);
+      card.lang = a.lang;
+      card.replaceChildren();
+      for (const t of a.alerts) card.append(el('div', 'alert', '⚠ ' + t));
+      if (a.no_source) card.append(el('div', null, L.notCovered));
+      else if (a.shown) card.append(el('div', null, a.shown));
+      if (!a.no_source && !a.grounded) card.append(el('div', 'note', L.unchecked));
+      else if (a.partly) card.append(el('div', 'note', L.partly));
+      if (a.sources.length) {
+        const s = el('div', 'src', L.sources + ': ');
+        a.sources.forEach((x, i) => {
+          if (i) s.append(' · ');
+          const name = x.publisher + '「' + x.title + '」（' + x.licence + '）';
+          if (/^https?:\/\//.test(x.url)) {
+            const link = el('a', null, name);
+            link.href = x.url; link.rel = 'noopener'; link.target = '_blank';
+            s.append(link);
+          } else s.append(name);
+        });
+        card.append(s);
+      }
+    } catch (err) {
+      card.replaceChildren(el('div', null, T.error));
+    } finally {
+      $('send').disabled = false;
+      card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  });
+
+  $('lang').addEventListener('change', (e) => {
+    lang = e.target.value;
+    try { localStorage.setItem('lang', lang); } catch (_) {}
+    load().catch(() => {});
+  });
+
+  load().catch(() => {});
+  // Current facts change: refresh them every minute.
+  setInterval(() => load().catch(() => {}), 60000);
+</script>
+</body>
+</html>

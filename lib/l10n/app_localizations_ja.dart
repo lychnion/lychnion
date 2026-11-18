@@ -944,4 +944,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadsFilterKind => '種類';
+
+  @override
+  String get webError => '避難所のコンピューターが回答できませんでした。もう一度お試しください。';
+
+  @override
+  String get shelterWithApp => 'アプリで';
+
+  @override
+  String get shelterInBrowser => 'ブラウザで';
+
+  @override
+  String get shelterBrowserHint =>
+      'アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は避難所の Wi-Fi の中だけでやりとりします。';
 }
