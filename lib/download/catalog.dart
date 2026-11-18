@@ -171,21 +171,32 @@ class Catalog {
     )..rejected.addAll(rejected);
   }
 
-  /// Mirror addresses as folders (ending in `/`), relative ones resolved
-  /// against the catalog's own address; anything else is left out.
+  /// At most this many mirrors are used: each unreachable one costs time.
+  static const maxMirrors = 10;
+
+  /// Mirror addresses as folders (ending in `/`, no query), relative ones
+  /// resolved against the catalog's own address; anything else is left
+  /// out.
   static List<Uri> _mirrors(Object? raw, Uri? from) {
     final out = <Uri>[];
     for (final m in raw is List ? raw : const []) {
+      if (out.length >= maxMirrors) break;
       if (m is! String || m.isEmpty) continue;
-      var u = Uri.tryParse(m.endsWith('/') ? m : '$m/');
+      var u = Uri.tryParse(m);
       if (u == null) continue;
       if (!u.hasScheme) {
         if (from == null) continue;
         u = from.resolveUri(u);
       }
-      if ((u.isScheme('http') || u.isScheme('https')) && !out.contains(u)) {
-        out.add(u);
-      }
+      final path = u.path.endsWith('/') ? u.path : '${u.path}/';
+      u = Uri(
+        scheme: u.scheme,
+        userInfo: u.userInfo,
+        host: u.host,
+        port: u.hasPort ? u.port : null,
+        path: path,
+      );
+      if (_web(u) && !out.contains(u)) out.add(u);
     }
     return out;
   }
@@ -202,8 +213,14 @@ class Catalog {
   List<Uri> _ownUrls(CatalogFile f) => [
     for (final s in f.urls)
       if (Uri.tryParse(s) case final u?)
-        if (u.hasScheme) u else if (base case final b?) b.resolveUri(u),
+        if (u.hasScheme)
+          if (_web(u)) u else ...[]
+        else if (base case final b?)
+          if (_web(b.resolveUri(u))) b.resolveUri(u),
   ];
+
+  static bool _web(Uri u) =>
+      (u.isScheme('http') || u.isScheme('https')) && u.host.isNotEmpty;
 
   /// Every address of [f], in the order to try them: its own, then each
   /// mirror's `blobs/sha256/<hash>`.

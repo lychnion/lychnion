@@ -158,48 +158,77 @@ class Downloader {
     }
     final urls = spec.urls;
     var next = 0; // first address not used yet
+    // After a wrong file: the addresses still to try, each alone and from
+    // byte 0, so bytes of one source never mix with another's.
+    List<int>? alone;
     String? wrong; // hash of a wrong file, after every address was tried
     try {
-      while (true) {
-        final p = _Part(have, _Sha256Sink());
-        // Hash what is already there, so the final check covers the whole
-        // file.
-        if (have > 0) {
-          var done = 0;
-          await for (final chunk in part.openRead(0, have)) {
-            if (cancel?.isCancelled ?? false) throw DownloadCancelled();
-            p.digest.add(chunk);
-            done += chunk.length;
-            onProgress?.call(DownloadPhase.checkingPart, done, have);
-          }
+      final p = _Part(have, _Sha256Sink());
+      // A part from an earlier run: its source is unknown.
+      if (have > 0) p.writers.add(-1);
+      Future<void> restart() async {
+        p
+          ..have = 0
+          ..digest = _Sha256Sink()
+          ..writers.clear();
+        await raf.truncate(0);
+        await raf.setPosition(0);
+      }
+
+      // Hash what is already there, so the final check covers the whole
+      // file.
+      if (have > 0) {
+        var done = 0;
+        await for (final chunk in part.openRead(0, have)) {
+          if (cancel?.isCancelled ?? false) throw DownloadCancelled();
+          p.digest.add(chunk);
+          done += chunk.length;
+          onProgress?.call(DownloadPhase.checkingPart, done, have);
         }
+      }
+      while (true) {
         while (p.have < spec.size) {
-          final url = urls[next];
+          final i = alone?.first ?? next;
           try {
-            await _receive(spec, url, raf, p, onProgress, cancel);
+            await _receive(spec, urls[i], i, raf, p, onProgress, cancel);
           } catch (e) {
             if (cancel?.isCancelled ?? false) throw DownloadCancelled();
-            if (!_sourceError(e) || next + 1 >= urls.length) rethrow;
-            onSourceFailed?.call(url, e);
-            next++;
+            if (!_sourceError(e)) rethrow;
+            if (alone == null) {
+              if (next + 1 >= urls.length) rethrow;
+              next++;
+            } else {
+              if (alone.length == 1) rethrow;
+              alone.removeAt(0);
+              await restart();
+            }
+            onSourceFailed?.call(urls[i], e);
           }
         }
         onProgress?.call(DownloadPhase.verifying, spec.size, spec.size);
         final actual = p.digest.close();
         if (actual == spec.sha256) break;
-        if (next + 1 >= urls.length) {
+        final error = ChecksumError(spec.name, spec.sha256, actual);
+        if (alone == null) {
+          // One known source wrote it all: that one is wrong. Otherwise
+          // any of them may be, so every address gets a turn of its own.
+          final bad = p.writers.length == 1 && p.writers.first >= 0
+              ? p.writers.first
+              : null;
+          if (bad != null) onSourceFailed?.call(urls[bad], error);
+          alone = [
+            for (var i = 0; i < urls.length; i++)
+              if (i != bad) i,
+          ];
+        } else {
+          final i = alone.removeAt(0);
+          onSourceFailed?.call(urls[i], error);
+        }
+        if (alone.isEmpty) {
           wrong = actual;
           break;
         }
-        // Wrong file: start again from the next address.
-        onSourceFailed?.call(
-          urls[next],
-          ChecksumError(spec.name, spec.sha256, actual),
-        );
-        next++;
-        have = 0;
-        await raf.truncate(0);
-        await raf.setPosition(0);
+        await restart();
       }
     } finally {
       await raf.unlock();
@@ -227,23 +256,33 @@ class Downloader {
   Future<void> _receive(
     FileSpec spec,
     Uri url,
+    int source,
     RandomAccessFile raf,
     _Part p,
     void Function(DownloadPhase phase, int bytes, int total)? onProgress,
     CancelToken? cancel,
   ) async {
     final response = await _open(url, p.have, cancel);
+    if (response.statusCode != HttpStatus.ok &&
+        response.statusCode != HttpStatus.partialContent) {
+      await response.drain<void>();
+      throw HttpException('HTTP ${response.statusCode}', uri: url);
+    }
+    // Nothing is written unless the answer is the expected part of a file
+    // of the expected size (not a captive portal's page, not another file).
+    final problem = _mismatch(response, p.have, spec.size);
+    if (problem != null) {
+      (await response.detachSocket()).destroy();
+      throw HttpException(problem, uri: url);
+    }
     if (p.have > 0 && response.statusCode == HttpStatus.ok) {
       // Server ignored the range: start again.
       p
         ..have = 0
-        ..digest = _Sha256Sink();
+        ..digest = _Sha256Sink()
+        ..writers.clear();
       await raf.truncate(0);
       await raf.setPosition(0);
-    } else if (response.statusCode != HttpStatus.ok &&
-        response.statusCode != HttpStatus.partialContent) {
-      await response.drain<void>();
-      throw HttpException('HTTP ${response.statusCode}', uri: url);
     }
     cancel?._onCancel(() {
       // Closing the connection ends the stream with an error below.
@@ -256,6 +295,7 @@ class Downloader {
           throw HttpException('More data than expected', uri: url);
         }
         await raf.writeFrom(chunk);
+        p.writers.add(source);
         p.digest.add(chunk);
         p.have += chunk.length;
         onProgress?.call(DownloadPhase.downloading, p.have, spec.size);
@@ -275,6 +315,24 @@ class Downloader {
     }
   }
 
+  /// Why [res] cannot be the rest of a file of [size] bytes from byte
+  /// [from], or null when it can.
+  static String? _mismatch(HttpClientResponse res, int from, int size) {
+    if (res.statusCode == HttpStatus.ok) {
+      final n = res.contentLength;
+      return n == -1 || n == size ? null : 'Wrong size: $n, expected $size';
+    }
+    final range = res.headers.value(HttpHeaders.contentRangeHeader);
+    final m = RegExp(r'^bytes (\d+)-(\d+)/(\d+)$').firstMatch(range ?? '');
+    if (m == null ||
+        int.parse(m[1]!) != from ||
+        int.parse(m[2]!) != size - 1 ||
+        int.parse(m[3]!) != size) {
+      return 'Wrong range: $range, expected bytes $from-${size - 1}/$size';
+    }
+    return null;
+  }
+
   /// GET with an optional Range header. Follows redirects by hand so the
   /// Range header survives the hop to a CDN (Hugging Face does this).
   Future<HttpClientResponse> _open(
@@ -285,7 +343,15 @@ class Downloader {
     var uri = url;
     for (var hop = 0; hop < 10; hop++) {
       if (cancel?.isCancelled ?? false) throw DownloadCancelled();
-      final req = await _client.getUrl(uri).timeout(idleTimeout);
+      if (!uri.isScheme('http') && !uri.isScheme('https')) {
+        throw HttpException('Not an http(s) address', uri: uri);
+      }
+      final HttpClientRequest req;
+      try {
+        req = await _client.getUrl(uri).timeout(idleTimeout);
+      } on ArgumentError catch (e) {
+        throw HttpException('$e', uri: uri);
+      }
       req.followRedirects = false;
       // Byte ranges only make sense on the file as stored.
       req.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
@@ -297,7 +363,9 @@ class Downloader {
         if (loc == null) {
           throw HttpException('Redirect without target', uri: uri);
         }
-        uri = uri.resolve(loc);
+        final next = Uri.tryParse(loc);
+        if (next == null) throw HttpException('Bad redirect', uri: uri);
+        uri = uri.resolveUri(next);
         continue;
       }
       return res;
@@ -330,6 +398,10 @@ class _Part {
   _Part(this.have, this.digest);
   int have;
   _Sha256Sink digest;
+
+  /// Addresses (by position) whose bytes are in the part; -1: from an
+  /// earlier run.
+  final writers = <int>{};
 }
 
 class _Sha256Sink {

@@ -320,7 +320,9 @@ Future<void> _catalog(_Args args) async {
   final mirrors = args.all('--mirror');
   for (final m in mirrors) {
     final u = Uri.tryParse(m);
-    if (u == null || !(u.isScheme('https') || u.isScheme('http'))) {
+    if (u == null ||
+        !(u.isScheme('https') || u.isScheme('http')) ||
+        u.host.isEmpty) {
       _fail('--mirror $m: not an http(s) address');
     }
   }
@@ -382,7 +384,8 @@ Future<void> _export(_Args args) async {
   final base = j['base'] is String ? Uri.parse(j['base']! as String) : null;
   final from = ((j['urls'] as Map?) ?? const {}).cast<String, Object?>();
   String? elsewhere(RecordFile f) {
-    final u = Uri.tryParse(from[f.sha256] as String? ?? f.name);
+    final listed = from[f.sha256];
+    final u = Uri.tryParse(listed is String ? listed : f.name);
     if (u == null) return null;
     if (u.hasScheme) return '$u';
     return base == null ? null : '${base.resolveUri(u)}';
@@ -434,7 +437,14 @@ Future<void> _export(_Args args) async {
     if (j['refresh'] != null) 'refresh': j['refresh'],
     'records': records,
     'urls': urls,
-    if (j['mirrors'] != null) 'mirrors': j['mirrors'],
+    // Relative mirrors meant the source catalog's place: not kept.
+    if (j['mirrors'] case final List m)
+      if ([
+            for (final x in m)
+              if (x is String && (Uri.tryParse(x)?.hasScheme ?? false)) x,
+          ]
+          case final abs when abs.isNotEmpty)
+        'mirrors': abs,
   };
   await File(
     '${out.path}/catalog.json',

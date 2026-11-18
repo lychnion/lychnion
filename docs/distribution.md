@@ -160,8 +160,11 @@ How it works (built 2026-11-18, step 3):
   file name), then `<mirror>/blobs/sha256/<hash>` on each mirror. When one
   is unreachable, answers with an HTTP error or the connection drops, it
   goes on with the next one **from the byte where it stopped** (the part
-  file belongs to the hash, not to a server). When a finished file has
-  the wrong hash, it starts again from the next address. A shelter's
+  file belongs to the hash, not to a server). An answer of the wrong size
+  or byte range (a captive portal's page, another file) is not written.
+  When a finished file still has the wrong hash, every address gets one
+  more turn on its own, from byte 0, so bytes of two sources never mix.
+  At most 10 mirrors are used, and only http(s) addresses. A shelter's
   catalog adds its addresses in front; the internet ones stay as
   fallback.
 - **Static node.** `dart run tool/records.dart export CATALOG --out DIR

@@ -135,6 +135,69 @@ void main() {
     });
   });
 
+  group('Downloader: bytes of a wrong source never mix in', () {
+    test('a short page instead of the file (captive portal) is not '
+        'written', () async {
+      final portal = await serve(utf8.encode('<html>Log in first</html>'));
+      final good = await serve(data);
+      final f = await Downloader().fetch(spec([portal.url, good.url]), tmp);
+      expect(f.readAsBytesSync(), data);
+      expect(good.ranges.single, isNull, reason: 'nothing kept from portal');
+    });
+
+    test('a range that is not the one asked for is not written', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((req) async {
+        req.response
+          ..statusCode = HttpStatus.partialContent
+          ..headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes 0-${data.length - 1}/${data.length}',
+          )
+          ..add(data);
+        await req.response.close();
+      });
+      final flaky = await serve(data)
+        ..cutAfter = 1000
+        ..cuts = 1;
+      final good = await serve(data);
+      final f = await Downloader().fetch(
+        spec([
+          flaky.url,
+          Uri.parse('http://127.0.0.1:${server.port}/file'),
+          good.url,
+        ]),
+        tmp,
+      );
+      expect(f.readAsBytesSync(), data);
+      expect(good.ranges.single, 'bytes=1000-');
+    });
+
+    test('a right file cut short, then a wrong one: the right one alone '
+        'is tried again', () async {
+      final cut = await serve(data)
+        ..cutAfter = 100000
+        ..cuts = 1;
+      final wrong = await serve(List<int>.filled(data.length, 3));
+      final failed = <Uri>[];
+      final f = await Downloader(
+        onSourceFailed: (u, _) => failed.add(u),
+      ).fetch(spec([cut.url, wrong.url]), tmp);
+      expect(f.readAsBytesSync(), data);
+      expect(cut.ranges, [null, null], reason: 'second time from byte 0');
+    });
+
+    test('an address that is not http(s) is skipped', () async {
+      final good = await serve(data);
+      final f = await Downloader().fetch(
+        spec([Uri.parse('ftp://example.org/f'), good.url]),
+        tmp,
+      );
+      expect(f.readAsBytesSync(), data);
+    });
+  });
+
   group('Catalog mirrors', () {
     final shaP = 'ab' * 32, shaQ = 'cd' * 32;
 
@@ -182,6 +245,22 @@ void main() {
       final s = c.spec(f);
       expect('${s.url}', 'https://example.org/data/p.sqlite');
       expect(s.fallbacks, hasLength(3));
+    });
+
+    test('mirrors: no query, at most ten, own addresses web only', () async {
+      final c = await catalog(
+        urls: {shaP: 'file:///etc/passwd'},
+        mirrors: [
+          'https://q.example.org/x?token=1#top',
+          for (var i = 0; i < 20; i++) 'https://m$i.example.org/',
+        ],
+      );
+      expect(c.mirrors, hasLength(Catalog.maxMirrors));
+      expect('${c.mirrors.first}', 'https://q.example.org/x/');
+      expect(
+        '${c.urlOf(c.items.single.files.single)}',
+        'https://q.example.org/x/blobs/sha256/$shaP',
+      );
     });
 
     test('mirrors alone make a file downloadable', () async {

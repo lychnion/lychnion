@@ -349,47 +349,52 @@ class DownloadManager extends ChangeNotifier {
         }
         final sw = Stopwatch()..start();
         var lastBytes = 0, lastMs = 0, lastUi = 0;
-        await Downloader(
+        final downloader = Downloader(
           onSourceFailed: (url, e) => _log({
             'event': 'download_source_failed',
             'id': item.id,
             'url': '$url',
             'error': '$e',
           }),
-        ).fetch(
-          catalog.spec(f),
-          dir,
-          cancel: cancel,
-          onProgress: (phase, bytes, total) {
-            final ms = sw.elapsedMilliseconds;
-            if (ms - lastUi < 200 && phase == s.phase) return;
-            if (phase == DownloadPhase.downloading && ms - lastMs > 2000) {
-              s.speed = (bytes - lastBytes) / ((ms - lastMs) / 1000);
-              lastBytes = bytes;
-              lastMs = ms;
-            }
-            if (phase != DownloadPhase.downloading) {
-              lastBytes = bytes;
-              lastMs = ms;
-            }
-            lastUi = ms;
-            final pct = 100 * (done + bytes) ~/ item.size;
-            if (_autoDownload.isNotEmpty && pct ~/ 10 != _lastPct ~/ 10) {
-              _lastPct = pct;
-              _log({
-                'event': 'download_progress',
-                'id': item.id,
-                'phase': phase.name,
-                'pct': pct,
-              });
-            }
-            s
-              ..phase = phase
-              ..bytes =
-                  done + (phase == DownloadPhase.checkingPart ? 0 : bytes);
-            notifyListeners();
-          },
         );
+        try {
+          await downloader.fetch(
+            catalog.spec(f),
+            dir,
+            cancel: cancel,
+            onProgress: (phase, bytes, total) {
+              final ms = sw.elapsedMilliseconds;
+              if (ms - lastUi < 200 && phase == s.phase) return;
+              if (phase == DownloadPhase.downloading && ms - lastMs > 2000) {
+                s.speed = (bytes - lastBytes) / ((ms - lastMs) / 1000);
+                lastBytes = bytes;
+                lastMs = ms;
+              }
+              if (phase != DownloadPhase.downloading) {
+                lastBytes = bytes;
+                lastMs = ms;
+              }
+              lastUi = ms;
+              final pct = 100 * (done + bytes) ~/ item.size;
+              if (_autoDownload.isNotEmpty && pct ~/ 10 != _lastPct ~/ 10) {
+                _lastPct = pct;
+                _log({
+                  'event': 'download_progress',
+                  'id': item.id,
+                  'phase': phase.name,
+                  'pct': pct,
+                });
+              }
+              s
+                ..phase = phase
+                ..bytes =
+                    done + (phase == DownloadPhase.checkingPart ? 0 : bytes);
+              notifyListeners();
+            },
+          );
+        } finally {
+          downloader.close();
+        }
         done += f.size;
       }
       await store.markInstalled(item);
