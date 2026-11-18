@@ -1,68 +1,61 @@
 # Lychnion (リクニオン)
 
-Proof of concept for an offline AI helper for disaster preparedness and the
-outdoors in Japan. One Flutter codebase for iOS, Android, macOS and Windows.
-Everything runs on the device; the network is only needed to download models.
+An offline safety assistant for Japan. Ask what to do in an earthquake, a
+tsunami, on a mountain or after an injury, and get an answer from official
+sources, with the source shown, also without a phone signal. A map shows
+the nearest evacuation site and how to walk there.
 
-Lychnion (Greek λυχνίον, "small lamp") is the public name. The brand
-(logo, colours, icons) follows the Lychnion brand canvas. "fieldkit" is the
-old code name; shelter QR codes made with it (`fieldkit://`) still work. App icons are drawn by
-`tool/build_icons.py`. Fonts (SIL OFL 1.1): BIZ UDPGothic for app text, cut
-down to the common Japanese characters, and Lexend for the wordmark, made
-by `tool/build_fonts.py`.
+Everything runs on the device: the AI model, the search, the guides and
+the maps. The network is only needed to download them once. One Flutter
+codebase for iOS, Android, macOS and Windows.
 
-<p>
-  <img src="docs/images/phone-lychnion.png" width="230" alt="Home screen with the Lychnion logo and colours">
-</p>
+**Status:** prototype (0.x), not yet in the App Store or Google Play. The
+data is for testing; do not rely on it alone in an emergency.
 
 <p>
-  <img src="docs/images/phone-ask.png" width="230" alt="Home: warning, nearest open site, suggested questions">
-  <img src="docs/images/phone-conversation.png" width="230" alt="Conversation: official safety line, cited answer, where to go">
-  <img src="docs/images/phone-map.png" width="230" alt="Offline map with evacuation sites and current information">
+  <img src="docs/images/phone-first-steps.png" width="200" alt="Home on first start: a checklist of four first steps with progress">
+  <img src="docs/images/phone-tour.png" width="200" alt="Guided tour: the installed packages are ringed, a card explains them">
+  <img src="docs/images/phone-questions.png" width="200" alt="Questions tab: suggested questions grouped by package, past questions below">
+  <img src="docs/images/phone-downloads-area.png" width="200" alt="Downloads: each guide and map shows its area; the user's region comes first">
 </p>
 
-iPhone simulator, 2026-11-05. Shelter status and warnings on the map are test data.
+iPhone simulator, 2026-11-18, before the answer model is downloaded.
 
-## Status
+<p>
+  <img src="docs/images/phone-conversation.png" width="200" alt="Conversation: official safety line, cited answer, where to go">
+  <img src="docs/images/phone-map.png" width="200" alt="Offline map with evacuation sites and current information">
+</p>
 
-- Spike 1 ([results](docs/spike-1-results.md)): Gemma 4 E2B (GGUF) runs on
-  the device through [flutter_edge_ai](https://pub.dev/packages/flutter_edge_ai)
-  and its llama.cpp engine.
-- Spike 2 ([results](docs/spike-2-results.md)): answers only from a small
-  Bousai package of official sources, with checked citations and fixed
-  safety lines.
-- Spike 3 ([results](docs/spike-3-results.md)): vector search
-  (EmbeddingGemma 2), relevance cut-off, questions in Japanese and English.
-- Spike 4 ([results](docs/spike-4-results.md)): near-topic answers; volcano
-  page added, "partly covered" label; a yes/no self-check did not work with
-  the 2B model.
-- Spike 5 ([results](docs/spike-5-results.md)): Gemma 4 E4B for desktop
-  (better answers, half the speed); OCR'd bear source disabled after it
-  inverted advice.
-- Spike 6 ([results](docs/spike-6-results.md)): checked sources for bears
-  and getting lost (政府広報オンライン), two more safety lines; 28 / 28
-  covered, 9 / 9 uncovered.
-- Shelter computer ([results](docs/shelter-results.md)): the desktop app
-  answers phones on the local network (E4B); a Pixel 5a with no model gets
-  answers in 2.5 s instead of 48 s. Phones connect by scanning a QR code
-  on the shelter computer, or by typing its address. Since 2026-11-18 a
-  switch in Settings turns this on, and phones without the app can use a
-  web page from the shelter computer (see [Base](#base)). The app
-  now calls this a 「ベース」 / "base".
-- Real devices ([results](docs/device-results.md)): iPad Air 5 (M1) runs
-  the full app offline: about 22 tokens/s, answers in 2 to 9 s, same answers
-  as on the Mac. Pixel 5a (2021, 6 GB): same quality but about 48 s per
-  answer on the CPU, and memory is borderline.
-- Offline map ([results](docs/map-results.md)): Nishinomiya area, GSI
-  evacuation sites by hazard, nearest sites from the current position;
-  answers about a hazard show the nearest site and link to the map.
-- Downloads ([results](docs/download-results.md)): models, knowledge
-  packages and map areas download inside the app, with resume and SHA-256
-  check; the app then runs fully offline. Tested on macOS.
-- Current facts ([results](docs/facts-results.md)): shelter status,
-  blocked roads and warnings with age and source, apart from the AI; full
-  shelters are skipped; staff enter them on the shelter computer, phones
-  pull them every minute; 16 bytes per update in the radio-sized format.
+iPhone simulator, 2026-11-05. Shelter status and warnings on the map are
+test data.
+
+## What it does
+
+- **Answers offline, with sources.** Questions in Japanese or English are
+  answered only from the installed knowledge packages (official pages,
+  mostly PDL1.0). Every answer shows its source; for hazards like tsunamis
+  a fixed official safety line comes first.
+- **Map and nearest site.** Offline maps with evacuation sites per hazard,
+  expected tsunami areas and walking routes. Home shows the nearest site
+  and how far it is on foot.
+- **First steps and a guided tour.** A new user is led to a working app:
+  download the answer AI, a map of their area, look at the nearest site,
+  ask a first question. Then a short tour shows where everything is
+  (⋮ → 使い方ツアー / "Guided tour" shows it again).
+- **Downloads for your region.** Models, guides and maps come from a
+  signed catalog. Each shows the area it is for (日本, 和歌山県, …), and
+  the user's region comes first (set by hand in Settings, or from the
+  position on the device).
+- **Signed, from anywhere.** Every guide, map and model has a record
+  signed by its publisher; the app checks the signature and every file's
+  SHA-256, so a file may come from any server, a USB stick, a base or
+  another phone.
+- **Base (ベース).** A notebook PC with the desktop app serves answers,
+  current information and downloads to everyone on the same Wi-Fi, also
+  to phones without the app. See [Base](#base).
+- **Other publishers.** A city or a club can publish its own guides and
+  maps, signed with its own key, and people add it by QR code. See
+  [Publishers and catalogs](#publishers-and-catalogs).
 
 ## Base
 
@@ -124,6 +117,28 @@ Opening the page by itself when a phone joins the Wi-Fi is planned
 More: [shelter results](docs/shelter-results.md),
 [distribution design](docs/distribution.md).
 
+## Publishers and catalogs
+
+Lychnion's own guides and maps are signed with Lychnion's key, which is
+built into the app. Others can publish too:
+
+- **Add a publisher:** Settings → オフラインデータ / "Offline data" →
+  Publishers. A city or club gives a link or QR code
+  (`lychnion://publisher?…`); the app then accepts guides and maps it
+  signs. Removing a publisher deletes its guides and maps.
+- **Publish your own (desktop):** Publishers → "Publish your own" makes a
+  signing key that stays on that computer, shows its QR code, and signs a
+  guide or map file. A computer that is a base then serves it to phones.
+- **Follow a catalog:** Settings → Offline data → Catalogs → "Follow a
+  catalog". Its guides and maps appear in Downloads, but only those signed
+  by Lychnion or a publisher you added.
+- **Headless node:** [`packages/lychnion_node`](packages/lychnion_node)
+  is a single program for a server or a small box: it fills a folder from
+  one or more catalogs, keeps it current, and serves it like a base.
+
+Design and the steps still open (sync between nodes, a publisher guide):
+[docs/distribution.md](docs/distribution.md).
+
 ## Knowledge packages
 
 Packages and map areas are built, signed and published in
@@ -144,8 +159,9 @@ flutter pub get
 flutter run -d macos
 ```
 
-Open the **Downloads** tab (ダウンロード) and download the answer model
-(Gemma 4 E2B, 2.8 GB) and the search model (EmbeddingGemma 2, 310 MB). The
+Follow the first steps on Home, or open Settings → Offline data →
+Downloads (ダウンロード), and download the answer model (Gemma 4 E2B,
+2.8 GB) and the search model (EmbeddingGemma 2, 310 MB). The
 app loads them as soon as they are checked, on every platform. Wi-Fi only by
 default. The list comes from
 [assets/downloads/catalog.json](assets/downloads/catalog.json); package and
@@ -181,16 +197,77 @@ whatever the setting says. `DEMO_FACTS=true` adds test facts; they need a
 map area (downloaded, or `MAP_PMTILES_PATH`).
 `MIN_COS` now defaults to 0.70.
 
-## Layout
+## Repository layout
 
-- `lib/llm/local_llm.dart`: the only code that talks to the model engine.
-- `lib/download/`: catalog, downloader (resume, SHA-256), Downloads tab.
-- `lib/shelter/`: shelter server, browser page data, QR codes; the page
-  itself is `assets/web/shelter.html`.
-- `lib/spike/`: test questions for comparing models and devices.
-- `docs/poc-plan.md`: plan, competitor review, licences, naming notes.
-- `docs/distribution.md`: how apps and data packages reach people, also without internet (design note).
-- `docs/versioning.md`: app versions (semver, `v0.1.0`), data versions (`2026.11.3`) and format numbers.
+- `lib/`: the app. `lib/llm/local_llm.dart` is the only code that talks to
+  the model engine; `lib/download/` holds the catalog, downloads,
+  publishers and followed catalogs; `lib/shelter/` the base (server,
+  browser page data, QR codes; the page itself is
+  `assets/web/shelter.html`); `lib/ui/` Home, first steps and the tour.
+- `packages/lychnion_format`: signed records, as pure Dart (also used by
+  the signing tool in lychnion-data).
+- `packages/lychnion_fetch`: downloads with resume and hash checks, pure
+  Dart.
+- `packages/lychnion_node`: the headless node.
+- `tool/`: tools for the app's own assets (icons, fonts, region file) and
+  a local download server for tests. Package and map tools are in
+  [lychnion-data](https://github.com/lychnion/lychnion-data).
+- `docs/`: [distribution design](docs/distribution.md),
+  [versions](docs/versioning.md) (app semver `v0.1.0`, data
+  `2026.11.5`, format numbers), the [plan](docs/poc-plan.md) and the
+  results notes below.
+
+## How we got here
+
+Research notes from the prototype, oldest first:
+
+- Spike 1 ([results](docs/spike-1-results.md)): Gemma 4 E2B (GGUF) runs on
+  the device through [flutter_edge_ai](https://pub.dev/packages/flutter_edge_ai)
+  and its llama.cpp engine.
+- Spike 2 ([results](docs/spike-2-results.md)): answers only from a small
+  Bousai package of official sources, with checked citations and fixed
+  safety lines.
+- Spike 3 ([results](docs/spike-3-results.md)): vector search
+  (EmbeddingGemma 2), relevance cut-off, questions in Japanese and English.
+- Spike 4 ([results](docs/spike-4-results.md)): near-topic answers; volcano
+  page added, "partly covered" label; a yes/no self-check did not work with
+  the 2B model.
+- Spike 5 ([results](docs/spike-5-results.md)): Gemma 4 E4B for desktop
+  (better answers, half the speed); OCR'd bear source disabled after it
+  inverted advice.
+- Spike 6 ([results](docs/spike-6-results.md)): checked sources for bears
+  and getting lost (政府広報オンライン), two more safety lines; 28 / 28
+  covered, 9 / 9 uncovered.
+- Shelter computer ([results](docs/shelter-results.md)): the desktop app
+  answers phones on the local network (E4B); a Pixel 5a with no model gets
+  answers in 2.5 s instead of 48 s. Phones connect by scanning a QR code
+  on the shelter computer, or by typing its address. Since 2026-11-18 a
+  switch in Settings turns this on, and phones without the app can use a
+  web page from the shelter computer (see [Base](#base)). The app
+  now calls this a 「ベース」 / "base".
+- Real devices ([results](docs/device-results.md)): iPad Air 5 (M1) runs
+  the full app offline: about 22 tokens/s, answers in 2 to 9 s, same answers
+  as on the Mac. Pixel 5a (2021, 6 GB): same quality but about 48 s per
+  answer on the CPU, and memory is borderline.
+- Offline map ([results](docs/map-results.md)): Nishinomiya area, GSI
+  evacuation sites by hazard, nearest sites from the current position;
+  answers about a hazard show the nearest site and link to the map.
+- Downloads ([results](docs/download-results.md)): models, knowledge
+  packages and map areas download inside the app, with resume and SHA-256
+  check; the app then runs fully offline. Tested on macOS.
+- Current facts ([results](docs/facts-results.md)): shelter status,
+  blocked roads and warnings with age and source, apart from the AI; full
+  shelters are skipped; staff enter them on the shelter computer, phones
+  pull them every minute; 16 bytes per update in the radio-sized format.
+
+## Name and brand
+
+Lychnion (Greek λυχνίον, "small lamp") is the public name. The brand
+(logo, colours, icons) follows the Lychnion brand canvas. "fieldkit" is
+the old code name; base QR codes made with it (`fieldkit://`) still work.
+App icons are drawn by `tool/build_icons.py`. Fonts: BIZ UDPGothic for
+app text, cut down to the common Japanese characters, Lexend for the
+wordmark and Zen Maru Gothic for リクニオン, made by `tool/build_fonts.py`.
 
 ## Licence
 
