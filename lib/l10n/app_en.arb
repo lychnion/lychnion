@@ -1001,5 +1001,22 @@
   "helpNoResults": "Nothing found. Try other words, or ask in the question field.",
   "helpAllTopics": "All help",
   "nearestOutsideTitle": "You are outside this map's area",
-  "nearestOutsideText": "Download a map of where you are, and the nearest evacuation site shows here."
+  "nearestOutsideText": "Download a map of where you are, and the nearest evacuation site shows here.",
+  "stickTitle": "USB stick",
+  "stickCopy": "Copy to a USB stick",
+  "stickCopyHint": "Everything installed here, for places without a network",
+  "stickLoad": "Load from a USB stick",
+  "stickLoadHint": "Guides, maps and models signed by {app} or a publisher you added",
+  "@stickLoadHint": {"placeholders": {"app": {"type": "String"}}},
+  "stickCopying": "Copying to the stick…",
+  "stickLoading": "Checking and installing…",
+  "stickCopied": "{added} items copied, {notNewer} already there ({path})",
+  "@stickCopied": {"placeholders": {"added": {"type": "String"}, "notNewer": {"type": "String"}, "path": {"type": "String"}}},
+  "stickLoaded": "{added} new, {notNewer} not newer than here, {notTrusted} not trusted",
+  "@stickLoaded": {"placeholders": {"added": {"type": "String"}, "notNewer": {"type": "String"}, "notTrusted": {"type": "String"}}},
+  "stickFailedItems": "Not done (files missing or changed): {items}",
+  "@stickFailedItems": {"placeholders": {"items": {"type": "String"}}},
+  "stickNoCatalog": "There is no Lychnion folder on this stick.",
+  "stickFailed": "Could not finish: {detail}",
+  "@stickFailed": {"placeholders": {"detail": {"type": "String"}}}
 }

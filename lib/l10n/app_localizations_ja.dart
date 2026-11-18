@@ -1508,4 +1508,50 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get nearestOutsideText => 'いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。';
+
+  @override
+  String get stickTitle => 'USB メモリ';
+
+  @override
+  String get stickCopy => 'USB メモリにコピー';
+
+  @override
+  String get stickCopyHint => 'ここにあるすべてを、ネットワークのない場所へ';
+
+  @override
+  String get stickLoad => 'USB メモリから読み込む';
+
+  @override
+  String stickLoadHint(String app) {
+    return '$appか追加した発行元が署名したガイド・地図・モデル';
+  }
+
+  @override
+  String get stickCopying => 'USB メモリにコピーしています…';
+
+  @override
+  String get stickLoading => '確認してインストールしています…';
+
+  @override
+  String stickCopied(String added, String notNewer, String path) {
+    return '$added 件をコピーしました（$notNewer 件は保存済み）：$path';
+  }
+
+  @override
+  String stickLoaded(String added, String notNewer, String notTrusted) {
+    return '新規 $added 件、ここより新しくないもの $notNewer 件、信頼できないもの $notTrusted 件';
+  }
+
+  @override
+  String stickFailedItems(String items) {
+    return '完了できなかったもの（ファイルがないか変更されています）：$items';
+  }
+
+  @override
+  String get stickNoCatalog => 'この USB メモリに Lychnion のフォルダがありません。';
+
+  @override
+  String stickFailed(String detail) {
+    return '完了できませんでした：$detail';
+  }
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../app/lang.dart';
@@ -14,6 +16,7 @@ import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
 import '../shelter/share_nearby.dart';
+import 'stick.dart';
 
 /// Download settings: mobile data and updates. A small sheet, opened from
 /// Downloads and from Settings.
@@ -125,6 +128,22 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
                       value: m.keepModels,
                       onChanged: (v) => m.setKeepModels(v ?? false),
                     ),
+                  const SizedBox(height: 16),
+                  Text(l.stickTitle, style: Theme.of(c).textTheme.titleMedium),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.usb_rounded),
+                    title: Text(l.stickCopy),
+                    subtitle: Text(l.stickCopyHint),
+                    onTap: () => _stick(c, m, copy: true),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.drive_folder_upload_rounded),
+                    title: Text(l.stickLoad),
+                    subtitle: Text(l.stickLoadHint(l.appName)),
+                    onTap: () => _stick(c, m, copy: false),
+                  ),
                 ],
                 const SizedBox(height: 20),
                 Text(l.downloadsFooter, style: Theme.of(c).textTheme.bodySmall),
@@ -134,6 +153,78 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
         );
       },
     );
+
+/// Copies to, or loads from, a USB stick the user picks (step 5d).
+Future<void> _stick(
+  BuildContext sheet,
+  DownloadManager m, {
+  required bool copy,
+}) async {
+  final l = sheet.l10n;
+  final nav = Navigator.of(sheet);
+  final messenger = ScaffoldMessenger.of(sheet);
+  final path = await getDirectoryPath(
+    confirmButtonText: copy ? l.stickCopy : l.stickLoad,
+  );
+  if (path == null) return;
+  nav.pop(); // the settings sheet
+  final ctx = nav.context;
+  if (!ctx.mounted) return;
+  unawaited(
+    showDialog<void>(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 20),
+              Expanded(child: Text(copy ? l.stickCopying : l.stickLoading)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  String text;
+  try {
+    final dir = Directory(path);
+    if (copy) {
+      final r = await copyToStick(m.store, dir);
+      text = l.stickCopied(
+        '${r.added}',
+        '${r.notNewer}',
+        stickFolder(dir).path,
+      );
+      if (r.failed.isNotEmpty) {
+        text += '\n${l.stickFailedItems(r.failed.join(', '))}';
+      }
+    } else {
+      final r = await loadFromStick(m.store, dir);
+      m.installedChanged();
+      text = l.stickLoaded(
+        '${r.added}',
+        '${r.notNewer}',
+        '${r.notTrusted + r.taken}',
+      );
+      if (r.failed.isNotEmpty) {
+        text += '\n${l.stickFailedItems(r.failed.join(', '))}';
+      }
+    }
+  } on FileSystemException catch (e) {
+    text = e.message == 'no catalog'
+        ? l.stickNoCatalog
+        : l.stickFailed(e.osError?.message ?? e.message);
+  } on Object catch (e) {
+    text = l.stickFailed(e is FormatException ? e.message : '${e.runtimeType}');
+  }
+  nav.pop(); // the progress dialog
+  messenger.showSnackBar(
+    SnackBar(content: Text(text), duration: const Duration(seconds: 8)),
+  );
+}
 
 /// Lists models, knowledge packages and map areas: size, progress,
 /// resume, checksum, delete. Filters keep the list short.

@@ -464,5 +464,17 @@
   "helpNoResults": "見つかりませんでした。ほかの言葉で探すか、質問欄で聞いてください。",
   "helpAllTopics": "すべてのヘルプ",
   "nearestOutsideTitle": "いる場所は、この地図の範囲外です",
-  "nearestOutsideText": "いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。"
+  "nearestOutsideText": "いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。",
+  "stickTitle": "USB メモリ",
+  "stickCopy": "USB メモリにコピー",
+  "stickCopyHint": "ここにあるすべてを、ネットワークのない場所へ",
+  "stickLoad": "USB メモリから読み込む",
+  "stickLoadHint": "{app}か追加した発行元が署名したガイド・地図・モデル",
+  "stickCopying": "USB メモリにコピーしています…",
+  "stickLoading": "確認してインストールしています…",
+  "stickCopied": "{added} 件をコピーしました（{notNewer} 件は保存済み）：{path}",
+  "stickLoaded": "新規 {added} 件、ここより新しくないもの {notNewer} 件、信頼できないもの {notTrusted} 件",
+  "stickFailedItems": "完了できなかったもの（ファイルがないか変更されています）：{items}",
+  "stickNoCatalog": "この USB メモリに Lychnion のフォルダがありません。",
+  "stickFailed": "完了できませんでした：{detail}"
 }

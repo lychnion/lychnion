@@ -16,7 +16,8 @@ Lychnion node: serves signed packages and maps to the app and other nodes.
 
   lychnion_node pull --into DIR [--publisher NAME=KEY]... [--kind KIND]...
                      [--every 30m] URL...
-      Fetch the catalogs at URL..., keep the records signed by Lychnion
+      Fetch the catalogs at URL... (or read them from folders, such as a
+      USB stick written by the app), keep the records signed by Lychnion
       or by the publishers given, fetch their files by hash into DIR and
       write DIR/catalog.json. Versions only go up. --kind package / map /
       model takes only those (models are gigabytes). With --every it
@@ -128,9 +129,14 @@ TrustedKeys _trust(List<String> args) {
   if (urls == null) args.clear();
   final sources = <Uri>[];
   for (final a in addresses) {
+    // A folder (a USB stick) or an http(s) address.
+    if (Directory(a).existsSync()) {
+      sources.add(Directory(a).absolute.uri);
+      continue;
+    }
     final u = Uri.tryParse(a);
     if (u == null || !(u.isScheme('http') || u.isScheme('https'))) {
-      throw _Usage('not an http(s) address: $a');
+      throw _Usage('not an http(s) address or a folder: $a');
     }
     sources.add(u);
   }

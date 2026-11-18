@@ -353,6 +353,13 @@ class DownloadManager extends ChangeNotifier {
   /// fetched again by itself (a little under the timer's 30 minutes).
   static const _backoff = Duration(minutes: 29);
 
+  /// Something was installed outside a download (from a USB stick): the
+  /// loaders and the lists look again.
+  void installedChanged() {
+    changes.value++;
+    _refreshStates();
+  }
+
   /// Items whose last download by itself failed (or that the user stopped
   /// or deleted), and when.
   final _syncFailed = <String, DateTime>{};

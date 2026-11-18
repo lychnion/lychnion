@@ -1586,4 +1586,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get nearestOutsideText =>
       'Download a map of where you are, and the nearest evacuation site shows here.';
+
+  @override
+  String get stickTitle => 'USB stick';
+
+  @override
+  String get stickCopy => 'Copy to a USB stick';
+
+  @override
+  String get stickCopyHint =>
+      'Everything installed here, for places without a network';
+
+  @override
+  String get stickLoad => 'Load from a USB stick';
+
+  @override
+  String stickLoadHint(String app) {
+    return 'Guides, maps and models signed by $app or a publisher you added';
+  }
+
+  @override
+  String get stickCopying => 'Copying to the stick…';
+
+  @override
+  String get stickLoading => 'Checking and installing…';
+
+  @override
+  String stickCopied(String added, String notNewer, String path) {
+    return '$added items copied, $notNewer already there ($path)';
+  }
+
+  @override
+  String stickLoaded(String added, String notNewer, String notTrusted) {
+    return '$added new, $notNewer not newer than here, $notTrusted not trusted';
+  }
+
+  @override
+  String stickFailedItems(String items) {
+    return 'Not done (files missing or changed): $items';
+  }
+
+  @override
+  String get stickNoCatalog => 'There is no Lychnion folder on this stick.';
+
+  @override
+  String stickFailed(String detail) {
+    return 'Could not finish: $detail';
+  }
 }
