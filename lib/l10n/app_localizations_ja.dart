@@ -1307,7 +1307,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get catalogsNotShownHint => '非表示：追加していない発行元のものか、署名が正しくないもの。';
+  String get catalogsNotShownHint =>
+      '非表示：追加していない発行元のもの、署名が正しくないもの、またはほかの発行元の ID と重なるもの。';
 
   @override
   String catalogsFetched(String date) {

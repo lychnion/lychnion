@@ -96,6 +96,10 @@ class DownloadManager extends ChangeNotifier {
     return _withShelters(c);
   }
 
+  /// Counts publisher changes: a catalog read before one is read again
+  /// before it is used (its records were checked against the old keys).
+  int _trustGeneration = 0;
+
   /// [body] as a catalog, or [CatalogFetchError] `invalid`.
   Future<Catalog> _parseFollowed(String body, Uri url) async {
     try {
@@ -158,9 +162,15 @@ class DownloadManager extends ChangeNotifier {
   Future<void> _fetchFollowed(Uri url) async {
     try {
       final body = await fetchCatalogText(url);
-      final c = await _parseFollowed(body, url);
-      if (!store.followed.follows(url)) return;
-      await store.followed.keep(url, body);
+      var gen = _trustGeneration;
+      var c = await _parseFollowed(body, url);
+      // Kept only while still followed (one write at a time).
+      if (!await store.followed.keep(url, body)) return;
+      // Publishers changed meanwhile: check the records again.
+      while (gen != _trustGeneration) {
+        gen = _trustGeneration;
+        c = await _parseFollowed(body, url);
+      }
       if (!store.followed.follows(url)) return;
       _useFollowed(url, c, DateTime.now());
     } on CatalogFetchError catch (e) {
@@ -168,14 +178,18 @@ class DownloadManager extends ChangeNotifier {
       _failedFollowed(url, e.code);
       _log({
         'event': 'followed_catalog_failed',
-        'url': '$url',
+        'url': redactedUrl(url),
         'error': e.code,
       });
     } on Object catch (e) {
       // The copy could not be kept (disk): the last one stays.
       if (!store.followed.follows(url)) return;
       _failedFollowed(url, 'disk');
-      _log({'event': 'followed_catalog_failed', 'url': '$url', 'error': '$e'});
+      _log({
+        'event': 'followed_catalog_failed',
+        'url': redactedUrl(url),
+        'error': e.runtimeType.toString(),
+      });
     }
   }
 
@@ -314,6 +328,7 @@ class DownloadManager extends ChangeNotifier {
   /// and every catalog is read again, so the publisher's records show up
   /// (or go). Shelter catalogs are read from what they sent, no network.
   Future<void> publishersChanged() async {
+    _trustGeneration++;
     await store.reverify();
     _main = await _localCatalog();
     await _loadFollowed();
@@ -337,13 +352,17 @@ class DownloadManager extends ChangeNotifier {
     // records from publishers not added.
     for (final r in c.rejected.take(10)) {
       final text = r.length > 200 ? '${r.substring(0, 200)}…' : r;
-      _log({'event': 'catalog_rejected', 'record': text, 'from': '$from'});
+      _log({
+        'event': 'catalog_rejected',
+        'record': text,
+        'from': from == null ? null : redactedUrl(from),
+      });
     }
     if (c.rejected.length > 10) {
       _log({
         'event': 'catalog_rejected_more',
         'count': c.rejected.length - 10,
-        'from': '$from',
+        'from': from == null ? null : redactedUrl(from),
       });
     }
     return c;
@@ -399,13 +418,17 @@ class DownloadManager extends ChangeNotifier {
       catalog = catalog.mergedWith(other);
       _log({
         'event': 'shelter_catalog',
-        'from': '$url',
+        'from': redactedUrl(url),
         'items': other.items.length,
       });
       _refreshStates();
       return other.items.length;
     } catch (e) {
-      _log({'event': 'shelter_catalog_failed', 'from': '$url', 'error': '$e'});
+      _log({
+        'event': 'shelter_catalog_failed',
+        'from': redactedUrl(url),
+        'error': e.runtimeType.toString(),
+      });
       return null;
     }
   }
@@ -423,7 +446,35 @@ class DownloadManager extends ChangeNotifier {
     return n;
   }
 
+  /// Counts per followed catalog as Downloads shows them: an item left
+  /// out by the merge (its id belongs to another publisher) counts as
+  /// not shown.
+  void _countFollowed() {
+    for (final e in _followed.entries) {
+      final old = store.followed.status[e.key];
+      if (old == null) continue;
+      var shown = 0;
+      for (final i in e.value.items) {
+        if (catalog.byId(i.id)?.record?.publisher == i.record?.publisher) {
+          shown++;
+        }
+      }
+      final notShown = e.value.rejected.length + e.value.items.length - shown;
+      if (old.shown == shown && old.notShown == notShown) continue;
+      store.followed.setStatus(
+        e.key,
+        CatalogStatus(
+          shown: shown,
+          notShown: notShown,
+          fetched: old.fetched,
+          error: old.error,
+        ),
+      );
+    }
+  }
+
   void _refreshStates() {
+    _countFollowed();
     for (final item in catalog.items) {
       final s = stateOf(item);
       if (s.status == ItemStatus.running) continue;

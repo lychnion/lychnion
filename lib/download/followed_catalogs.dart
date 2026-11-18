@@ -278,7 +278,10 @@ class FollowedCatalogs extends ChangeNotifier {
     }
   }
 
-  Future<void> keep(Uri url, String body) async {
+  /// Keeps [body] as the copy of [url], one write at a time and only
+  /// while [url] is followed. False when it is not followed (any more).
+  Future<bool> keep(Uri url, String body) => _serial(() async {
+    if (!follows(url)) return false;
     await _cache.create(recursive: true);
     final f = cacheFile(url);
     final tmp = File('${f.path}.tmp');
@@ -291,7 +294,8 @@ class FollowedCatalogs extends ChangeNotifier {
       flush: true,
     );
     await tmp.rename(f.path);
-  }
+    return true;
+  });
 
   void setStatus(Uri url, CatalogStatus s) {
     status[url] = s;

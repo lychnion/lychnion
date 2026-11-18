@@ -1372,7 +1372,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catalogsNotShownHint =>
-      'Not shown: from a publisher you have not added, or not validly signed.';
+      'Not shown: from a publisher you have not added, not validly signed, or an ID that belongs to another publisher.';
 
   @override
   String catalogsFetched(String date) {

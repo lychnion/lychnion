@@ -403,7 +403,7 @@
   "catalogsAddBody": "このカタログのガイドと地図が「ダウンロード」に表示されます。表示されるのは、{app}か、追加した発行元が署名したものだけです。",
   "catalogsFollow": "追加",
   "catalogsStatus": "表示 {shown} 件・非表示 {notShown} 件",
-  "catalogsNotShownHint": "非表示：追加していない発行元のものか、署名が正しくないもの。",
+  "catalogsNotShownHint": "非表示：追加していない発行元のもの、署名が正しくないもの、またはほかの発行元の ID と重なるもの。",
   "catalogsFetched": "{date} に更新",
   "catalogsNeverFetched": "まだ読み込んでいません",
   "catalogsError": "読み込めませんでした（{error}）。前回のものを使っています。",

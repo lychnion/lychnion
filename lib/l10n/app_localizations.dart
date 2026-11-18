@@ -2267,7 +2267,7 @@ abstract class AppLocalizations {
   /// No description provided for @catalogsNotShownHint.
   ///
   /// In en, this message translates to:
-  /// **'Not shown: from a publisher you have not added, or not validly signed.'**
+  /// **'Not shown: from a publisher you have not added, not validly signed, or an ID that belongs to another publisher.'**
   String get catalogsNotShownHint;
 
   /// No description provided for @catalogsFetched.

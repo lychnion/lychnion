@@ -288,4 +288,18 @@ void main() {
   test('very long addresses are refused', () {
     expect(CatalogLink.normalize('https://x.example/${'a' * 3000}'), isNull);
   });
+
+  test('copies are written one at a time, only while followed', () async {
+    final l = list();
+    expect(await l.keep(kobe, 'x'), isFalse);
+    await l.add(CatalogLink(kobe));
+    final results = await Future.wait([
+      for (var i = 0; i < 5; i++) l.keep(kobe, '{"n":$i}'),
+    ]);
+    expect(results, everyElement(isTrue));
+    expect((await l.cached(kobe))!.body, '{"n":4}');
+    await l.remove(kobe);
+    expect(await l.keep(kobe, 'late'), isFalse);
+    expect(l.cacheFile(kobe).existsSync(), isFalse);
+  });
 }
