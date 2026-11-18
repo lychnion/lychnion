@@ -66,8 +66,11 @@ user (built 2026-11-18, step 4a):
 - Names built into the app (`lychnion`) cannot be added. A name already
   added with another key is refused: the user removes it first, so a
   changed key is never taken over silently.
-- Removing a publisher: its downloads stay on the device but are no
-  longer used (install records are checked again).
+- Removing a publisher deletes what was installed from it; what the app
+  or a running base had loaded from it is unloaded. Ids and file names
+  stay with the publisher that installed them: an added publisher can
+  never replace Lychnion's items or files (also not by upper/lower case,
+  or by naming a file like the app's own records).
 
 A city's publisher key is separate from a base's key (the one that signs
 facts, `lib/facts/signing.dart`): the city signs on one machine, and bases

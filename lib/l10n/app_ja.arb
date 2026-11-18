@@ -342,7 +342,7 @@
   "publishersKey": "鍵 {id}",
   "publishersRemove": "削除",
   "publishersRemoveTitle": "{name} を削除しますか？",
-  "publishersRemoveBody": "この発行元が署名したガイドと地図は使われなくなります。ファイルは「ダウンロード」で削除するまで、この端末に残ります。",
+  "publishersRemoveBody": "この発行元のガイドと地図は、この端末から削除されます。もう一度使うには、発行元を追加し直してダウンロードしてください。",
   "publishersAddTitle": "この発行元を追加しますか？",
   "publishersAddBody": "知っている発行元（お住まいの市など）だけを追加してください。追加すると、{app}はその発行元が署名したガイドと地図を、自身のものと同じようにインストールします。",
   "publishersAdd": "追加",

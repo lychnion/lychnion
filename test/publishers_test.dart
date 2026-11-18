@@ -308,4 +308,110 @@ void main() {
       expect(l.problemWith(link(key: '$publicKey=')), PublisherProblem.known);
     });
   });
+
+  group('Copilot review fixes', () {
+    late SimpleKeyPair lychnionKey;
+    late TrustedKeys builtIn;
+    setUpAll(() async {
+      lychnionKey = await Ed25519().newKeyPair();
+      builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(lychnionKey)],
+      });
+    });
+
+    Future<DownloadStore> withLychnionX() async {
+      final publishers = PublisherList(
+        File('${tmp.path}/publishers.json'),
+        builtIn: builtIn,
+      );
+      await publishers.add(link());
+      final s = DownloadStore(tmp, publishers: publishers);
+      final f = File('${tmp.path}/packages/jp.x.sqlite');
+      await f.create(recursive: true);
+      await f.writeAsBytes([1, 2, 3]);
+      await s.markInstalled(
+        CatalogItem.fromRecord(
+          await cityRecord(lychnionKey, publisher: 'lychnion'),
+        ),
+      );
+      return s;
+    }
+
+    test('file names and ids that differ only in case are taken', () async {
+      final s = await withLychnionX();
+      expect(
+        s.isTaken(
+          CatalogItem.fromRecord(
+            await cityRecord(key, id: 'jp.y', file: 'JP.X.SQLITE'),
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        s.isTaken(CatalogItem.fromRecord(await cityRecord(key, id: 'JP.X'))),
+        isTrue,
+      );
+      expect(
+        s.isTaken(CatalogItem.fromRecord(await cityRecord(key, id: 'jp.z'))),
+        isFalse,
+      );
+    });
+
+    test('files named like the app\'s own records are refused', () async {
+      final s = await withLychnionX();
+      final r = await cityRecord(key, id: 'jp', file: 'jp.x.installed.json');
+      expect(s.isTaken(CatalogItem.fromRecord(r)), isTrue);
+      final c = await Catalog.parse(
+        jsonEncode({
+          'format': 2,
+          'records': [r.json],
+        }),
+        trust: s.trust,
+      );
+      expect(c.items, isEmpty);
+      expect(c.rejected.single, contains('reserved'));
+    });
+
+    test('the version on disk counts before downloading', () async {
+      final s = await withLychnionX();
+      final city = await cityRecord(key, id: 'jp.c', version: '3');
+      final f = File('${tmp.path}/packages/jp.c.sqlite');
+      await f.writeAsBytes([1, 2, 3]);
+      await s.markInstalled(CatalogItem.fromRecord(city));
+      await s.publishers.remove('jp.city.test');
+      await s.reverify();
+      final older = CatalogItem.fromRecord(
+        await cityRecord(key, id: 'jp.c', version: '2'),
+      );
+      expect(s.installedVersion(older), isNull);
+      expect(s.recordedVersion(older), '3');
+    });
+
+    test("removing a publisher's downloads keeps the others", () async {
+      final s = await withLychnionX();
+      final f = File('${tmp.path}/packages/jp.c.sqlite');
+      await f.writeAsBytes([1, 2, 3]);
+      await s.markInstalled(
+        CatalogItem.fromRecord(await cityRecord(key, id: 'jp.c')),
+      );
+      expect(await s.deleteFrom('jp.city.test'), 1);
+      expect(f.existsSync(), isFalse);
+      expect(s.installed(ItemKind.package, 'jp.c'), isNull);
+      expect(s.installed(ItemKind.package, 'jp.x'), isNotNull);
+    });
+
+    test('additions at the same time are all kept', () async {
+      final l = list();
+      final keys = [
+        for (var i = 0; i < 3; i++)
+          await publicKeyOf(await Ed25519().newKeyPair()),
+      ];
+      await Future.wait([
+        for (var i = 0; i < 3; i++) l.add(link(name: 'jp.p$i', key: keys[i])),
+      ]);
+      final again = list();
+      await again.load();
+      expect(again.added.map((p) => p.name), ['jp.p0', 'jp.p1', 'jp.p2']);
+    });
+  });
 }

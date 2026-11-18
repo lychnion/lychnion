@@ -41,7 +41,7 @@ class _PublishersScreenState extends State<PublishersScreen> {
     );
     if (ok != true) return;
     try {
-      await _list.remove(p.name);
+      await widget.manager.removePublisher(p.name);
     } on Object {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -50,7 +50,6 @@ class _PublishersScreenState extends State<PublishersScreen> {
       }
       return;
     }
-    await widget.manager.publishersChanged();
   }
 
   Future<void> _fromLink() async {

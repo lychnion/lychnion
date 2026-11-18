@@ -1147,7 +1147,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get publishersRemoveBody =>
-      'Guides and maps signed by this publisher are no longer used. Their files stay on this device until you delete them in Downloads.';
+      'Its guides and maps are deleted from this device. To use them again, add the publisher again and download them.';
 
   @override
   String get publishersAddTitle => 'Add this publisher?';

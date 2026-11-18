@@ -110,22 +110,19 @@ class DownloadStore {
   /// Checks all install records again, after a publisher was added or
   /// removed: a removed publisher's downloads are then no longer used.
   Future<void> reverify() async {
-    // Checked into a new set and swapped, so installed items do not vanish
-    // for loaders while the check runs.
-    final old = {..._verified};
-    _verified.clear();
-    try {
-      await verifyInstalled();
-    } on Object {
-      _verified
-        ..clear()
-        ..addAll(old);
-      rethrow;
-    }
+    // Checked into a new set and swapped in when done, so installed items
+    // do not vanish for loaders or the base while the check runs.
+    final fresh = await _check();
+    _verified
+      ..clear()
+      ..addAll(fresh);
   }
 
   /// Checks the signatures of all install records (once per app start).
-  Future<void> verifyInstalled() async {
+  Future<void> verifyInstalled() async => _verified.addAll(await _check());
+
+  Future<Set<String>> _check() async {
+    final ok = <String>{};
     for (final kind in ItemKind.values) {
       final dir = dirFor(kind);
       if (!await dir.exists()) continue;
@@ -134,10 +131,11 @@ class DownloadStore {
         try {
           final j = jsonDecode(await f.readAsString()) as Map;
           final r = await trust.check(j['record']);
-          if (r != null) _verified.add(canonicalJson(r.json));
+          if (r != null) ok.add(canonicalJson(r.json));
         } catch (_) {}
       }
     }
+    return ok;
   }
 
   Directory dirFor(ItemKind kind) => Directory(
@@ -202,16 +200,41 @@ class DownloadStore {
     }
   }
 
+  /// Version in the install marker of [item]'s id, also when its record
+  /// is no longer trusted (versions only go up).
+  String? recordedVersion(CatalogItem item) =>
+      _onDisk(item.kind, item.id)?.version;
+
+  /// File endings the store and the downloader use for their own files:
+  /// a download must never be named like one.
+  static const reservedEndings = [
+    '.installed.json',
+    '.part',
+    '.part.json',
+    '.publishing',
+    '.tmp',
+    '.broken',
+  ];
+
+  static bool isReservedName(String name) {
+    final n = name.toLowerCase();
+    return reservedEndings.any(n.endsWith);
+  }
+
   /// Whether [item] would clash with what another publisher installed
   /// here: its id, or one of its file names (files of a kind share one
-  /// folder). Then it must not be downloaded or installed, so an added
-  /// publisher can never replace Lychnion's items or files.
+  /// folder; compared without case, as on macOS and Windows), or a file
+  /// named like the store's own files. Then it must not be downloaded or
+  /// installed, so an added publisher can never replace Lychnion's items
+  /// or files.
   bool isTaken(CatalogItem item) {
     final r = item.record;
     if (r == null) return false;
+    if (r.files.any((f) => isReservedName(f.name))) return true;
     final mine = _onDisk(item.kind, item.id);
     if (mine != null && mine.publisher != r.publisher) return true;
-    final names = {for (final f in r.files) f.name};
+    final names = {for (final f in r.files) f.name.toLowerCase()};
+    final ownId = item.id.toLowerCase();
     final dir = dirFor(item.kind);
     if (!dir.existsSync()) return false;
     for (final f in dir.listSync()) {
@@ -219,8 +242,11 @@ class DownloadStore {
       if (!name.endsWith('.installed.json')) continue;
       final id = name.substring(0, name.length - 15);
       if (id == item.id) continue;
+      // Another id that differs only in case is the same marker file there.
+      if (id.toLowerCase() == ownId) return true;
       final other = _onDisk(item.kind, id);
-      if (other != null && other.files.any((x) => names.contains(x.name))) {
+      if (other != null &&
+          other.files.any((x) => names.contains(x.name.toLowerCase()))) {
         return true;
       }
     }
@@ -252,6 +278,26 @@ class DownloadStore {
   /// Version of [item] installed now, if any.
   String? installedVersion(CatalogItem item) =>
       installed(item.kind, item.id)?.version;
+
+  /// Deletes everything installed from [publisher] (files, partial
+  /// downloads, install records), whether or not it is still trusted.
+  /// Returns how many items were deleted.
+  Future<int> deleteFrom(String publisher) async {
+    var n = 0;
+    for (final kind in ItemKind.values) {
+      final dir = dirFor(kind);
+      if (!await dir.exists()) continue;
+      for (final f in dir.listSync()) {
+        final name = f.uri.pathSegments.last;
+        if (!name.endsWith('.installed.json')) continue;
+        final r = _onDisk(kind, name.substring(0, name.length - 15));
+        if (r == null || r.publisher != publisher) continue;
+        await delete(CatalogItem.fromRecord(r));
+        n++;
+      }
+    }
+    return n;
+  }
 
   /// Removes the files, any partial download and the record.
   Future<void> delete(CatalogItem item) async {

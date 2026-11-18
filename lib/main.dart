@@ -240,7 +240,12 @@ class _HomePageState extends State<HomePage> {
     }
     if (PublisherLink.fromUri(uri) case final publisher?) {
       final dm = _downloads;
-      if (dm == null || !mounted || _asking) return;
+      // At a cold start Downloads may not be ready yet: ask once it is.
+      if (dm == null) {
+        _pendingPublisher = publisher;
+        return;
+      }
+      if (!mounted || _asking) return;
       _asking = true;
       try {
         await addPublisher(context, dm, publisher);
@@ -275,6 +280,9 @@ class _HomePageState extends State<HomePage> {
 
   /// A shelter's catalog that arrived before Downloads was ready.
   Uri? _pendingShelterCatalog;
+
+  /// A publisher link that arrived before Downloads was ready.
+  PublisherLink? _pendingPublisher;
 
   /// A phone nearby shares its downloads: ask, then show what it offers in
   /// Downloads. Records and files are checked as for any download.
@@ -348,6 +356,10 @@ class _HomePageState extends State<HomePage> {
     if (_pendingShelterCatalog case final u?) {
       _pendingShelterCatalog = null;
       unawaited(dm.addCatalogFrom(u));
+    }
+    if (_pendingPublisher case final p?) {
+      _pendingPublisher = null;
+      unawaited(_openLink(p.toUri()));
     }
   }
 
@@ -671,6 +683,9 @@ class _SpikePageState extends State<SpikePage> {
   bool _answering = false;
   bool get _busy => _loadingModel || _answering;
 
+  /// A download change that came while busy, looked at again later.
+  Timer? _reloadLater;
+
   /// Questions asked before anything could answer them, shown in their
   /// conversation, answered in order as soon as the shelter or the model
   /// is ready. A tap is never lost.
@@ -741,7 +756,10 @@ class _SpikePageState extends State<SpikePage> {
     final answerer = _answerer;
     final want = _sharingOn(widget.settings) && answerer != null;
     final name = _sharingName(widget.settings);
-    if (_server case final s? when !want || s.name != name) {
+    // A new answerer (other packages, or a publisher removed) restarts the
+    // server: it must not keep answering from what was unloaded.
+    if (_server case final s?
+        when !want || s.name != name || s.answerer != answerer) {
       await s.stop();
       _server = null;
       widget.shelterUrls?.value = const [];
@@ -815,6 +833,7 @@ class _SpikePageState extends State<SpikePage> {
   @override
   void dispose() {
     widget.downloadChanges?.removeListener(_loadDownloaded);
+    _reloadLater?.cancel();
     widget.settings?.removeListener(_shelterChanged);
     widget.settings?.removeListener(_sharingChanged);
     unawaited(_server?.stop());
@@ -826,10 +845,29 @@ class _SpikePageState extends State<SpikePage> {
   /// Loads the chat model from the Downloads tab, and loads again when the
   /// model, the search model or the package there changes.
   Future<void> _loadDownloaded() async {
-    if (_busy) return;
+    // Busy (loading or answering): look again shortly, so a change (a
+    // removed publisher, say) is never skipped.
+    if (_busy) {
+      _reloadLater?.cancel();
+      _reloadLater = Timer(const Duration(seconds: 1), _loadDownloaded);
+      return;
+    }
     final store = await DownloadStore.instance();
     final chat = store.chatModelPath();
-    if (chat == null) return;
+    if (chat == null) {
+      // The model is gone (deleted, or its publisher removed): stop using
+      // what was loaded from Downloads, also on the base server.
+      if (_loadedDownloads != null && mounted) {
+        _loadedDownloads = null;
+        setState(() {
+          _answerer = null;
+          _phase = AskPhase.noModel;
+          _status = '';
+        });
+        await _syncServer();
+      }
+      return;
+    }
     final sig = [
       chat,
       store.embedModelPath(),

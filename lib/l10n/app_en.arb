@@ -749,7 +749,7 @@
       }
     }
   },
-  "publishersRemoveBody": "Guides and maps signed by this publisher are no longer used. Their files stay on this device until you delete them in Downloads.",
+  "publishersRemoveBody": "Its guides and maps are deleted from this device. To use them again, add the publisher again and download them.",
   "publishersAddTitle": "Add this publisher?",
   "publishersAddBody": "Only add publishers you know, for example your city. {app} then installs guides and maps they sign, like its own.",
   "@publishersAddBody": {
