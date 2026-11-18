@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
@@ -128,7 +127,7 @@ void main() {
     late Directory tmp;
     late List<int> data;
     late String sha;
-    final port = 18000 + Random().nextInt(2000);
+    late int port;
     Uri url(String path) => Uri.parse('http://127.0.0.1:$port$path');
 
     setUp(() async {
@@ -150,7 +149,9 @@ void main() {
           'urls': {sha: 'blobs/sha256/$sha'},
         }),
       );
-      await server.start(port: port);
+      // A free port on this computer only, not on the local network.
+      await server.start(port: 0, address: InternetAddress.loopbackIPv4);
+      port = server.port;
     });
     tearDown(() async {
       await server.stop();
@@ -225,7 +226,6 @@ void main() {
       final data = List<int>.generate(1000, (i) => i & 0xff);
       final sha = sha256.convert(data).toString();
       final file = File('${tmp.path}/x.sqlite')..writeAsBytesSync(data);
-      final port = 20000 + Random().nextInt(2000);
       final sent = <String>[];
       final server = BaseServer(
         answerer: null,
@@ -236,7 +236,8 @@ void main() {
           'urls': {sha: 'blobs/sha256/$sha'},
         }),
       )..onBlobServed = sent.add;
-      await server.start(port: port);
+      await server.start(port: 0, address: InternetAddress.loopbackIPv4);
+      final port = server.port;
       final c = HttpClient();
       try {
         Future<(int, List<int>)> call(String method, String path) async {

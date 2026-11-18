@@ -28,6 +28,7 @@ import '../llm/local_llm.dart';
 import '../map/map_state.dart';
 import '../base/base_discovery.dart';
 import '../base/share_nearby.dart';
+import '../base/base_checks.dart';
 import '../base/base_client.dart';
 import '../base/base_library.dart';
 import '../base/base_panel.dart';
@@ -287,21 +288,29 @@ class _AskPageState extends _AskPageBase
         _answering = true;
         thread.entries.add(placeholder);
       });
-      try {
-        final remote = await base.ask(question)
-          ..answeredBy = base.name
-          ..baseUnchecked = unchecked;
-        setState(
-          () => thread.entries[thread.entries.indexOf(placeholder)] = remote,
-        );
-        unawaited(_threads.save());
-        _log({'event': 'answer', ...remote.toJson()});
-        _sayAnswerReady(remote);
-        setState(() => _answering = false);
+      final remote = await answerFromBase(
+        base,
+        question,
+        unchecked: unchecked,
+        onError: (e) => _log({'event': 'base_failed', 'error': '$e'}),
+      );
+      if (remote != null) {
+        try {
+          setState(() {
+            final i = thread.entries.indexOf(placeholder);
+            // The conversation may have been cleared meanwhile.
+            if (i >= 0) thread.entries[i] = remote;
+          });
+          unawaited(_threads.save());
+          _log({'event': 'answer', ...remote.toJson()});
+          _sayAnswerReady(remote);
+        } finally {
+          // Never left answering: later questions would wait for good.
+          if (mounted) setState(() => _answering = false);
+        }
         _answerWaiting();
         return;
-      } catch (e) {
-        _log({'event': 'base_failed', 'error': '$e'});
+      } else {
         setState(() {
           thread.entries.remove(placeholder);
           _answering = false;
