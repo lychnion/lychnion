@@ -5,6 +5,8 @@ import 'settings.dart';
 /// Development flags, set with `--dart-define` (all optional):
 ///
 ///   --dart-define=GGUF_MODEL_PATH=/path/in/app/storage.gguf  load on start (docs:… = in Documents)
+///                                                            a .litertlm file runs on LiteRT-LM
+///                                                            instead of llama.cpp (spike)
 ///   --dart-define=GGUF_MODEL_URL=https://...gguf             download on start
 ///   --dart-define=AUTO_BENCH=true                            run the questions after loading
 ///   --dart-define=BARE=true                                  no package: the model answers alone (spike 1)
@@ -23,6 +25,7 @@ import 'settings.dart';
 ///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: engine decides)
+///   --dart-define=LLM_CONTEXT=2048                           model context in tokens (default 4096)
 ///   --dart-define=RELEVANCE_CHECK=true                       yes/no check before answering (spike 4)
 ///   --dart-define=ASK='q1|q2'                                ask these after loading, then save
 ///                                                            screenshots of the answers and the map
