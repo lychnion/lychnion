@@ -9,7 +9,7 @@ mixin _IncomingLinks on State<AppShell> {
 
   bool _asking = false;
 
-  /// A scanned lychnion://shelter link: ask, then connect. The same link can
+  /// A scanned lychnion://base link: ask, then connect. The same link can
   /// arrive twice (at launch and from the stream): ask only once.
   Future<void> _openLink(Uri uri) async {
     if (ShareLink.fromUri(uri) case final share?) {

@@ -1,6 +1,6 @@
 /// Links that tell a phone which base computer to use.
 ///
-/// The base computer shows `lychnion://shelter?url=…&name=…` as a QR
+/// The base computer shows `lychnion://base?url=…&name=…&key=…` as a QR
 /// code. Scanning it with the phone's camera opens Lychnion, which asks the
 /// user before it connects. A typed address (`192.168.1.20`,
 /// `http://192.168.1.20:8642`) works too.
@@ -29,9 +29,11 @@ class BaseLink {
   /// QR codes printed before the rename still open the app.
   static const oldScheme = 'fieldkit';
 
-  /// The link's host. It stays `shelter` (the base's old name in the
-  /// code): printed QR codes use it.
-  static const host = 'shelter';
+  /// The link's host.
+  static const host = 'base';
+
+  /// The host before the base was called a base: still read.
+  static const oldHost = 'shelter';
 
   Uri toUri() => Uri(
     scheme: scheme,
@@ -58,7 +60,8 @@ class BaseLink {
   /// A lychnion:// (or old fieldkit://) link, or null if [uri] is
   /// something else.
   static BaseLink? fromUri(Uri uri) {
-    if ((uri.scheme != scheme && uri.scheme != oldScheme) || uri.host != host) {
+    if ((uri.scheme != scheme && uri.scheme != oldScheme) ||
+        (uri.host != host && uri.host != oldHost)) {
       return null;
     }
     final url = normalize(uri.queryParameters['url'] ?? '');

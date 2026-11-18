@@ -31,12 +31,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- lychnion://shelter?url=… from the QR code on a base computer
-                 (fieldkit:// on codes made before the rename). -->
+            <!-- lychnion://base?url=… from the QR code on a base computer
+                 (lychnion://shelter and fieldkit://shelter on older codes). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="lychnion" android:host="base"/>
                 <data android:scheme="lychnion" android:host="shelter"/>
                 <data android:scheme="lychnion" android:host="share"/>
                 <data android:scheme="lychnion" android:host="publisher"/>

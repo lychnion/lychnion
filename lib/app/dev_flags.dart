@@ -51,7 +51,7 @@ abstract final class DevFlags {
     'BASE_NAME',
     defaultValue: String.fromEnvironment(
       'SHELTER_NAME',
-      defaultValue: 'Lychnion shelter',
+      defaultValue: 'Lychnion base',
     ),
   );
   static const baseUrl = String.fromEnvironment(

@@ -65,6 +65,8 @@ here should be relied on alone in an emergency. Source only; build it as
 - New name and brand: Lychnion (リクニオン), formerly the code name
   fieldkit. IDs are now `com.lychnion.app` and `lychnion://`; old
   `fieldkit://` QR codes still work.
+- Base QR codes say `lychnion://base?…` (was `lychnion://shelter?…`,
+  still read). A base's default name is "Lychnion base".
 - Licence: GNU AGPL 3.0 with an app store exception. Versions up to
   commit `064f50a` were published under Apache 2.0.
 - Built with Flutter 3.50 (Dart 3.14). Material and Cupertino widgets

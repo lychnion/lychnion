@@ -3,8 +3,8 @@
 A base (「ベース」) is a computer with the desktop app that serves everyone
 on the same Wi-Fi: in an evacuation shelter, a mountain hut, a school or a
 camp. Older notes call it a "shelter" or "shelter computer"; the code
-says "base" since 2026-11-19. The `lychnion://shelter?…` links on QR
-codes keep the old word, so printed codes still work.
+says "base" since 2026-11-19. QR codes say `lychnion://base?…`; older
+`lychnion://shelter?…` codes still work.
 
 How to set up and use a base, step by step:
 [help/en/05-base.md](../help/en/05-base.md). Sharing between phones
@@ -44,10 +44,12 @@ wrong one:
 
 - 「ブラウザで」 / "In the browser": an `http://` address, works on every
   phone.
-- 「アプリで」 / "With the app": a `lychnion://` link that connects the
+- 「アプリで」 / "With the app": a `lychnion://base?url=…&name=…&key=…`
+  link (with `&s=1` when the base signs its answers) that connects the
   app. The app asks before it connects and remembers the base.
 
-Old codes made with the code name (`fieldkit://`) still work.
+Older codes (`lychnion://shelter`, and `fieldkit://shelter` from the code
+name) still work.
 
 ## Code
 
