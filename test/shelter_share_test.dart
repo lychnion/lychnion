@@ -74,4 +74,36 @@ void main() {
     expect(settings.sharingName, 'Minami shelter');
     expect(find.byType(ShelterQrCard), findsNothing);
   });
+
+  testWidgets('a phone connects to a shelter by its address', (t) async {
+    final settings = AppSettings();
+    await t.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: settings,
+            builder: (_, _) => ShelterSettingsTile(settings: settings),
+          ),
+        ),
+      ),
+    );
+    // Cancel, then connect: the dialog closes without errors both times.
+    await t.tap(find.byType(ListTile));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Cancel'));
+    await t.pumpAndSettle();
+    expect(settings.shelterUrl, isNull);
+
+    await t.tap(find.byType(ListTile));
+    await t.pumpAndSettle();
+    await t.enterText(find.byType(TextField), '192.168.1.20');
+    await t.pump();
+    await t.tap(find.widgetWithText(FilledButton, 'Connect'));
+    await t.pumpAndSettle();
+    expect(settings.shelterUrl, 'http://192.168.1.20:8642');
+    expect(find.byType(AlertDialog), findsNothing);
+  });
 }

@@ -221,40 +221,10 @@ class ShelterSettingsTile extends StatelessWidget {
   final AppSettings settings;
 
   Future<void> _enter(BuildContext context) async {
-    final ctrl = TextEditingController();
     final url = await showDialog<String>(
       context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, setState) {
-          final ok = ShelterLink.normalize(ctrl.text);
-          return AlertDialog(
-            title: Text(c.l10n.shelterAddress),
-            content: TextField(
-              controller: ctrl,
-              autofocus: true,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                hintText: '192.168.1.20',
-                helperText: c.l10n.shelterAddressHelper,
-              ),
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => ok == null ? null : Navigator.pop(c, ok),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c),
-                child: Text(c.l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: ok == null ? null : () => Navigator.pop(c, ok),
-                child: Text(c.l10n.shelterConnect),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (_) => const _AddressDialog(),
     );
-    ctrl.dispose();
     if (url != null) await settings.setShelter(url);
   }
 
@@ -411,6 +381,55 @@ class _NameDialogState extends State<_NameDialog> {
           child: Text(l.cancel),
         ),
         FilledButton(onPressed: ok ? done : null, child: Text(l.save)),
+      ],
+    );
+  }
+}
+
+/// A shelter's address, typed by hand. Owns its text controller, so the
+/// controller lives until the dialog has finished closing.
+class _AddressDialog extends StatefulWidget {
+  const _AddressDialog();
+
+  @override
+  State<_AddressDialog> createState() => _AddressDialogState();
+}
+
+class _AddressDialogState extends State<_AddressDialog> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final ok = ShelterLink.normalize(_ctrl.text);
+    return AlertDialog(
+      title: Text(l.shelterAddress),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        decoration: InputDecoration(
+          hintText: '192.168.1.20',
+          helperText: l.shelterAddressHelper,
+        ),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => ok == null ? null : Navigator.pop(context, ok),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.cancel),
+        ),
+        FilledButton(
+          onPressed: ok == null ? null : () => Navigator.pop(context, ok),
+          child: Text(l.shelterConnect),
+        ),
       ],
     );
   }
