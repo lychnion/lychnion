@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -69,18 +70,27 @@ Map<String, String>? packageMeta(File f) {
   }
 }
 
-/// Why the app could not use the guide [f] (it opens it as it does to
-/// answer), or null when it can: tables or columns missing, a passage
-/// without its source, or no passages at all.
-String? guideProblem(File f) {
+/// Why the app could not use the guide at [path] (it is opened as the
+/// app does to answer), or null when it can. Read in another isolate: a
+/// large guide takes a while.
+Future<String?> guideProblem(String path) =>
+    Isolate.run(() => _guideProblem(path));
+
+String? _guideProblem(String path) {
+  String short(String s) => s.length > 80 ? '${s.substring(0, 80)}…' : s;
   try {
-    final p = KnowledgePackage.open(f.path);
+    final p = KnowledgePackage.open(path);
+    // Opens, but gives the app nothing to answer with.
     if (p.passages.isEmpty) return 'no passages';
     return null;
   } on SqliteException catch (e) {
-    return e.message;
+    return short(e.message); // "no such table: sources"
+  } on FormatException {
+    return 'broken JSON in a table';
+  } on TypeError {
+    return 'a missing value, or a passage or alert without its source';
   } on Object catch (e) {
-    return '${e.runtimeType}';
+    return short('$e');
   }
 }
 
@@ -216,11 +226,6 @@ Future<PackageRecord> publish(
         (meta['version'] ?? '') != req.version) {
       throw PublishError('meta', '${meta?['id']} ${meta?['version']}');
     }
-    // Phones must be able to use what is signed and passed on: the app
-    // opens the guide as it would to answer, and it needs passages.
-    if (guideProblem(req.files.single) case final p?) {
-      throw PublishError('package', p);
-    }
   }
   // This computer must trust its own publisher to install what it signs.
   // A name already added with another key is refused.
@@ -258,6 +263,13 @@ Future<PackageRecord> publish(
       if (f.absolute.path != target.absolute.path) {
         copy = await f.copy('${target.path}.publishing');
         copies.add((copy, target));
+      }
+      // Phones must be able to use what is signed and passed on: the
+      // copy that gets signed is opened as the app does to answer.
+      if (req.kind == ItemKind.package) {
+        if (await guideProblem(copy.path) case final p?) {
+          throw PublishError('package', p);
+        }
       }
       files.add({
         'name': name,

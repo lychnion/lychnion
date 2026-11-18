@@ -193,6 +193,19 @@ void main() {
       await refused(edit(), 'package');
       packageFile(tmp, 'jp.kobe.bousai', '2026.11.1', passages: false);
       await refused(edit(), 'package');
+      // A passage whose source is not there.
+      final f2 = packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
+      final db = sqlite3.open(f2.path);
+      db.execute("UPDATE passages SET source_id = 'gone'");
+      db.close();
+      await expectLater(
+        go(edit()),
+        throwsA(
+          isA<PublishError>()
+              .having((e) => e.code, 'code', 'package')
+              .having((e) => e.detail, 'detail', contains('source')),
+        ),
+      );
       File(
         '${tmp.path}/src/jp.kobe.bousai.sqlite',
       ).writeAsStringSync('not sqlite');
