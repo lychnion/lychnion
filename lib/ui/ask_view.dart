@@ -116,16 +116,27 @@ class _AskViewState extends State<AskView> {
           ],
         ),
         actions: [
-          _StatusPill(
-            phase: widget.phase,
-            shelterName: widget.shelterName,
-            onTap: () => _showDetail(context),
-          ),
+          // Quiet when the app is ready on this phone (the question bar
+          // says enough); a chip only when a shelter computer is involved.
+          if (widget.phase == AskPhase.shelter ||
+              widget.phase == AskPhase.serving)
+            _StatusPill(
+              phase: widget.phase,
+              shelterName: widget.shelterName,
+              onTap: () => _showDetail(context),
+            ),
           AppMenu(
             onOpenSettings: widget.onOpenSettings,
             onShowNotice: widget.onShowNotice,
             updates: widget.updates,
-            devActions: widget.devActions,
+            devActions: [
+              DevAction(
+                'Status details',
+                () => _showDetail(context),
+                icon: Icons.monitor_heart_outlined,
+              ),
+              ...widget.devActions,
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -136,6 +147,7 @@ class _AskViewState extends State<AskView> {
           QuestionBar(
             input: widget.input,
             ready: widget.ready,
+            loading: widget.phase == AskPhase.loading,
             busy: widget.busy,
             onSend: widget.onSend,
             onStop: widget.onStop,
@@ -165,6 +177,28 @@ class _AskViewState extends State<AskView> {
       ),
       const SizedBox(height: 24),
       if (widget.home case final h?) ...[h, const SizedBox(height: 24)],
+      if (widget.phase == AskPhase.failed) ...[
+        Card(
+          color: scheme.errorContainer,
+          child: ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+            leading: Icon(Icons.error_outline, color: scheme.onErrorContainer),
+            title: Text(
+              l.askPhaseFailed,
+              style: TextStyle(color: scheme.onErrorContainer),
+            ),
+            subtitle: Text(
+              l.askExplainFailed,
+              style: TextStyle(color: scheme.onErrorContainer),
+            ),
+            trailing: TextButton(
+              onPressed: widget.onOpenDownloads,
+              child: Text(l.downloadsTitle),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
       if (needsData)
         Card(
           color: scheme.primaryContainer,
@@ -334,22 +368,20 @@ class _StatusPill extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (phase == AskPhase.loading)
-                  const BreathingLight(size: 16)
-                else
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: dot,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                Icon(
+                  phase == AskPhase.serving
+                      ? Icons.qr_code_rounded
+                      : Icons.cell_tower_rounded,
+                  size: 16,
+                  color: dot,
+                ),
                 const SizedBox(width: 8),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 150),
+                  constraints: const BoxConstraints(maxWidth: 170),
                   child: Text(
-                    label(phase, context.l10n),
+                    phase == AskPhase.shelter && shelterName != null
+                        ? '${label(phase, context.l10n)}: $shelterName'
+                        : label(phase, context.l10n),
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelMedium,
                   ),
@@ -432,10 +464,14 @@ class QuestionBar extends StatelessWidget {
     required this.busy,
     required this.onSend,
     required this.onStop,
+    this.loading = false,
   });
 
   final TextEditingController input;
   final bool ready;
+
+  /// The model is loading: say so where people would type.
+  final bool loading;
   final bool busy;
   final VoidCallback onSend;
   final VoidCallback onStop;
@@ -454,14 +490,21 @@ class QuestionBar extends StatelessWidget {
               textInputAction: TextInputAction.send,
               style: Theme.of(context).textTheme.bodyLarge,
               decoration: InputDecoration(
-                hintText: context.l10n.askHint,
-                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: loading && !ready
+                    ? context.l10n.askPhaseLoading
+                    : context.l10n.askHint,
+                prefixIcon: loading && !ready
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: BreathingLight(size: 20),
+                      )
+                    : const Icon(Icons.search_rounded),
               ),
               onSubmitted: (_) => onSend(),
             ),
           ),
           const SizedBox(width: 8),
-          busy
+          busy && !loading
               ? IconButton.filledTonal(
                   tooltip: context.l10n.askStop,
                   onPressed: onStop,

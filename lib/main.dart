@@ -1021,6 +1021,7 @@ class _SpikePageState extends State<SpikePage> {
         bar: QuestionBar(
           input: _input,
           ready: ready,
+          loading: _phase == AskPhase.loading,
           busy: _busy,
           onSend: _sendNew,
           onStop: _llm.stop,
@@ -1151,6 +1152,7 @@ class _SpikePageState extends State<SpikePage> {
       bar: QuestionBar(
         input: _threadInput,
         ready: ready,
+        loading: _phase == AskPhase.loading,
         busy: _busy,
         onSend: () {
           final q = _threadInput.text.trim();

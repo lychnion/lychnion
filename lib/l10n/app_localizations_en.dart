@@ -727,7 +727,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askPhaseShelter => 'Shelter';
 
   @override
-  String get askPhaseServing => 'Shelter computer';
+  String get askPhaseServing => 'Shelter computer (serving)';
 
   @override
   String get askPhaseFailed => 'Not ready';

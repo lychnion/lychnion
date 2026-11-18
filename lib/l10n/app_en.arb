@@ -512,7 +512,7 @@
   "askPhaseLoading": "Getting ready…",
   "askPhaseReady": "Offline ready",
   "askPhaseShelter": "Shelter",
-  "askPhaseServing": "Shelter computer",
+  "askPhaseServing": "Shelter computer (serving)",
   "askPhaseFailed": "Not ready",
   "askExplainNoModel": "Download the AI model and the safety guides under Settings → Downloads.",
   "askExplainLoading": "Loading the AI model on this device.",

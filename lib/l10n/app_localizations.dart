@@ -1211,7 +1211,7 @@ abstract class AppLocalizations {
   /// No description provided for @askPhaseServing.
   ///
   /// In en, this message translates to:
-  /// **'Shelter computer'**
+  /// **'Shelter computer (serving)'**
   String get askPhaseServing;
 
   /// No description provided for @askPhaseFailed.

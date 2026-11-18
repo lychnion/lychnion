@@ -702,7 +702,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get askPhaseShelter => '避難所';
 
   @override
-  String get askPhaseServing => '避難所の端末';
+  String get askPhaseServing => '避難所の端末（公開中）';
 
   @override
   String get askPhaseFailed => '利用できません';

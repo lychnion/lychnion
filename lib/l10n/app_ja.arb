@@ -185,7 +185,7 @@
   "askPhaseLoading": "準備中…",
   "askPhaseReady": "オフラインで利用可",
   "askPhaseShelter": "避難所",
-  "askPhaseServing": "避難所の端末",
+  "askPhaseServing": "避難所の端末（公開中）",
   "askPhaseFailed": "利用できません",
   "askExplainNoModel": "「設定」→「ダウンロード」でAIモデルと資料を取得してください。",
   "askExplainLoading": "この端末でAIモデルを読み込んでいます。",
