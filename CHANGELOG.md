@@ -25,17 +25,19 @@ here should be relied on alone in an emergency. Source only; build it as
   Nishinomiya and Kushimoto. The nearest site is on Home.
 - **Home, Ask and Map tabs.** Saved conversations, first steps, a guided
   tour, and a first-start notice on what the app can and cannot do.
-- **Downloads.** Models, guides and maps from a signed catalog, with
-  resume, SHA-256 checks, several mirrors, updates and filters. Each item
-  shows its area; the user's region (detected offline or picked in
-  Settings) comes first.
+- **Downloads.** Models, guides and maps from catalogs of signed package
+  records, with resume, SHA-256 checks, several mirrors, updates and
+  filters. Each item shows its area; the user's region (detected offline
+  or picked in Settings) comes first.
 - **Base (ベース).** A computer with the desktop app answers phones on the
   same Wi-Fi, shows current information (shelter status, closed roads,
   warnings) and passes on guides, maps and models. Phones connect by QR
   code or find the base on the Wi-Fi; phones without the app use a web
   page.
-- **Phone to phone and USB stick.** Share downloads with a phone nearby,
-  or copy them to and from a USB stick, without internet.
+- **Phone to phone.** Share downloads with a phone nearby, without
+  internet.
+- **USB stick (desktop).** The desktop app copies downloads to and from a
+  USB stick. Phones cannot read a stick yet.
 - **Short internet windows.** Catalogs refresh when a connection comes
   back and every 30 minutes; a base can keep every guide and map current.
 - **Publishers and catalogs.** Cities and clubs sign and publish their own
@@ -76,7 +78,7 @@ Catalog `format: 2`, signed record `format: 1`, base protocol `v: 1`.
 
 - Sync between nodes is not finished (distribution step 5), and there is
   no publisher guide or package studio yet (step 6).
-- Help before the answer AI is downloaded, and help links on each screen
+- Help links on each screen
   ([#9](https://github.com/lychnion/lychnion/issues/9)).
 - Opening the base page by itself on a shelter Wi-Fi
   ([#3](https://github.com/lychnion/lychnion/issues/3)), several phones

@@ -33,6 +33,9 @@ tool/build_release.sh appbundle  # app bundle for Google Play
 
 ## 3. Tag and publish
 
+- [ ] The repository is public, so everyone who gets the app can get the
+      source of the tagged commit (AGPL; see
+      [LICENSE-APPSTORE-EXCEPTION.md](../LICENSE-APPSTORE-EXCEPTION.md)).
 - [ ] Tag only the merged release commit on `main`, never a branch:
 
       ```bash
