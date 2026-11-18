@@ -927,7 +927,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadsFilterAll => 'All';
 
   @override
-  String get downloadsFilterInstalled => 'On this device';
+  String get downloadsFilterInstalled => 'Downloaded';
 
   @override
   String get downloadsFilterPackages => 'Guides';
@@ -973,4 +973,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadsKey => 'Key';
+
+  @override
+  String get downloadsFilterKind => 'Kind';
 }

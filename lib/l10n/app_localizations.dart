@@ -1565,7 +1565,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloadsFilterInstalled.
   ///
   /// In en, this message translates to:
-  /// **'On this device'**
+  /// **'Downloaded'**
   String get downloadsFilterInstalled;
 
   /// No description provided for @downloadsFilterPackages.
@@ -1651,6 +1651,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Key'**
   String get downloadsKey;
+
+  /// No description provided for @downloadsFilterKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get downloadsFilterKind;
 }
 
 class _AppLocalizationsDelegate

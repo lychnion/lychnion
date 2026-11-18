@@ -895,7 +895,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadsFilterAll => 'すべて';
 
   @override
-  String get downloadsFilterInstalled => 'この端末';
+  String get downloadsFilterInstalled => 'ダウンロード済み';
 
   @override
   String get downloadsFilterPackages => '資料';
@@ -941,4 +941,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadsKey => '鍵';
+
+  @override
+  String get downloadsFilterKind => '種類';
 }

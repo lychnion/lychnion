@@ -11,8 +11,6 @@ import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
 
-enum _Filter { all, updates, installed, models, packages, maps }
-
 /// Download settings: mobile data and updates. A small sheet, opened from
 /// Downloads and from Settings.
 Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
@@ -94,6 +92,8 @@ Future<void> showMobileDataSheet(BuildContext context, DownloadManager m) =>
                     onSelectionChanged: (s) => m.setUpdateMode(s.first),
                   ),
                 ),
+                const SizedBox(height: 20),
+                Text(l.downloadsFooter, style: Theme.of(c).textTheme.bodySmall),
               ],
             ),
           ),
@@ -127,33 +127,35 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   AppLocalizations get l => context.l10n;
 
-  /// Which items the list shows (a long list otherwise: models, every
-  /// package and every map area).
-  _Filter _filter = _Filter.all;
+  /// What the list shows (a long list otherwise): only downloaded items,
+  /// only updates, and one kind or all.
+  bool _downloadedOnly = false;
+  bool _updatesOnly = false;
+  ItemKind? _kind;
 
-  String _filterName(_Filter f) => switch (f) {
-    _Filter.all => l.downloadsFilterAll,
-    _Filter.updates => l.downloadsFilterUpdates(m.updates.value),
-    _Filter.installed => l.downloadsFilterInstalled,
-    _Filter.models => l.downloadsKindModels,
-    _Filter.packages => l.downloadsFilterPackages,
-    _Filter.maps => l.downloadsFilterMaps,
+  String _kindName(ItemKind? k) => switch (k) {
+    null => l.downloadsFilterAll,
+    ItemKind.model => l.downloadsKindModels,
+    ItemKind.package => l.downloadsFilterPackages,
+    ItemKind.map => l.downloadsFilterMaps,
   };
 
-  bool _shows(CatalogItem i) => switch (_filter) {
-    _Filter.all => true,
-    _Filter.updates => m.stateOf(i).status == ItemStatus.update,
-    _Filter.installed => switch (m.stateOf(i).status) {
-      ItemStatus.installed ||
-      ItemStatus.update ||
-      ItemStatus.running ||
-      ItemStatus.partial => true,
-      _ => false,
-    },
-    _Filter.models => i.kind == ItemKind.model,
-    _Filter.packages => i.kind == ItemKind.package,
-    _Filter.maps => i.kind == ItemKind.map,
-  };
+  bool _shows(CatalogItem i) {
+    final st = m.stateOf(i).status;
+    if (_kind != null && i.kind != _kind) return false;
+    if (_updatesOnly && st != ItemStatus.update) return false;
+    if (_downloadedOnly &&
+        !const {
+          ItemStatus.installed,
+          ItemStatus.update,
+          ItemStatus.running,
+          ItemStatus.partial,
+        }.contains(st)) {
+      return false;
+    }
+    return true;
+  }
+
   String get lang => context.lang;
 
   String _errorText(String e) => switch (e) {
@@ -258,24 +260,44 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         return ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
-            // One row, scrolling sideways when it does not fit.
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            // Three short controls: always fit on one line.
+            Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Row(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
                 children: [
-                  for (final f in _Filter.values)
-                    // "Updates" only while there are some.
-                    if (f != _Filter.updates || m.updates.value > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(_filterName(f)),
-                          selected: _filter == f,
-                          showCheckmark: false,
-                          onSelected: (_) => setState(() => _filter = f),
-                        ),
+                  FilterChip(
+                    label: Text(l.downloadsFilterInstalled),
+                    selected: _downloadedOnly,
+                    onSelected: (v) => setState(() => _downloadedOnly = v),
+                  ),
+                  if (m.updates.value > 0 || _updatesOnly)
+                    FilterChip(
+                      label: Text(l.downloadsFilterUpdates(m.updates.value)),
+                      selected: _updatesOnly,
+                      onSelected: (v) => setState(() => _updatesOnly = v),
+                    ),
+                  PopupMenuButton<ItemKind?>(
+                    initialValue: _kind,
+                    onSelected: (k) => setState(() => _kind = k),
+                    itemBuilder: (_) => [
+                      for (final k in [null, ...ItemKind.values])
+                        PopupMenuItem(value: k, child: Text(_kindName(k))),
+                    ],
+                    child: Chip(
+                      backgroundColor: _kind == null
+                          ? null
+                          : Theme.of(context).colorScheme.secondaryContainer,
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('${l.downloadsFilterKind}: ${_kindName(_kind)}'),
+                          const Icon(Icons.arrow_drop_down, size: 20),
+                        ],
                       ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -294,13 +316,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Text(l.downloadsNothingHere),
               ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                l.downloadsFooter,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
           ],
         );
       },

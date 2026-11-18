@@ -623,7 +623,7 @@
   "downloadsMobileAsk": "Ask first",
   "downloadsMobileAlways": "Always",
   "downloadsFilterAll": "All",
-  "downloadsFilterInstalled": "On this device",
+  "downloadsFilterInstalled": "Downloaded",
   "downloadsFilterPackages": "Guides",
   "downloadsFilterMaps": "Maps",
   "downloadsNothingHere": "Nothing here yet.",
@@ -644,5 +644,6 @@
   "downloadsSigned": "Signed",
   "downloadsPublisher": "Publisher",
   "downloadsSignedOn": "Signed on",
-  "downloadsKey": "Key"
+  "downloadsKey": "Key",
+  "downloadsFilterKind": "Kind"
 }

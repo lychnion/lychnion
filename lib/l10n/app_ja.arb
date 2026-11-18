@@ -244,7 +244,7 @@
   "downloadsMobileAsk": "確認する",
   "downloadsMobileAlways": "常に使う",
   "downloadsFilterAll": "すべて",
-  "downloadsFilterInstalled": "この端末",
+  "downloadsFilterInstalled": "ダウンロード済み",
   "downloadsFilterPackages": "資料",
   "downloadsFilterMaps": "地図",
   "downloadsNothingHere": "まだありません。",
@@ -258,5 +258,6 @@
   "downloadsSigned": "署名済み",
   "downloadsPublisher": "発行者",
   "downloadsSignedOn": "署名日",
-  "downloadsKey": "鍵"
+  "downloadsKey": "鍵",
+  "downloadsFilterKind": "種類"
 }
