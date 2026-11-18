@@ -32,9 +32,7 @@ class ShelterClient {
   /// Facts taken from one pull; a base never has this many.
   static const maxFacts = 500;
 
-  HttpClient _http = _newClient();
-
-  static HttpClient _newClient() => HttpClient()
+  final _http = HttpClient()
     ..connectionTimeout = const Duration(seconds: 3)
     ..idleTimeout = const Duration(seconds: 5);
 
@@ -93,13 +91,20 @@ class ShelterClient {
     int maxBytes = maxBodyBytes,
   }) async {
     final (int, Uint8List) got;
+    final pending = _Pending();
     try {
-      got = await _fetch(method, path, body, maxBytes).timeout(timeout);
+      got = await _fetch(
+        method,
+        path,
+        body,
+        maxBytes,
+        pending,
+      ).timeout(timeout);
     } on TimeoutException {
       // The request may still be open (a base that sends slowly or not
-      // at all): closing the client ends it, a new one is used next time.
-      _http.close(force: true);
-      _http = _newClient();
+      // at all): end this one only. Others (an answer while facts are
+      // pulled) go on.
+      pending.cancel();
       rethrow;
     }
     final (status, bytes) = got;
@@ -127,8 +132,12 @@ class ShelterClient {
     String path,
     Map<String, Object?>? body,
     int maxBytes,
+    _Pending pending,
   ) async {
     final req = await _http.openUrl(method, Uri.parse('$baseUrl$path'));
+    pending.request = req;
+    // Timed out while connecting: not sent at all.
+    if (pending.cancelled) req.abort();
     req.followRedirects = false;
     if (body != null) {
       req.headers.contentType = ContentType.json;
@@ -141,14 +150,44 @@ class ShelterClient {
       throw HttpException('base: answer too large');
     }
     final out = BytesBuilder(copy: false);
-    await for (final chunk in res) {
-      if (out.length + chunk.length > maxBytes) {
-        throw HttpException('base: answer too large');
-      }
-      out.add(chunk);
-    }
+    final done = Completer<void>();
+    late final StreamSubscription<List<int>> sub;
+    sub = res.listen(
+      (chunk) {
+        if (out.length + chunk.length > maxBytes) {
+          unawaited(sub.cancel());
+          done.completeError(HttpException('base: answer too large'));
+          return;
+        }
+        out.add(chunk);
+      },
+      onError: (Object e, StackTrace st) {
+        if (!done.isCompleted) done.completeError(e, st);
+      },
+      onDone: () {
+        if (!done.isCompleted) done.complete();
+      },
+      cancelOnError: true,
+    );
+    // A timeout cancels this: the connection closes, not kept waiting.
+    pending.response = sub;
+    if (pending.cancelled) unawaited(sub.cancel());
+    await done.future;
     return (res.statusCode, out.takeBytes());
   }
 
   void close() => _http.close(force: true);
+}
+
+/// One request in flight, so a timeout can end just that one.
+class _Pending {
+  HttpClientRequest? request;
+  StreamSubscription<List<int>>? response;
+  var cancelled = false;
+
+  void cancel() {
+    cancelled = true;
+    request?.abort();
+    unawaited(response?.cancel());
+  }
 }
