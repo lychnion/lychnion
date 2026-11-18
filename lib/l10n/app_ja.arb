@@ -462,5 +462,7 @@
   "helpTitle": "ヘルプ",
   "helpSearch": "ヘルプを検索",
   "helpNoResults": "見つかりませんでした。ほかの言葉で探すか、質問欄で聞いてください。",
-  "helpAllTopics": "すべてのヘルプ"
+  "helpAllTopics": "すべてのヘルプ",
+  "nearestOutsideTitle": "いる場所は、この地図の範囲外です",
+  "nearestOutsideText": "いる場所の地図をダウンロードすると、近くの避難場所をここに表示します。"
 }

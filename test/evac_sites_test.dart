@@ -53,4 +53,10 @@ void main() {
     final near = sites.nearest(cityHall, hazard: Hazard.earthquake, limit: 1);
     expect(near.single.site.city, isNot('西宮市'));
   });
+
+  test('the map area covers Nishinomiya, not Kushimoto', () {
+    expect(sites.covers(const LatLng(34.7376, 135.3417)), isTrue);
+    // Kushimoto (Wakayama), about 130 km south: another map's area.
+    expect(sites.covers(const LatLng(33.4774, 135.7783)), isFalse);
+  });
 }
