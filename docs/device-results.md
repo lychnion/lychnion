@@ -215,6 +215,81 @@ First word, then whole answer (mean of two runs):
 - So for phones like this: the base (a computer on the same Wi-Fi) is the
   way to fast answers.
 
+## Pixel 5a: Google's LiteRT-LM engine, CPU and GPU (2026-11-19)
+
+The question: can the Pixel 5a answer much faster with another engine in
+flutter_edge_ai? Same phone, packages and app as above; Gemma 4 E2B in two
+builds of the same model:
+
+- llama.cpp (today's engine): `gemma-4-E2B-it-Q4_0.gguf`, 2.84 GB.
+- LiteRT-LM (Google's engine, `flutter_edge_ai_litertlm` 1.20.2):
+  `gemma-4-E2B-it.litertlm` from `litert-community/gemma-4-E2B-it-litert-lm`,
+  2.59 GB, Apache 2.0. Google quantized it with training (a mix of 2-, 4-
+  and 8-bit weights).
+
+**MediaPipe is not an option.** The brief was `flutter_edge_ai_mediapipe`
+(`.task` files). Google put MediaPipe's LLM API into maintenance and ships
+Gemma 4 E2B only as `.litertlm` for phones; its one `.task` build is for
+the web. LiteRT-LM is MediaPipe's successor, from the same package author.
+
+Six questions (the three Japanese ones above, three in English), each
+variant twice in the order A, then B reversed, the phone cooled to at most
+31 °C battery temperature before each run (it reached 31–32 °C after one).
+Raw results: `spike-results/pixel5a-e2b-litertlm-2026-11-19.jsonl`.
+
+| | llama.cpp CPU | LiteRT-LM CPU | LiteRT-LM GPU, context 2048 | LiteRT-LM GPU, context 4096 |
+|---|---|---|---|---|
+| Model load (again) | 12.5 s | **2 s** | 11.5 s | 12.3 s |
+| Model load (first time) | | 11.5 s | 25 s | |
+| Reading (tokens/s) | about 16–20 | **about 45–60** | about 45–70 | about 40–60 |
+| Writing (tokens/s) | about 5 | **about 5.8** | about 3.6 | about 2.5 |
+| Earthquake (ja), first word / whole | 37.8 s / 50.5 s | **14.3 s / 24.8 s** | 17.4 s / 31.3 s | 19.7 s / 45.9 s |
+| Tsunami (ja) | 57.7 s / 69.7 s | **23.3 s / 34.9 s** | 17.3 s / 34.7 s | 21.2 s / 45.7 s |
+| Drinking water (ja) | 33.0 s / 47.5 s | **12.3 s / 18.6 s** | 14.7 s / 25.8 s | 17.3 s / 32.8 s |
+| Earthquake (en) | 41.5 s / 49.2 s | **11.8 s / 18.6 s** | 13.5 s / 29.9 s | 15.6 s / 32.1 s |
+| Lost while hiking (en) | 56.7 s / 69.2 s | **15.4 s / 28.3 s** | 13.6 s / 31.2 s | 16.0 s / 44.5 s |
+| Drinking water (en) | 19.1 s / 23.4 s | **8.3 s / 12.4 s** | 7.9 s / 14.5 s | 9.1 s / 18.1 s |
+| **Whole answer, mean** | **51.6 s** | **22.9 s** | 27.9 s | 36.5 s (one run) |
+| App memory, peak (PSS) | 2.2 GB | 2.3 GB | 2.1 GB | 2.4 GB |
+
+- **LiteRT-LM answers more than twice as fast, on the CPU.** About 23 s
+  instead of 52 s per answer. The reading step (the question and four
+  passages) runs about 2.5 times faster. Google's engine is tuned for
+  phone processors, and its model file is smaller and quantized with
+  training, so less has to be read from memory.
+- **The GPU does not help on this phone.** It works (OpenCL on the
+  Adreno 619, all layers on the GPU, where llama.cpp's Vulkan does not
+  run), and it reads about as fast as the CPU. But it writes slower:
+  3.6 tokens/s against 5.8. With a context above 2048 tokens the engine
+  computes Gemma 4 with 32-bit numbers on the GPU (16-bit numbers break
+  there, LiteRT-LM #4001), and writing drops to 2.5 tokens/s.
+- **Quality holds.** All 36 LiteRT-LM answers used the right passages
+  and cited only real sources (no invalid citation). The texts are nearly
+  word for word the same as with llama.cpp. Both engines still answer the
+  English drinking water question with "not in the sources" (the search
+  finds the passage, the model does not use it): a retrieval and prompt
+  issue, not an engine one.
+- Loading: LiteRT-LM on the CPU keeps a cache next to the model, so the
+  second load takes 2 s instead of 12.5 s. The GPU compiles its programs
+  once (25 s), then loads in 11.5 s.
+- Memory is about the same as llama.cpp (2.1–2.4 GB for the app,
+  including the search model, which stays on llama.cpp).
+- The app gets about 25 MB larger (LiteRT-LM's library, arm64).
+- Still not fast: about 12–35 s per answer on this phone. A base on the
+  same Wi-Fi stays the way to answers in a few seconds.
+
+**Recommendation: adopt LiteRT-LM on Android, on the CPU.** Keep
+llama.cpp for the desktop and iOS (Metal is fast there), for the search
+model, and as the fallback. Drop MediaPipe. Do not use the GPU on phones
+of the Pixel 5a's class; on newer phones the GPU may win (Google's
+figures for a Galaxy S26 Ultra: 7 times faster reading on the GPU), which
+needs a test on such a phone.
+
+How the spike works: `GGUF_MODEL_PATH` may point to a `.litertlm` file;
+the file ending picks the engine (`lib/llm/local_llm.dart`).
+`LLM_BACKEND=cpu|gpu` and the new `LLM_CONTEXT=2048` work for both
+engines. The downloads catalog still offers only the GGUF file.
+
 ## iPhone simulator (2026-11-05)
 
 The app builds and runs on the iPhone 17 simulator (Xcode 27.2, Apple
