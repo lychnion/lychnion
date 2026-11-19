@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:9c84bda57e82e5a4737cad46a285fb0a0ec60dd095fb4b7b9bcf08ecd9c289ef
+prose_version: threat-model.md@sha256:896e866b3fa48d235e1f0bdedf9104376dd1487b7b82bbb418d69230e80f4c71
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -57,7 +57,7 @@ components:
     date: 2026-11
 - name: base-client
   scope: in
-  reachability_precondition: reachable from a base's responses, an mDNS record, or a lychnion:// or fieldkit://
+  reachability_precondition: reachable from a base's responses, an mDNS record, or a lychnion://
     link
   provenance:
     kind: maintainer
@@ -1383,7 +1383,7 @@ adversaries:
 - name: sender-of-links-web-page-message-other-a
   scope: in
   capabilities:
-  - Open lychnion:// links and legacy fieldkit:// base links with any parameters
+  - Open lychnion:// links with any parameters
   excluded_capabilities:
   - Confirming the dialog for the user
   - being scanned in person as a base's QR code
@@ -1920,7 +1920,7 @@ properties_claimed:
   - base-client
   tier: security-critical
   x-known-violations:
-  - a base link may name any host (`lib/base/base_link.dart:93`), and questions, answers and the region
+  - a base link may name any host (`lib/base/base_link.dart:88`), and questions, answers and the region
     go to the system log (`lib/ask/ask_page.dart:164`, with the phone's own answers at `lib/ask/ask_page.dart:384`).
   conditions: questions leave the device only to a base the user connected to on the local network; position
     never leaves; release builds do not log questions, answers or position.

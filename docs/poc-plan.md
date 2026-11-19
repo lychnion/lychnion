@@ -4,8 +4,8 @@
 > and the code is under the AGPLv3 (see the [README](../README.md#licence)).
 
 Draft 2026-11-02, updated 2026-11-05. PoC built: private repo
-`lychnion/lychnion` (Apache 2.0; code name was fieldkit, public name
-Lychnion since 2026-11-17). Results in section 7.
+`lychnion/lychnion` (Apache 2.0; named Lychnion since
+2026-11-17). Results in section 7.
 
 "Bousai LLM" is now only the name of the disaster package. The app gets a
 more general name because it also targets hikers, backcountry skiers and

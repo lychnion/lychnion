@@ -246,7 +246,7 @@ Reachability preconditions:
   violation (§1.11 `lan-only-exposure`).
 - `base-client`: in model if reachable from a base's responses, an mDNS
   record, or a `lychnion://` link (`base`, `shelter`, `share`, `publisher`,
-  `catalog`) or a legacy `fieldkit://` base link.
+  `catalog`).
 - `facts`: in model if reachable from facts a base serves.
 - `device-data`: in model if data leaves the app sandbox: network, the system
   log, or shared storage.
@@ -499,7 +499,7 @@ plus phones that also use the internet when they can.
 | --- | --- | --- | --- | --- | --- |
 | Device on the same Wi-Fi | yes | Send any request to a base or a sharing phone; announce a fake base; read and change plain http; flood connections | Holding a pinned base's private key; getting its own QR code scanned in person as a base's; tapping dialogs for the user | Fake facts or answers, read questions, crash or hang a base or phone | *(maintainer, 2026-11)* |
 | Host outside the local Wi-Fi | yes | Reach a port the base or a sharing phone opened on another interface | Reaching a port that is bound only to the Wi-Fi | Use the base or read installed items | *(maintainer, 2026-11)* |
-| Sender of links (web page, message, other app, printed QR) | yes | Open `lychnion://` links and legacy `fieldkit://` base links with any parameters | Confirming the dialog for the user; being scanned in person as a base's QR code | Get a key trusted, follow a hostile catalog, point the phone at a hostile base | *(maintainer, 2026-11)* |
+| Sender of links (web page, message, other app, printed QR) | yes | Open `lychnion://` links with any parameters | Confirming the dialog for the user; being scanned in person as a base's QR code | Get a key trusted, follow a hostile catalog, point the phone at a hostile base | *(maintainer, 2026-11)* |
 | Catalog, mirror or file host that is not a publisher | yes | Serve any bytes, old signed records, redirects; delay or withhold; drop or replay key statements | Signing records; forging a key statement; making a wrong file install | Install a tampered file, hide updates, learn what users download | *(maintainer, 2026-11)* |
 | USB stick author | yes | Any catalog, files and links on the stick | Signing records | Install a tampered or squatting item | *(documented, docs/distribution.md "Sync between nodes")* |
 | Publisher the user added | yes, for its own name | Sign any record, content and key statement for its name, including text that steers the model | Signing records or statements for `lychnion` or another name; naming a successor key it does not hold; shipping models; supplying the official safety line | Replace Lychnion's items or files, make its lines look official | *(maintainer, 2026-11)* |
@@ -660,7 +660,7 @@ plus phones that also use the internet when they can.
   never leaves; release builds do not log questions, answers or position.
   *Violation symptom*: info-leak. *Tier*: security-critical. *Voided by*: no
   switch. Known violations: a base link may name any host
-  (`lib/base/base_link.dart:93`), and questions, answers and the region go
+  (`lib/base/base_link.dart:88`), and questions, answers and the region go
   to the system log (`lib/ask/ask_page.dart:164`, with the phone's own
   answers at `lib/ask/ask_page.dart:384`). *(maintainer, 2026-11)*
 - **`lan-device-same-origin`** (`downloads`): from a base or a nearby phone,

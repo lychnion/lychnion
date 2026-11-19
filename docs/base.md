@@ -48,8 +48,7 @@ wrong one:
   link (with `&s=1` when the base signs its answers) that connects the
   app. The app asks before it connects and remembers the base.
 
-Older codes (`lychnion://shelter`, and `fieldkit://shelter` from the code
-name) still work.
+Older codes (`lychnion://shelter`) still work.
 
 ## Code
 

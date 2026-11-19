@@ -49,7 +49,7 @@ proven. The property is the §1.11 claim each one breaks.
    Android, pins its key after one "Connect"
    (`lib/app/incoming_links.dart:67`, `lib/base/base_checks.dart:47`). This
    holds for the new `lychnion://base` host too. The dialog does not show
-   the key, the link's name is not cleaned (`lib/base/base_link.dart:69`),
+   the key, the link's name is not cleaned (`lib/base/base_link.dart:64`),
    and trusted base keys cannot be removed.
 2. **The base and Share nearby listen on every interface** ([#64](https://github.com/lychnion/lychnion/issues/64)) (confirmed,
    `lan-only-exposure`): `lib/base/base_server.dart:167` binds
@@ -85,7 +85,7 @@ proven. The property is the §1.11 claim each one breaks.
    the phone's own at `lib/ask/ask_page.dart:384`, and the region at
    `lib/ask/ask_page.dart:363`.
 10. **A base may be any host** ([#72](https://github.com/lychnion/lychnion/issues/72)) (confirmed, `device-egress`):
-    `lib/base/base_link.dart:93` accepts public hosts, and Android allows
+    `lib/base/base_link.dart:88` accepts public hosts, and Android allows
     cleartext to every host. `help/en/08-privacy.md` also needs the base
     case.
 11. **The LAN redirect guard misses ranges** ([#73](https://github.com/lychnion/lychnion/issues/73)) (confirmed,

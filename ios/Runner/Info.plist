@@ -85,7 +85,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<!-- lychnion://base?url=… from the QR code on a base computer
-	     (lychnion://shelter and fieldkit://shelter on older codes). iOS
+	     (lychnion://shelter on older codes). iOS
 	     opens any host of these schemes; the app reads the link. -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -95,7 +95,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lychnion</string>
-				<string>fieldkit</string>
 			</array>
 		</dict>
 	</array>

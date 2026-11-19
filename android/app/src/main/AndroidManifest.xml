@@ -32,7 +32,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <!-- lychnion://base?url=… from the QR code on a base computer
-                 (lychnion://shelter and fieldkit://shelter on older codes). -->
+                 (lychnion://shelter on older codes). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -42,7 +42,6 @@
                 <data android:scheme="lychnion" android:host="share"/>
                 <data android:scheme="lychnion" android:host="publisher"/>
                 <data android:scheme="lychnion" android:host="catalog"/>
-                <data android:scheme="fieldkit" android:host="shelter"/>
             </intent-filter>
             <!-- Links are handled by the app_links package. -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>

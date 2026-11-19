@@ -180,9 +180,9 @@
     },
     {
       "component": "base-client",
-      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` link (`base`, `shelter`, `share`, `publisher`, `catalog`) or a legacy `fieldkit://` base link.",
+      "boundary": "`base-client`: in model if reachable from a base's responses, an mDNS record, or a `lychnion://` link (`base`, `shelter`, `share`, `publisher`, `catalog`).",
       "provenance": "documented",
-      "reachability_precondition": "reachable from a base's responses, an mDNS record, or a lychnion:// or fieldkit:// link"
+      "reachability_precondition": "reachable from a base's responses, an mDNS record, or a lychnion:// link"
     },
     {
       "component": "facts",
