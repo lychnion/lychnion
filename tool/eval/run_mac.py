@@ -2,7 +2,7 @@
 """Ask the eval questions through the real Lychnion app on this Mac.
 
 Usage:
-  python3 tool/eval/run_mac.py --model ~/Work/Geonic/lychnion-models/gemma-4-E2B-it-Q4_0.gguf \
+  python3 tool/eval/run_mac.py --model gemma-4-E2B-it-Q4_0.gguf \
       --label mac-e2b [--out tool/eval/results/2026-11-19/mac-e2b.jsonl] [--define LLM_BACKEND=cpu]
 
 Builds a release app under its own test app id (default com.lychnion.app.eval, set with
@@ -27,7 +27,10 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-MODELS = os.path.expanduser("~/Work/Geonic/lychnion-models")
+# Model files are not in git. Default: a models/ folder next to this checkout; set
+# LYCHNION_MODELS to use another folder.
+MODELS = os.path.expanduser(os.environ.get("LYCHNION_MODELS")
+                            or os.path.join(os.path.dirname(REPO), "models"))
 
 
 def questions():
@@ -93,12 +96,23 @@ def git(*args):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True).stdout.strip()
 
 
+def model_file(arg, what, hint=""):
+    """A bare file name is looked up in MODELS; anything with a slash is a path. Exits if missing."""
+    path = os.path.expanduser(arg)
+    if os.sep not in path:
+        path = os.path.join(MODELS, path)
+    if not os.path.isfile(path) or os.path.getsize(path) == 0:
+        sys.exit(f"no usable {what} at {path}{hint}")
+    return path
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", required=True, help="answer model (.gguf)")
+    ap.add_argument("--model", required=True,
+                    help=f"answer model (.gguf): a file name in {MODELS}, or a path")
     ap.add_argument("--label", required=True, help="name in the results, e.g. mac-e2b")
     ap.add_argument("--embed", default=os.path.join(MODELS, "embeddinggemma-2-Q8_0.gguf"),
-                    help="search model (.gguf); 'none' for keyword search only")
+                    help="search model (.gguf), file name or path like --model; 'none' for keyword search only")
     ap.add_argument("--define", action="append", default=[], help="extra --dart-define, e.g. LLM_BACKEND=cpu")
     ap.add_argument("--app-id", default="com.lychnion.app.eval")
     ap.add_argument("--out", help="default: tool/eval/results/<date>/<label>.jsonl")
@@ -108,7 +122,9 @@ def main():
     a = ap.parse_args()
     if a.app_id == "com.lychnion.app":
         sys.exit("use a test app id, never the live app's")
-    model = os.path.expanduser(a.model)
+    model = model_file(a.model, "answer model")
+    if a.embed != "none":
+        a.embed = model_file(a.embed, "search model", " (--embed none: keyword search only)")
     qs = questions()
     if a.only:
         keep = set(a.only.split(","))
@@ -124,13 +140,13 @@ def main():
     model_path = f"docs:eval-models/{os.path.basename(model)}"
     defines = [f"GGUF_MODEL_PATH={model_path}", "ASK=" + "|".join(t for _, _, t in qs)]
     if a.embed != "none":
-        defines.append(f"EMBED_MODEL_PATH=docs:eval-models/{os.path.basename(os.path.expanduser(a.embed))}")
+        defines.append(f"EMBED_MODEL_PATH=docs:eval-models/{os.path.basename(a.embed)}")
     defines += a.define
     exe = build(a.app_id, defines)
     docs = ensure_container(exe, a.app_id)
     clone_model(model, docs)
     if a.embed != "none":
-        clone_model(os.path.expanduser(a.embed), docs)
+        clone_model(a.embed, docs)
 
     meta = {
         "event": "meta", "label": a.label, "model": os.path.basename(model),
