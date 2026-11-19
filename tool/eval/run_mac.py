@@ -2,7 +2,7 @@
 """Ask the eval questions through the real Lychnion app on this Mac.
 
 Usage:
-  python3 tool/eval/run_mac.py --model ~/Work/Geonic/lychnion-models/gemma-4-E2B-it-Q4_0.gguf \
+  python3 tool/eval/run_mac.py --model gemma-4-E2B-it-Q4_0.gguf \
       --label mac-e2b [--out tool/eval/results/2026-11-19/mac-e2b.jsonl] [--define LLM_BACKEND=cpu]
 
 Builds a release app under its own test app id (default com.lychnion.app.eval, set with
@@ -27,7 +27,10 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-MODELS = os.path.expanduser("~/Work/Geonic/lychnion-models")
+# Model files are not in git. Default: a models/ folder next to this checkout; set
+# LYCHNION_MODELS to use another folder.
+MODELS = os.path.expanduser(os.environ.get("LYCHNION_MODELS")
+                            or os.path.join(os.path.dirname(REPO), "models"))
 
 
 def questions():
@@ -95,7 +98,8 @@ def git(*args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", required=True, help="answer model (.gguf)")
+    ap.add_argument("--model", required=True,
+                    help=f"answer model (.gguf); a bare file name is looked up in {MODELS}")
     ap.add_argument("--label", required=True, help="name in the results, e.g. mac-e2b")
     ap.add_argument("--embed", default=os.path.join(MODELS, "embeddinggemma-2-Q8_0.gguf"),
                     help="search model (.gguf); 'none' for keyword search only")
@@ -109,6 +113,12 @@ def main():
     if a.app_id == "com.lychnion.app":
         sys.exit("use a test app id, never the live app's")
     model = os.path.expanduser(a.model)
+    if os.sep not in model and not os.path.exists(model):
+        model = os.path.join(MODELS, model)
+    if not os.path.isfile(model):
+        sys.exit(f"no model file at {model}")
+    if a.embed != "none" and not os.path.isfile(os.path.expanduser(a.embed)):
+        sys.exit(f"no search model at {a.embed} (use --embed none for keyword search only)")
     qs = questions()
     if a.only:
         keep = set(a.only.split(","))
