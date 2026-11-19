@@ -354,8 +354,14 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 children: [
                   VectorTileLayer(
-                    theme: offlineLightTheme(lang: context.lang),
-                    tileProviders: TileProviders({'protomaps': tiles}),
+                    theme: offlineLightTheme(
+                      lang: context.lang,
+                      contours: s.contourTiles != null,
+                    ),
+                    tileProviders: TileProviders({
+                      'protomaps': tiles,
+                      if (s.contourTiles != null) 'contours': s.contourTiles!,
+                    }),
                     // Vector mode draws the labels; raster mode dropped them.
                     layerMode: VectorTileLayerMode.vector,
                     fileCacheTtl: Duration.zero,

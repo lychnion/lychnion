@@ -11,7 +11,7 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 ///   wanted language, falling back to the local name.
 /// - No icons: the theme loads sprites from the internet.
 /// - No minor-road labels: in Japan these are mostly road numbers.
-Theme offlineLightTheme({required String lang}) {
+Theme offlineLightTheme({required String lang, bool contours = false}) {
   final nameField = [
     'coalesce',
     ['get', 'name:$lang'],
@@ -32,9 +32,76 @@ Theme offlineLightTheme({required String lang}) {
       l.remove('icon-image');
       copy['layout'] = l;
     }
+    // TEST: GSI contours (source "contours", layer Cntr) under the roads.
+    if (contours && layer['id'] == 'roads_tunnels_other_casing') {
+      layers.addAll(_contourLines);
+    }
     layers.add(copy);
   }
+  if (contours) layers.add(_contourLabels);
   const debug = bool.fromEnvironment('MAP_THEME_LOG');
-  return const ProtomapsThemes(logger: debug ? Logger.console() : null)
-      .build(layers);
+  return ProtomapsThemes(
+    logger: debug ? const Logger.console() : null,
+    sources: {
+      'protomaps': {'type': 'vector', 'url': 'https://example.com/tiles.json'},
+      if (contours)
+        'contours': {'type': 'vector', 'url': 'https://example.com/c.json'},
+    },
+  ).build(layers);
 }
+
+// TEST: contour lines from GSI optimal vector tiles (layer Cntr, height in
+// vt_alti). 100 m lines up to z13, 10 m lines from z14. Index lines every
+// 50 m from z13, all lines from z15.
+final _index = [
+  'match',
+  ['get', 'vt_alti'],
+  [for (var h = -500; h <= 4000; h += 50) h],
+  true,
+  false,
+];
+Map<String, Object> _contourLine(
+  String id,
+  int minzoom,
+  int maxzoom,
+  Object? filter,
+  String color,
+  double width,
+) => {
+  'id': id,
+  'type': 'line',
+  'source': 'contours',
+  'source-layer': 'Cntr',
+  'minzoom': minzoom,
+  'maxzoom': maxzoom,
+  'filter': ?filter,
+  'paint': {'line-color': color, 'line-width': width, 'line-opacity': 0.85},
+};
+final _contourLines = <Map<String, Object>>[
+  // z11-13: the tiles only hold 100 m lines.
+  _contourLine('contours_low', 11, 14, null, '#a0724a', 0.8),
+  _contourLine('contours_minor', 15, 24, ['!', _index], '#c8a07a', 0.6),
+  _contourLine('contours_index', 14, 24, _index, '#a0724a', 1.0),
+];
+final _contourLabels = <String, Object>{
+  'id': 'contours_label',
+  'type': 'symbol',
+  'source': 'contours',
+  'source-layer': 'Cntr',
+  'minzoom': 14,
+  'filter': _index,
+  'layout': {
+    'symbol-placement': 'line',
+    'text-field': [
+      'to-string',
+      ['get', 'vt_alti'],
+    ],
+    'text-font': ['Noto Sans Regular'],
+    'text-size': 10,
+  },
+  'paint': {
+    'text-color': '#8a5a32',
+    'text-halo-color': '#ffffff',
+    'text-halo-width': 1.5,
+  },
+};

@@ -88,6 +88,9 @@ class MapState extends ChangeNotifier {
 
   EvacSites? sites;
   PmTilesVectorTileProvider? tiles;
+
+  /// TEST: contour lines, next to the PMTiles file as `<id>.contours.pmtiles`.
+  PmTilesVectorTileProvider? contourTiles;
   LatLng? here;
   bool hereIsMock = false;
   double? accuracy;
@@ -119,6 +122,12 @@ class MapState extends ChangeNotifier {
       tiles = await PmTilesVectorTileProvider.fromSource(
         await resolvePath(pmtilesPath),
       );
+      final cp = await resolvePath(
+        pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.contours.pmtiles'),
+      );
+      if (cp.endsWith('.contours.pmtiles') && await File(cp).exists()) {
+        contourTiles = await PmTilesVectorTileProvider.fromSource(cp);
+      }
       notifyListeners();
       await _loadRoutes();
       await _loadInundationTiles();
