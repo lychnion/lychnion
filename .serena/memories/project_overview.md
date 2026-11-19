@@ -1,7 +1,7 @@
 # Lychnion app: overview
 
 Offline AI app (Flutter) that answers questions from downloaded knowledge
-packages with a local model (Gemma via llama.cpp). Repo `lychnion/lychnion`
+packages with a local model (Gemma via llama.cpp or LiteRT-LM). Repo `lychnion/lychnion`
 is public: everything in these memories is public too.
 
 Do not restate the docs here. Read:
@@ -12,6 +12,6 @@ Do not restate the docs here. Read:
 - `CONTRIBUTING.md`: licence (AGPL + app store exception), DCO, third-party code.
 - `threat-model.md`, `SECURITY.md`.
 
-"fieldkit" is the old code name (local folder, Serena project path,
-`fieldkit://` QR links still accepted). Data packages and maps are built in
+"fieldkit" is the old code name; `fieldkit://` QR links are still
+accepted. Data packages and maps are built in
 the sibling repo `lychnion-data`.
