@@ -32,8 +32,10 @@ expected source ids, and the key passages that the judges see (`package:passage 
 
 1. **Answers** (about 2 minutes per model on an M-series Mac; the build adds a few).
    The model files are not in git. The script looks for them in a `models/` folder next to
-   this checkout (`../models`), or in the folder named by `LYCHNION_MODELS`. `--model` takes a
-   file name from that folder or any path.
+   this checkout (`../models`), or in the folder named by `LYCHNION_MODELS` (set it when you
+   work in a git worktree). `--model` takes a file name from that folder, or a path (anything
+   with a `/`). The search model defaults to `embeddinggemma-2-Q8_0.gguf` from the same folder;
+   choose another with `--embed`, or skip it with `--embed none`.
 
    ```bash
    python3 tool/eval/run_mac.py --model gemma-4-E2B-it-Q4_0.gguf --label mac-e2b
