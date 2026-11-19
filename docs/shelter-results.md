@@ -88,8 +88,8 @@ Phones no longer need the shelter address at build time (`SHELTER_URL`).
 - The shelter computer shows a QR code and its address under
   Settings → 避難所 (also in the status details on the Ask screen).
 - The code holds `lychnion://base?url=http://<address>:8642&name=<name>`
-  (`fieldkit://shelter?…` when these notes were written; still read).
-  Scanned with the phone's normal camera, it opens fieldkit, which asks
+  (`shelter` host when these notes were written; still read).
+  Scanned with the phone's normal camera, it opens the app, which asks
   「〇〇に接続しますか？」 before it connects. No camera code in the app.
 - Or, on the phone: Settings → 避難所のコンピューターに接続 → type the address
   (`192.168.1.20` is enough; http and port 8642 are added).
@@ -98,7 +98,7 @@ Phones no longer need the shelter address at build time (`SHELTER_URL`).
   and pulls current information once a minute. 切断 disconnects.
 
 Tested: macOS as shelter computer, iPhone 17 simulator as phone. The link
-opened the app, iOS asked "Open in Fieldkit?", the app asked to connect,
+opened the app (iOS asked first), the app asked to connect,
 then pulled the facts and the shelter answered the question
 (`answered: 1` on the shelter). Not yet tested on a real phone camera or
 on Android (the intent filter is in place).

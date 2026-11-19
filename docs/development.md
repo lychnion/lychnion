@@ -107,9 +107,8 @@ carries a format number, `"format": n` (none means 0). The rules are in
 
 ## Name, brand and app assets
 
-Lychnion (Greek λυχνίον, "small lamp") is the public name. "fieldkit" was
-the code name; base QR codes made with it (`fieldkit://`) still work. The
-brand (logo, colours, icons) follows the Lychnion brand canvas.
+Lychnion (Greek λυχνίον, "small lamp") is the name. The brand (logo,
+colours, icons) follows the Lychnion brand canvas.
 
 - App icons: `tool/build_icons.py`.
 - Fonts: `tool/build_fonts.py`. BIZ UDPGothic for app text, cut down to

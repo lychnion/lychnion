@@ -76,7 +76,7 @@ adapted from the skill's reference bank (its number in brackets).
 ### Deep links and QR codes (§1.7, §1.10, §1.11)
 
 - For each link kind (`base` and its older host `shelter`, `share`,
-  `publisher`, `catalog`, and the legacy `fieldkit://` scheme), what may it
+  `publisher`, `catalog`), what may it
   do before and after the dialog?
 - Does a link opened from a web page or message count as "checked in
   person", like a QR code scanned at the base?

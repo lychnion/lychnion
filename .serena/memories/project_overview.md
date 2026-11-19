@@ -12,6 +12,5 @@ Do not restate the docs here. Read:
 - `CONTRIBUTING.md`: licence (AGPL + app store exception), DCO, third-party code.
 - `threat-model.md`, `SECURITY.md`.
 
-"fieldkit" is the old code name; `fieldkit://` QR links are still
-accepted. Data packages and maps are built in
+Data packages and maps are built in
 the sibling repo `lychnion-data`.

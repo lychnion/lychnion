@@ -34,37 +34,26 @@ void main() {
     );
   });
 
-  test('new links use lychnion://base; old shelter and fieldkit links '
-      'still work; other hosts are refused', () {
+  test('new links use lychnion://base; old shelter links still work; '
+      'other hosts and schemes are refused', () {
     const link = BaseLink('http://192.168.1.20:8642', name: 'Hall', key: 'k1');
     final uri = Uri.parse(link.toUri().toString());
     expect((uri.scheme, uri.host), ('lychnion', 'base'));
     final back = BaseLink.fromUri(uri)!;
     expect((back.url, back.name, back.key), (link.url, 'Hall', 'k1'));
-    for (final old in [
-      'lychnion://shelter?url=http://192.168.1.20:8642&key=k1',
-      'fieldkit://shelter?url=http://192.168.1.20:8642&key=k1',
-    ]) {
-      final l = BaseLink.fromUri(Uri.parse(old));
-      expect((l?.url, l?.key), ('http://192.168.1.20:8642', 'k1'), reason: old);
-    }
+    final old = BaseLink.fromUri(
+      Uri.parse('lychnion://shelter?url=http://192.168.1.20:8642&key=k1'),
+    );
+    expect((old?.url, old?.key), ('http://192.168.1.20:8642', 'k1'));
     for (final other in [
       'lychnion://bases?url=http://192.168.1.20:8642',
       'lychnion://share?url=http://192.168.1.20:8642',
       'lychnion://?url=http://192.168.1.20:8642',
       'https://base?url=http://192.168.1.20:8642',
+      'other://base?url=http://192.168.1.20:8642',
     ]) {
       expect(BaseLink.fromUri(Uri.parse(other)), isNull, reason: other);
     }
-  });
-
-  test('links use lychnion://, old fieldkit:// codes still work', () {
-    const link = BaseLink('http://192.168.1.20:8642');
-    expect(link.toUri().scheme, 'lychnion');
-    final old = BaseLink.fromUri(
-      Uri.parse('fieldkit://shelter?url=http://192.168.1.20:8642'),
-    );
-    expect(old?.url, 'http://192.168.1.20:8642');
   });
 
   group('a base that signs its answers', () {

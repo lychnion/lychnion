@@ -26,9 +26,6 @@ class BaseLink {
 
   static const scheme = 'lychnion';
 
-  /// QR codes printed before the rename still open the app.
-  static const oldScheme = 'fieldkit';
-
   /// The link's host.
   static const host = 'base';
 
@@ -57,11 +54,9 @@ class BaseLink {
       (this.key == null ||
           (this.key == key && (!signs || signedKey == this.key)));
 
-  /// A lychnion:// (or old fieldkit://) link, or null if [uri] is
-  /// something else.
+  /// A lychnion:// link, or null if [uri] is something else.
   static BaseLink? fromUri(Uri uri) {
-    if ((uri.scheme != scheme && uri.scheme != oldScheme) ||
-        (uri.host != host && uri.host != oldHost)) {
+    if (uri.scheme != scheme || (uri.host != host && uri.host != oldHost)) {
       return null;
     }
     final url = normalize(uri.queryParameters['url'] ?? '');

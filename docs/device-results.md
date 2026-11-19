@@ -79,7 +79,7 @@ CPU only (llama.cpp picks the CPU on Android). Raw results:
   50 tokens/s. Fewer and shorter passages would help more than a faster
   writer.
 - **Memory is borderline.** Android closes most other apps (Gmail, Chrome,
-  Slack, Settings) to make room, and kills fieldkit itself as soon as
+  Slack, Settings) to make room, and kills the app itself as soon as
   another app comes to the front. The model then has to load again.
 - Embedding the 108 passages the first time took 133 s (cached afterwards).
   A package should ship with its vectors, so phones never do this.
