@@ -214,9 +214,15 @@ does not matter, and only those made by a trusted key are verified;
 after a few bad signatures in one list the rest of that list is not
 verified (another catalog still counts). At most 50 replacements are
 kept per publisher, so a thief cannot fill the list with a chain of keys
-of its own, and revocations are kept even when the list is full. It
-checks a catalog's records after applying that catalog's statements, so
-records of a new key count at once.
+of its own, and revocations and theft proofs (a second successor of one
+key) are kept even when the list is full. Keys and signatures in a
+statement must be written one way (base64url without padding), so one
+statement cannot count many times. When a catalog, stick or base has
+more statements than fit, revocations and theft proofs are kept first,
+then each chain of replacements from its first key, so what is kept
+still connects to a key phones know. It checks a catalog's records
+after applying that catalog's statements, so records of a new key count
+at once.
 
 All of them read and write catalog.json through one class,
 `CatalogDocument` in `packages/lychnion_format` (the app, the base, USB

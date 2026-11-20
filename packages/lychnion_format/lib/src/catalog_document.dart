@@ -151,28 +151,41 @@ class CatalogDocument {
   static int _size(CatalogDocument c) => utf8.encode(_text(c)).length;
 
   /// This catalog, with key statements left out until it fits in
-  /// [maxBytes]: replacements from the end first, revocations last
-  /// (losing one would trust a stolen key again). Throws
+  /// [maxBytes], chosen as [KeyStatement.capped] chooses them
+  /// ([KeyStatement.keepOrder]: revocations and theft proofs last, chains
+  /// cut from their newest end). Their order is otherwise kept. Throws
   /// [CatalogTooLarge] when even without statements it does not fit.
   CatalogDocument fitted() {
     if (_size(this) <= maxBytes) return this;
-    bool isRevoke(Object? k) => k is Map && k['type'] == 'revoke';
-    final kept = [...keys];
-    CatalogDocument with_(List<Object?> k) => CatalogDocument(
-      records: records,
-      urls: urls,
-      mirrors: mirrors,
-      keys: k,
-      base: base,
-      refresh: refresh,
-    );
-    while (kept.isNotEmpty) {
-      final i = kept.lastIndexWhere((k) => !isRevoke(k));
-      kept.removeAt(i >= 0 ? i : kept.length - 1);
-      final c = with_(kept);
-      if (_size(c) <= maxBytes) return c;
+    final order = KeyStatement.keepOrder(keys);
+    CatalogDocument first(int n) {
+      final keep = order.take(n).toSet();
+      return CatalogDocument(
+        records: records,
+        urls: urls,
+        mirrors: mirrors,
+        keys: [
+          for (var i = 0; i < keys.length; i++)
+            if (keep.contains(i)) keys[i],
+        ],
+        base: base,
+        refresh: refresh,
+      );
     }
-    throw const CatalogTooLarge();
+
+    // The most statements that fit: a binary search, a few encodings
+    // instead of one per statement left out.
+    if (_size(first(0)) > maxBytes) throw const CatalogTooLarge();
+    var lo = 0, hi = keys.length - 1; // first(lo) fits, first(hi + 1) not
+    while (lo < hi) {
+      final mid = (lo + hi + 1) ~/ 2;
+      if (_size(first(mid)) <= maxBytes) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return first(lo);
   }
 }
 

@@ -668,7 +668,7 @@ plus phones that also use the internet when they can.
   `facts`, `node`): what a phone or node accepts is capped: 16 KiB for a
   base's `/info`, 1 MiB for facts and answers, 500 facts per pull and 5,000
   kept, 2 MB per catalog read within 45 s, 500 key statements per list and
-  1000 kept. A hostile response does not crash or hang the reader, and
+  1000 kept (besides revocations and theft proofs). A hostile response does not crash or hang the reader, and
   deeply nested JSON from any of these sources is rejected *(maintainer, 2026-11)*.
   *Violation symptom*: unbounded-allocation, crash, hang.
   *Tier*: security-critical. *Voided by*: nothing.
@@ -678,7 +678,7 @@ plus phones that also use the internet when they can.
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
   — no setting or dev flag sets them. A `keys` entry that is not a flat
   object of a statement's own fields is skipped before anything walks it
-  (`packages/lychnion_format/lib/src/key_statement.dart:344`), and on a
+  (`packages/lychnion_format/lib/src/key_statement.dart:436`), and on a
   node one catalog's keys never end the pull for the other sources.
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
@@ -774,8 +774,8 @@ plus phones that also use the internet when they can.
   them is not trusted. This holds for the `lychnion` key too. *Violation
   symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: no
   switch; only `KeyStatement.check` admits a statement, at
-  `packages/lychnion_format/lib/src/key_statement.dart:101` and
-  `packages/lychnion_format/lib/src/key_statement.dart:105`.
+  `packages/lychnion_format/lib/src/key_statement.dart:172` and
+  `packages/lychnion_format/lib/src/key_statement.dart:175`.
   *(documented, docs/distribution.md "Backing up and replacing the key")*
 - **`revocation-unloads`** (`downloads`): once a revocation is learned,
   items whose record the revoked key signed are no longer used. Their files

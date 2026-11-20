@@ -288,6 +288,138 @@ void main() {
       expect(p.keyStateOf(_name), PublisherKeyState.revoked);
     });
 
+    // lychnion/lychnion#59: what learn keeps past the limit, load reads
+    // back.
+    test('a revocation past the limit is read back', () async {
+      final file = File('${tmp.path}/small/publishers.json');
+      final p = PublisherList(file, maxStatements: 2);
+      await p.load();
+      await p.add(me.link);
+      final k = [
+        await me.keyPair(),
+        for (var i = 0; i < 3; i++) await Ed25519().newKeyPair(),
+      ];
+      Future<KeyStatement> link(int i) => KeyStatement.replace(
+        publisher: _name,
+        oldKey: k[i],
+        newKey: k[i + 1],
+        signed: nowStamp(),
+      );
+      await p.learn([await link(0), await link(1), await link(2)]);
+      expect(p.statements, hasLength(2));
+      final revoke = await KeyStatement.revoke(
+        publisher: _name,
+        key: k[2],
+        signed: nowStamp(),
+      );
+      expect(await p.learn([revoke]), isTrue);
+      expect(p.statements, hasLength(3));
+      final again = PublisherList(file, maxStatements: 2);
+      await again.load();
+      expect(again.statements, contains(revoke));
+      expect(
+        again.trust.keysOf(_name),
+        isNot(contains(TrustedKeys.canonicalKey(await publicKeyOf(k[2])))),
+      );
+    });
+
+    // lychnion/lychnion#59: both halves of a theft proof in one batch are
+    // kept, also when the list is full.
+    test('a theft proof in one batch is kept when the list is full', () async {
+      final file = File('${tmp.path}/full/publishers.json');
+      final p = PublisherList(file, maxStatements: 1);
+      await p.load();
+      await p.add(me.link);
+      final k1 = await Ed25519().newKeyPair();
+      await p.learn([
+        await KeyStatement.replace(
+          publisher: _name,
+          oldKey: await me.keyPair(),
+          newKey: k1,
+          signed: nowStamp(),
+        ),
+      ]);
+      expect(p.statements, hasLength(1));
+      final k1Key = TrustedKeys.canonicalKey(await publicKeyOf(k1));
+      expect(p.trust.keysOf(_name), contains(k1Key));
+      // The thief and the owner of k1 each name a successor.
+      final two = [
+        for (var i = 0; i < 2; i++)
+          await KeyStatement.replace(
+            publisher: _name,
+            oldKey: k1,
+            newKey: await Ed25519().newKeyPair(),
+            signed: nowStamp(),
+          ),
+      ];
+      expect(await p.learn(two), isTrue);
+      expect(p.statements, hasLength(3));
+      expect(p.trust.keysOf(_name), isNot(contains(k1Key)));
+    });
+
+    // lychnion/lychnion#59: a thief's own new keys cannot each add a
+    // theft proof past the limit; only keys trusted before the batch.
+    test('in-batch theft proofs count only for keys trusted before', () async {
+      final file = File('${tmp.path}/thief/publishers.json');
+      final p = PublisherList(file, maxStatements: 1);
+      await p.load();
+      await p.add(me.link);
+      final k = await Ed25519().newKeyPair();
+      await p.learn([
+        await KeyStatement.replace(
+          publisher: _name,
+          oldKey: await me.keyPair(),
+          newKey: k,
+          signed: nowStamp(),
+        ),
+      ]);
+      final a1 = await Ed25519().newKeyPair(),
+          b1 = await Ed25519().newKeyPair();
+      Future<KeyStatement> rep(SimpleKeyPair from, SimpleKeyPair to) =>
+          KeyStatement.replace(
+            publisher: _name,
+            oldKey: from,
+            newKey: to,
+            signed: nowStamp(),
+          );
+      final batch = [
+        await rep(k, a1),
+        await rep(a1, await Ed25519().newKeyPair()),
+        await rep(a1, await Ed25519().newKeyPair()),
+        await rep(k, b1),
+      ];
+      await p.learn(batch);
+      // The pair on k only; a1's pair is past the limit.
+      expect(p.statements, hasLength(3));
+      expect(p.statements, containsAll([batch[0], batch[3]]));
+    });
+
+    // lychnion/lychnion#59: a revocation stored with its signature spelled
+    // another way (before the one-spelling rule) is still read back.
+    test('a stored revocation spelled another way is read back', () async {
+      final file = File('${tmp.path}/old/publishers.json');
+      final p = PublisherList(file);
+      await p.load();
+      await p.add(me.link);
+      final revoke = await KeyStatement.revoke(
+        publisher: _name,
+        key: await me.keyPair(),
+        signed: nowStamp(),
+      );
+      await p.learn([revoke]);
+      final j = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
+      final st = (j['statements']! as List).single as Map<String, Object?>;
+      st['signature'] = base64Url.encode(
+        base64Url.decode(base64Url.normalize(st['signature']! as String)),
+      );
+      expect(st['signature'], endsWith('=='));
+      file.writeAsStringSync(jsonEncode(j));
+      final again = PublisherList(file);
+      await again.load();
+      expect(again.statements, [revoke]);
+      expect(again.keyStateOf(_name), PublisherKeyState.revoked);
+    });
+
     test('a revocation listed before its replacement is kept', () async {
       final p = await phone('phone', me.link);
       final next = await me.replaceKey(pubDir);

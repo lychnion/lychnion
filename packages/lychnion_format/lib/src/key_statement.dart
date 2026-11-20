@@ -35,25 +35,96 @@ class KeyStatement {
   /// replaced every month needs 50 in four years).
   static const maxReplacesPerPublisher = 50;
 
-  /// At most [max] of [statements] to pass on: revocations first (losing
-  /// one would trust a stolen key again), then the newest replacements;
-  /// order otherwise kept.
+  /// At most [max] of [statements] to pass on, chosen in [keepOrder];
+  /// their order otherwise kept.
   static List<KeyStatement> capped(
     Iterable<KeyStatement> statements, [
     int max = maxPerSource,
   ]) {
     final all = statements.toList();
     if (all.length <= max) return all;
-    final keep = <KeyStatement>{
-      ...all.where((s) => s.type == KeyStatementType.revoke).take(max),
-    };
-    for (final s in all.reversed) {
-      if (keep.length >= max) break;
-      keep.add(s);
-    }
+    final keep = keepOrder([for (final s in all) s.json]).take(max).toSet();
     return [
-      for (final s in all)
-        if (keep.contains(s)) s,
+      for (var i = 0; i < all.length; i++)
+        if (keep.contains(i)) all[i],
+    ];
+  }
+
+  /// The indexes of [statements] (statement JSON) in the order they are
+  /// kept when not all fit (lychnion/lychnion#59): revocations first, then
+  /// replacements that prove a theft (losing either would trust a stolen
+  /// key again), then the other replacements chain by chain from the
+  /// first key, nearest first, so what is kept still connects to a key a
+  /// device knows. Ties keep the list order. Used by [capped] and
+  /// `CatalogDocument.fitted`.
+  static List<int> keepOrder(List<Object?> statements) {
+    String? key(Object? v) {
+      try {
+        return v is String ? b64(unb64(v)) : null;
+      } on FormatException {
+        return null;
+      }
+    }
+
+    final revokes = <int>[], thefts = <int>[];
+    // Replacements: (publisher, old, new) by index.
+    final replaces = <int, (String, String, String)>{};
+    for (var i = 0; i < statements.length; i++) {
+      final m = statements[i];
+      if (m is! Map) continue;
+      final p = m['publisher'], old = key(m['old']), next = key(m['new']);
+      if (m['type'] == 'revoke') {
+        revokes.add(i);
+      } else if (m['type'] == 'replace' &&
+          p is String &&
+          old != null &&
+          next != null) {
+        replaces[i] = (p, old, next);
+      }
+    }
+    final successors = <(String, String), Set<String>>{};
+    for (final (p, old, next) in replaces.values) {
+      successors.putIfAbsent((p, old), () => {}).add(next);
+    }
+    // How far each replacement is from a key no replacement names.
+    final named = {for (final (p, _, next) in replaces.values) (p, next)};
+    final depth = <int, int>{};
+    var level = {
+      for (final e in replaces.entries)
+        if (!named.contains((e.value.$1, e.value.$2))) e.key,
+    };
+    for (var d = 0; level.isNotEmpty; d++) {
+      for (final i in level) {
+        depth[i] = d;
+      }
+      final reached = {
+        for (final i in level) (replaces[i]!.$1, replaces[i]!.$3),
+      };
+      level = {
+        for (final e in replaces.entries)
+          if (!depth.containsKey(e.key) &&
+              reached.contains((e.value.$1, e.value.$2)))
+            e.key,
+      };
+    }
+    final rest = <int>[];
+    for (final e in replaces.entries) {
+      final (p, old, _) = e.value;
+      (successors[(p, old)]!.length > 1 ? thefts : rest).add(e.key);
+    }
+    // In a loop with no first key: after the rest.
+    int d(int i) => depth[i] ?? 1 << 30;
+    rest.sort((a, b) {
+      final c = d(a).compareTo(d(b));
+      return c != 0 ? c : a.compareTo(b);
+    });
+    final ordered = [...revokes, ...thefts, ...rest];
+    final done = ordered.toSet();
+    return [
+      ...ordered,
+      // Anything else last, in list order.
+      for (var i = 0; i < statements.length; i++)
+        if (!done.contains(i)) i,
     ];
   }
 
@@ -111,6 +182,25 @@ class KeyStatement {
     }
   }
 
+  /// [json] with its signatures written the one way [check] takes them
+  /// (base64url without padding), for statements a device stored before
+  /// that rule (lychnion/lychnion#59); anything else unchanged. Still to
+  /// be verified with [check].
+  static Object? respelled(Object? json) {
+    if (json is! Map) return json;
+    final out = Map<Object?, Object?>.of(json);
+    for (final f in const ['signature', 'new_signature']) {
+      final v = out[f];
+      if (v is! String || v.length > 200) continue;
+      try {
+        out[f] = b64(unb64(v));
+      } on FormatException {
+        continue;
+      }
+    }
+    return out;
+  }
+
   /// The valid statements in [list] (a file this device wrote); others,
   /// and any after the first [max] valid ones, are left out. For lists
   /// from elsewhere use [relevantStatements].
@@ -128,15 +218,6 @@ class KeyStatement {
     return out;
   }
 
-  static bool _key(Object? v) {
-    if (v is! String) return false;
-    try {
-      return unb64(v).length == 32;
-    } on FormatException {
-      return false;
-    }
-  }
-
   /// The fields a statement may have; other fields would let anyone who
   /// holds a key make statements large enough to fill a catalog.
   static const _fields = {
@@ -150,29 +231,40 @@ class KeyStatement {
     'new_signature',
   };
 
+  /// [v] is base64url of [length] bytes, written the one way [b64]
+  /// writes it: no padding, no other alphabet or escapes. Otherwise one
+  /// statement could be written many ways that all verify, each with its
+  /// own [id], and count many times against the caps (lychnion/lychnion#59).
+  static bool _canonical(Object? v, int length) {
+    if (v is! String || v.length > 100) return false;
+    try {
+      final b = unb64(v);
+      return b.length == length && b64(b) == v;
+    } on FormatException {
+      return false;
+    }
+  }
+
   static bool _shapeOk(Map<String, Object?> j) {
     if (j['format'] != format) return false;
     if (!j.keys.every(_fields.contains)) return false;
-    bool short(Object? v, int max) => v is String && v.length <= max;
-    if (!short(j['signed'], 64) ||
-        !short(j['signature'], 100) ||
-        (j.containsKey('new_signature') && !short(j['new_signature'], 100))) {
+    final signed = j['signed'];
+    if (signed is! String || signed.isEmpty || signed.length > 64) {
       return false;
     }
+    if (!_canonical(j['signature'], 64)) return false;
     final type = j['type'];
     final publisher = j['publisher'];
     if (publisher is! String || !publisherNamePattern.hasMatch(publisher)) {
       return false;
     }
-    final signed = j['signed'];
-    if (signed is! String || signed.isEmpty) return false;
-    if (!_key(j['old']) || j['signature'] is! String) return false;
+    if (!_canonical(j['old'], 32)) return false;
     switch (type) {
       case 'replace':
-        if (!_key(j['new']) || j['new_signature'] is! String) return false;
-        // The same key written differently is still the same key.
-        return b64(unb64(j['old']! as String)) !=
-            b64(unb64(j['new']! as String));
+        if (!_canonical(j['new'], 32) || !_canonical(j['new_signature'], 64)) {
+          return false;
+        }
+        return j['old'] != j['new'];
       case 'revoke':
         return !j.containsKey('new') && !j.containsKey('new_signature');
       default:
