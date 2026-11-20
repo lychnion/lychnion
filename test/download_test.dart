@@ -401,6 +401,33 @@ void main() {
       expect(s.mapPaths()!.pmtiles, endsWith('/maps/c.pmtiles'));
     });
 
+    test('a contours item of its own is never the base map', () async {
+      // lychnion-data publishes contours as `<map id>.contours`, kind map,
+      // with only the contours file (#57).
+      final s = DownloadStore(tmp, trust: trust);
+      final contours = await item('jp.map.a.contours', ItemKind.map, [
+        ('a.contours.pmtiles', 4),
+      ]);
+      await put(s, ItemKind.map, 'a.contours.pmtiles', 4);
+      await s.markInstalled(contours);
+      expect(s.mapPaths(), isNull);
+
+      // Its id sorts first, but the map later in the list is used.
+      final map = await item('jp.map.b', ItemKind.map, [
+        ('b.pmtiles', 10),
+        ('b.sites.sqlite', 5),
+      ]);
+      await put(s, ItemKind.map, 'b.pmtiles', 10);
+      await put(s, ItemKind.map, 'b.sites.sqlite', 5);
+      await s.markInstalled(map);
+      expect(s.mapPaths()!.pmtiles, endsWith('/maps/b.pmtiles'));
+
+      // Deleting the map keeps the contours item and its file.
+      await s.delete(map);
+      expect(s.mapPaths(), isNull);
+      expect(s.installed(ItemKind.map, 'jp.map.a.contours'), isNotNull);
+    });
+
     test('only files with a record count, and only at their size', () async {
       final s = DownloadStore(tmp, trust: trust);
       final map = await item('jp.map.x', ItemKind.map, [
