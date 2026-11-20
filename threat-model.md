@@ -535,7 +535,7 @@ plus phones that also use the internet when they can.
   headless node reserves nothing; it accepts an added publisher's record
   for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
   the id back only when its source is pulled
-  (`packages/lychnion_node/lib/src/pull.dart:151`). *Violation symptom*:
+  (`packages/lychnion_node/lib/src/pull.dart:168`). *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: nothing voids
   it in the app; the check runs in `isTaken`, `installed` and
   `recordedVersionOf`, and no flag or dev define turns it off (the
@@ -553,7 +553,7 @@ plus phones that also use the internet when they can.
   again (§1.12 `freshness`). After a revocation a node lists the version it
   listed before, never one below it. Known gap: a node drops a record whose
   current and new versions are both incomplete, then accepts an older one
-  (`packages/lychnion_node/lib/src/pull.dart:196`). *(documented, docs/distribution.md
+  (`packages/lychnion_node/lib/src/pull.dart:214`). *(documented, docs/distribution.md
   "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
@@ -750,10 +750,13 @@ plus phones that also use the internet when they can.
   help/en/07-publishers.md "How do I add a publisher, such as my city?")*
 - **`node-private-address-filter`** (`node`): a node skips file addresses on
   private or local networks, also after a redirect, unless the catalog itself
-  is on such a network. DNS rebinding is not caught. *Violation symptom*:
-  x-request-forgery. *Tier*: correctness-only. *Voided
-  by*: a catalog on a private network or a folder
-  (`packages/lychnion_node/lib/src/pull.dart:138`). *(documented,
+  is on such a network; an internet catalog's own redirects are checked the
+  same way. Private or local means any address that is not plain public
+  unicast, including `::`, multicast, special ranges and IPv4 carried in
+  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:315`). DNS rebinding is
+  not caught. *Violation symptom*: x-request-forgery. *Tier*:
+  correctness-only. *Voided by*: a catalog on a private network or a folder
+  (`packages/lychnion_node/lib/src/pull.dart:125`). *(documented,
   packages/lychnion_node/README.md "Operating")*
 
 - **`key-statement-verification`** (`records`, `downloads`, `node`): a

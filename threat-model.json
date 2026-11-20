@@ -853,7 +853,7 @@
       "property": "node-private-address-filter",
       "violation_symptom": "x-request-forgery",
       "severity_tier": "correctness",
-      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network. DNS rebinding is not caught.",
+      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network; an internet catalog's own redirects are checked the same way. Private or local means any address that is not plain public unicast, including `::`, multicast, special ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:315`). DNS rebinding is not caught.",
       "provenance": "documented",
       "source": "packages/lychnion_node/README.md \"Operating\""
     },

@@ -125,6 +125,106 @@ void main() {
     );
   });
 
+  // lychnion/lychnion#74: a node checks every redirect of a catalog, as
+  // it does for files.
+  test('fetchCatalogText: each redirect is checked', () async {
+    var hops = 0;
+    handle = (r) {
+      if (r.uri.path.startsWith('/hop')) {
+        hops++;
+        r.response
+          ..statusCode = 302
+          ..headers.set(
+            HttpHeaders.locationHeader,
+            r.uri.path == '/hop1' ? '/hop2' : '/c.json',
+          );
+      } else {
+        r.response.write('{"format":2}');
+      }
+      unawaited(r.response.close());
+    };
+    final asked = <String>[];
+    expect(
+      await fetchCatalogText(
+        at('hop1'),
+        allowAddress: (u) async {
+          asked.add(u.path);
+          return true;
+        },
+      ),
+      '{"format":2}',
+    );
+    expect(asked, ['/hop2', '/c.json']);
+    expect(hops, 2);
+    await expectLater(
+      fetchCatalogText(at('hop1'), allowAddress: (u) async => false),
+      throwsA(
+        isA<CatalogFetchError>().having(
+          (e) => e.code,
+          'c',
+          'redirect not allowed',
+        ),
+      ),
+    );
+  });
+
+  test('fetchCatalogText: a redirect loop ends', () async {
+    var hops = 0;
+    handle = (r) {
+      hops++;
+      r.response
+        ..statusCode = 302
+        ..headers.set(HttpHeaders.locationHeader, '/again');
+      unawaited(r.response.close());
+    };
+    await expectLater(
+      fetchCatalogText(at('again'), allowAddress: (u) async => true),
+      throwsA(isA<CatalogFetchError>().having((e) => e.code, 'c', 'HTTP 302')),
+    );
+    expect(hops, 6);
+  });
+
+  test('fetchCatalogText: a redirect to another scheme is refused', () async {
+    handle = (r) {
+      r.response
+        ..statusCode = 302
+        ..headers.set(HttpHeaders.locationHeader, 'file:///etc/passwd');
+      unawaited(r.response.close());
+    };
+    await expectLater(
+      fetchCatalogText(at('x'), allowAddress: (u) async => true),
+      throwsA(
+        isA<CatalogFetchError>().having(
+          (e) => e.code,
+          'c',
+          'redirect not allowed',
+        ),
+      ),
+    );
+  });
+
+  test(
+    'fetchCatalogText: no redirects stays no redirects with a check',
+    () async {
+      handle = (r) {
+        r.response
+          ..statusCode = 302
+          ..headers.set(HttpHeaders.locationHeader, '/c.json');
+        unawaited(r.response.close());
+      };
+      await expectLater(
+        fetchCatalogText(
+          at('x'),
+          followRedirects: false,
+          allowAddress: (u) async => true,
+        ),
+        throwsA(
+          isA<CatalogFetchError>().having((e) => e.code, 'c', 'HTTP 302'),
+        ),
+      );
+    },
+  );
+
   test('Downloader: a local device may redirect only to itself', () async {
     final data = List<int>.generate(100, (i) => i);
     final sum = sha256.convert(data).toString();
