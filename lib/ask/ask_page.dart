@@ -33,6 +33,7 @@ import '../base/share_nearby.dart';
 import '../base/base_checks.dart';
 import '../base/base_client.dart';
 import '../base/base_library.dart';
+import '../base/base_link.dart';
 import '../base/base_panel.dart';
 import '../base/base_server.dart';
 import '../spike/bench_prompts.dart';
@@ -161,8 +162,10 @@ abstract class _AskPageBase extends State<AskPage> {
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
 
+  /// The app's log line. Release builds leave out the question, answer
+  /// and region unless a dev define asks for them (#71, [loggable]).
   void _log(Map<String, Object?> data) =>
-      debugPrint('LYCHNION ${jsonEncode(data)}');
+      debugPrint('LYCHNION ${jsonEncode(loggable(data))}');
 
   // Implemented by the state and its parts.
   Thread _startThread();

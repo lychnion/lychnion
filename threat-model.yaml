@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:ee17d409cd34f1d088a5570f59797e459be07622f198ae2072a6ca7689001a3b
+prose_version: threat-model.md@sha256:f531bfa4f82b129ed25b08406864ef2ed53bb0f10057be327c87d9f6582beecb
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1927,10 +1927,14 @@ properties_claimed:
   - base-client
   tier: security-critical
   x-known-violations:
-  - a base link may name any host (`lib/base/base_link.dart:88`), and questions, answers and the region
-    go to the system log (`lib/ask/ask_page.dart:164`, with the phone's own answers at `lib/ask/ask_page.dart:384`).
-  conditions: questions leave the device only to a base the user connected to on the local network; position
-    never leaves; release builds do not log questions, answers or position.
+  - a `.local` name goes through the system resolver, so a DNS server on the network could point one at an
+    internet host.
+  conditions: 'questions leave the device only to a base the user connected to on the local network; position
+    never leaves; release builds do not log questions, answers or position. A base address must be on the
+    local network: a private IPv4 address, a link-local or private IPv6 address, a `.local` name, or loopback
+    in debug builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an older build is checked
+    again when the settings load and before connecting. Release builds leave the question, answer, search query,
+    matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:95`).'
   violation_symptoms:
   - info-leak
   provenance:

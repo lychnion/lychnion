@@ -23,6 +23,8 @@ import 'settings.dart';
 ///   --dart-define=BASE_URL=http://192.168.1.20:8642          ask this base first (phone)
 ///   --dart-define=FACTS_EDIT=true                            enter facts on the map (on with BASE_SERVER)
 ///   --dart-define=DEMO_FACTS=true                            add made-up current facts (test data)
+///   --dart-define=LOG_ANSWERS=true                           log questions, answers and region in a
+///                                                            release build too (debug always does)
 ///   --dart-define=TOP_K=2                                    passages per answer (default 4)
 ///   --dart-define=LLM_BACKEND=gpu                            answer model on cpu or gpu (default: llama.cpp decides, LiteRT-LM cpu)
 ///   --dart-define=LLM_CONTEXT=2048                           model context in tokens (default 4096)
@@ -63,7 +65,46 @@ abstract final class DevFlags {
   );
   static const demoFacts = bool.fromEnvironment('DEMO_FACTS');
   static const factsEdit = bool.fromEnvironment('FACTS_EDIT');
+
+  /// Questions, answers and the region in the log of a release build
+  /// (`LOG_ANSWERS`; also with `ASK` or `AUTO_BENCH`, which the eval and
+  /// benchmarks read). Debug builds always log them (lychnion/lychnion#71).
+  static const logAnswers =
+      bool.fromEnvironment('LOG_ANSWERS') || demoQuestions != '' || autoBench;
 }
+
+/// Keys of a log event that carry what the user asked, what it was about
+/// (which sources, passages and safety lines matched), or where they are.
+const privateLogKeys = {
+  'q',
+  'a',
+  'search_query',
+  'region',
+  'question',
+  'retrieved',
+  'alerts',
+  'cited',
+  'top',
+};
+
+/// [data] as the log may show it: in a release build without
+/// [DevFlags.logAnswers], without the question, answer, search query,
+/// matched sources and region, and an `error` only by its type (a message
+/// might repeat user text). Android puts the app's log in logcat, which
+/// other tools read (#71). [debug] and [logAnswers] are for tests.
+Map<String, Object?> loggable(
+  Map<String, Object?> data, {
+  bool debug = kDebugMode,
+  bool logAnswers = DevFlags.logAnswers,
+}) => debug || logAnswers
+    ? data
+    : {
+        for (final e in data.entries)
+          if (e.key == 'error')
+            e.key: '${e.value}'.split(':').first
+          else if (!privateLogKeys.contains(e.key))
+            e.key: e.value,
+      };
 
 /// Computers can share on the local network (phones: later).
 bool get isDesktop => switch (defaultTargetPlatform) {

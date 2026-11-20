@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../base/base_link.dart';
 import '../util/versioned_file.dart';
 
 /// User settings kept on the device (settings.json in app support).
@@ -86,10 +87,16 @@ class AppSettings extends ChangeNotifier {
           : null;
       showStats = j['show_stats'] == true;
       // Older files wrote shelter_url, shelter_name and shelter_key.
-      baseUrl = (j['base_url'] ?? j['shelter_url']) as String?;
-      baseName = (j['base_name'] ?? j['shelter_name']) as String?;
-      baseKey = (j['base_key'] ?? j['shelter_key']) as String?;
-      baseSignedKey = j['base_signed_key'] as String?;
+      final savedUrl = (j['base_url'] ?? j['shelter_url']) as String?;
+      // Checked again: an older build saved any host, and questions must
+      // go only to a base on the local network (#72). One that is not is
+      // forgotten, with its name and keys.
+      baseUrl = savedUrl == null ? null : BaseLink.normalize(savedUrl);
+      if (baseUrl != null) {
+        baseName = (j['base_name'] ?? j['shelter_name']) as String?;
+        baseKey = (j['base_key'] ?? j['shelter_key']) as String?;
+        baseSignedKey = j['base_signed_key'] as String?;
+      }
       sharing = j['sharing'] == true;
       region = j['region'] as String?;
       sharingName = j['sharing_name'] as String?;
