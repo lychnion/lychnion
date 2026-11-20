@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:6412ac272a9e96e3c9aa22bb894b1d7e53da1ea301afaea7b8c380b2263bff63
+prose_version: threat-model.md@sha256:5fa27dbf2b63fd715e0601ca9018b63187208f7f29abe815d133f4d476ccc6f6
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1702,7 +1702,7 @@ properties_claimed:
   - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
     not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:169`).
   conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
-    also not by upper or lower case, and its key statements count only for its own name. In the app, Lychnion''s
+    also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion''s
     ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
     of Lychnion''s) are reserved, also when not installed: an added publisher''s record for one is refused
     from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion''s own

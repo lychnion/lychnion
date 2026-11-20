@@ -125,7 +125,22 @@ bool isOlder(String version, String installed) {
 
 /// Ids and file names end up in file paths: letters, digits, `.`, `_`
 /// and `-` only, not starting with a dot.
-final _safeName = RegExp(r'^[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}$');
+final _safeNamePattern = RegExp(r'^[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}$');
+
+/// Windows device names, also with an ending (`NUL`, `con.sqlite`): Windows
+/// opens the device instead of a file.
+final _windowsDevice = RegExp(
+  r'^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)',
+  caseSensitive: false,
+);
+
+/// A name that is the same file on every system: no trailing dot (Windows
+/// drops it, so `x.sqlite.` would be `x.sqlite`) and no Windows device
+/// name (lychnion/lychnion#76).
+bool _safeName(String s) =>
+    _safeNamePattern.hasMatch(s) &&
+    !s.endsWith('.') &&
+    !_windowsDevice.hasMatch(s);
 
 class RecordFile {
   const RecordFile(this.name, this.size, this.sha256);
@@ -207,7 +222,7 @@ class PackageRecord {
     for (final k in ['id', 'kind', 'publisher', 'key', 'signed', 'signature']) {
       str(k);
     }
-    if (!_safeName.hasMatch(str('id'))) {
+    if (!_safeName(str('id'))) {
       throw FormatException('Record: bad id ${j['id']}');
     }
     if (!_versionPattern.hasMatch(str('version'))) {
@@ -219,7 +234,7 @@ class PackageRecord {
     for (final f in raw) {
       final m = f as Map;
       final name = m['name'], size = m['size'], sha = m['sha256'];
-      if (name is! String || !_safeName.hasMatch(name)) {
+      if (name is! String || !_safeName(name)) {
         throw FormatException('Record: bad file name $name');
       }
       if (size is! int || size <= 0) throw FormatException('Record: bad size');
@@ -228,7 +243,8 @@ class PackageRecord {
       }
       files.add(RecordFile(name, size, sha));
     }
-    if (files.map((f) => f.name).toSet().length != files.length) {
+    // Without case, as on macOS and Windows.
+    if (files.map((f) => f.name.toLowerCase()).toSet().length != files.length) {
       throw FormatException('Record: duplicate file names');
     }
     return PackageRecord._(Map.unmodifiable(j), List.unmodifiable(files));

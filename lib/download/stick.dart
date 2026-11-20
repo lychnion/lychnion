@@ -351,6 +351,8 @@ Future<bool> _install(
   Map<Object?, Object?> urls,
 ) async {
   // Names that differ only in case are one file on macOS and Windows.
+  // lychnion_format refuses such a record when it is read (#76); this
+  // stays as a second guard right before files are written.
   final names = {for (final f in r.files) f.name.toLowerCase()};
   if (names.length != r.files.length) return false;
   final dir = store.dirFor(item.kind);

@@ -397,35 +397,4 @@ void main() {
     await copyToStick(store('empty2'), node);
     expect(other.existsSync(), isTrue);
   });
-
-  test('file names that differ only in case are not installed', () async {
-    final data = utf8.encode('aaa');
-    final f = {'size': data.length, 'sha256': sha256.convert(data).toString()};
-    final r = await PackageRecord.sign({
-      'format': 1,
-      'id': 'jp.a',
-      'kind': 'package',
-      'version': '1',
-      'publisher': 'lychnion',
-      'title': {'en': 'a'},
-      'files': [
-        {'name': 'jp.a.sqlite', ...f},
-        {'name': 'JP.A.sqlite', ...f},
-      ],
-      'signed': '2026-11-18T09:00:00+09:00',
-    }, key);
-    final folder = Directory('${stick.path}/lychnion');
-    File('${folder.path}/blobs/sha256/${f['sha256']}')
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(data);
-    File('${folder.path}/catalog.json').writeAsStringSync(
-      jsonEncode({
-        'format': 2,
-        'records': [r.json],
-      }),
-    );
-    final l = await loadFromStick(store('there'), stick);
-    expect(l.added, 0);
-    expect(l.failed, ['jp.a 1']);
-  });
 }

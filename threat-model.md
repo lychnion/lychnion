@@ -525,9 +525,11 @@ plus phones that also use the internet when they can.
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
-  ids, also not by upper or lower case, and its key statements count only
-  for its own name. In the app, Lychnion's ids and file names (the bundled
-  packages, the bundled catalog and Lychnion's items in every checked
+  ids, also not by upper or lower case or by a name Windows changes (a
+  trailing dot) or opens as a device (`NUL`), which a record may not have
+  (`packages/lychnion_format/lib/src/record.dart:140`), and its key
+  statements count only for its own name. In the app, Lychnion's ids and
+  file names (the bundled packages, the bundled catalog and Lychnion's items in every checked
   catalog of Lychnion's) are reserved, also when not installed: an added
   publisher's record for one is refused from a USB stick, a followed
   catalog or a base, a copy installed before is not used, and Lychnion's

@@ -97,6 +97,10 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- A record whose id or file name ends in a dot or is a Windows device
+  name (`NUL`, `con.sqlite`) is refused, as is one with two file names
+  that differ only in case: such a name could reach another publisher's
+  file on Windows, or by case on macOS and Windows (#76).
 - The headless node no longer forgets a version when no version of a
   record is complete (a file deleted by hand and a failed fetch): the
   record is set aside with its files instead of dropped, so a later pull
