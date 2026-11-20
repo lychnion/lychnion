@@ -693,7 +693,7 @@
       "property": "publisher-namespace",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case, and its key statements count only for its own name.",
+      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case, and its key statements count only for its own name. In the app, Lychnion's ids and file names (the bundled packages, the bundled catalog and Lychnion's items in every checked catalog of Lychnion's) are reserved, also when not installed: an added publisher's record for one is refused from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion's own replaces it (`lib/download/download_store.dart:187`).",
       "provenance": "documented",
       "source": "docs/distribution.md \"Publishers and keys\""
     },
@@ -717,7 +717,7 @@
       "property": "grounded-answer-presentation",
       "violation_symptom": "x-ungrounded-answer",
       "severity_tier": "security",
-      "conditions": "an answer is built only from installed guides and shows its sources; an answer whose citations do not check out carries a warning; the app never shows bare-model text as an answer.",
+      "conditions": "an answer is built only from installed guides and shows its sources; an answer whose citations do not check out carries a warning; the app never shows bare-model text as an answer: the phone answers by itself only when the model and the guides are loaded, so a failure after the model is up (the search model, indexing, a package) turns the question bar off unless a base answers, and a question that still reaches it gets a \"cannot answer without the guides\" message (`lib/ask/answer_rules.dart:12`).",
       "provenance": "documented",
       "source": "SECURITY.md \"In scope\""
     },
@@ -725,7 +725,7 @@
       "property": "safety-line-lychnion-only",
       "violation_symptom": "x-missing-or-forged-safety-line",
       "severity_tier": "security",
-      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher supplies it.",
+      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher supplies it: a package whose record is not signed by a built-in publisher is loaded without its alerts (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`), and its copy of a bundled Lychnion package is not loaded (`DownloadStore.bundledPackageSource`), and an empty trigger word matches nothing.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
@@ -733,7 +733,7 @@
       "property": "models-lychnion-only",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "only models signed by Lychnion are installed and loaded.",
+      "conditions": "only models signed by Lychnion are installed and loaded: a `model` record from any other publisher is refused in catalogs (also followed ones and bases), on USB sticks, when installing and by nodes when they pull, and one installed by an older build is never loaded or picked (`packages/lychnion_format/lib/src/publishers.dart:21`).",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
@@ -757,7 +757,7 @@
       "property": "unverified-facts-not-acted-on",
       "violation_symptom": "bad-data-accepted",
       "severity_tier": "security",
-      "conditions": "only verified facts change the suggested evacuation site or walking route.",
+      "conditions": "only verified facts change the suggested evacuation site or walking route: a shelter is avoided, a road routed around and a warning's hazard used only when the fact is confirmed (`lib/map/map_state.dart:64`, `lib/map/map_state.dart:183`, `lib/map/map_state.dart:56`); unconfirmed ones are shown with their label.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
@@ -765,7 +765,7 @@
       "property": "fact-time-bounds",
       "violation_symptom": "bad-data-accepted",
       "severity_tier": "security",
-      "conditions": "a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.",
+      "conditions": "a fact dated in the future, or with a lifetime far beyond normal, does not win its topic: a fact dated more than 30 minutes ahead, living longer than 3 days, or expiring more than that from now is refused on arrival and never current (`lib/facts/fact_store.dart:352`); among facts of the same trust, one dated after now loses to every one that is not (`lib/facts/fact_store.dart:384`) until its date comes, so a date in the 30-minute window can delay an override by at most that long, as a report sent at that time could.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
@@ -813,7 +813,7 @@
       "property": "device-egress",
       "violation_symptom": "info-leak",
       "severity_tier": "security",
-      "conditions": "questions leave the device only to a base the user connected to on the local network; position never leaves; release builds do not log questions, answers or position.",
+      "conditions": "questions leave the device only to a base the user connected to on the local network; position never leaves; release builds do not log questions, answers or position. A base address must be on the local network: a private IPv4 address, a link-local or private IPv6 address, a `.local` name, or loopback in debug builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an older build is checked again when the settings load and before connecting. Release builds leave the question, answer, search query, matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:95`).",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

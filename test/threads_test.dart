@@ -31,6 +31,29 @@ void main() {
     expect(s.recent, [b, a]);
   });
 
+  // lychnion/lychnion#65: whether an answer came from the guides is kept
+  // per answer, so old answers keep their sources and warnings while the
+  // guides reload; a "guides could not be loaded" note is not one.
+  test('an answer keeps whether it came from the guides', () async {
+    final dir = Directory.systemTemp.createTempSync('threads_guides_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final s = ThreadStore();
+    await s.load(dir: dir);
+    s.create().entries.addAll([
+      GroundedAnswer('a')..text = 'from the guides',
+      GroundedAnswer('b')
+        ..text = 'the guides could not be loaded'
+        ..fromGuides = false,
+    ]);
+    await s.save();
+    final again = ThreadStore();
+    await again.load(dir: dir);
+    expect(
+      [for (final a in again.recent.single.entries) a.fromGuides],
+      [true, false],
+    );
+  });
+
   test(
     'a base answer keeps its name and whether the base was checked',
     () async {

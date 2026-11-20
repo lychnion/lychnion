@@ -526,12 +526,23 @@ plus phones that also use the internet when they can.
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
   ids, also not by upper or lower case, and its key statements count only
-  for its own name. *Violation symptom*: integrity-bypass.
-  *Tier*: security-critical. *Voided by*: no switch. Known gap: a stick record
-  for a Lychnion id not installed yet passes, because the owner check only
-  looks at installed markers (`lib/download/download_store.dart:371`), and
-  the installed copy then wins over the bundled one
-  (`lib/download/download_store.dart:581`).
+  for its own name. In the app, Lychnion's ids and file names (the bundled
+  packages, the bundled catalog and Lychnion's items in every checked
+  catalog of Lychnion's) are reserved, also when not installed: an added
+  publisher's record for one is refused from a USB stick, a followed
+  catalog or a base, a copy installed before is not used, and Lychnion's
+  own replaces it (`lib/download/download_store.dart:187`). Known gap: the
+  headless node reserves nothing; it accepts an added publisher's record
+  for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
+  the id back only when its source is pulled
+  (`packages/lychnion_node/lib/src/pull.dart:151`). *Violation symptom*:
+  integrity-bypass. *Tier*: security-critical. *Voided by*: nothing voids
+  it in the app; the check runs in `isTaken`, `installed` and
+  `recordedVersionOf`, and no flag or dev define turns it off (the
+  `CATALOG_URL` dev define only changes which catalog's checked Lychnion
+  records are reserved):
+  `grep -rn "isReservedFor\|reserve(\|reserveFrom(" lib` shows only
+  `lib/download/download_store.dart` and `lib/download/download_manager.dart`.
   *(documented, docs/distribution.md "Publishers and keys")*
 - **`no-downgrade-installed`** (`downloads`, `records`, `publishing`, `node`): an
   installed item is never replaced with an older version.
@@ -558,24 +569,35 @@ plus phones that also use the internet when they can.
 - **`grounded-answer-presentation`** (`answers`): an answer is built only
   from installed guides and shows its sources; an answer whose citations do
   not check out carries a warning; the app never shows bare-model text as an
-  answer. *Violation symptom*: x-ungrounded-answer. *Tier*:
-  security-critical. *Voided by*: `BARE` skips the packages
-  (`lib/ask/model_loading.dart:83`). Known violation: when loading fails after
-  the model is up, the warning is drawn only if `grounded` is true
-  (`lib/ask/ask_page.dart:587`). *(documented, SECURITY.md "In scope")*
+  answer: the phone answers by itself only when the model and the guides
+  are loaded, so a failure after the model is up (the search model,
+  indexing, a package) turns the question bar off unless a base answers,
+  and a question that still reaches it gets a "cannot answer without the
+  guides" message (`lib/ask/answer_rules.dart:12`). *Violation symptom*:
+  x-ungrounded-answer. *Tier*: security-critical. *Voided by*: `BARE`
+  skips the packages and lets the model answer alone
+  (`lib/app/dev_flags.dart:41`). *(documented, SECURITY.md "In scope")*
 - **`safety-line-lychnion-only`** (`answers`): when a hazard question matches,
   the fixed safety line from a Lychnion-signed package is shown word for word
-  above the AI text; no other publisher supplies it. *Violation symptom*:
+  above the AI text; no other publisher supplies it: a package whose record
+  is not signed by a built-in publisher is loaded without its alerts
+  (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`), its
+  copy of a bundled Lychnion package is not loaded
+  (`DownloadStore.bundledPackageSource`), and an empty trigger word matches
+  nothing. *Violation symptom*:
   x-missing-or-forged-safety-line. *Tier*: security-critical. *Voided by*:
   questions routed to the app help skip the line
-  (`lib/knowledge/grounded_answer.dart:242`). Known violation: alerts of every
-  installed package match (`lib/knowledge/grounded_answer.dart:253`).
-  *(maintainer, 2026-11)*
+  (`lib/knowledge/grounded_answer.dart:242`). *(maintainer, 2026-11)*
 - **`models-lychnion-only`** (`downloads`, `answers`): only models signed by
-  Lychnion are installed and loaded. *Violation symptom*: integrity-bypass.
-  *Tier*: security-critical. *Voided by*: the dev loaders under
-  `signed-install-only`. Known violation: any trusted publisher's record kind
-  is accepted (`lib/download/catalog.dart:186`). *(maintainer, 2026-11)*
+  Lychnion are installed and loaded: a `model` record from any other
+  publisher is refused in catalogs (also followed ones and bases), on USB
+  sticks, when installing and by nodes when they pull, and one installed by an older build
+  is never loaded or picked
+  (`packages/lychnion_format/lib/src/publishers.dart:21`). *Violation
+  symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: the
+  dev loaders under `signed-install-only`, the `GGUF_MODEL_PATH` and
+  `EMBED_MODEL_PATH` defines (`lib/app/dev_flags.dart:33`,
+  `lib/app/dev_flags.dart:40`), which load any file. *(maintainer, 2026-11)*
 - **`base-answer-signature`** (`base-client`, `base-server`): with a pinned
   key, the phone accepts a base answer only when its Ed25519 signature covers
   the phone's nonce, a hash of the request and the exact body; once that base
@@ -598,15 +620,30 @@ plus phones that also use the internet when they can.
   (`lib/app/app_shell.dart:185`). *(documented, docs/facts-results.md
   "Signed facts (2026-11-05)")*
 - **`unverified-facts-not-acted-on`** (`facts`): only verified facts change
-  the suggested evacuation site or walking route. *Violation symptom*:
-  bad-data-accepted. *Tier*: security-critical. *Voided by*: no switch.
-  Known violation: shelters are avoided whatever the trust
-  (`lib/map/map_state.dart:59`). *(maintainer, 2026-11)*
+  the suggested evacuation site or walking route: a shelter is avoided, a
+  road routed around and a warning's hazard used only when the fact is
+  confirmed (`lib/map/map_state.dart:64`, `lib/map/map_state.dart:183`,
+  `lib/map/map_state.dart:56`); unconfirmed ones are shown with their label.
+  *Violation symptom*: bad-data-accepted. *Tier*: security-critical.
+  *Voided by*: nothing voids it: `grep -rn "unconfirmed" lib/map` shows the
+  three checks, and the suggestion and route read only these three getters
+  (the map and Home also list every current fact, for display only).
+  *(maintainer, 2026-11)*
 - **`fact-time-bounds`** (`facts`): a fact dated in the future, or with a
-  lifetime far beyond normal, does not win its topic. *Violation symptom*:
-  bad-data-accepted. *Tier*: security-critical. *Voided by*: no switch.
-  Known violation: the newest `observedAt` wins with no cap
-  (`lib/facts/fact_store.dart:275`). *(maintainer, 2026-11)*
+  lifetime far beyond normal, does not win its topic: a fact dated more
+  than 30 minutes ahead, living longer than 3 days, or expiring more than
+  that from now is refused on arrival and never current
+  (`lib/facts/fact_store.dart:352`; one living longer than 3 days is also
+  dropped from storage, one only ahead of this clock is hidden until the
+  clock reaches it, one more than a year ahead is dropped); among facts of
+  the same trust, one dated after now loses to every one that is not
+  (`lib/facts/fact_store.dart:384`) until its date comes, so a date in the
+  30-minute window can delay an override by at most that long, as a
+  report sent at that time could. *Violation symptom*: bad-data-accepted.
+  *Tier*: security-critical. *Voided by*: the device's own clock, which
+  the store judges by (`lib/facts/fact_store.dart:39`): a device whose
+  clock is more than 30 minutes behind refuses fresh facts, silently, and
+  one far ahead accepts old ones. *(maintainer, 2026-11)*
 - **`base-request-limits`** (`base-server`): every request has limits:
   100 connections in all, body 8 KiB within 10 s, question 500 characters,
   8 live questions, one per address, 30 s idle, 30 s send stall, answers
@@ -666,11 +703,20 @@ plus phones that also use the internet when they can.
 - **`device-egress`** (`device-data`, `base-client`): questions leave the
   device only to a base the user connected to on the local network; position
   never leaves; release builds do not log questions, answers or position.
-  *Violation symptom*: info-leak. *Tier*: security-critical. *Voided by*: no
-  switch. Known violations: a base link may name any host
-  (`lib/base/base_link.dart:88`), and questions, answers and the region go
-  to the system log (`lib/ask/ask_page.dart:164`, with the phone's own
-  answers at `lib/ask/ask_page.dart:384`). *(maintainer, 2026-11)*
+  A base address must be on the local network: a private IPv4 address, a
+  link-local or private IPv6 address, a `.local` name, or loopback in debug
+  builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an
+  older build is checked again when the settings load and before
+  connecting. Release builds leave the question, answer, search query,
+  matched sources and region out of the log, and errors keep only their
+  type (`lib/app/dev_flags.dart:95`). Known gap: a `.local` name goes
+  through the system resolver, so a DNS server on the network could point
+  one at an internet host. *Violation symptom*: info-leak. *Tier*:
+  security-critical. *Voided by*: the `LOG_ANSWERS`, `ASK` and `AUTO_BENCH`
+  defines log them in a release build too (`lib/app/dev_flags.dart:72`), and
+  the `BASE_URL` define connects to its address unchecked
+  (`lib/app/dev_flags.dart:62`); all are development builds. *(maintainer,
+  2026-11)*
 - **`lan-device-same-origin`** (`downloads`): from a base or a nearby phone,
   the app downloads only files on that device, never from other addresses
   its catalog names or redirects to. *Violation symptom*: info-leak. *Tier*:

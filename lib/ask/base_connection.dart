@@ -5,8 +5,13 @@ part of 'ask_page.dart';
 mixin _BaseConnection on _AskPageBase {
   Timer? _retry;
 
-  String? get _wantedBase =>
-      DevFlags.baseUrl.isNotEmpty ? DevFlags.baseUrl : widget.settings?.baseUrl;
+  /// The base to ask: the dev define, else the saved one, checked again
+  /// (only the local network, #72; AppSettings checks it when loading too).
+  String? get _wantedBase {
+    if (DevFlags.baseUrl.isNotEmpty) return DevFlags.baseUrl;
+    final saved = widget.settings?.baseUrl;
+    return saved == null ? null : BaseLink.normalize(saved);
+  }
 
   /// Connects, switches or disconnects when the saved base changes.
   void _baseChanged() {
@@ -19,10 +24,13 @@ mixin _BaseConnection on _AskPageBase {
     _retry?.cancel();
     _base?.close();
     _base = want == null ? null : BaseClient(want);
+    // No base any more: questions waiting for one get their answer or
+    // their explanation now (#65).
+    if (want == null) scheduleMicrotask(_answerWaiting);
     setState(() {
       _baseReady = false;
       if (_phase == AskPhase.base) {
-        _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
+        _phase = _ownPhase;
       }
     });
     if (_base != null) unawaited(_connectBase());
@@ -62,7 +70,7 @@ mixin _BaseConnection on _AskPageBase {
     if (!check.connects) {
       setState(() {
         _status = 'Base key does not match its link: not connected.';
-        _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
+        _phase = _ownPhase;
       });
     }
     return check.connects;

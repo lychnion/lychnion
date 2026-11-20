@@ -529,6 +529,8 @@ class DownloadManager extends ChangeNotifier {
         c = await _parse(j['body'] as String, Uri.parse(j['url'] as String));
       }
     } catch (_) {}
+    // Checked records only: Lychnion's items of this catalog (#68).
+    store.reserveFrom(c.items);
     return c;
   }
 
@@ -665,6 +667,8 @@ class DownloadManager extends ChangeNotifier {
       if (url != null) {
         final body = await fetchCatalogText(url);
         _main = await _parse(body, url);
+        // Ids Lychnion added since start are Lychnion's at once (#68).
+        store.reserveFrom(_main.items);
         await store.cachedCatalog.parent.create(recursive: true);
         await store.cachedCatalog.writeAsString(
           jsonEncode({'url': '$url', 'body': body}),

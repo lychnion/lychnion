@@ -168,8 +168,9 @@ class FactStore extends ChangeNotifier {
     final t = now;
     final fresh = [
       for (final f in facts)
-        // Expired ones are not kept (a base sends all it has, each time).
-        if (!f.isExpired(t) && known.add(_key(f))) f,
+        // Expired ones are not kept (a base sends all it has, each time),
+        // nor ones outside the time bounds (#70).
+        if (!f.isExpired(t) && inTimeBounds(f, t) && known.add(_key(f))) f,
     ];
     if (fresh.isEmpty) return 0;
     final keys = trust;
@@ -217,12 +218,24 @@ class FactStore extends ChangeNotifier {
     final t = now;
     final before = _facts.length;
     final seen = <String>{};
-    _facts.removeWhere((f) => f.isExpired(t) || !seen.add(_key(f)));
+    // Also facts whose own dates are impossible (#70). Not those that are
+    // only ahead of this clock: after a clock correction they count again,
+    // and `all` hides them meanwhile.
+    // A date more than a year ahead comes only from a far wrong clock or
+    // an old file (2099): it would hold a slot for decades, hidden.
+    final yearAhead = t.add(const Duration(days: 365));
+    _facts.removeWhere(
+      (f) =>
+          f.isExpired(t) ||
+          !_sane(f) ||
+          f.observedAt.isAfter(yearAhead) ||
+          !seen.add(_key(f)),
+    );
     if (_facts.length > maxFacts) {
       final best = <String, Fact>{};
       for (final f in _facts) {
         final b = best[f.topic];
-        if (b == null || _beats(f, b)) best[f.topic] = f;
+        if (b == null || _beats(f, b, t)) best[f.topic] = f;
       }
       final winners = best.values.toSet();
       int keep(Fact f) =>
@@ -309,19 +322,53 @@ class FactStore extends ChangeNotifier {
       '${f.topic}|${f.value}|${f.observedAt.millisecondsSinceEpoch}|${f.sourceType.code}';
 
   /// All facts that have not expired, including ones that lost a conflict.
-  List<Fact> get all => [
-    for (final f in _facts)
-      if (!f.isExpired(now)) f,
-  ];
+  List<Fact> get all {
+    final t = now;
+    return [
+      for (final f in _facts)
+        if (!f.isExpired(t) && inTimeBounds(f, t)) f,
+    ];
+  }
+
+  /// How far in the future a fact may be dated: clocks differ, and a
+  /// phone without network time (no mobile network in a disaster) drifts
+  /// or is set by hand. Until its time comes, such a fact ranks below any
+  /// fact not dated in the future ([_beats]); after that it is an ordinary
+  /// report, so the window delays nothing more than a report sent then.
+  /// A device whose clock is further behind refuses fresh facts.
+  static const maxSkew = Duration(minutes: 30);
+
+  /// The longest a fact may claim to stay current. The app's own form
+  /// offers at most 24 hours; a shelter status or a blocked road is
+  /// reported again when it still holds.
+  static const maxLifetime = Duration(days: 3);
+
+  /// Whether [f] is within the time bounds at [now] (lychnion/lychnion#70):
+  /// dated at most [maxSkew] ahead, a lifetime of at most [maxLifetime],
+  /// and expiring at most that long from now. Otherwise one fact dated
+  /// 2099, from a resident or signed once by any trusted key, would win
+  /// its topic for years; a "cleared" one would hide the topic. Such a
+  /// fact is refused, not shortened: its signature covers both times.
+  static bool inTimeBounds(Fact f, DateTime now) =>
+      _sane(f) &&
+      !f.observedAt.isAfter(now.add(maxSkew)) &&
+      !f.expiresAt.isAfter(now.add(maxLifetime + maxSkew));
+
+  /// The part that does not depend on the clock: ends after it begins and
+  /// lives at most [maxLifetime]. Only such facts are dropped from storage.
+  static bool _sane(Fact f) =>
+      !f.expiresAt.isBefore(f.observedAt) &&
+      f.expiresAt.difference(f.observedAt) <= maxLifetime;
 
   /// The winning fact per topic: the most trusted source first, then the
   /// newest report from that source. Expired facts never win. A winning
   /// "cleared" fact (road reopened, warning lifted) hides the topic.
   List<Fact> get current {
+    final t = now;
     final best = <String, Fact>{};
     for (final f in all) {
       final b = best[f.topic];
-      if (b == null || _beats(f, b)) best[f.topic] = f;
+      if (b == null || _beats(f, b, t)) best[f.topic] = f;
     }
     return [
       for (final f in best.values)
@@ -329,9 +376,18 @@ class FactStore extends ChangeNotifier {
     ]..sort((a, b) => b.observedAt.compareTo(a.observedAt));
   }
 
-  static bool _beats(Fact a, Fact b) {
+  /// Whether [a] wins its topic over [b] at [t]: the most trusted first;
+  /// among the same trust, one dated after [t] loses to any that is not,
+  /// so a date in the [maxSkew] window does not override a real report
+  /// before that date comes (#70); otherwise the newest. Instants are
+  /// compared, so UTC and local times of the same moment are equal.
+  static bool _beats(Fact a, Fact b, DateTime t) {
     if (a.trust != b.trust) return a.trust > b.trust;
-    return a.observedAt.isAfter(b.observedAt);
+    final aAhead = a.observedAt.isAfter(t), bAhead = b.observedAt.isAfter(t);
+    if (aAhead != bAhead) return bAhead;
+    // Both ahead: the one less far ahead. Neither: the newest.
+    final c = a.observedAt.compareTo(b.observedAt);
+    return aAhead ? c < 0 : c > 0;
   }
 
   /// The current status of an evacuation site, if any fact says so.

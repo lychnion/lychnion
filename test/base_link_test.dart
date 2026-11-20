@@ -19,6 +19,61 @@ void main() {
     expect(BaseLink.normalize('javascript:alert(1)'), isNull);
   });
 
+  // lychnion/lychnion#72: a base is on the local network; a link must not
+  // send questions to a server on the internet.
+  test('only local-network hosts are bases', () {
+    for (final ok in [
+      '10.0.0.5',
+      '172.16.4.1',
+      '192.168.43.1',
+      '100.64.1.2',
+      '169.254.10.20',
+      '127.0.0.1',
+      'base.local',
+      'BASE.LOCAL',
+      '[fe80::1]',
+      '[fd12:3456::7]',
+      '[::1]',
+    ]) {
+      expect(BaseLink.normalize(ok), isNotNull, reason: ok);
+    }
+    for (final bad in [
+      '203.0.113.5',
+      '8.8.8.8',
+      '172.32.0.1',
+      'example.com',
+      'evil.example',
+      'base',
+      '.local',
+      'https://example.com',
+      '[2001:db8::1]',
+      'http://user@192.168.1.20',
+    ]) {
+      expect(BaseLink.normalize(bad), isNull, reason: bad);
+    }
+    // IPv6 keeps its brackets.
+    expect(BaseLink.normalize('[fe80::1]'), 'http://[fe80::1]:8642');
+    // Ports must be real ones.
+    expect(BaseLink.normalize('192.168.1.20:0'), isNull);
+    expect(BaseLink.normalize('192.168.1.20:99999'), isNull);
+    // Loopback only where a simulator or this computer's own base can
+    // be there (debug builds, desktops); on a phone it is another app.
+    expect(BaseLink.isLocalHost('127.0.0.1', loopback: false), isFalse);
+    expect(BaseLink.isLocalHost('::1', loopback: false), isFalse);
+    expect(BaseLink.isLocalHost('127.0.0.1', loopback: true), isTrue);
+    // A link to a public host is not a base link at all.
+    expect(
+      BaseLink.fromUri(
+        Uri.parse('lychnion://base?url=http%3A%2F%2F203.0.113.5%3A8642'),
+      ),
+      isNull,
+    );
+    expect(
+      ShareLink.fromUri(Uri.parse('lychnion://share?url=example.com')),
+      isNull,
+    );
+  });
+
   test('link round trip, with a Japanese name', () {
     const link = BaseLink('http://192.168.1.20:8642', name: '西宮市役所');
     final back = BaseLink.fromUri(Uri.parse(link.toUri().toString()))!;

@@ -1320,8 +1320,14 @@ abstract class AppLocalizations {
   /// No description provided for @askExplainFailed.
   ///
   /// In en, this message translates to:
-  /// **'The AI model could not be loaded.'**
+  /// **'The AI model or the guides could not be loaded. Restart the app; if it happens again, check Settings → Downloads.'**
   String get askExplainFailed;
+
+  /// No description provided for @askNoGuides.
+  ///
+  /// In en, this message translates to:
+  /// **'The guides could not be loaded, so this question cannot be answered here: without them the answer would have no sources. Restart the app; if it happens again, check Settings → Downloads.'**
+  String get askNoGuides;
 
   /// No description provided for @askHint.
   ///

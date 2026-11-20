@@ -90,9 +90,71 @@ here should be relied on alone in an emergency. Source only; build it as
 - The data tools moved to
   [lychnion-data](https://github.com/lychnion/lychnion-data). Bundled
   data is from its release 2026.11.5.
+- The map drags smoothly on slow phones: shapes are drawn once per tile
+  as images, only the labels are drawn as vectors. On a Pixel 5a, dragging
+  at zoom 15 went from about 12 to 55-58 frames per second. Lines look a
+  little softer on high-density screens.
 
 ### Security
 
+- A fact dated more than 30 minutes in the future, living longer than 3
+  days, or expiring more than 3 days from now is refused and never
+  current. Before, one fact dated 2099 won its topic for years, and a
+  "cleared" one hid it. A fact dated a little ahead (clocks differ) is
+  accepted, but until its time comes it loses to every report that is
+  not; one that only looks ahead after the device's clock was set back
+  is hidden, not deleted. A device whose clock is more than 30 minutes
+  behind refuses fresh facts, so set the clock on phones without network
+  time (#70).
+- Only confirmed facts change the suggested evacuation site and the
+  walking route. A resident report, or an "official" fact whose
+  signature does not check out (anyone on a base's Wi-Fi can send one),
+  is still shown with its "unconfirmed" label, but no longer makes the
+  app steer away from a shelter, route around a road or switch to a
+  warning's hazard (#69).
+- The AI model never answers alone. When the guides or the search model
+  fail to load after the model is up, the question bar turns off (unless
+  a base answers) and the screen says the guides could not be loaded;
+  before, the model answered by itself, with no sources and no safety
+  line (#65). A reload (after a download, or a publisher removed) drops
+  the guides loaded before, so a failed reload does not go on answering
+  from the old set; questions asked meanwhile get the explanation when
+  nothing can answer them.
+- Release builds no longer write questions, answers, the sources that
+  matched or the region to the system log (logcat on Android), and log
+  errors only by their type; timings are still logged. The `LOG_ANSWERS`
+  define (and `ASK`, `AUTO_BENCH`, which the eval reads) logs them in a
+  release build for development (#71).
+- A base address must be on the local network: a private IPv4 address,
+  a link-local or private IPv6 address, a `.local` name, or loopback
+  (debug builds and desktops only), on a port from 1 to 65535. A link or
+  a typed address naming an internet host is refused, so a web page can
+  no longer send a phone's questions to a server on the internet; a base
+  saved that way by an older build is forgotten. The privacy help now
+  says that questions go to a connected base (#72).
+- Only Lychnion publishes models. A publisher the user added can bring
+  guides and maps, but its model records are refused in catalogs, on USB
+  sticks, from bases and by nodes when they pull, and a model of theirs
+  installed by an older build is never loaded or picked as the chat or
+  search model. A model's file is parsed by native code and its text is
+  what answers (#67). Such an older install is not listed in Downloads;
+  removing that publisher in Settings → Publishers deletes it and frees
+  the space.
+- Lychnion's ids and file names are reserved even before they are
+  installed: the bundled packages, the bundled catalog and Lychnion's
+  items in every catalog of Lychnion's the app has checked. An added
+  publisher can no longer install a package, map or model under one of
+  them, from a USB stick, a followed catalog or a base. A copy installed
+  that way before is not used; Lychnion's own update replaces it,
+  whatever version the copy claims, and removes the copy's files that no
+  other item lists (#68). Deleting an item never removes a file another
+  installed item lists. The headless node does not reserve ids yet.
+- Only packages signed by Lychnion supply the fixed official safety line
+  above an answer. A package from a publisher the user added is still
+  searched and quoted with its source, but its safety lines are left out.
+  A copy of a built-in Lychnion package installed from an added
+  publisher is not used: the app answers from Lychnion's own. An empty
+  trigger word no longer matches every question (#66).
 - The base and Share nearby listen only on the device's private
   addresses on interfaces with a known Wi-Fi, hotspot, tethering or
   wired name, the addresses the screen shows, and follow them as the

@@ -70,13 +70,14 @@ void main() {
     SimpleKeyPair? key,
     String publisher = 'jp.city.test',
     String? path,
+    String kind = 'package',
   }) async {
     final data = utf8.encode(content);
-    final name = '$id.sqlite';
+    final name = kind == 'model' ? '$id.gguf' : '$id.sqlite';
     final r = await PackageRecord.sign({
       'format': 1,
       'id': id,
-      'kind': 'package',
+      'kind': kind,
       'version': version,
       'publisher': publisher,
       'title': {'en': id},
@@ -218,6 +219,33 @@ void main() {
       } finally {
         await other.server.close(force: true);
       }
+    });
+
+    // lychnion/lychnion#67: only Lychnion publishes models.
+    test("an added publisher's model is not passed on", () async {
+      publish([
+        await offer('jp.city.model', '1', 'gguf', kind: 'model'),
+        await offer('jp.a', '1', 'aaa'),
+      ]);
+      final r = await go();
+      expect(r.notTrusted, 1);
+      expect([for (final x in await folder.allRecords()) x.id], ['jp.a']);
+      expect(src.hits['/jp.city.model.gguf'], isNull);
+    });
+
+    test("an added publisher's model an older node listed is dropped, its "
+        'file too', () async {
+      // As an older node wrote it: the city's model listed, its file here.
+      final model = await offer('jp.city.model', '1', 'gguf', kind: 'model');
+      final hash = model.files.single.sha256;
+      await folder.writeCatalog([model]);
+      final f = File('${folder.blobs.path}/$hash');
+      await f.create(recursive: true);
+      await f.writeAsBytes(utf8.encode('gguf'));
+      publish([await offer('jp.a', '1', 'aaa')]);
+      await go();
+      expect([for (final x in await folder.allRecords()) x.id], ['jp.a']);
+      expect(folder.blob(hash)!.existsSync(), isFalse);
     });
 
     test('again: nothing fetched twice', () async {

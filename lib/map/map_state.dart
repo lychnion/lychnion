@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,7 @@ import 'evac_sites.dart';
 import 'hazard_detect.dart';
 import 'inundation_tiles.dart';
 import 'route_graph.dart';
+import 'tile_cache.dart';
 
 /// "lat,lon" subject of a point fact (blocked road, water point).
 LatLng? pointOf(String subject) {
@@ -48,15 +50,23 @@ class MapState extends ChangeNotifier {
   /// The current status fact of a site, if any.
   Fact? statusOf(EvacSite site) => facts?.shelterStatus(site.uid);
 
-  /// The hazard named by the current warnings, e.g. tsunami during a
-  /// tsunami warning; null without one.
+  /// The hazard named by the current confirmed warnings, e.g. tsunami
+  /// during a tsunami warning; null without one. An unconfirmed warning
+  /// (a resident report, or an "official" one whose signature does not
+  /// check out) is shown, but does not change the suggested site or route
+  /// (lychnion/lychnion#69).
   Hazard? get warningHazard => hazardForWarnings([
     for (final f in facts?.currentOf({FactKind.warning}) ?? const <Fact>[])
-      '${f.value} ${f.subject}',
+      if (!f.unconfirmed) '${f.value} ${f.subject}',
   ]);
 
-  /// Whether to steer people away from a site (full or closed).
-  bool avoid(EvacSite site) => statusOf(site)?.shelterStatus?.avoid ?? false;
+  /// Whether to steer people away from a site: full or closed by a
+  /// confirmed fact. An unconfirmed one is shown with its label, but the
+  /// site is still suggested (#69): anyone on the Wi-Fi can send one.
+  bool avoid(EvacSite site) {
+    final f = statusOf(site);
+    return f != null && !f.unconfirmed && (f.shelterStatus?.avoid ?? false);
+  }
 
   final String pmtilesPath;
   final String sitesAsset;
@@ -91,6 +101,14 @@ class MapState extends ChangeNotifier {
 
   /// Contour lines from `<id>.contours.pmtiles` next to the PMTiles file, if any.
   PmTilesVectorTileProvider? contourTiles;
+
+  /// Names the contours file's contents (name, size, date) for the tile
+  /// caches; set with [contourTiles].
+  String? contoursId;
+
+  /// Names the map file's contents (name, size, date) for its tile caches
+  /// ([MapTileCache]); set right after [tiles].
+  String? tilesId;
   LatLng? here;
   bool hereIsMock = false;
   double? accuracy;
@@ -119,9 +137,12 @@ class MapState extends ChangeNotifier {
       sites = sp != null
           ? EvacSites.open(sp)
           : await EvacSites.fromAsset(sitesAsset);
-      tiles = await PmTilesVectorTileProvider.fromSource(
-        await resolvePath(pmtilesPath),
-      );
+      final tilesPath = await resolvePath(pmtilesPath);
+      final stat = await File(tilesPath).stat();
+      tiles = await PmTilesVectorTileProvider.fromSource(tilesPath);
+      final id = _fileId(tilesPath, stat);
+      tilesId = id;
+      unawaited(MapTileCache.keepOnly(id));
       await _loadContours();
       notifyListeners();
       await _loadRoutes();
@@ -153,8 +174,14 @@ class MapState extends ChangeNotifier {
   }
 
   /// Optional contour lines; a missing or broken file only leaves them out.
+  /// A file's name, size and date: changes when the file is replaced.
+  static String _fileId(String path, FileStat stat) =>
+      '${path.split(Platform.pathSeparator).last}'
+      '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
+
   Future<void> _loadContours() async {
     contourTiles = null;
+    contoursId = null;
     final path = await resolvePath(
       pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.contours.pmtiles'),
     );
@@ -162,7 +189,9 @@ class MapState extends ChangeNotifier {
       return;
     }
     try {
+      final stat = await File(path).stat();
       contourTiles = await PmTilesVectorTileProvider.fromSource(path);
+      contoursId = _fileId(path, stat);
     } catch (e) {
       debugPrint('contours: $e');
     }
@@ -189,10 +218,12 @@ class MapState extends ChangeNotifier {
   /// Nodes near blocked roads are not walked through.
   static const blockedRadius = 25.0;
 
-  /// Points of current blocked-road facts.
+  /// Points of current confirmed blocked-road facts: the route goes
+  /// around these. Unconfirmed ones are shown on the map but not routed
+  /// around (#69).
   List<LatLng> get blockedPoints => [
     for (final f in facts?.currentOf({FactKind.roadBlocked}) ?? const <Fact>[])
-      ?pointOf(f.subject),
+      if (!f.unconfirmed) ?pointOf(f.subject),
   ];
 
   /// Tsunami routes keep to higher ground (when the graph has heights).

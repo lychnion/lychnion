@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:3682731a954dce73a5d8aa3442ac18aaffb59ea52161a0f174b987271e33b248
+prose_version: threat-model.md@sha256:78e6199f2fbf98a4c8d1bcd3f605d150abba3002b2745ecf538ef82f44296bc1
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1699,11 +1699,14 @@ properties_claimed:
   - node
   tier: security-critical
   x-known-violations:
-  - a stick record for a Lychnion id not installed yet passes, because the owner check only looks at installed
-    markers (`lib/download/download_store.dart:371`), and the installed copy then wins over the bundled
-    one (`lib/download/download_store.dart:581`).
-  conditions: an added publisher never replaces Lychnion's items or files, or another publisher's ids,
-    also not by upper or lower case, and its key statements count only for its own name.
+  - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
+    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:151`).
+  conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
+    also not by upper or lower case, and its key statements count only for its own name. In the app, Lychnion''s
+    ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
+    of Lychnion''s) are reserved, also when not installed: an added publisher''s record for one is refused
+    from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion''s own
+    replaces it (`lib/download/download_store.dart:187`).'
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1747,10 +1750,11 @@ properties_claimed:
   components:
   - answers
   tier: security-critical
-  x-known-violations:
-  - when loading fails after the model is up, the warning is drawn only if `grounded` is true (`lib/ask/ask_page.dart:587`).
-  conditions: an answer is built only from installed guides and shows its sources; an answer whose citations
-    do not check out carries a warning; the app never shows bare-model text as an answer.
+  conditions: 'an answer is built only from installed guides and shows its sources; an answer whose citations
+    do not check out carries a warning; the app never shows bare-model text as an answer: the phone answers
+    by itself only when the model and the guides are loaded, so a failure after the model is up (the search
+    model, indexing, a package) turns the question bar off unless a base answers, and a question that still
+    reaches it gets a "cannot answer without the guides" message (`lib/ask/answer_rules.dart:12`).'
   violation_symptoms:
   - x-ungrounded-answer
   provenance:
@@ -1761,10 +1765,10 @@ properties_claimed:
   components:
   - answers
   tier: security-critical
-  x-known-violations:
-  - alerts of every installed package match (`lib/knowledge/grounded_answer.dart:253`).
-  conditions: when a hazard question matches, the fixed safety line from a Lychnion-signed package is
-    shown word for word above the AI text; no other publisher supplies it.
+  conditions: 'when a hazard question matches, the fixed safety line from a Lychnion-signed package is
+    shown word for word above the AI text; no other publisher supplies it: a package whose record is not
+    signed by a built-in publisher is loaded without its alerts (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`),
+    its copy of a bundled Lychnion package is not loaded (`DownloadStore.bundledPackageSource`), and an empty trigger word matches nothing.'
   violation_symptoms:
   - x-missing-or-forged-safety-line
   provenance:
@@ -1776,9 +1780,9 @@ properties_claimed:
   - downloads
   - answers
   tier: security-critical
-  x-known-violations:
-  - any trusted publisher's record kind is accepted (`lib/download/catalog.dart:186`).
-  conditions: only models signed by Lychnion are installed and loaded.
+  conditions: 'only models signed by Lychnion are installed and loaded: a `model` record from any other publisher
+    is refused in catalogs (also followed ones and bases), on USB sticks, when installing and by nodes when they pull, and one
+    installed by an older build is never loaded or picked (`packages/lychnion_format/lib/src/publishers.dart:21`).'
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1818,9 +1822,9 @@ properties_claimed:
   components:
   - facts
   tier: security-critical
-  x-known-violations:
-  - shelters are avoided whatever the trust (`lib/map/map_state.dart:59`).
-  conditions: only verified facts change the suggested evacuation site or walking route.
+  conditions: 'only verified facts change the suggested evacuation site or walking route: a shelter is avoided,
+    a road routed around and a warning''s hazard used only when the fact is confirmed (`lib/map/map_state.dart:64`,
+    `lib/map/map_state.dart:183`, `lib/map/map_state.dart:56`); unconfirmed ones are shown with their label.'
   violation_symptoms:
   - bad-data-accepted
   provenance:
@@ -1831,9 +1835,11 @@ properties_claimed:
   components:
   - facts
   tier: security-critical
-  x-known-violations:
-  - the newest `observedAt` wins with no cap (`lib/facts/fact_store.dart:275`).
-  conditions: a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.
+  conditions: 'a fact dated in the future, or with a lifetime far beyond normal, does not win its topic: a fact
+    dated more than 30 minutes ahead, living longer than 3 days, or expiring more than that from now is refused
+    on arrival and never current (`lib/facts/fact_store.dart:352`); among facts of the same trust, one dated after
+    now loses to every one that is not (`lib/facts/fact_store.dart:384`) until its date comes, so a date in the
+    30-minute window can delay an override by at most that long, as a report sent at that time could.'
   violation_symptoms:
   - bad-data-accepted
   provenance:
@@ -1924,10 +1930,14 @@ properties_claimed:
   - base-client
   tier: security-critical
   x-known-violations:
-  - a base link may name any host (`lib/base/base_link.dart:88`), and questions, answers and the region
-    go to the system log (`lib/ask/ask_page.dart:164`, with the phone's own answers at `lib/ask/ask_page.dart:384`).
-  conditions: questions leave the device only to a base the user connected to on the local network; position
-    never leaves; release builds do not log questions, answers or position.
+  - a `.local` name goes through the system resolver, so a DNS server on the network could point one at an
+    internet host.
+  conditions: 'questions leave the device only to a base the user connected to on the local network; position
+    never leaves; release builds do not log questions, answers or position. A base address must be on the
+    local network: a private IPv4 address, a link-local or private IPv6 address, a `.local` name, or loopback
+    in debug builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an older build is checked
+    again when the settings load and before connecting. Release builds leave the question, answer, search query,
+    matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:95`).'
   violation_symptoms:
   - info-leak
   provenance:

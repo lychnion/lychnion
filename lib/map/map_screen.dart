@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
-import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
 import '../facts/fact.dart';
 import '../facts/fact_form.dart';
@@ -16,6 +15,7 @@ import 'inundation_tiles.dart';
 import 'map_labels.dart';
 import 'map_state.dart';
 import 'route_graph.dart';
+import 'tile_cache.dart';
 import 'offline_theme.dart';
 import '../ui/breathing_light.dart';
 
@@ -63,19 +63,12 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  /// The map theme split for drawing, built once per language and
+  /// contours on/off.
+  MapDrawing? _drawing;
+  (String, bool)? _drawingKey;
   final _map = MapController();
   bool _mapReady = false;
-
-  /// The theme is parsed once per language and contours on/off.
-  vtr.Theme? _theme;
-  (String, bool)? _themeKey;
-  vtr.Theme _themeFor(String lang, bool contours) {
-    if (_themeKey != (lang, contours)) {
-      _theme = offlineLightTheme(lang: lang, contours: contours);
-      _themeKey = (lang, contours);
-    }
-    return _theme!;
-  }
 
   /// Site opened in the list (shows its address).
   String? _selected;
@@ -280,6 +273,26 @@ class _MapScreenState extends State<MapScreen> {
     final hazard = s.hazard;
     // Contour lines: only where the area has them and the user wants them.
     final contours = s.contourTiles != null && widget.showContours;
+    final lang = context.lang;
+    if (_drawing == null || _drawingKey != (lang, contours)) {
+      _drawing = splitLabels(
+        offlineLightTheme(lang: lang, contours: contours),
+        lang: lang,
+        contours: contours,
+      );
+      _drawingKey = (lang, contours);
+    }
+    final drawing = _drawing!;
+    final tilesId = s.tilesId ?? '';
+    // With contours, each layer caches in a folder per contours file too, so
+    // a new contours file never shows old raster images.
+    final withContours = contours
+        ? '-${MapTileCache.folderName(s.contoursId ?? '')}'
+        : '';
+    final providers = TileProviders({
+      'protomaps': tiles,
+      if (contours) 'contours': s.contourTiles!,
+    });
     final nearest = s.nearest(hazard);
     final shown = [
       for (final site in sites.sites)
@@ -409,20 +422,31 @@ class _MapScreenState extends State<MapScreen> {
                   onLongPress: _editor == null ? null : (_, p) => _addPoint(p),
                 ),
                 children: [
+                  // Shapes as raster tiles, labels as vectors: see
+                  // splitLabels.
+                  // Each layer caches on disk in its own folder per map
+                  // file (MapTileCache); a new map file starts both over.
+                  // The keys start the layers over when the language,
+                  // contours on/off or the files change (vector_map_tiles
+                  // only rebuilds on a theme id change).
                   VectorTileLayer(
-                    // vector_map_tiles only rebuilds its tiles when the
-                    // theme id changes, and our themes share one id: a new
-                    // key per language and contours on/off makes it start
-                    // over (the tiles are local, so this is cheap).
-                    key: ValueKey((context.lang, contours)),
-                    theme: _themeFor(context.lang, contours),
-                    tileProviders: TileProviders({
-                      'protomaps': tiles,
-                      if (contours) 'contours': s.contourTiles!,
-                    }),
-                    // Vector mode draws the labels; raster mode dropped them.
+                    key: ValueKey(('shapes', tilesId, contours, s.contoursId)),
+                    theme: drawing.shapes,
+                    tileProviders: providers,
+                    layerMode: VectorTileLayerMode.raster,
+                    fileCacheTtl: Duration.zero,
+                    cacheFolder: () =>
+                        MapTileCache.folder(tilesId, 'shapes$withContours'),
+                    maximumZoom: 18,
+                  ),
+                  VectorTileLayer(
+                    key: ValueKey(('labels', tilesId, contours, s.contoursId)),
+                    theme: drawing.labels,
+                    tileProviders: providers,
                     layerMode: VectorTileLayerMode.vector,
                     fileCacheTtl: Duration.zero,
+                    cacheFolder: () =>
+                        MapTileCache.folder(tilesId, 'labels$withContours'),
                     maximumZoom: 18,
                   ),
                   if (hazard == Hazard.tsunami && s.inundationTiles != null)

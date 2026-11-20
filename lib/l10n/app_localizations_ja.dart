@@ -769,7 +769,12 @@ class AppLocalizationsJa extends AppLocalizations {
       'この端末が、同じWi-Fiのスマートフォンからの質問に答え、資料・地図と最新の情報を共有しています。設定から止められます。';
 
   @override
-  String get askExplainFailed => 'AIモデルを読み込めませんでした。';
+  String get askExplainFailed =>
+      'AIモデルまたは資料を読み込めませんでした。アプリを再起動してください。繰り返す場合は「設定」→「ダウンロード」を確認してください。';
+
+  @override
+  String get askNoGuides =>
+      '資料を読み込めなかったため、ここではこの質問に答えられません。資料がないと、出典のない答えになってしまいます。アプリを再起動してください。繰り返す場合は「設定」→「ダウンロード」を確認してください。';
 
   @override
   String get askHint => '質問を入力';

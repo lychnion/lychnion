@@ -56,41 +56,66 @@ proven. The property is the §1.11 claim each one breaks.
 2. **The base and Share nearby listen on every interface** ([#64](https://github.com/lychnion/lychnion/issues/64)) (confirmed,
    `lan-only-exposure`): `lib/base/base_server.dart:167` binds
    `anyIPv4`, including a desktop's upstream network and a phone's mobile
-   data. *Fixed for #64: they listen only on local-network addresses
+   data. *Fixed in [#87](https://github.com/lychnion/lychnion/pull/87):
+   they listen only on local-network addresses
    (`lib/base/lan_sockets.dart`).*
 3. **Bare-model answers without a warning** ([#65](https://github.com/lychnion/lychnion/issues/65)) (confirmed path, trigger
    suspected, `grounded-answer-presentation`). If the embedder or index
    fails after the model loaded, the question bar stays on and the warning
    is drawn only when `grounded` is true (`lib/ask/ask_page.dart:587`).
+   *Fixed for #65: the phone answers by itself only with the model and
+   the guides loaded (`answersOnDevice`); otherwise the bar is off, and a
+   question that still gets through says the guides are missing.*
 4. **Any package supplies "official" safety lines** ([#66](https://github.com/lychnion/lychnion/issues/66)) (confirmed,
    `safety-line-lychnion-only`): alerts of every installed package match
    (`lib/knowledge/grounded_answer.dart:253`), and an empty trigger word
    matches every question (`lib/knowledge/knowledge_package.dart:132`).
+   *Fixed for #66: only packages signed by a built-in publisher keep
+   their alerts, an added publisher's copy of a bundled id is not loaded,
+   and an empty trigger word matches nothing. Still trusted: the safety
+   lines in a paired base's answers, as the base sends them (a base runs
+   this code, but an older base build does not filter).*
 5. **Added publishers can ship models** ([#67](https://github.com/lychnion/lychnion/issues/67)) (confirmed, `models-lychnion-only`):
    any record kind is accepted (`lib/download/catalog.dart:186`), and with
    no model picked the first one in sort order becomes active
-   (`lib/download/download_store.dart:563`).
+   (`lib/download/download_store.dart:563`). *Fixed for #67: `model`
+   records only from built-in publishers (`mayPublishKind`), in the app
+   and on nodes; older installs of others' models are never loaded.*
 6. **A USB stick can squat a Lychnion id** ([#68](https://github.com/lychnion/lychnion/issues/68)) (confirmed, `publisher-namespace`):
    a stick record from an added publisher for a bundled or not yet installed
    Lychnion id is installed and then used, because the owner check sees only
    installed markers (`lib/download/stick.dart:313` calls
    `lib/download/download_store.dart:371`), and the installed copy then
    wins over the bundled one (`lib/download/download_store.dart:581`).
+   *Fixed in the app for #68: Lychnion's ids and file names are reserved
+   (`DownloadStore.reserve`, `reserveFrom`, `isReservedFor`), also when
+   not installed; copies installed before are not used, and Lychnion's
+   own replaces them. The headless node does not reserve ids yet.*
 7. **Unconfirmed facts steer the map** ([#69](https://github.com/lychnion/lychnion/issues/69)) (confirmed,
    `unverified-facts-not-acted-on`): `lib/map/map_state.dart:59` and
    `lib/map/map_state.dart:174` use facts whatever their trust, and
-   `lib/map/map_screen.dart:251` skips avoided sites.
+   `lib/map/map_screen.dart:251` skips avoided sites. *Fixed for #69:
+   `avoid`, `blockedPoints` and `warningHazard` use confirmed facts only.*
 8. **Facts from the future win** ([#70](https://github.com/lychnion/lychnion/issues/70)) (confirmed, `fact-time-bounds`): no cap on
    `observedAt` or `expiresAt` (`lib/facts/fact_store.dart:275`).
+   *Fixed for #70 (the line above is how it was): `FactStore.inTimeBounds`
+   (30 minutes skew, 3 days lifetime) on arrival and when choosing; a
+   fact dated after now ranks below every one that is not, until its
+   time comes.*
 9. **Questions and answers in the release log** ([#71](https://github.com/lychnion/lychnion/issues/71)) (confirmed, `device-egress`):
    `lib/ask/ask_page.dart:164` (`debugPrint`); each logged answer carries
    its question. Base answers are logged at `lib/ask/ask_page.dart:316`,
    the phone's own at `lib/ask/ask_page.dart:384`, and the region at
-   `lib/ask/ask_page.dart:363`.
+   `lib/ask/ask_page.dart:363`. *Fixed for #71: release builds leave
+   them out (`loggable` in `lib/app/dev_flags.dart`) unless `LOG_ANSWERS`,
+   `ASK` or `AUTO_BENCH` is set.*
 10. **A base may be any host** ([#72](https://github.com/lychnion/lychnion/issues/72)) (confirmed, `device-egress`):
     `lib/base/base_link.dart:88` accepts public hosts, and Android allows
     cleartext to every host. `help/en/08-privacy.md` also needs the base
-    case.
+    case. *Fixed for #72: `BaseLink.normalize` accepts only local-network
+    hosts (`isLocalHost`); the privacy help names the base case.
+    Cleartext stays allowed on Android, which cannot limit it by address
+    range; the app checks the host instead.*
 11. **The LAN redirect guard misses ranges** ([#73](https://github.com/lychnion/lychnion/issues/73)) (confirmed,
     `lan-device-same-origin`): `packages/lychnion_fetch/lib/src/downloader.dart:421`
     lacks 100.64/10, which discovery accepts, and plain hostnames.
@@ -171,7 +196,7 @@ proven. The property is the §1.11 claim each one breaks.
 30. `lib/facts/compact_codec.dart` says "Not signed yet"; signed packing
     exists.
 31. `help/en/08-privacy.md` says questions never leave the device; they go
-    to a connected base.
+    to a connected base. *Fixed for #72: the help (en/ja) names the base.*
 32. `docs/distribution.md` "Security" still says key rotation and
     revocation are "a later step", and the roadmap lists key revocation;
     both now exist for publisher keys, Lychnion's included (Q32).
