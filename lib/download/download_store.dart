@@ -407,6 +407,9 @@ class DownloadStore {
       // An added publisher's copy of a Lychnion id (installed before this
       // check, #68): not used, and Lychnion's own may replace it.
       if (isReservedFor(id, r.publisher)) return null;
+      // An added publisher's model (installed by an older build): never
+      // loaded or picked as the chat or search model (#67).
+      if (!mayPublishKind(r.publisher, r.kind)) return null;
       final i = Installed(r);
       for (final e in i.files.entries) {
         final f = File('${dirFor(kind).path}/${e.key}');
@@ -497,6 +500,8 @@ class DownloadStore {
     // Lychnion's ids and file names are Lychnion's, also when not
     // installed yet (#68).
     if (isReservedFor(item.id, r.publisher)) return true;
+    // Models are Lychnion's only, from every route (#67).
+    if (!mayPublishKind(r.publisher, r.kind)) return true;
     final lychnion = _builtIn(r.publisher);
     if (!lychnion &&
         r.files.any((f) => _reservedFiles.contains(f.name.toLowerCase()))) {

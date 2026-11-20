@@ -586,10 +586,15 @@ plus phones that also use the internet when they can.
   questions routed to the app help skip the line
   (`lib/knowledge/grounded_answer.dart:242`). *(maintainer, 2026-11)*
 - **`models-lychnion-only`** (`downloads`, `answers`): only models signed by
-  Lychnion are installed and loaded. *Violation symptom*: integrity-bypass.
-  *Tier*: security-critical. *Voided by*: the dev loaders under
-  `signed-install-only`. Known violation: any trusted publisher's record kind
-  is accepted (`lib/download/catalog.dart:186`). *(maintainer, 2026-11)*
+  Lychnion are installed and loaded: a `model` record from any other
+  publisher is refused in catalogs (also followed ones and bases), on USB
+  sticks, when installing and by nodes when they pull, and one installed by an older build
+  is never loaded or picked
+  (`packages/lychnion_format/lib/src/publishers.dart:21`). *Violation
+  symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: the
+  dev loaders under `signed-install-only`, the `GGUF_MODEL_PATH` and
+  `EMBED_MODEL_PATH` defines (`lib/app/dev_flags.dart:33`,
+  `lib/app/dev_flags.dart:40`), which load any file. *(maintainer, 2026-11)*
 - **`base-answer-signature`** (`base-client`, `base-server`): with a pinned
   key, the phone accepts a base answer only when its Ed25519 signature covers
   the phone's nonce, a hash of the request and the exact body; once that base

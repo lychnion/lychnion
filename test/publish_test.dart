@@ -185,6 +185,25 @@ void main() {
       );
     });
 
+    // lychnion/lychnion#67: only Lychnion publishes models.
+    test('a model is not published from this computer', () async {
+      final f = packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
+      final req = form(f);
+      await expectLater(
+        go(
+          PublishRequest(
+            kind: ItemKind.model,
+            id: req.id,
+            version: req.version,
+            titles: req.titles,
+            files: req.files,
+          ),
+        ),
+        throwsA(isA<PublishError>().having((e) => e.code, 'code', 'kind')),
+      );
+      expect(store.installed(ItemKind.model, 'jp.kobe.bousai'), isNull);
+    });
+
     test('the form must match the package file', () async {
       final f = packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
       final req = form(f);

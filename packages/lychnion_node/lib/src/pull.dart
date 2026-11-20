@@ -98,6 +98,8 @@ Future<PullResult> _pull(
   final untrusted = <String>{};
   final kept = <String, PackageRecord>{};
   for (final r in before) {
+    // An added publisher's model listed by an older node: dropped (#67).
+    if (!mayPublishKind(r.publisher, r.kind)) continue;
     if (await keys.verify(r)) {
       if (have[r.id] case final o? when !isOlder(o.version, r.version)) {
         continue;
@@ -144,6 +146,12 @@ Future<PullResult> _pull(
         continue;
       }
       if (kinds.isNotEmpty && !kinds.contains(r.kind)) continue;
+      // Models only from Lychnion: a node passes on no added publisher's
+      // model, which phones would refuse anyway (#67).
+      if (!mayPublishKind(r.publisher, r.kind)) {
+        result.notTrusted++;
+        continue;
+      }
       // A set-aside record still owns its id.
       final mine = next[r.id] ?? kept[r.id];
       // Lychnion (built in) keeps its own ids; otherwise the publisher

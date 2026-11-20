@@ -733,7 +733,7 @@
       "property": "models-lychnion-only",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "only models signed by Lychnion are installed and loaded.",
+      "conditions": "only models signed by Lychnion are installed and loaded: a `model` record from any other publisher is refused in catalogs (also followed ones and bases), on USB sticks, when installing and by nodes when they pull, and one installed by an older build is never loaded or picked (`packages/lychnion_format/lib/src/publishers.dart:21`).",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

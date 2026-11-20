@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:2be17e6b4fa57fec4aa8ab84a3caed55a21f52d70e80ae7e8b9ec45ae38f0fda
+prose_version: threat-model.md@sha256:ee17d409cd34f1d088a5570f59797e459be07622f198ae2072a6ca7689001a3b
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1779,9 +1779,9 @@ properties_claimed:
   - downloads
   - answers
   tier: security-critical
-  x-known-violations:
-  - any trusted publisher's record kind is accepted (`lib/download/catalog.dart:186`).
-  conditions: only models signed by Lychnion are installed and loaded.
+  conditions: 'only models signed by Lychnion are installed and loaded: a `model` record from any other publisher
+    is refused in catalogs (also followed ones and bases), on USB sticks, when installing and by nodes when they pull, and one
+    installed by an older build is never loaded or picked (`packages/lychnion_format/lib/src/publishers.dart:21`).'
   violation_symptoms:
   - integrity-bypass
   provenance:

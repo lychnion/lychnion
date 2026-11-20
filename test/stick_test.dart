@@ -138,6 +138,74 @@ void main() {
     expect((l.added, l.notTrusted), (0, 1));
   });
 
+  // lychnion/lychnion#67: only Lychnion publishes models.
+  group("an added publisher's model on a stick", () {
+    late SimpleKeyPair cityKey;
+    late TrustedKeys withCity;
+    setUpAll(() async {
+      cityKey = await Ed25519().newKeyPair();
+      withCity = TrustedKeys({
+        'lychnion': [await publicKeyOf(key)],
+        'jp.city.test': [await publicKeyOf(cityKey)],
+      });
+    });
+
+    /// A stick holding Lychnion's guide and, as an older build could have
+    /// written it, a city's model with its file.
+    Future<void> stickWithCityModel() async {
+      final here = store('here');
+      await install(here, 'jp.a', '1', 'aaa');
+      await copyToStick(here, stick);
+      final data = utf8.encode('gguf');
+      final hash = sha256.convert(data).toString();
+      final model = await PackageRecord.sign({
+        'format': 1,
+        'id': 'jp.city.chat',
+        'kind': 'model',
+        'version': '1',
+        'publisher': 'jp.city.test',
+        'role': 'chat',
+        'title': {'en': 'Chat'},
+        'files': [
+          {'name': 'jp.city.chat.gguf', 'size': data.length, 'sha256': hash},
+        ],
+        'signed': '2026-11-20T09:00:00+09:00',
+      }, cityKey);
+      final folder = Directory('${stick.path}/lychnion');
+      final cat = File('${folder.path}/catalog.json');
+      final j = jsonDecode(await cat.readAsString()) as Map<String, dynamic>;
+      (j['records'] as List).add(model.json);
+      await cat.writeAsString(jsonEncode(j));
+      final blob = File('${folder.path}/blobs/sha256/$hash');
+      await blob.create(recursive: true);
+      await blob.writeAsBytes(data);
+    }
+
+    test('is not installed, even from a trusted publisher', () async {
+      await stickWithCityModel();
+      final there = store('there', keys: withCity);
+      final l = await loadFromStick(there, stick);
+      expect(l.added, 1);
+      expect(l.notTrusted, 1);
+      expect(there.allInstalled(ItemKind.model), isEmpty);
+      expect(
+        File('${there.dirFor(ItemKind.model).path}/jp.city.chat.installed.json')
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test('is not carried on by the next copy to the stick', () async {
+      await stickWithCityModel();
+      await copyToStick(store('here', keys: withCity), stick);
+      final j = jsonDecode(
+        await File('${stick.path}/lychnion/catalog.json').readAsString(),
+      ) as Map;
+      final ids = [for (final r in j['records'] as List) (r as Map)['id']];
+      expect(ids, ['jp.a']);
+    });
+  });
+
   test('a stick without a Lychnion folder says so', () async {
     await expectLater(
       loadFromStick(store('there'), stick),

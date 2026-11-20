@@ -112,6 +112,9 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   for (final raw in old?.records ?? const []) {
     final r = _shape(raw);
     if (r == null) continue;
+    // An added publisher's model written by an older build is not carried
+    // on: every device refuses it anyway (#67).
+    if (!mayPublishKind(r.publisher, r.kind)) continue;
     final ok = await trust.check(raw) != null;
     final have = onStick[r.id];
     // A trusted record wins over an untrusted one with the same id.
@@ -309,6 +312,11 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
       continue;
     }
     if (!ItemKind.values.any((k) => k.name == r.kind)) continue;
+    // Only Lychnion's models: an added publisher's is not trusted (#67).
+    if (!mayPublishKind(r.publisher, r.kind)) {
+      result.notTrusted++;
+      continue;
+    }
     final item = CatalogItem.fromRecord(r);
     if (store.isTaken(item)) {
       result.taken++;

@@ -46,7 +46,8 @@ class PublishError implements Exception {
   PublishError(this.code, [this.detail = '']);
 
   /// `id`, `version`, `older`, `files`, `meta`, `package`, `taken`,
-  /// `title`, `key`.
+  /// `title`, `key`, `kind` (a model: only Lychnion publishes those; the
+  /// form does not offer it, so it has no text of its own).
   final String code;
   final String detail;
   @override
@@ -205,6 +206,11 @@ Future<PackageRecord> publish(
   }
   if (req.titles.values.every((t) => t.trim().isEmpty)) {
     throw PublishError('title');
+  }
+  // This computer's publisher is an added one: guides and maps only, no
+  // models (#67). The form does not offer models; this keeps it so.
+  if (builtInOnlyKinds.contains(req.kind.name)) {
+    throw PublishError('kind', req.kind.name);
   }
   final names = [for (final f in req.files) f.uri.pathSegments.last];
   for (final (i, f) in req.files.indexed) {

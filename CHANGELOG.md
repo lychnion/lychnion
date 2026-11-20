@@ -93,6 +93,14 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Only Lychnion publishes models. A publisher the user added can bring
+  guides and maps, but its model records are refused in catalogs, on USB
+  sticks, from bases and by nodes when they pull, and a model of theirs
+  installed by an older build is never loaded or picked as the chat or
+  search model. A model's file is parsed by native code and its text is
+  what answers (#67). Such an older install is not listed in Downloads;
+  removing that publisher in Settings → Publishers deletes it and frees
+  the space.
 - Lychnion's ids and file names are reserved even before they are
   installed: the bundled packages, the bundled catalog and Lychnion's
   items in every catalog of Lychnion's the app has checked. An added
