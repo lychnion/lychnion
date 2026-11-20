@@ -67,10 +67,13 @@ mixin _ModelLoading on _AskPageBase {
         _loadedDownloads = null;
         setState(() {
           _answerer = null;
-          _phase = AskPhase.noModel;
+          _phase = _baseReady ? AskPhase.base : AskPhase.noModel;
           _status = '';
         });
         await _syncServer();
+        // Not left in memory: a loaded model without guides would count
+        // as "could not load the guides" rather than "no model" (#65).
+        await _llm.close();
       }
       return;
     }
@@ -113,6 +116,10 @@ mixin _ModelLoading on _AskPageBase {
       _loadingModel = true;
       _status = 'Loading model…';
       _phase = AskPhase.loading;
+      // The guides loaded before go too: if this load fails after the
+      // model, answers must not go on from the old set, which may hold a
+      // package just removed (#65). Questions wait until it is done.
+      _answerer = null;
     });
     var chatReady = false;
     try {
@@ -248,9 +255,19 @@ mixin _ModelLoading on _AskPageBase {
       _chatFailed = !chatReady;
       setState(() {
         _status = 'Load failed: $e';
-        _phase = AskPhase.failed;
+        // Also when only the last step failed: the bar and the phase
+        // agree, and no answers come from a half-done load (#65).
+        _answerer = null;
+        // A connected base still answers: no red card then.
+        _phase = _baseReady ? AskPhase.base : AskPhase.failed;
       });
       _log({'event': 'load_failed', 'error': '$e'});
+      // No guides: a base server sharing the old ones stops (#65).
+      try {
+        await _syncServer();
+      } on Object catch (e) {
+        _log({'event': 'base_sync_failed', 'error': '$e'});
+      }
       return false;
     } finally {
       setState(() => _loadingModel = false);

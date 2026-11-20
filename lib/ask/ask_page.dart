@@ -50,6 +50,7 @@ import '../ui/suggestions.dart';
 import '../ui/thread_list.dart';
 import '../ui/threads.dart';
 import '../util/paths.dart';
+import 'answer_rules.dart';
 
 part 'base_sharing.dart';
 part 'first_steps_hookup.dart';
@@ -150,6 +151,15 @@ abstract class _AskPageBase extends State<AskPage> {
   bool _answering = false;
   bool get _busy => _loadingModel || _answering;
 
+  /// The phase when no base answers: loading, ready only when the model
+  /// and the guides are loaded, failed when the model loaded without
+  /// them, else no model (#65).
+  AskPhase get _ownPhase => ownPhase(
+    loading: _loadingModel,
+    modelLoaded: _llm.isLoaded,
+    guidesLoaded: _answerer != null,
+  );
+
   /// Phone side: the base to ask first (BASE_URL, or the
   /// one saved in settings from a QR code or a typed address).
   BaseClient? _base;
@@ -214,11 +224,23 @@ class _AskPageState extends _AskPageBase
   /// is ready. A tap is never lost.
   final _waiting = <(Thread, String, GroundedAnswer)>[];
 
-  bool get _canAnswer => _llm.isLoaded || _baseReady;
+  bool get _canAnswer => _ownAnswers || _baseReady;
+
+  /// This device answers by itself: the chat model and the guides (the
+  /// answerer) are loaded (answersOnDevice, #65).
+  bool get _ownAnswers => answersOnDevice(
+    modelLoaded: _llm.isLoaded,
+    guidesLoaded: _answerer != null,
+  );
 
   @override
   void _answerWaiting() {
-    if (_waiting.isEmpty || _answering || !_canAnswer || !mounted) return;
+    if (_waiting.isEmpty || _answering || !mounted) return;
+    // Nothing can answer: wait while the model or guides still load, or
+    // while a base is set (it is tried again every 30 s). Otherwise each
+    // waiting question gets its explanation (_ask's backstop) instead of
+    // staying an empty card (#65); also when the base is removed.
+    if (!_canAnswer && (_loadingModel || _base != null)) return;
     final (thread, question, placeholder) = _waiting.removeAt(0);
     thread.entries.remove(placeholder);
     unawaited(_ask(question, into: thread));
@@ -271,6 +293,8 @@ class _AskPageState extends _AskPageBase
   Future<void> _ask(String question, {Thread? into}) async {
     final thread = into ?? (_current ??= _threads.create());
     final lang = appLang(context);
+    final noGuides = context.l10n.askNoGuides;
+    final noModel = context.l10n.askExplainFailed;
     // Nothing can answer yet (the model is loading, or another question is
     // being answered): show the question now, answer it when ready.
     if (_answering || (!_canAnswer && _loadingModel)) {
@@ -334,8 +358,9 @@ class _AskPageState extends _AskPageBase
           thread.entries.remove(placeholder);
           _answering = false;
         });
-        // The phone's own model is still loading: answer with it then.
-        if (!_llm.isLoaded && _loadingModel) {
+        // The phone's own model or guides are still loading: answer with
+        // them then (not with the model alone, #65).
+        if (!_ownAnswers && _loadingModel) {
           final waiting = GroundedAnswer(question, appLang: lang);
           setState(() {
             thread.entries.add(waiting);
@@ -349,7 +374,9 @@ class _AskPageState extends _AskPageBase
             // Refused, not unreachable: say that, once.
             ..text = baseRefused
                 ? context.l10n.answerBaseRefusedNoModel
-                : context.l10n.answerBaseUnreachable;
+                : context.l10n.answerBaseUnreachable
+            // A note, not an answer: no sources or "not covered" line.
+            ..fromGuides = false;
           setState(() {
             thread.entries.add(failed);
             _answering = false;
@@ -380,7 +407,24 @@ class _AskPageState extends _AskPageBase
       final answerer = _answerer;
       if (answerer != null) {
         await answerer.answer(entry, () => setState(() {}));
+      } else if (!DevFlags.bare && _loadingModel) {
+        // A reload started while this question waited for the region:
+        // it waits for the guides like the others (#65).
+        _waiting.add((thread, question, entry));
+        return;
+      } else if (!DevFlags.bare) {
+        // No guides (they or the search model failed to load): never the
+        // model alone, whatever let the question through (#65).
+        // Which of the two failed: the model itself, or what came after.
+        entry
+          ..text = _llm.isLoaded ? noGuides : noModel
+          ..fromGuides = false;
+        _log({'event': 'answer_no_guides'});
+        _sayAnswerFailed(entry);
+        return;
       } else {
+        // BARE (dev): the model alone, shown without sources or notes.
+        entry.fromGuides = false;
         await for (final t in _llm.ask(
           question,
           onDone: (s) => entry.stats = s,
@@ -592,7 +636,9 @@ class _AskPageState extends _AskPageBase
         ]),
         builder: (_, _) => AnswerCard(
           answer: t.entries[i],
-          grounded: _answerer != null || t.entries[i].answeredBy != null,
+          // Per answer, not whether guides are loaded now: an old answer
+          // keeps its sources and warnings while they reload (#65).
+          grounded: t.entries[i].fromGuides,
           done: !_busy || i < t.entries.length - 1,
           map: widget.map,
           onShowOnMap: widget.onShowOnMap,

@@ -7,6 +7,10 @@ mixin _BaseSharing on _AskPageBase {
   Future<void> _serverOps = Future.value();
 
   void _sharingChanged() {
+    // While the guides reload, `_answerer` is null for a while: an
+    // unrelated settings change must not stop the base then. The reload
+    // syncs the server when it ends (#65).
+    if (_loadingModel) return;
     final want = sharingOn(widget.settings) && _answerer != null;
     final name = sharingName(widget.settings);
     if (want == (_server != null) && (!want || _server!.name == name)) return;

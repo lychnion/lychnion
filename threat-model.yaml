@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:f531bfa4f82b129ed25b08406864ef2ed53bb0f10057be327c87d9f6582beecb
+prose_version: threat-model.md@sha256:2851272853e317a4cf0760fc5f213ddfa32fb78e289e200b1ca842bcf3cac02a
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1750,10 +1750,11 @@ properties_claimed:
   components:
   - answers
   tier: security-critical
-  x-known-violations:
-  - when loading fails after the model is up, the warning is drawn only if `grounded` is true (`lib/ask/ask_page.dart:587`).
-  conditions: an answer is built only from installed guides and shows its sources; an answer whose citations
-    do not check out carries a warning; the app never shows bare-model text as an answer.
+  conditions: 'an answer is built only from installed guides and shows its sources; an answer whose citations
+    do not check out carries a warning; the app never shows bare-model text as an answer: the phone answers
+    by itself only when the model and the guides are loaded, so a failure after the model is up (the search
+    model, indexing, a package) turns the question bar off unless a base answers, and a question that still
+    reaches it gets a "cannot answer without the guides" message (`lib/ask/answer_rules.dart:12`).'
   violation_symptoms:
   - x-ungrounded-answer
   provenance:

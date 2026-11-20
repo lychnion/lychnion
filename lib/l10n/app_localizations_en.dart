@@ -787,7 +787,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'This computer answers phones on the same Wi-Fi, and shares guides, maps and current information. You can stop it in Settings.';
 
   @override
-  String get askExplainFailed => 'The AI model could not be loaded.';
+  String get askExplainFailed =>
+      'The AI model or the guides could not be loaded. Restart the app; if it happens again, check Settings → Downloads.';
+
+  @override
+  String get askNoGuides =>
+      'The guides could not be loaded, so this question cannot be answered here: without them the answer would have no sources. Restart the app; if it happens again, check Settings → Downloads.';
 
   @override
   String get askHint => 'Ask a question';
