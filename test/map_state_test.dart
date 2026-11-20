@@ -118,9 +118,10 @@ void main() {
       final s = area();
       final loading = s.load();
       // Dropped once the base map is open, while the contours file opens.
-      while (s.tiles == null) {
+      while (s.tiles == null && s.error == null) {
         await Future<void>.delayed(Duration.zero);
       }
+      expect(s.error, isNull);
       s.dispose();
       await loading;
       await MapTileCache.idle;
