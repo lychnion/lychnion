@@ -693,7 +693,7 @@
       "property": "publisher-namespace",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case, and its key statements count only for its own name.",
+      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case, and its key statements count only for its own name. In the app, Lychnion's ids and file names (the bundled packages, the bundled catalog and Lychnion's items in every checked catalog of Lychnion's) are reserved, also when not installed: an added publisher's record for one is refused from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion's own replaces it (`lib/download/download_store.dart:187`).",
       "provenance": "documented",
       "source": "docs/distribution.md \"Publishers and keys\""
     },

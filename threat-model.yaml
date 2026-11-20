@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:6b3b045e8f3e180ac3aea659fb8aca9459a13635c61aeb400c390874f3e26e90
+prose_version: threat-model.md@sha256:2be17e6b4fa57fec4aa8ab84a3caed55a21f52d70e80ae7e8b9ec45ae38f0fda
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1699,11 +1699,14 @@ properties_claimed:
   - node
   tier: security-critical
   x-known-violations:
-  - a stick record for a Lychnion id not installed yet passes, because the owner check only looks at installed
-    markers (`lib/download/download_store.dart:371`), and the installed copy then wins over the bundled
-    one (`lib/download/download_store.dart:581`).
-  conditions: an added publisher never replaces Lychnion's items or files, or another publisher's ids,
-    also not by upper or lower case, and its key statements count only for its own name.
+  - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
+    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:151`).
+  conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
+    also not by upper or lower case, and its key statements count only for its own name. In the app, Lychnion''s
+    ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
+    of Lychnion''s) are reserved, also when not installed: an added publisher''s record for one is refused
+    from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion''s own
+    replaces it (`lib/download/download_store.dart:187`).'
   violation_symptoms:
   - integrity-bypass
   provenance:

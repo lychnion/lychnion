@@ -77,7 +77,21 @@ user (built 2026-11-18, step 4a):
   or a running base had loaded from it is unloaded. Ids and file names
   stay with the publisher that installed them: an added publisher can
   never replace Lychnion's items or files (also not by upper/lower case,
-  or by naming a file like the app's own records).
+  or by naming a file like the app's own records). Lychnion's ids and
+  file names are reserved even before they are installed: the bundled
+  packages, every item of the bundled catalog and Lychnion's items in
+  every catalog of Lychnion's the app has checked. An added publisher's
+  record for one is refused, from a USB stick, a followed catalog or a
+  base, and a copy installed that way by an older build is not used;
+  Lychnion's own replaces it, whatever version it claims, and removes the
+  copy's files that no other item lists
+  ([#68](https://github.com/lychnion/lychnion/issues/68)). An added
+  publisher's item that an older build let use one of Lychnion's file
+  names stops working once Lychnion's item is installed (Lychnion's file
+  wins); removing that publisher never deletes a file another item still
+  lists. The
+  headless node does not reserve ids yet: it accepts such a record until
+  it pulls Lychnion's source, which then takes the id back.
 
 A city's publisher key is separate from a base's key (the one that signs
 facts, `lib/facts/signing.dart`): the city signs on one machine, and bases

@@ -414,4 +414,221 @@ void main() {
       expect(again.added.map((p) => p.name), ['jp.p0', 'jp.p1', 'jp.p2']);
     });
   });
+
+  // lychnion/lychnion#68: Lychnion's ids are Lychnion's, from every route.
+  group('Lychnion ids', () {
+    late SimpleKeyPair lychnionKey;
+    late TrustedKeys builtIn;
+    setUpAll(() async {
+      lychnionKey = await Ed25519().newKeyPair();
+      builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(lychnionKey)],
+      });
+    });
+
+    Future<DownloadStore> store() async {
+      final publishers = PublisherList(
+        File('${tmp.path}/publishers.json'),
+        builtIn: builtIn,
+      );
+      await publishers.add(link());
+      return DownloadStore(tmp, publishers: publishers);
+    }
+
+    Future<void> put(String name) async {
+      final f = File('${tmp.path}/packages/$name');
+      await f.create(recursive: true);
+      await f.writeAsBytes([1, 2, 3]);
+    }
+
+    test('an added publisher cannot install a Lychnion id, also when '
+        'Lychnion has not installed it', () async {
+      final s = await store()
+        ..reserve(['jp.x']);
+      await put('jp.x.sqlite');
+      for (final id in ['jp.x', 'JP.X']) {
+        final item = CatalogItem.fromRecord(await cityRecord(key, id: id));
+        expect(s.isTaken(item), isTrue, reason: id);
+        await expectLater(s.markInstalled(item), throwsA(isA<TakenItem>()));
+      }
+      // Lychnion itself may.
+      final own = CatalogItem.fromRecord(
+        await cityRecord(lychnionKey, publisher: 'lychnion'),
+      );
+      expect(s.isTaken(own), isFalse);
+      await s.markInstalled(own);
+      expect(
+        s.installed(ItemKind.package, 'jp.x')!.record.publisher,
+        'lychnion',
+      );
+    });
+
+    test('a copy installed before is not used, and Lychnion replaces it '
+        'whatever version it claims', () async {
+      final s = await store();
+      await put('jp.x.sqlite');
+      // Installed by an older build, before ids were reserved.
+      await s.markInstalled(
+        CatalogItem.fromRecord(await cityRecord(key, version: '99')),
+      );
+      expect(s.installed(ItemKind.package, 'jp.x'), isNotNull);
+
+      s.reserve(['jp.x']);
+      expect(s.installed(ItemKind.package, 'jp.x'), isNull);
+      expect(s.allInstalled(ItemKind.package), isEmpty);
+      final own = CatalogItem.fromRecord(
+        await cityRecord(lychnionKey, publisher: 'lychnion', version: '1'),
+      );
+      expect(s.isTaken(own), isFalse);
+      // Downloads and the USB stick read this too: no "older" refusal.
+      expect(s.recordedVersion(own), isNull);
+      await s.markInstalled(own);
+      final now = s.installed(ItemKind.package, 'jp.x')!;
+      expect((now.record.publisher, now.version), ('lychnion', '1'));
+    });
+
+    test("Lychnion's ids: the bundled packages and Lychnion's items in the "
+        'catalog fetched last', () async {
+      final s = await store();
+      Map<String, Object?> rec(String id, String publisher) => {
+        'id': id,
+        'publisher': publisher,
+      };
+      await s.cachedCatalog.create(recursive: true);
+      await s.cachedCatalog.writeAsString(
+        jsonEncode({
+          'url': 'https://example.org/catalog.json',
+          'body': jsonEncode({
+            'format': 2,
+            'records': [
+              rec('jp.new.guide', 'lychnion'),
+              rec('jp.city.only', city),
+            ],
+          }),
+        }),
+      );
+      final ids = await s.lychnionIds();
+      expect(ids, containsAll(['jp.bousai.core', 'jp.new.guide']));
+      expect(ids, isNot(contains('jp.city.only')));
+    });
+
+    test("an added publisher cannot use a Lychnion file name under another "
+        'id', () async {
+      final s = await store()
+        ..reserve(const [], files: ['jp.x.sqlite']);
+      final item = CatalogItem.fromRecord(
+        await cityRecord(key, id: 'jp.evil', file: 'jp.x.sqlite'),
+      );
+      expect(s.isTaken(item), isTrue);
+    });
+
+    test("an added publisher's item never blocks Lychnion's, by a shared "
+        'file name', () async {
+      final s = await store();
+      await put('jp.x.sqlite');
+      // An older build let a city take Lychnion's file name.
+      await s.markInstalled(
+        CatalogItem.fromRecord(
+          await cityRecord(key, id: 'jp.y', file: 'jp.x.sqlite'),
+        ),
+      );
+      s.reserve(['jp.x'], files: ['jp.x.sqlite']);
+      final own = CatalogItem.fromRecord(
+        await cityRecord(lychnionKey, publisher: 'lychnion'),
+      );
+      expect(s.isTaken(own), isFalse);
+    });
+
+    test(
+      "Lychnion's items of a checked catalog are reserved at once",
+      () async {
+        final s = await store();
+        s.reserveFrom([
+          CatalogItem.fromRecord(
+            await cityRecord(lychnionKey, id: 'jp.new', publisher: 'lychnion'),
+          ),
+          CatalogItem.fromRecord(await cityRecord(key, id: 'jp.mine')),
+        ]);
+        expect(s.isReservedFor('jp.new', city), isTrue);
+        expect(s.isReservedFor('jp.mine', city), isFalse);
+        // Lychnion's file names too.
+        final clash = CatalogItem.fromRecord(
+          await cityRecord(key, id: 'jp.other', file: 'jp.new.sqlite'),
+        );
+        expect(s.isTaken(clash), isTrue);
+      },
+    );
+
+    test(
+      "replacing an added publisher's copy removes its other files",
+      () async {
+        final s = await store();
+        await put('jp.x.big.bin');
+        await s.markInstalled(
+          CatalogItem.fromRecord(await cityRecord(key, file: 'jp.x.big.bin')),
+        );
+        s.reserve(['jp.x']);
+        await put('jp.x.sqlite');
+        await s.markInstalled(
+          CatalogItem.fromRecord(
+            await cityRecord(lychnionKey, publisher: 'lychnion'),
+          ),
+        );
+        expect(File('${tmp.path}/packages/jp.x.big.bin').existsSync(), isFalse);
+        expect(File('${tmp.path}/packages/jp.x.sqlite').existsSync(), isTrue);
+      },
+    );
+
+    test("replacing a copy whose file differs only in case keeps Lychnion's "
+        'file', () async {
+      final s = await store();
+      // On macOS and Windows these are the same file.
+      await put('jp.x.SQLITE');
+      await s.markInstalled(
+        CatalogItem.fromRecord(await cityRecord(key, file: 'jp.x.SQLITE')),
+      );
+      s.reserve(['jp.x']);
+      await put('jp.x.sqlite');
+      await s.markInstalled(
+        CatalogItem.fromRecord(
+          await cityRecord(lychnionKey, publisher: 'lychnion'),
+        ),
+      );
+      expect(File('${tmp.path}/packages/jp.x.sqlite').existsSync(), isTrue);
+      expect(s.installed(ItemKind.package, 'jp.x'), isNotNull);
+    });
+
+    test(
+      "removing a publisher keeps a file Lychnion's item now uses",
+      () async {
+        final s = await store();
+        await put('jp.x.sqlite');
+        // An older build let a city item use Lychnion's file name.
+        await s.markInstalled(
+          CatalogItem.fromRecord(
+            await cityRecord(key, id: 'jp.y', file: 'jp.x.sqlite'),
+          ),
+        );
+        s.reserve(['jp.x'], files: ['jp.x.sqlite']);
+        await s.markInstalled(
+          CatalogItem.fromRecord(
+            await cityRecord(lychnionKey, publisher: 'lychnion'),
+          ),
+        );
+        expect(await s.deleteFrom(city), 1);
+        expect(File('${tmp.path}/packages/jp.x.sqlite').existsSync(), isTrue);
+        expect(s.installed(ItemKind.package, 'jp.x'), isNotNull);
+      },
+    );
+
+    test(
+      'a broken cached catalog still reserves the bundled packages',
+      () async {
+        final s = await store();
+        await s.cachedCatalog.create(recursive: true);
+        await s.cachedCatalog.writeAsString('{not json');
+        expect(await s.lychnionIds(), contains('jp.bousai.core'));
+      },
+    );
+  });
 }

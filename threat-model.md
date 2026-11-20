@@ -526,12 +526,23 @@ plus phones that also use the internet when they can.
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
   ids, also not by upper or lower case, and its key statements count only
-  for its own name. *Violation symptom*: integrity-bypass.
-  *Tier*: security-critical. *Voided by*: no switch. Known gap: a stick record
-  for a Lychnion id not installed yet passes, because the owner check only
-  looks at installed markers (`lib/download/download_store.dart:371`), and
-  the installed copy then wins over the bundled one
-  (`lib/download/download_store.dart:581`).
+  for its own name. In the app, Lychnion's ids and file names (the bundled
+  packages, the bundled catalog and Lychnion's items in every checked
+  catalog of Lychnion's) are reserved, also when not installed: an added
+  publisher's record for one is refused from a USB stick, a followed
+  catalog or a base, a copy installed before is not used, and Lychnion's
+  own replaces it (`lib/download/download_store.dart:187`). Known gap: the
+  headless node reserves nothing; it accepts an added publisher's record
+  for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
+  the id back only when its source is pulled
+  (`packages/lychnion_node/lib/src/pull.dart:151`). *Violation symptom*:
+  integrity-bypass. *Tier*: security-critical. *Voided by*: nothing voids
+  it in the app; the check runs in `isTaken`, `installed` and
+  `recordedVersionOf`, and no flag or dev define turns it off (the
+  `CATALOG_URL` dev define only changes which catalog's checked Lychnion
+  records are reserved):
+  `grep -rn "isReservedFor\|reserve(\|reserveFrom(" lib` shows only
+  `lib/download/download_store.dart` and `lib/download/download_manager.dart`.
   *(documented, docs/distribution.md "Publishers and keys")*
 - **`no-downgrade-installed`** (`downloads`, `records`, `publishing`, `node`): an
   installed item is never replaced with an older version.

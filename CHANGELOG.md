@@ -93,6 +93,15 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Lychnion's ids and file names are reserved even before they are
+  installed: the bundled packages, the bundled catalog and Lychnion's
+  items in every catalog of Lychnion's the app has checked. An added
+  publisher can no longer install a package, map or model under one of
+  them, from a USB stick, a followed catalog or a base. A copy installed
+  that way before is not used; Lychnion's own update replaces it,
+  whatever version the copy claims, and removes the copy's files that no
+  other item lists (#68). Deleting an item never removes a file another
+  installed item lists. The headless node does not reserve ids yet.
 - Only packages signed by Lychnion supply the fixed official safety line
   above an answer. A package from a publisher the user added is still
   searched and quoted with its source, but its safety lines are left out.
