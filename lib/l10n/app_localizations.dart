@@ -699,6 +699,12 @@ abstract class AppLocalizations {
   /// **'Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited'**
   String get mapAttributionFlood;
 
+  /// No description provided for @mapAttributionContours.
+  ///
+  /// In en, this message translates to:
+  /// **'Contours: GSI optimal vector tiles, edited'**
+  String get mapAttributionContours;
+
   /// No description provided for @mapNearbySites.
   ///
   /// In en, this message translates to:

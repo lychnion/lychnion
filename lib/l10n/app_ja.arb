@@ -100,6 +100,7 @@
   "mapAttributionSites": "避難場所：国土地理院",
   "mapAttributionHeights": "標高：国土地理院 標高タイル",
   "mapAttributionFlood": "津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工",
+  "mapAttributionContours": "等高線：国土地理院最適化ベクトルタイルを加工して作成",
   "mapNearbySites": "近くの避難場所",
   "mapAnyHazard": "すべての災害",
   "mapWalkingDistance": "徒歩の道のり",

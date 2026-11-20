@@ -492,6 +492,8 @@ class _MapScreenState extends State<MapScreen> {
                         TextSourceAttribution(l.mapAttributionHeights),
                       if (s.routes?.hasFlood ?? false)
                         TextSourceAttribution(l.mapAttributionFlood),
+                      if (s.contourTiles != null)
+                        TextSourceAttribution(l.mapAttributionContours),
                     ],
                   ),
                 ],

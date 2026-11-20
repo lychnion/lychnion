@@ -419,6 +419,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited';
 
   @override
+  String get mapAttributionContours =>
+      'Contours: GSI optimal vector tiles, edited';
+
+  @override
   String get mapNearbySites => 'Nearby evacuation sites';
 
   @override
