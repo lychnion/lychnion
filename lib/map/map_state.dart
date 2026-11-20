@@ -89,7 +89,7 @@ class MapState extends ChangeNotifier {
   EvacSites? sites;
   PmTilesVectorTileProvider? tiles;
 
-  /// TEST: contour lines, next to the PMTiles file as `<id>.contours.pmtiles`.
+  /// Contour lines from `<id>.contours.pmtiles` next to the PMTiles file, if any.
   PmTilesVectorTileProvider? contourTiles;
   LatLng? here;
   bool hereIsMock = false;
@@ -122,12 +122,7 @@ class MapState extends ChangeNotifier {
       tiles = await PmTilesVectorTileProvider.fromSource(
         await resolvePath(pmtilesPath),
       );
-      final cp = await resolvePath(
-        pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.contours.pmtiles'),
-      );
-      if (cp.endsWith('.contours.pmtiles') && await File(cp).exists()) {
-        contourTiles = await PmTilesVectorTileProvider.fromSource(cp);
-      }
+      await _loadContours();
       notifyListeners();
       await _loadRoutes();
       await _loadInundationTiles();
@@ -154,6 +149,22 @@ class MapState extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('inundation tiles: $e');
+    }
+  }
+
+  /// Optional contour lines; a missing or broken file only leaves them out.
+  Future<void> _loadContours() async {
+    final path = await resolvePath(
+      pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.contours.pmtiles'),
+    );
+    if (!path.endsWith('.contours.pmtiles') || !await File(path).exists()) {
+      return;
+    }
+    try {
+      contourTiles = await PmTilesVectorTileProvider.fromSource(path);
+    } catch (e) {
+      contourTiles = null;
+      debugPrint('contours: $e');
     }
   }
 

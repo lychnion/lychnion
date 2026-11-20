@@ -32,7 +32,7 @@ Theme offlineLightTheme({required String lang, bool contours = false}) {
       l.remove('icon-image');
       copy['layout'] = l;
     }
-    // TEST: GSI contours (source "contours", layer Cntr) under the roads.
+    // GSI contours (source "contours", layer Cntr) go under the roads.
     if (contours && layer['id'] == 'roads_tunnels_other_casing') {
       layers.addAll(_contourLines);
     }
@@ -43,16 +43,22 @@ Theme offlineLightTheme({required String lang, bool contours = false}) {
   return ProtomapsThemes(
     logger: debug ? const Logger.console() : null,
     sources: {
-      'protomaps': {'type': 'vector', 'url': 'https://example.com/tiles.json'},
+      // Same as the ProtomapsThemes default, which this map replaces.
+      'protomaps': {
+        'type': 'vector',
+        'attribution': '<a href="https://github.com/protomaps/basemaps">Protomaps</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        'url': 'https://example.com/tiles.json',
+      },
       if (contours)
         'contours': {'type': 'vector', 'url': 'https://example.com/c.json'},
     },
   ).build(layers);
 }
 
-// TEST: contour lines from GSI optimal vector tiles (layer Cntr, height in
-// vt_alti). 100 m lines up to z13, 10 m lines from z14. Index lines every
-// 50 m from z13, all lines from z15.
+// Contour lines from the GSI optimal vector tiles (layer Cntr, height in
+// vt_alti). The tiles hold 100 m lines up to z13 and 10 m lines from z14.
+// Drawn: all lines at z11-13, 50 m index lines from z14, all lines from z15.
+// maxzoom is inclusive in vector_tile_renderer.
 final _index = [
   'match',
   ['get', 'vt_alti'],
@@ -79,7 +85,7 @@ Map<String, Object> _contourLine(
 };
 final _contourLines = <Map<String, Object>>[
   // z11-13: the tiles only hold 100 m lines.
-  _contourLine('contours_low', 11, 14, null, '#a0724a', 0.8),
+  _contourLine('contours_low', 11, 13, null, '#a0724a', 0.8),
   _contourLine('contours_minor', 15, 24, ['!', _index], '#c8a07a', 0.6),
   _contourLine('contours_index', 14, 24, _index, '#a0724a', 1.0),
 ];
