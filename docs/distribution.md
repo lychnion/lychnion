@@ -67,6 +67,12 @@ user (built 2026-11-18, step 4a):
   source like any guide, but their safety lines (`alerts`) are not used:
   only packages signed by Lychnion supply the fixed official safety line
   above an answer ([#66](https://github.com/lychnion/lychnion/issues/66)).
+- Added publishers bring guides and maps, never models: a `model` record
+  is accepted only from Lychnion, in catalogs, on USB sticks, from bases
+  and on nodes, and an added publisher's model installed by an older
+  build is never loaded ([#67](https://github.com/lychnion/lychnion/issues/67)).
+  A model's file is parsed by native code, chat template included, and
+  its text is what answers.
 - Names built into the app (`lychnion`) cannot be added. A name already
   added with another key is refused: the user removes it first, so a
   changed key is never taken over silently. Two exceptions, both from

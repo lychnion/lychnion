@@ -210,6 +210,9 @@ class Catalog {
         rejected.add('${id ?? '#$n'}: bad signature or record');
       } else if (!ItemKind.values.any((k) => k.name == r.kind)) {
         rejected.add('${r.id}: unknown kind ${r.kind}');
+      } else if (!mayPublishKind(r.publisher, r.kind)) {
+        // Only Lychnion's models (#67).
+        rejected.add('${r.id}: ${r.kind} from ${r.publisher}');
       } else if (r.files.any((f) => DownloadStore.isReservedName(f.name))) {
         rejected.add('${r.id}: reserved file name');
       } else if (items.any((i) => i.id == r.id)) {

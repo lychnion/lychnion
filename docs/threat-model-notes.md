@@ -75,7 +75,9 @@ proven. The property is the §1.11 claim each one breaks.
 5. **Added publishers can ship models** ([#67](https://github.com/lychnion/lychnion/issues/67)) (confirmed, `models-lychnion-only`):
    any record kind is accepted (`lib/download/catalog.dart:186`), and with
    no model picked the first one in sort order becomes active
-   (`lib/download/download_store.dart:563`).
+   (`lib/download/download_store.dart:563`). *Fixed for #67: `model`
+   records only from built-in publishers (`mayPublishKind`), in the app
+   and on nodes; older installs of others' models are never loaded.*
 6. **A USB stick can squat a Lychnion id** ([#68](https://github.com/lychnion/lychnion/issues/68)) (confirmed, `publisher-namespace`):
    a stick record from an added publisher for a bundled or not yet installed
    Lychnion id is installed and then used, because the owner check sees only
