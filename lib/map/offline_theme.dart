@@ -18,6 +18,7 @@ Theme offlineLightTheme({required String lang, bool contours = false}) {
     ['get', 'name'],
   ];
   final layers = <Map<String, Object>>[];
+  var linesAdded = false, labelsAdded = false;
   for (final layer in v4.themeLight) {
     // Minor roads mostly carry municipal road numbers (西1276 …): too noisy.
     if (layer['id'] == 'roads_labels_minor') continue;
@@ -32,13 +33,24 @@ Theme offlineLightTheme({required String lang, bool contours = false}) {
       l.remove('icon-image');
       copy['layout'] = l;
     }
-    // GSI contours (source "contours", layer Cntr) go under the roads.
+    // GSI contours (source "contours", layer Cntr): lines under the roads,
+    // height labels under the other labels.
     if (contours && layer['id'] == 'roads_tunnels_other_casing') {
       layers.addAll(_contourLines);
+      linesAdded = true;
+    }
+    if (contours && !labelsAdded && layer['type'] == 'symbol') {
+      layers.add(_contourLabels);
+      labelsAdded = true;
     }
     layers.add(copy);
   }
-  if (contours) layers.add(_contourLabels);
+  if (contours && !labelsAdded) layers.add(_contourLabels);
+  assert(
+    !contours || linesAdded,
+    'roads_tunnels_other_casing is gone from the Protomaps theme: '
+    'choose another layer to put the contour lines under',
+  );
   const debug = bool.fromEnvironment('MAP_THEME_LOG');
   return ProtomapsThemes(
     logger: debug ? const Logger.console() : null,

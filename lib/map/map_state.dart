@@ -154,6 +154,7 @@ class MapState extends ChangeNotifier {
 
   /// Optional contour lines; a missing or broken file only leaves them out.
   Future<void> _loadContours() async {
+    contourTiles = null;
     final path = await resolvePath(
       pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.contours.pmtiles'),
     );
@@ -163,7 +164,6 @@ class MapState extends ChangeNotifier {
     try {
       contourTiles = await PmTilesVectorTileProvider.fromSource(path);
     } catch (e) {
-      contourTiles = null;
       debugPrint('contours: $e');
     }
   }

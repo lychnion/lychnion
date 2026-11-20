@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
 import '../facts/fact.dart';
 import '../facts/fact_form.dart';
@@ -35,6 +36,17 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final _map = MapController();
   bool _mapReady = false;
+
+  /// The theme is parsed once per language and contours on/off.
+  vtr.Theme? _theme;
+  (String, bool)? _themeKey;
+  vtr.Theme _themeFor(String lang, bool contours) {
+    if (_themeKey != (lang, contours)) {
+      _theme = offlineLightTheme(lang: lang, contours: contours);
+      _themeKey = (lang, contours);
+    }
+    return _theme!;
+  }
 
   /// Site opened in the list (shows its address).
   String? _selected;
@@ -354,10 +366,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 children: [
                   VectorTileLayer(
-                    theme: offlineLightTheme(
-                      lang: context.lang,
-                      contours: s.contourTiles != null,
-                    ),
+                    theme: _themeFor(context.lang, s.contourTiles != null),
                     tileProviders: TileProviders({
                       'protomaps': tiles,
                       if (s.contourTiles != null) 'contours': s.contourTiles!,

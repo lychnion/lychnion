@@ -379,6 +379,20 @@ void main() {
           .writeAsBytes(List.filled(size, 1));
     }
 
+    test('the contours file is never taken as the base map', () async {
+      final s = DownloadStore(tmp, trust: trust);
+      final map = await item('jp.map.c', ItemKind.map, [
+        ('c.contours.pmtiles', 4),
+        ('c.pmtiles', 10),
+        ('c.sites.sqlite', 5),
+      ]);
+      await put(s, ItemKind.map, 'c.contours.pmtiles', 4);
+      await put(s, ItemKind.map, 'c.pmtiles', 10);
+      await put(s, ItemKind.map, 'c.sites.sqlite', 5);
+      await s.markInstalled(map);
+      expect(s.mapPaths()!.pmtiles, endsWith('/maps/c.pmtiles'));
+    });
+
     test('only files with a record count, and only at their size', () async {
       final s = DownloadStore(tmp, trust: trust);
       final map = await item('jp.map.x', ItemKind.map, [
