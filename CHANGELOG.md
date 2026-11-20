@@ -90,6 +90,10 @@ here should be relied on alone in an emergency. Source only; build it as
 - The data tools moved to
   [lychnion-data](https://github.com/lychnion/lychnion-data). Bundled
   data is from its release 2026.11.5.
+- The map drags smoothly on slow phones: shapes are drawn once per tile
+  as images, only the labels are drawn as vectors. On a Pixel 5a, dragging
+  at zoom 15 went from about 12 to 55-58 frames per second. Lines look a
+  little softer on high-density screens.
 
 ### Security
 

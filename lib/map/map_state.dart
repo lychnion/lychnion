@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,7 @@ import 'evac_sites.dart';
 import 'hazard_detect.dart';
 import 'inundation_tiles.dart';
 import 'route_graph.dart';
+import 'tile_cache.dart';
 
 /// "lat,lon" subject of a point fact (blocked road, water point).
 LatLng? pointOf(String subject) {
@@ -96,6 +98,10 @@ class MapState extends ChangeNotifier {
 
   EvacSites? sites;
   PmTilesVectorTileProvider? tiles;
+
+  /// Names the map file's contents (name, size, date) for its tile caches
+  /// ([MapTileCache]); set right after [tiles].
+  String? tilesId;
   LatLng? here;
   bool hereIsMock = false;
   double? accuracy;
@@ -124,9 +130,14 @@ class MapState extends ChangeNotifier {
       sites = sp != null
           ? EvacSites.open(sp)
           : await EvacSites.fromAsset(sitesAsset);
-      tiles = await PmTilesVectorTileProvider.fromSource(
-        await resolvePath(pmtilesPath),
-      );
+      final tilesPath = await resolvePath(pmtilesPath);
+      final stat = await File(tilesPath).stat();
+      tiles = await PmTilesVectorTileProvider.fromSource(tilesPath);
+      final id =
+          '${tilesPath.split(Platform.pathSeparator).last}'
+          '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
+      tilesId = id;
+      unawaited(MapTileCache.keepOnly(id));
       notifyListeners();
       await _loadRoutes();
       await _loadInundationTiles();

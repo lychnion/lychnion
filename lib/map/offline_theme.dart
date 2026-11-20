@@ -38,3 +38,29 @@ Theme offlineLightTheme({required String lang}) {
   return const ProtomapsThemes(logger: debug ? Logger.console() : null)
       .build(layers);
 }
+
+/// The map in two parts: `shapes` for a raster-mode layer, `labels` for a
+/// vector-mode layer on top. See [splitLabels].
+typedef MapDrawing = ({Theme shapes, Theme labels});
+
+/// Splits [theme] into its labels (symbol layers) and everything else.
+///
+/// Why: in vector mode every frame re-draws every path of every tile
+/// (Impeller keeps no raster cache): about 12 fps when dragging at z15 on a
+/// Pixel 5a. Raster mode draws each tile once into an image (60 fps); the
+/// labels stay vectors on top, placed across tile edges (55-58 fps).
+///
+/// vector_map_tiles only starts over when the theme id changes, so the
+/// labels id names the language [lang]. The shapes have no text.
+MapDrawing splitLabels(Theme theme, {required String lang}) => (
+  shapes: theme.copyWith(
+    id: 'lychnion-shapes',
+    types: ThemeLayerType.values
+        .where((t) => t != ThemeLayerType.symbol)
+        .toSet(),
+  ),
+  labels: theme.copyWith(
+    id: 'lychnion-labels-$lang',
+    types: {ThemeLayerType.symbol},
+  ),
+);
