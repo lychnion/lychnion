@@ -144,6 +144,7 @@ class MapState extends ChangeNotifier {
       tilesId = id;
       unawaited(MapTileCache.keepOnly(id));
       await _loadContours();
+      unawaited(MapTileCache.keepContours(id, contoursId));
       notifyListeners();
       await _loadRoutes();
       await _loadInundationTiles();
@@ -173,12 +174,12 @@ class MapState extends ChangeNotifier {
     }
   }
 
-  /// Optional contour lines; a missing or broken file only leaves them out.
   /// A file's name, size and date: changes when the file is replaced.
   static String _fileId(String path, FileStat stat) =>
       '${path.split(Platform.pathSeparator).last}'
       '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
 
+  /// Optional contour lines; a missing or broken file only leaves them out.
   Future<void> _loadContours() async {
     contourTiles = null;
     contoursId = null;

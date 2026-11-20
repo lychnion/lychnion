@@ -286,9 +286,7 @@ class _MapScreenState extends State<MapScreen> {
     final tilesId = s.tilesId ?? '';
     // With contours, each layer caches in a folder per contours file too, so
     // a new contours file never shows old raster images.
-    final withContours = contours
-        ? '-${MapTileCache.folderName(s.contoursId ?? '')}'
-        : '';
+    final cacheContours = contours ? s.contoursId ?? '' : null;
     final providers = TileProviders({
       'protomaps': tiles,
       if (contours) 'contours': s.contourTiles!,
@@ -435,8 +433,10 @@ class _MapScreenState extends State<MapScreen> {
                     tileProviders: providers,
                     layerMode: VectorTileLayerMode.raster,
                     fileCacheTtl: Duration.zero,
-                    cacheFolder: () =>
-                        MapTileCache.folder(tilesId, 'shapes$withContours'),
+                    cacheFolder: () => MapTileCache.folder(
+                      tilesId,
+                      MapTileCache.layerName('shapes', cacheContours),
+                    ),
                     maximumZoom: 18,
                   ),
                   VectorTileLayer(
@@ -445,8 +445,10 @@ class _MapScreenState extends State<MapScreen> {
                     tileProviders: providers,
                     layerMode: VectorTileLayerMode.vector,
                     fileCacheTtl: Duration.zero,
-                    cacheFolder: () =>
-                        MapTileCache.folder(tilesId, 'labels$withContours'),
+                    cacheFolder: () => MapTileCache.folder(
+                      tilesId,
+                      MapTileCache.layerName('labels', cacheContours),
+                    ),
                     maximumZoom: 18,
                   ),
                   if (hazard == Hazard.tsunami && s.inundationTiles != null)

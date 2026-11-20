@@ -26,6 +26,49 @@ class MapTileCache {
     return Directory('${tmp.path}/$_root/${folderName(tilesId)}/$layer');
   }
 
+  /// The folder name of [layer] (`shapes`, `labels`): with contours drawn,
+  /// one per contours file [contoursId], so a new file never shows old
+  /// images.
+  static String layerName(String layer, String? contoursId) =>
+      contoursId == null ? layer : '$layer-${folderName(contoursId)}';
+
+  /// Deletes the layer folders of map file [tilesId] other than the plain
+  /// ones and those of the contours file [contoursId] (old contours files).
+  /// Best effort, like [keepOnly].
+  static Future<void> keepContours(String tilesId, String? contoursId) async {
+    try {
+      final tmp = await getTemporaryDirectory();
+      await removeOtherLayers(
+        Directory('${tmp.path}/$_root/${folderName(tilesId)}'),
+        contoursId,
+      );
+    } catch (e) {
+      debugPrint('map tile cache: $e');
+    }
+  }
+
+  /// Deletes the folders in [mapFolder] that are not a layer folder for no
+  /// contours or for [contoursId].
+  @visibleForTesting
+  static Future<void> removeOtherLayers(
+    Directory mapFolder,
+    String? contoursId,
+  ) async {
+    if (!await mapFolder.exists()) return;
+    final keep = {
+      for (final layer in ['shapes', 'labels']) ...[
+        layer,
+        if (contoursId != null) layerName(layer, contoursId),
+      ],
+    };
+    await for (final e in mapFolder.list()) {
+      if (keep.contains(e.uri.pathSegments.where((s) => s.isNotEmpty).last)) {
+        continue;
+      }
+      await e.delete(recursive: true);
+    }
+  }
+
   /// Deletes the caches of other map files, and the folder vector_map_tiles
   /// used before (`.vector_map`). Best effort: the system may clear the
   /// temporary folder anyway.

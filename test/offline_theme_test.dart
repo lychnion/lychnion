@@ -105,4 +105,23 @@ void main() {
     );
     expect(withC.labels.layers.map((l) => l.id), contains('contours_label'));
   });
+
+  test('removeOtherLayers drops the folders of old contours files', () async {
+    final root = await Directory.systemTemp.createTemp('tile_cache_test');
+    addTearDown(() => root.delete(recursive: true));
+    final now = MapTileCache.layerName('shapes', 'c.pmtiles-2-2');
+    final old = MapTileCache.layerName('shapes', 'c.pmtiles-1-1');
+    for (final d in ['shapes', 'labels', now, old]) {
+      await File('${root.path}/$d/0_0_0.png').create(recursive: true);
+    }
+    await MapTileCache.removeOtherLayers(root, 'c.pmtiles-2-2');
+    final left = root
+        .listSync()
+        .map((e) => e.uri.pathSegments[e.uri.pathSegments.length - 2])
+        .toSet();
+    expect(left, {'shapes', 'labels', now});
+    // Without contours (file gone): only the plain folders stay.
+    await MapTileCache.removeOtherLayers(root, null);
+    expect(root.listSync().length, 2);
+  });
 }
