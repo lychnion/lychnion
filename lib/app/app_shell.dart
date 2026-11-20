@@ -339,6 +339,8 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
                       builder: (_, _) => MapScreen(
                         key: ObjectKey(_map),
                         state: _map!,
+                        showContours: widget.settings.showContours,
+                        onShowContours: widget.settings.setShowContours,
                         editor: sharingOn(widget.settings) || DevFlags.factsEdit
                             ? FactEditor(
                                 sourceName: sharingName(widget.settings),

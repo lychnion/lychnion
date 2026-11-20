@@ -29,6 +29,48 @@ void main() {
     for (final e in root.listSync()) e.path.split(RegExp(r'[/\\]')).last,
   };
 
+  test('keepOnly drops the layer folders of old contours files', () async {
+    Future<Set<String>> layers() async => {
+      for (final e in Directory(
+        '${root.path}/${MapTileCache.folderName('map')}',
+      ).listSync())
+        e.path.split(RegExp(r'[/\\]')).last,
+    };
+    final now = MapTileCache.layerName('shapes', 'c.pmtiles-2-2');
+    final old = MapTileCache.layerName('shapes', 'c.pmtiles-1-1');
+    for (final layer in ['shapes', 'labels', now, old]) {
+      final d = await MapTileCache.folder('map', layer);
+      await File('${d.path}/0_0_0.png').create(recursive: true);
+    }
+    await MapTileCache.keepOnly('map', contoursId: 'c.pmtiles-2-2');
+    await MapTileCache.idle;
+    expect(await layers(), {'shapes', 'labels', now});
+    // Without contours (file gone): only the plain folders stay.
+    await MapTileCache.keepOnly('map');
+    await MapTileCache.idle;
+    expect(await layers(), {'shapes', 'labels'});
+  });
+
+  test('overlapping keepOnly calls keep the newest contours file', () async {
+    Future<Set<String>> layers() async => {
+      for (final e in Directory(
+        '${root.path}/${MapTileCache.folderName('map')}',
+      ).listSync())
+        e.path.split(RegExp(r'[/\\]')).last,
+    };
+    final c1 = MapTileCache.layerName('shapes', 'c.pmtiles-1-1');
+    final c2 = MapTileCache.layerName('shapes', 'c.pmtiles-2-2');
+    for (final layer in ['shapes', 'labels', c1, c2]) {
+      final d = await MapTileCache.folder('map', layer);
+      await File('${d.path}/0_0_0.png').create(recursive: true);
+    }
+    // Not awaited: the first cleanup runs after the second call.
+    unawaited(MapTileCache.keepOnly('map', contoursId: 'c.pmtiles-1-1'));
+    unawaited(MapTileCache.keepOnly('map', contoursId: 'c.pmtiles-2-2'));
+    await MapTileCache.idle;
+    expect(await layers(), {'shapes', 'labels', c2});
+  });
+
   test('folder names are safe file names', () {
     expect(
       MapTileCache.folderName('jp.map.a.pmtiles-10-20'),

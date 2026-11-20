@@ -49,15 +49,22 @@ class MapTileCache {
         '${(await _rootDir(rootForTest)).path}/${folderName(tilesId)}/$layer',
       );
 
-  static String? _latest;
+  /// The folder name of [layer] (`shapes`, `labels`): with contours drawn,
+  /// one per contours file [contoursId], so a new file never shows old
+  /// images.
+  static String layerName(String layer, String? contoursId) =>
+      contoursId == null ? layer : '$layer-${folderName(contoursId)}';
+
+  static ({String tiles, String? contours})? _latest;
   static Future<void> _cleaning = Future.value();
 
-  /// Deletes the caches of other map files. Calls run one after another, and
-  /// each delete checks the newest call first, so a cleanup still running
-  /// never deletes the folder of a map asked for later. MapState calls this
-  /// only while it is in use.
-  static Future<void> keepOnly(String tilesId) {
-    _latest = tilesId;
+  /// Deletes the caches of other map files, and the layer folders of
+  /// contours files other than [contoursId] (null: no contours drawn).
+  /// Calls run one after another, and each delete checks the newest call
+  /// first, so a cleanup still running never deletes the folder of a map
+  /// asked for later. MapState calls this only while it is in use.
+  static Future<void> keepOnly(String tilesId, {String? contoursId}) {
+    _latest = (tiles: tilesId, contours: contoursId);
     // The root as it is now: a test that ends never sends a late cleanup
     // to the real cache folder.
     final test = rootForTest;
@@ -71,7 +78,15 @@ class MapTileCache {
   static Future<void> _clean(Future<Directory> Function()? test) async {
     if (_latest == null) return;
     try {
-      await removeOthers(await _rootDir(test), () => folderName(_latest!));
+      final root = await _rootDir(test);
+      await removeOthers(root, () => folderName(_latest!.tiles));
+      final tiles = _latest!.tiles;
+      await removeOtherLayers(
+        Directory('${root.path}/${folderName(tiles)}'),
+        () => _latest!.contours,
+        // A newer call for another map file: this folder is gone already.
+        stop: () => _latest!.tiles != tiles,
+      );
     } catch (e) {
       debugPrint('map tile cache: $e');
     }
@@ -112,6 +127,35 @@ class MapTileCache {
     if (!await root.exists()) return;
     await for (final e in root.list()) {
       if (e.path.split(RegExp(r'[/\\]')).last == keep()) continue;
+      try {
+        await e.delete(recursive: true);
+      } catch (err) {
+        debugPrint('map tile cache: $err');
+      }
+    }
+  }
+
+  /// Deletes the folders in [mapFolder] other than the plain layer folders
+  /// and those of the contours file [contoursId] (asked again before each
+  /// delete). [stop] ends it early.
+  @visibleForTesting
+  static Future<void> removeOtherLayers(
+    Directory mapFolder,
+    String? Function() contoursId, {
+    bool Function()? stop,
+  }) async {
+    if (!await mapFolder.exists()) return;
+    await for (final e in mapFolder.list()) {
+      if (stop?.call() ?? false) return;
+      final name = e.path.split(RegExp(r'[/\\]')).last;
+      final c = contoursId();
+      final keep = [
+        for (final layer in ['shapes', 'labels']) ...[
+          layer,
+          if (c != null) layerName(layer, c),
+        ],
+      ];
+      if (keep.contains(name)) continue;
       try {
         await e.delete(recursive: true);
       } catch (err) {

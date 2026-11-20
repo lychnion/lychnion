@@ -19,12 +19,41 @@ import 'tile_cache.dart';
 import 'offline_theme.dart';
 import '../ui/breathing_light.dart';
 
+/// The credits for what the map shows, listed under "About this data".
+/// (flutter_map's own credits button would sit in the map's bottom-right
+/// corner, which the sites sheet always covers.)
+List<String> mapCredits(
+  AppLocalizations l, {
+  required String basemap,
+  bool heights = false,
+  bool flood = false,
+  bool contours = false,
+}) => [
+  if (basemap.isNotEmpty) basemap,
+  l.mapAttributionSites,
+  if (heights) l.mapAttributionHeights,
+  if (flood) l.mapAttributionFlood,
+  if (contours) l.mapAttributionContours,
+];
+
 /// Offline map: base map from a local PMTiles file, emergency evacuation
 /// sites for the chosen hazard, and the nearest ones from the current position.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.state, this.editor});
+  const MapScreen({
+    super.key,
+    required this.state,
+    this.editor,
+    this.showContours = true,
+    this.onShowContours,
+  });
 
   final MapState state;
+
+  /// Draw contour lines when the area has them (a user setting).
+  final bool showContours;
+
+  /// Turns contour lines on or off; null: no switch on the map.
+  final ValueChanged<bool>? onShowContours;
 
   /// Set on the base computer: lets staff enter current facts.
   final FactEditor? editor;
@@ -34,9 +63,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  /// The map theme split for drawing, built once per language.
+  /// The map theme split for drawing, built once per language and
+  /// contours on/off.
   MapDrawing? _drawing;
-  String? _drawingLang;
+  (String, bool)? _drawingKey;
   final _map = MapController();
   bool _mapReady = false;
 
@@ -241,13 +271,26 @@ class _MapScreenState extends State<MapScreen> {
     }
     final from = s.from!;
     final hazard = s.hazard;
+    // Contour lines: only where the area has them and the user wants them.
+    final contours = s.contourTiles != null && widget.showContours;
     final lang = context.lang;
-    if (_drawing == null || _drawingLang != lang) {
-      _drawing = splitLabels(offlineLightTheme(lang: lang), lang: lang);
-      _drawingLang = lang;
+    if (_drawing == null || _drawingKey != (lang, contours)) {
+      _drawing = splitLabels(
+        offlineLightTheme(lang: lang, contours: contours),
+        lang: lang,
+        contours: contours,
+      );
+      _drawingKey = (lang, contours);
     }
     final drawing = _drawing!;
     final tilesId = s.tilesId ?? '';
+    // With contours, each layer caches in a folder per contours file too, so
+    // a new contours file never shows old raster images.
+    final cacheContours = contours ? s.contoursId ?? '' : null;
+    final providers = TileProviders({
+      'protomaps': tiles,
+      if (contours) 'contours': s.contourTiles!,
+    });
     final nearest = s.nearest(hazard);
     final shown = [
       for (final site in sites.sites)
@@ -284,6 +327,19 @@ class _MapScreenState extends State<MapScreen> {
 
     // Wide screens show all eight hazards; phones show the chosen one as a
     // button that opens the full list (a scrolling row hid half of them).
+    void about() => _showAbout(
+      context,
+      sites.notice,
+      sites.attribution,
+      mapCredits(
+        l,
+        basemap: sites.basemapAttribution,
+        heights: s.routes?.hasHeights ?? false,
+        flood: s.routes?.hasFlood ?? false,
+        contours: contours,
+      ),
+    );
+
     final chips = LayoutBuilder(
       builder: (context, c) => Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -368,22 +424,31 @@ class _MapScreenState extends State<MapScreen> {
                   // splitLabels.
                   // Each layer caches on disk in its own folder per map
                   // file (MapTileCache); a new map file starts both over.
+                  // The keys start the layers over when the language,
+                  // contours on/off or the files change (vector_map_tiles
+                  // only rebuilds on a theme id change).
                   VectorTileLayer(
-                    key: ValueKey(('shapes', tilesId)),
+                    key: ValueKey(('shapes', tilesId, contours, s.contoursId)),
                     theme: drawing.shapes,
-                    tileProviders: TileProviders({'protomaps': tiles}),
+                    tileProviders: providers,
                     layerMode: VectorTileLayerMode.raster,
                     fileCacheTtl: Duration.zero,
-                    cacheFolder: () => MapTileCache.folder(tilesId, 'shapes'),
+                    cacheFolder: () => MapTileCache.folder(
+                      tilesId,
+                      MapTileCache.layerName('shapes', cacheContours),
+                    ),
                     maximumZoom: 18,
                   ),
                   VectorTileLayer(
-                    key: ValueKey(('labels', tilesId)),
+                    key: ValueKey(('labels', tilesId, contours, s.contoursId)),
                     theme: drawing.labels,
-                    tileProviders: TileProviders({'protomaps': tiles}),
+                    tileProviders: providers,
                     layerMode: VectorTileLayerMode.vector,
                     fileCacheTtl: Duration.zero,
-                    cacheFolder: () => MapTileCache.folder(tilesId, 'labels'),
+                    cacheFolder: () => MapTileCache.folder(
+                      tilesId,
+                      MapTileCache.layerName('labels', cacheContours),
+                    ),
                     maximumZoom: 18,
                   ),
                   if (hazard == Hazard.tsunami && s.inundationTiles != null)
@@ -494,22 +559,34 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                     ],
                   ),
-                  RichAttributionWidget(
-                    attributions: [
-                      TextSourceAttribution(sites.basemapAttribution),
-                      TextSourceAttribution(l.mapAttributionSites),
-                      if (s.routes?.hasHeights ?? false)
-                        TextSourceAttribution(l.mapAttributionHeights),
-                      if (s.routes?.hasFlood ?? false)
-                        TextSourceAttribution(l.mapAttributionFlood),
-                    ],
-                  ),
                 ],
               ),
             ),
           ),
         ),
         SafeArea(child: chips),
+        // The base map's credit stays visible: a small button at the top
+        // right (the sites sheet covers the bottom) opens the full credits.
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+              child: TextButton(
+                onPressed: about,
+                style: TextButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surface.withValues(
+                    alpha: 0.8,
+                  ),
+                  foregroundColor: theme.colorScheme.onSurface,
+                  textStyle: theme.textTheme.labelSmall,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+                child: Text(l.mapCreditsShort),
+              ),
+            ),
+          ),
+        ),
         DraggableScrollableSheet(
           initialChildSize: 0.36,
           minChildSize: 0.14,
@@ -571,10 +648,28 @@ class _MapScreenState extends State<MapScreen> {
                         ],
                       ),
                     ),
+                    if (s.contourTiles != null && widget.onShowContours != null)
+                      // Announced as a switch (on/off), not as "selected".
+                      // MergeSemantics keeps the state on this button: a
+                      // bare Semantics gave it to the panel heading.
+                      MergeSemantics(
+                        child: Semantics(
+                          toggled: widget.showContours,
+                          child: IconButton(
+                            tooltip: l.mapContours,
+                            onPressed: () =>
+                                widget.onShowContours!(!widget.showContours),
+                            icon: Icon(
+                              widget.showContours
+                                  ? Icons.terrain_rounded
+                                  : Icons.terrain_outlined,
+                            ),
+                          ),
+                        ),
+                      ),
                     IconButton(
                       tooltip: l.mapAboutData,
-                      onPressed: () =>
-                          _showAbout(context, sites.notice, sites.attribution),
+                      onPressed: about,
                       icon: const Icon(Icons.info_outline_rounded),
                     ),
                     IconButton.filledTonal(
@@ -906,46 +1001,57 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  void _showAbout(BuildContext context, String notice, String attribution) =>
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        builder: (c) => DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.6,
-          maxChildSize: 0.92,
-          builder: (c, scroll) {
-            final theme = Theme.of(c);
-            return ListView(
-              controller: scroll,
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              children: [
-                Text(
-                  l.mapAboutData,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  (s.routes != null ? l.mapAboutRoutes : '') +
-                      (s.routes?.hasHeights ?? false ? l.mapAboutHeights : '') +
-                      (s.routes != null ? '' : l.mapAboutStraight) +
-                      l.mapAboutSites,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Text(l.mapGsiNotes, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 6),
-                SelectableText(
-                  '$notice\n\n$attribution',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            );
-          },
-        ),
-      );
+  void _showAbout(
+    BuildContext context,
+    String notice,
+    String attribution,
+    List<String> credits,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.92,
+      builder: (c, scroll) {
+        final theme = Theme.of(c);
+        return ListView(
+          controller: scroll,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+          children: [
+            Text(
+              l.mapAboutData,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              (s.routes != null ? l.mapAboutRoutes : '') +
+                  (s.routes?.hasHeights ?? false ? l.mapAboutHeights : '') +
+                  (s.routes != null ? '' : l.mapAboutStraight) +
+                  l.mapAboutSites,
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Text(l.mapCredits, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 6),
+            SelectableText(
+              credits.join('\n'),
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            Text(l.mapGsiNotes, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 6),
+            SelectableText(
+              '$notice\n\n$attribution',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        );
+      },
+    ),
+  );
 }
 
 /// Shown when the user's city has no emergency site for [hazard] in the

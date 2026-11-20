@@ -699,6 +699,18 @@ abstract class AppLocalizations {
   /// **'Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited'**
   String get mapAttributionFlood;
 
+  /// No description provided for @mapContours.
+  ///
+  /// In en, this message translates to:
+  /// **'Contour lines'**
+  String get mapContours;
+
+  /// No description provided for @mapAttributionContours.
+  ///
+  /// In en, this message translates to:
+  /// **'Contours: GSI optimal vector tiles, edited'**
+  String get mapAttributionContours;
+
   /// No description provided for @mapNearbySites.
   ///
   /// In en, this message translates to:
@@ -824,6 +836,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Emergency evacuation sites (指定緊急避難場所) are designated per hazard; shelters (指定避難所) are for staying after the danger has passed. The data may be out of date or incomplete: check with your city.'**
   String get mapAboutSites;
+
+  /// No description provided for @mapCreditsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'© OpenStreetMap'**
+  String get mapCreditsShort;
+
+  /// No description provided for @mapCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Map data'**
+  String get mapCredits;
 
   /// No description provided for @mapGsiNotes.
   ///

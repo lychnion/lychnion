@@ -421,6 +421,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited';
 
   @override
+  String get mapContours => 'Contour lines';
+
+  @override
+  String get mapAttributionContours =>
+      'Contours: GSI optimal vector tiles, edited';
+
+  @override
   String get mapNearbySites => 'Nearby evacuation sites';
 
   @override
@@ -494,6 +501,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mapAboutSites =>
       'Emergency evacuation sites (指定緊急避難場所) are designated per hazard; shelters (指定避難所) are for staying after the danger has passed. The data may be out of date or incomplete: check with your city.';
+
+  @override
+  String get mapCreditsShort => '© OpenStreetMap';
+
+  @override
+  String get mapCredits => 'Map data';
 
   @override
   String get mapGsiNotes => 'GSI usage notes (Japanese)';

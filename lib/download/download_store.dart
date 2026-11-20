@@ -831,7 +831,13 @@ class DownloadStore {
   ({String pmtiles, String sites, String? routes, String? inundation})?
   mapPaths() {
     for (final i in allInstalled(ItemKind.map)) {
-      final t = i.fileEnding('.pmtiles'), s = i.fileEnding('.sites.sqlite');
+      // `<id>.contours.pmtiles` is an extra layer, never the base map.
+      final t = i.files.keys
+          .where(
+            (f) => f.endsWith('.pmtiles') && !f.endsWith('.contours.pmtiles'),
+          )
+          .firstOrNull;
+      final s = i.fileEnding('.sites.sqlite');
       if (t != null && s != null) {
         final r = i.fileEnding('.routes.bin');
         final f = i.fileEnding('.inundation.mbtiles');

@@ -311,6 +311,8 @@
   "mapAttributionSites": "Evacuation sites: from GSI Japan designated emergency evacuation site and shelter data, edited by Lychnion",
   "mapAttributionHeights": "Heights: from GSI Japan elevation tiles (digital elevation model), edited by Lychnion",
   "mapAttributionFlood": "Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited",
+  "mapContours": "Contour lines",
+  "mapAttributionContours": "Contours: GSI optimal vector tiles, edited",
   "mapNearbySites": "Nearby evacuation sites",
   "mapAnyHazard": "Any hazard",
   "mapWalkingDistance": "walking distance",
@@ -356,6 +358,8 @@
   "mapAboutHeights": "For tsunami the route keeps to higher ground and avoids going down, even if it is a little longer. Heights are ground heights (GSI elevation tiles): at a tsunami evacuation building, go up to the upper floors. ",
   "mapAboutStraight": "Distances are straight lines, not routes. ",
   "mapAboutSites": "Emergency evacuation sites (指定緊急避難場所) are designated per hazard; shelters (指定避難所) are for staying after the danger has passed. The data may be out of date or incomplete: check with your city.",
+  "mapCreditsShort": "© OpenStreetMap",
+  "mapCredits": "Map data",
   "mapGsiNotes": "GSI usage notes (Japanese)",
   "mapNoSiteWarning": "The GSI data lists no {hazard} evacuation site in {city}. The nearest site may be in another city. Check {city}'s own hazard map and evacuation guidance.",
   "@mapNoSiteWarning": {

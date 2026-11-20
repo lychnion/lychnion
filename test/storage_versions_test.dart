@@ -130,6 +130,33 @@ void main() {
   });
 
   group('settings.json', () {
+    test('contour lines: on by default, off is kept', () async {
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      expect(s.showContours, isTrue); // no file yet
+      await s.setShowContours(false);
+      final j = jsonDecode(file('settings.json').readAsStringSync()) as Map;
+      expect(j['show_contours'], isFalse);
+      final again = AppSettings();
+      await again.load(dir: tmp);
+      expect(again.showContours, isFalse);
+    });
+
+    test('contour lines: setting the same value writes nothing', () async {
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      await s.setShowContours(true);
+      expect(file('settings.json').existsSync(), isFalse);
+    });
+
+    test('contour lines: on for files from before the setting', () async {
+      file('settings.json')
+          .writeAsStringSync(jsonEncode({'format': 1, 'region': 'JP-28'}));
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      expect(s.showContours, isTrue);
+    });
+
     test('an old file is read and saved with a format number', () async {
       file('settings.json').writeAsStringSync(
         jsonEncode({'language': 'system', 'region': 'JP-28'}),

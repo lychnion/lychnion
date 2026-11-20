@@ -109,8 +109,15 @@ class MapState extends ChangeNotifier {
   EvacSites? sites;
   PmTilesVectorTileProvider? tiles;
 
+  /// Contour lines from `<id>.contours.pmtiles` next to the PMTiles file, if any.
+  PmTilesVectorTileProvider? contourTiles;
+
+  /// Names the contours file's contents (name, size, date) for the tile
+  /// caches; set with [contourTiles].
+  String? contoursId;
+
   /// Names the map file's contents (name, size, date) for its tile caches
-  /// ([MapTileCache]); set right after [tiles].
+  /// ([MapTileCache]); set once [tiles] and the contours are loaded.
   String? tilesId;
   LatLng? here;
   bool hereIsMock = false;
@@ -154,11 +161,13 @@ class MapState extends ChangeNotifier {
         return;
       }
       tiles = t;
-      final id =
-          '${tilesPath.split(Platform.pathSeparator).last}'
-          '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
+      final id = _fileId(tilesPath, stat);
+      await _loadContours();
+      if (_disposed) return;
+      // Set with the contours, so the screen never builds its layers once
+      // without them first.
       tilesId = id;
-      unawaited(MapTileCache.keepOnly(id));
+      unawaited(MapTileCache.keepOnly(id, contoursId: contoursId));
       notifyListeners();
       await _loadRoutes();
       if (_disposed) return;
@@ -189,6 +198,35 @@ class MapState extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('inundation tiles: $e');
+    }
+  }
+
+  /// A file's name, size and date: changes when the file is replaced.
+  static String _fileId(String path, FileStat stat) =>
+      '${path.split(Platform.pathSeparator).last}'
+      '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
+
+  /// Optional contour lines; a missing or broken file only leaves them out.
+  Future<void> _loadContours() async {
+    contourTiles = null;
+    contoursId = null;
+    final path = await resolvePath(
+      pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.contours.pmtiles'),
+    );
+    if (!path.endsWith('.contours.pmtiles') || !await File(path).exists()) {
+      return;
+    }
+    try {
+      final stat = await File(path).stat();
+      final t = await PmTilesVectorTileProvider.fromSource(path);
+      if (_disposed) {
+        await t.archive.close();
+        return;
+      }
+      contourTiles = t;
+      contoursId = _fileId(path, stat);
+    } catch (e) {
+      debugPrint('contours: $e');
     }
   }
 

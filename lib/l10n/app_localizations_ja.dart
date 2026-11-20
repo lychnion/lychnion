@@ -413,6 +413,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapAttributionFlood => '津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工';
 
   @override
+  String get mapContours => '等高線';
+
+  @override
+  String get mapAttributionContours => '等高線：国土地理院最適化ベクトルタイルを加工して作成';
+
+  @override
   String get mapNearbySites => '近くの避難場所';
 
   @override
@@ -483,6 +489,12 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get mapAboutSites =>
       '指定緊急避難場所は災害の種類ごとに指定されています。指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、最新の状況は市町村に確認してください。';
+
+  @override
+  String get mapCreditsShort => '© OpenStreetMap';
+
+  @override
+  String get mapCredits => '地図データの出典';
 
   @override
   String get mapGsiNotes => '国土地理院 ご利用上の注意';
