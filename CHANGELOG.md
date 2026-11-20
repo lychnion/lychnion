@@ -97,6 +97,10 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- The headless node no longer sends requests to its own machine or
+  network from an internet catalog through `::`, multicast, special
+  ranges or an IPv4 address carried in IPv6 (NAT64, 6to4), and an
+  internet catalog may not redirect it there either (#74).
 - A base or a phone nearby at a 100.64/10 address (some hotspots), or at
   a plain name without a dot, can no longer redirect downloads to another
   host. The download guard and base discovery now share one definition of
