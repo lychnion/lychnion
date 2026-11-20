@@ -105,7 +105,7 @@ def clone_model(src, docs):
 
 # Everything in the checkout that goes into the built app: a change here means the run is not the
 # commit's.
-BUILT_FROM = ("lib", "assets", "packages", "macos", "pubspec.yaml", "pubspec.lock")
+BUILT_FROM = ("lib", "assets", "packages", "macos", "pubspec.yaml", "pubspec.lock", "l10n.yaml")
 
 
 def git(*args):
@@ -157,6 +157,9 @@ def main():
     if a.embed != "none":
         defines.append(f"EMBED_MODEL_PATH=docs:eval-models/{os.path.basename(a.embed)}")
     defines += a.define
+    # Read before the build, which may rewrite tracked files (macos/Flutter/...).
+    commit = git("rev-parse", "HEAD")
+    dirty = bool(git("status", "--porcelain", "--", *BUILT_FROM))
     exe = build(a.app_id, defines)
     docs = ensure_container(exe, a.app_id)
     clone_model(model, docs)
@@ -167,14 +170,15 @@ def main():
         "event": "meta", "label": a.label, "model": os.path.basename(model),
         "model_bytes": os.path.getsize(model),
         "embed": None if a.embed == "none" else os.path.basename(a.embed),
-        "defines": a.define, "app_id": a.app_id, "commit": git("rev-parse", "HEAD"),
-        "dirty": bool(git("status", "--porcelain", "--", *BUILT_FROM)),
+        "defines": a.define, "app_id": a.app_id, "commit": commit,
+        "dirty": dirty,
         "host": platform.platform(), "chip": subprocess.run(
             ["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True).stdout.strip(),
         "started": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "questions": len(qs),
         # The region answers ranked local sources for (lib/app/region.dart). The app logs it only
-        # when it changes from the answerer's default, 'JP'.
+        # when it differs from the answerer's default, 'JP' (GroundedAnswerer.userRegion in
+        # lib/knowledge/grounded_answer.dart).
         "region": "JP",
     }
     os.makedirs(os.path.dirname(out), exist_ok=True)

@@ -46,7 +46,7 @@ def set_aside(out_dir, graded):
     person's verdicts in human.json may not be in git yet."""
     old = graded + [os.path.basename(f) for f in glob.glob(os.path.join(out_dir, "skeptic-*.md"))]
     dest = os.path.join(out_dir, "replaced-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-    os.makedirs(dest)
+    os.makedirs(dest, exist_ok=True)
     for name in sorted(old):
         shutil.move(os.path.join(out_dir, name), os.path.join(dest, name))
     print(f"moved {len(old)} old grade files to {os.path.relpath(dest, REPO)}")
@@ -115,7 +115,8 @@ def main():
     ap.add_argument("--per-batch", type=int, default=10)
     ap.add_argument("--flagged", action="store_true", help="write the skeptic files instead")
     ap.add_argument("--force", action="store_true",
-                    help="rewrite key.json even though grades exist, and move the old grades aside")
+                    help="rewrite key.json even though grades exist; when the answers changed, the old "
+                         "grades are moved aside")
     a = ap.parse_args()
     if a.force and a.flagged:
         sys.exit("--flagged reads the safety grades, which --force would set aside: run them apart")
@@ -191,6 +192,8 @@ def main():
             print(f"warning: {len(flagged) - written} flagged answers are not in this run")
         print(f"wrote {written} skeptic files to {os.path.relpath(out_dir, REPO)}")
         return
+    for old in glob.glob(os.path.join(out_dir, "batch-*.md")):  # a smaller run leaves none behind
+        os.remove(old)
     n_batches = 0
     for b in range(0, len(blocks), a.per_batch):
         with open(os.path.join(out_dir, f"batch-{n_batches}.md"), "w", encoding="utf-8") as f:
