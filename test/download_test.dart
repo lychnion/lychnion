@@ -8,6 +8,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_store.dart';
 import 'package:lychnion/download/downloader.dart';
+import 'package:lychnion/knowledge/bundled_packages.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -236,13 +237,9 @@ void main() {
       for (final i in c.items.where((i) => i.kind == ItemKind.model)) {
         expect(c.canDownload(i), isTrue);
       }
-      // Every file the app bundles matches its signed record.
+      // Every bundled file that has a catalog record matches it.
       final bundledFiles = [
-        for (final id in [
-          'jp.bousai.core',
-          'jp.outdoor.hiking',
-          'intl.firstaid.basics',
-        ])
+        for (final id in bundledPackages)
           (c.byId(id)!.files.single, 'assets/packages'),
         (
           c
