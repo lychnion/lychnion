@@ -93,6 +93,12 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Only confirmed facts change the suggested evacuation site and the
+  walking route. A resident report, or an "official" fact whose
+  signature does not check out (anyone on a base's Wi-Fi can send one),
+  is still shown with its "unconfirmed" label, but no longer makes the
+  app steer away from a shelter, route around a road or switch to a
+  warning's hazard (#69).
 - The AI model never answers alone. When the guides or the search model
   fail to load after the model is up, the question bar turns off (unless
   a base answers) and the screen says the guides could not be loaded;

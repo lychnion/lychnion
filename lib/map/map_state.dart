@@ -48,15 +48,23 @@ class MapState extends ChangeNotifier {
   /// The current status fact of a site, if any.
   Fact? statusOf(EvacSite site) => facts?.shelterStatus(site.uid);
 
-  /// The hazard named by the current warnings, e.g. tsunami during a
-  /// tsunami warning; null without one.
+  /// The hazard named by the current confirmed warnings, e.g. tsunami
+  /// during a tsunami warning; null without one. An unconfirmed warning
+  /// (a resident report, or an "official" one whose signature does not
+  /// check out) is shown, but does not change the suggested site or route
+  /// (lychnion/lychnion#69).
   Hazard? get warningHazard => hazardForWarnings([
     for (final f in facts?.currentOf({FactKind.warning}) ?? const <Fact>[])
-      '${f.value} ${f.subject}',
+      if (!f.unconfirmed) '${f.value} ${f.subject}',
   ]);
 
-  /// Whether to steer people away from a site (full or closed).
-  bool avoid(EvacSite site) => statusOf(site)?.shelterStatus?.avoid ?? false;
+  /// Whether to steer people away from a site: full or closed by a
+  /// confirmed fact. An unconfirmed one is shown with its label, but the
+  /// site is still suggested (#69): anyone on the Wi-Fi can send one.
+  bool avoid(EvacSite site) {
+    final f = statusOf(site);
+    return f != null && !f.unconfirmed && (f.shelterStatus?.avoid ?? false);
+  }
 
   final String pmtilesPath;
   final String sitesAsset;
@@ -169,10 +177,12 @@ class MapState extends ChangeNotifier {
   /// Nodes near blocked roads are not walked through.
   static const blockedRadius = 25.0;
 
-  /// Points of current blocked-road facts.
+  /// Points of current confirmed blocked-road facts: the route goes
+  /// around these. Unconfirmed ones are shown on the map but not routed
+  /// around (#69).
   List<LatLng> get blockedPoints => [
     for (final f in facts?.currentOf({FactKind.roadBlocked}) ?? const <Fact>[])
-      ?pointOf(f.subject),
+      if (!f.unconfirmed) ?pointOf(f.subject),
   ];
 
   /// Tsunami routes keep to higher ground (when the graph has heights).

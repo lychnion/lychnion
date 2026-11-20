@@ -757,7 +757,7 @@
       "property": "unverified-facts-not-acted-on",
       "violation_symptom": "bad-data-accepted",
       "severity_tier": "security",
-      "conditions": "only verified facts change the suggested evacuation site or walking route.",
+      "conditions": "only verified facts change the suggested evacuation site or walking route: a shelter is avoided, a road routed around and a warning's hazard used only when the fact is confirmed (`lib/map/map_state.dart:64`, `lib/map/map_state.dart:183`, `lib/map/map_state.dart:56`); unconfirmed ones are shown with their label.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

@@ -94,7 +94,8 @@ proven. The property is the §1.11 claim each one breaks.
 7. **Unconfirmed facts steer the map** ([#69](https://github.com/lychnion/lychnion/issues/69)) (confirmed,
    `unverified-facts-not-acted-on`): `lib/map/map_state.dart:59` and
    `lib/map/map_state.dart:174` use facts whatever their trust, and
-   `lib/map/map_screen.dart:251` skips avoided sites.
+   `lib/map/map_screen.dart:251` skips avoided sites. *Fixed for #69:
+   `avoid`, `blockedPoints` and `warningHazard` use confirmed facts only.*
 8. **Facts from the future win** ([#70](https://github.com/lychnion/lychnion/issues/70)) (confirmed, `fact-time-bounds`): no cap on
    `observedAt` or `expiresAt` (`lib/facts/fact_store.dart:275`).
 9. **Questions and answers in the release log** ([#71](https://github.com/lychnion/lychnion/issues/71)) (confirmed, `device-egress`):

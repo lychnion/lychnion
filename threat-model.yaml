@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:2851272853e317a4cf0760fc5f213ddfa32fb78e289e200b1ca842bcf3cac02a
+prose_version: threat-model.md@sha256:e7d157008eaa4e88db91fde43a2ff54ffffdd67d9b34a1dd777f87a6938d933f
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1822,9 +1822,9 @@ properties_claimed:
   components:
   - facts
   tier: security-critical
-  x-known-violations:
-  - shelters are avoided whatever the trust (`lib/map/map_state.dart:59`).
-  conditions: only verified facts change the suggested evacuation site or walking route.
+  conditions: 'only verified facts change the suggested evacuation site or walking route: a shelter is avoided,
+    a road routed around and a warning''s hazard used only when the fact is confirmed (`lib/map/map_state.dart:64`,
+    `lib/map/map_state.dart:183`, `lib/map/map_state.dart:56`); unconfirmed ones are shown with their label.'
   violation_symptoms:
   - bad-data-accepted
   provenance:
