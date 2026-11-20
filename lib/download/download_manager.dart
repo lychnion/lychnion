@@ -50,6 +50,11 @@ class ItemState {
 class DownloadManager extends ChangeNotifier {
   DownloadManager._(this.store);
 
+  /// A manager over [store] that starts nothing by itself (no catalog
+  /// load, no connection watch, no auto update).
+  @visibleForTesting
+  DownloadManager.forTest(this.store);
+
   static Future<DownloadManager> create() async {
     final m = DownloadManager._(await DownloadStore.instance());
     unawaited(m._init());

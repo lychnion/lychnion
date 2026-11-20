@@ -5,7 +5,9 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/services.dart';
 import 'package:lychnion/download/catalog.dart';
+import 'package:lychnion/download/download_manager.dart';
 import 'package:lychnion/download/download_store.dart';
 import 'package:lychnion/download/downloader.dart';
 import 'package:lychnion/knowledge/bundled_packages.dart';
@@ -610,6 +612,74 @@ void main() {
           .create(recursive: true)
           .then((f) => f.writeAsString('{"wifi_only": false}'));
       expect(s.mobileData, MobileData.always);
+    });
+  });
+
+  group('DownloadManager', () {
+    const connectivity = MethodChannel(
+      'dev.fluttercommunity.plus/connectivity',
+    );
+    HttpOverrides? httpBefore;
+    setUpAll(() {
+      httpBefore = HttpOverrides.current;
+      TestWidgetsFlutterBinding.ensureInitialized();
+      // The test binding answers every HTTP request with 400; these tests
+      // download from a local server.
+      HttpOverrides.global = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(connectivity, (call) async => ['wifi']);
+    });
+    tearDownAll(() {
+      HttpOverrides.global = httpBefore;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(connectivity, null);
+    });
+
+    test('an update does not fetch a file that did not change', () async {
+      // Like the contours notes in 2026.11.9: a new record, the same file.
+      final other = List<int>.generate(1000, (i) => i * 7 & 0xff);
+      final otherServer = TestServer(other);
+      await otherServer.start();
+      addTearDown(otherServer.stop);
+      final otherSum = sha256.convert(other).toString();
+
+      final store = DownloadStore(tmp, trust: trust);
+      final m = DownloadManager.forTest(store);
+      addTearDown(m.dispose);
+      final urls = {
+        sum: [server.url.toString()],
+        otherSum: [otherServer.url.toString()],
+      };
+      Future<CatalogItem> version(
+        String v,
+        List<(String, int, String)> files,
+      ) async => CatalogItem.fromRecord(
+        await signedRecord(key, 'jp.map.u.contours', 'map', files, version: v),
+        urls,
+      );
+      final v1 = await version('1', [('u.contours.pmtiles', data.length, sum)]);
+      final v2 = await version('2', [
+        ('u.contours.pmtiles', data.length, sum),
+        ('u.extra', other.length, otherSum),
+      ]);
+
+      m.catalog = Catalog([v1]);
+      await m.download(v1);
+      expect(m.stateOf(v1).error, isNull);
+      expect(store.installed(ItemKind.map, v1.id)?.version, '1');
+      expect(server.ranges, hasLength(1));
+
+      m.catalog = Catalog([v2]);
+      await m.download(v2);
+      expect(m.stateOf(v2).error, isNull);
+      expect(store.installed(ItemKind.map, v2.id)?.version, '2');
+      // The unchanged file was checked on disk, not fetched again; the new
+      // one was fetched.
+      expect(server.ranges, hasLength(1));
+      expect(otherServer.ranges, hasLength(1));
+      final dir = store.dirFor(ItemKind.map).path;
+      expect(await File('$dir/u.contours.pmtiles').readAsBytes(), data);
+      expect(await File('$dir/u.extra').readAsBytes(), other);
     });
   });
 }
