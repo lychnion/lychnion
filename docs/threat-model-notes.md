@@ -128,7 +128,8 @@ proven. The property is the §1.11 claim each one breaks.
     `fetchCatalogText(allowAddress:)` checks each catalog redirect.*
 13. **Node forgets a version when a record is dropped** ([#75](https://github.com/lychnion/lychnion/issues/75)) (confirmed, `no-downgrade-installed`): `packages/lychnion_node/lib/src/pull.dart:196` drops a record whose
     current and new versions are incomplete, and the next pull accepts an
-    older one.
+    older one. *Fixed for #75: such a record is set aside in `.kept.json`
+    with its files, so its version still blocks older ones.*
 14. **Windows file names ending in a dot** ([#76](https://github.com/lychnion/lychnion/issues/76)) (suspected, `publisher-namespace`):
     `packages/lychnion_format/lib/src/record.dart:128` allows a trailing dot
     and device names such as `NUL`; Windows may map `x.sqlite.` onto

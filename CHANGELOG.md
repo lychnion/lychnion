@@ -97,6 +97,10 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- The headless node no longer forgets a version when no version of a
+  record is complete (a file deleted by hand and a failed fetch): the
+  record is set aside with its files instead of dropped, so a later pull
+  does not accept an older signed version (#75).
 - The headless node no longer sends requests to its own machine or
   network from an internet catalog through `::`, multicast, special
   ranges or an IPv4 address carried in IPv6 (NAT64, 6to4), and an

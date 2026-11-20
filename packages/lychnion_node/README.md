@@ -41,7 +41,10 @@ publisher given with `--publisher`, fetches their files by hash
 (resumable, from every address the catalog gives, mirrors included),
 and writes `catalog.json`. Versions only go up; an id stays with the
 publisher that has it in the folder; a record is listed only when all
-its files are there, otherwise the version before stays. Files no
+its files are there, otherwise the version before stays. When no
+version is complete (a file deleted by hand and the fetch failed), the
+record is set aside in `.kept.json` with its files: its version still
+blocks older ones, and the next pull fetches what is missing. Files no
 record lists any more are removed. `--kind` limits it to `package`,
 `map` or `model` (models are gigabytes). Run it from cron to keep the
 node current, for example every hour.
@@ -122,6 +125,11 @@ a host folder mounted at /data must be writable by user 65534 for
   `--publisher` are kept, not deleted: the record is set aside in
   `.kept.json` (not served) and listed again once you give the key.
   It still holds its id.
+- `.kept.json` also holds records none of whose versions is complete
+  (see `pull` above). Each run reports them as failed (exit code 1)
+  until a source has the files again. If the publisher withdrew the
+  record for good, deleting its entry from `.kept.json` forgets it, and
+  with it the version that blocks older ones.
 - Addresses a catalog gives on private or local networks (also after
   a redirect, also written as `::ffff:a.b.c.d`) are skipped, unless the
   catalog itself is on such a network (a base). That counts every
