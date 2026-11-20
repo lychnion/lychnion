@@ -565,12 +565,15 @@ plus phones that also use the internet when they can.
   (`lib/ask/ask_page.dart:587`). *(documented, SECURITY.md "In scope")*
 - **`safety-line-lychnion-only`** (`answers`): when a hazard question matches,
   the fixed safety line from a Lychnion-signed package is shown word for word
-  above the AI text; no other publisher supplies it. *Violation symptom*:
+  above the AI text; no other publisher supplies it: a package whose record
+  is not signed by a built-in publisher is loaded without its alerts
+  (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`), its
+  copy of a bundled Lychnion package is not loaded
+  (`DownloadStore.bundledPackageSource`), and an empty trigger word matches
+  nothing. *Violation symptom*:
   x-missing-or-forged-safety-line. *Tier*: security-critical. *Voided by*:
   questions routed to the app help skip the line
-  (`lib/knowledge/grounded_answer.dart:242`). Known violation: alerts of every
-  installed package match (`lib/knowledge/grounded_answer.dart:253`).
-  *(maintainer, 2026-11)*
+  (`lib/knowledge/grounded_answer.dart:242`). *(maintainer, 2026-11)*
 - **`models-lychnion-only`** (`downloads`, `answers`): only models signed by
   Lychnion are installed and loaded. *Violation symptom*: integrity-bypass.
   *Tier*: security-critical. *Voided by*: the dev loaders under

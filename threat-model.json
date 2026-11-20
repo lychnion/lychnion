@@ -725,7 +725,7 @@
       "property": "safety-line-lychnion-only",
       "violation_symptom": "x-missing-or-forged-safety-line",
       "severity_tier": "security",
-      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher supplies it.",
+      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher supplies it: a package whose record is not signed by a built-in publisher is loaded without its alerts (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`), and its copy of a bundled Lychnion package is not loaded (`DownloadStore.bundledPackageSource`), and an empty trigger word matches nothing.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
