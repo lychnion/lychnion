@@ -78,6 +78,10 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Changed
 
+- A base builds and fits its catalog again only when what is installed
+  or the key statements changed, instead of for every phone that asks
+  (about 6 ms each time for a catalog near 2 MB). It still reads the
+  install records for each request (#59).
 - New name and brand: Lychnion (リクニオン). IDs are `com.lychnion.app`
   and `lychnion://`.
 - Base QR codes say `lychnion://base?…` (was `lychnion://shelter?…`,

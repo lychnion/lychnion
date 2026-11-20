@@ -25,11 +25,23 @@ class BaseLibrary {
   /// address on this base (relative to the catalog's own URL), and the
   /// key statements this computer knows, so phones learn of replaced and
   /// revoked publisher keys here too.
+  ///
+  /// Made again only when the installed records or the key statements
+  /// changed: fitting it to 2 MB encodes the whole catalog, and every
+  /// phone asks for it (lychnion/lychnion#59). The same map is returned
+  /// until then: callers must not change it or what it holds.
   Map<String, Object?> catalog() {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.
     _remember(all);
     final keys = store.publishers.statements;
+    // Each record by its signature, each statement as the same object
+    // (PublisherList keeps them): exact, no hash that could collide.
+    final signatures = [for (final i in all) '${i.record.json['signature']}'];
+    if (_cached case final c?
+        when _same(c.signatures, signatures) && _sameKeys(c.keys, keys)) {
+      return c.json;
+    }
     final doc = CatalogDocument.byHash(
       [for (final i in all) i.record],
       keys: keys,
@@ -37,7 +49,9 @@ class BaseLibrary {
       sort: false,
     ).fitted();
     keysLeftOut = CatalogDocument.keysLeftOut(keys, doc);
-    return doc.toJson();
+    final json = Map<String, Object?>.unmodifiable(doc.toJson());
+    _cached = (signatures: signatures, keys: keys, json: json);
+    return json;
   }
 
   /// Key statements the last [catalog] left out to stay under 2 MB
@@ -88,5 +102,30 @@ class BaseLibrary {
     } on FileSystemException {
       return false;
     }
+  }
+
+  /// The last [catalog] and what it was made from (one isolate: no
+  /// locking).
+  ({
+    List<String> signatures,
+    List<KeyStatement> keys,
+    Map<String, Object?> json,
+  })?
+  _cached;
+
+  static bool _same(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  static bool _sameKeys(List<KeyStatement> a, List<KeyStatement> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!identical(a[i], b[i]) && a[i] != b[i]) return false;
+    }
+    return true;
   }
 }

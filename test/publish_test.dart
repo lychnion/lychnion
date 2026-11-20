@@ -131,6 +131,45 @@ void main() {
       expect(lib.blob(r2.files.single.sha256)!.existsSync(), isTrue);
     });
 
+    // lychnion/lychnion#59: the base makes its catalog again only when
+    // what is installed or the key statements changed.
+    test('the base keeps its catalog until something changed', () async {
+      await go(form(packageFile(tmp, 'jp.kobe.bousai', '2026.11.1')));
+      final lib = BaseLibrary(store);
+      final first = lib.catalog();
+      expect(identical(lib.catalog(), first), isTrue);
+      expect(() => first['x'] = 1, throwsUnsupportedError);
+      expect(lib.keysLeftOut, 0);
+      // A new version installed: made again, with it.
+      final r2 = await go(
+        form(packageFile(tmp, 'jp.kobe.bousai', '2026.11.2')),
+      );
+      final second = lib.catalog();
+      expect(identical(second, first), isFalse);
+      expect((second['records']! as List).single, r2.json);
+      expect(identical(lib.catalog(), second), isTrue);
+      // A key statement learned: made again, with it.
+      final revoke = await KeyStatement.revoke(
+        publisher: me.name,
+        key: await keyPairFromSeed((await newKeyPair()).seed),
+        signed: nowStamp(),
+      );
+      await store.publishers.learn([revoke], any: true);
+      final third = lib.catalog();
+      expect(identical(third, second), isFalse);
+      expect(third['keys'], [revoke.json]);
+      expect(identical(lib.catalog(), third), isTrue);
+      // An installed file gone: made again, without its item.
+      final f = File(
+        store.path(
+          store.installed(ItemKind.package, 'jp.kobe.bousai')!,
+          r2.files.single.name,
+        ),
+      );
+      f.deleteSync();
+      expect(lib.catalog()['records'], isEmpty);
+    });
+
     test('a package is prefilled from its file, signed, installed and '
         'passed on by the base', () async {
       final f = packageFile(tmp, 'jp.kobe.bousai', '2026.11.1');
