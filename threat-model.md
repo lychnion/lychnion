@@ -569,11 +569,14 @@ plus phones that also use the internet when they can.
 - **`grounded-answer-presentation`** (`answers`): an answer is built only
   from installed guides and shows its sources; an answer whose citations do
   not check out carries a warning; the app never shows bare-model text as an
-  answer. *Violation symptom*: x-ungrounded-answer. *Tier*:
-  security-critical. *Voided by*: `BARE` skips the packages
-  (`lib/ask/model_loading.dart:83`). Known violation: when loading fails after
-  the model is up, the warning is drawn only if `grounded` is true
-  (`lib/ask/ask_page.dart:587`). *(documented, SECURITY.md "In scope")*
+  answer: the phone answers by itself only when the model and the guides
+  are loaded, so a failure after the model is up (the search model,
+  indexing, a package) turns the question bar off unless a base answers,
+  and a question that still reaches it gets a "cannot answer without the
+  guides" message (`lib/ask/answer_rules.dart:12`). *Violation symptom*:
+  x-ungrounded-answer. *Tier*: security-critical. *Voided by*: `BARE`
+  skips the packages and lets the model answer alone
+  (`lib/app/dev_flags.dart:41`). *(documented, SECURITY.md "In scope")*
 - **`safety-line-lychnion-only`** (`answers`): when a hazard question matches,
   the fixed safety line from a Lychnion-signed package is shown word for word
   above the AI text; no other publisher supplies it: a package whose record

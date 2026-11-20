@@ -717,7 +717,7 @@
       "property": "grounded-answer-presentation",
       "violation_symptom": "x-ungrounded-answer",
       "severity_tier": "security",
-      "conditions": "an answer is built only from installed guides and shows its sources; an answer whose citations do not check out carries a warning; the app never shows bare-model text as an answer.",
+      "conditions": "an answer is built only from installed guides and shows its sources; an answer whose citations do not check out carries a warning; the app never shows bare-model text as an answer: the phone answers by itself only when the model and the guides are loaded, so a failure after the model is up (the search model, indexing, a package) turns the question bar off unless a base answers, and a question that still reaches it gets a \"cannot answer without the guides\" message (`lib/ask/answer_rules.dart:12`).",
       "provenance": "documented",
       "source": "SECURITY.md \"In scope\""
     },

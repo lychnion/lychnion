@@ -110,6 +110,13 @@ class GroundedAnswer {
   /// this answer is the phone's own.
   bool baseRefused = false;
 
+  /// Built from the guides (by the answerer here or on a base), so its
+  /// sources and warnings are shown. False for the model alone (`BARE`)
+  /// and for the note that the guides could not be loaded. Kept per
+  /// answer: an old answer keeps its sources and warnings while the
+  /// guides reload (lychnion/lychnion#65).
+  bool fromGuides = true;
+
   /// Result of the relevance check: false means the passages are related but
   /// do not answer the question, so no answer was generated.
   bool? judgedRelevant;

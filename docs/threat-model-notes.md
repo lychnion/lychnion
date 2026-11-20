@@ -63,6 +63,9 @@ proven. The property is the §1.11 claim each one breaks.
    suspected, `grounded-answer-presentation`). If the embedder or index
    fails after the model loaded, the question bar stays on and the warning
    is drawn only when `grounded` is true (`lib/ask/ask_page.dart:587`).
+   *Fixed for #65: the phone answers by itself only with the model and
+   the guides loaded (`answersOnDevice`); otherwise the bar is off, and a
+   question that still gets through says the guides are missing.*
 4. **Any package supplies "official" safety lines** ([#66](https://github.com/lychnion/lychnion/issues/66)) (confirmed,
    `safety-line-lychnion-only`): alerts of every installed package match
    (`lib/knowledge/grounded_answer.dart:253`), and an empty trigger word

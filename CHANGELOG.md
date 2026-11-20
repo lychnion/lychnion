@@ -93,6 +93,14 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- The AI model never answers alone. When the guides or the search model
+  fail to load after the model is up, the question bar turns off (unless
+  a base answers) and the screen says the guides could not be loaded;
+  before, the model answered by itself, with no sources and no safety
+  line (#65). A reload (after a download, or a publisher removed) drops
+  the guides loaded before, so a failed reload does not go on answering
+  from the old set; questions asked meanwhile get the explanation when
+  nothing can answer them.
 - Release builds no longer write questions, answers, the sources that
   matched or the region to the system log (logcat on Android), and log
   errors only by their type; timings are still logged. The `LOG_ANSWERS`
