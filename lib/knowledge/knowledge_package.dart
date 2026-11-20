@@ -124,13 +124,16 @@ class Alert {
   String textIn(String lang) => translations[lang] ?? text;
   bool translatedFor(String lang) => translations.containsKey(lang);
 
+  /// Whether [question] has a word from every group of one language. An
+  /// empty or blank word never matches: `"".contains` is true for any
+  /// question, so one empty word would put this line above every answer
+  /// (lychnion/lychnion#66).
   bool matches(String question) {
     final lower = question.toLowerCase();
+    bool has(String w) =>
+        w.trim().isNotEmpty && (question.contains(w) || lower.contains(w));
     bool all(List<List<String>> groups) =>
-        groups.isNotEmpty &&
-        groups.every(
-          (g) => g.any((w) => question.contains(w) || lower.contains(w)),
-        );
+        groups.isNotEmpty && groups.every((g) => g.any(has));
     return matchAll.values.any(all);
   }
 }
@@ -265,6 +268,24 @@ class KnowledgePackage {
   /// Precomputed passage vectors per embedding model file name, in passage
   /// order (lychnion-data/tool/add_vectors.py). Saves phones from indexing the package.
   final Map<String, List<List<double>>> vectors;
+
+  /// This package without its safety lines: for a package from a
+  /// publisher the user added. Its guides are searched and quoted with
+  /// their source, but only Lychnion's packages supply the fixed official
+  /// safety line above an answer (lychnion/lychnion#66).
+  KnowledgePackage withoutAlerts() => alerts.isEmpty
+      ? this
+      : KnowledgePackage._(
+          id,
+          title,
+          version,
+          sources,
+          passages,
+          const [],
+          synonyms,
+          vectors,
+          parts: parts,
+        );
 
   /// One package searched as a whole: all passages, sources, safety lines
   /// and synonyms together. Passage ids are renumbered so they stay unique.

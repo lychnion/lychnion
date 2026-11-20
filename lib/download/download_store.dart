@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 
 import '../llm/engines.dart';
@@ -27,6 +28,12 @@ class Installed {
   final ItemKind kind;
   String get version => record.version;
   String? get role => record.role;
+
+  /// Signed by a built-in publisher (Lychnion), not by one the user added.
+  /// Only such packages supply the fixed official safety line
+  /// (lychnion/lychnion#66).
+  bool get builtInPublisher =>
+      builtInPublishers.publishers.contains(record.publisher);
 
   /// Whether the model runs on [os] (`Platform.operatingSystem`); see
   /// [CatalogItem.platforms].
@@ -631,6 +638,32 @@ class DownloadStore {
     if (i != null) return path(i, i.fileEnding('.sqlite')!);
     return copyBundled('packages', asset);
   }
+
+  /// The file to answer from for the bundled package [id]: a download of
+  /// it signed by Lychnion, else the bundled file. A copy of that id
+  /// installed from a publisher the user added is not used: it would
+  /// replace Lychnion's guide and its safety lines (#66, #68). Decided
+  /// from one look at what is installed. `shadowed` names that copy's
+  /// publisher, for the log.
+  Future<({String path, String? shadowed})> bundledPackageSource(
+    String id,
+    String asset,
+  ) async {
+    final i = installed(ItemKind.package, id);
+    if (useInstalledBundled(i)) {
+      return (path: path(i!, i.fileEnding('.sqlite')!), shadowed: null);
+    }
+    return (
+      path: await copyBundled('packages', asset),
+      shadowed: i?.record.publisher,
+    );
+  }
+
+  /// Whether the installed copy [i] of a bundled package is used: only
+  /// when it is there, has its file and is signed by a built-in publisher.
+  @visibleForTesting
+  static bool useInstalledBundled(Installed? i) =>
+      i != null && i.builtInPublisher && i.fileEnding('.sqlite') != null;
 
   /// Tiles and sites of the first installed map area, or null. Newer map
   /// versions also have a walking graph and tsunami inundation tiles.

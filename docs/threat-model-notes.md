@@ -56,7 +56,8 @@ proven. The property is the §1.11 claim each one breaks.
 2. **The base and Share nearby listen on every interface** ([#64](https://github.com/lychnion/lychnion/issues/64)) (confirmed,
    `lan-only-exposure`): `lib/base/base_server.dart:167` binds
    `anyIPv4`, including a desktop's upstream network and a phone's mobile
-   data. *Fixed for #64: they listen only on local-network addresses
+   data. *Fixed in [#87](https://github.com/lychnion/lychnion/pull/87):
+   they listen only on local-network addresses
    (`lib/base/lan_sockets.dart`).*
 3. **Bare-model answers without a warning** ([#65](https://github.com/lychnion/lychnion/issues/65)) (confirmed path, trigger
    suspected, `grounded-answer-presentation`). If the embedder or index
@@ -66,6 +67,11 @@ proven. The property is the §1.11 claim each one breaks.
    `safety-line-lychnion-only`): alerts of every installed package match
    (`lib/knowledge/grounded_answer.dart:253`), and an empty trigger word
    matches every question (`lib/knowledge/knowledge_package.dart:132`).
+   *Fixed for #66: only packages signed by a built-in publisher keep
+   their alerts, an added publisher's copy of a bundled id is not loaded,
+   and an empty trigger word matches nothing. Still trusted: the safety
+   lines in a paired base's answers, as the base sends them (a base runs
+   this code, but an older base build does not filter).*
 5. **Added publishers can ship models** ([#67](https://github.com/lychnion/lychnion/issues/67)) (confirmed, `models-lychnion-only`):
    any record kind is accepted (`lib/download/catalog.dart:186`), and with
    no model picked the first one in sort order becomes active

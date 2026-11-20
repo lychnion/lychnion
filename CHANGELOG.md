@@ -93,6 +93,12 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Only packages signed by Lychnion supply the fixed official safety line
+  above an answer. A package from a publisher the user added is still
+  searched and quoted with its source, but its safety lines are left out.
+  A copy of a built-in Lychnion package installed from an added
+  publisher is not used: the app answers from Lychnion's own. An empty
+  trigger word no longer matches every question (#66).
 - The base and Share nearby listen only on the device's private
   addresses on interfaces with a known Wi-Fi, hotspot, tethering or
   wired name, the addresses the screen shows, and follow them as the

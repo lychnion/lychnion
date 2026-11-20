@@ -63,6 +63,10 @@ user (built 2026-11-18, step 4a):
   downloads, updates and what a base passes on. A base passes on what
   it has installed; a phone installs a city's package from it only once
   that phone has added the city too.
+- An added publisher's packages are searched and quoted with their
+  source like any guide, but their safety lines (`alerts`) are not used:
+  only packages signed by Lychnion supply the fixed official safety line
+  above an answer ([#66](https://github.com/lychnion/lychnion/issues/66)).
 - Names built into the app (`lychnion`) cannot be added. A name already
   added with another key is refused: the user removes it first, so a
   changed key is never taken over silently. Two exceptions, both from

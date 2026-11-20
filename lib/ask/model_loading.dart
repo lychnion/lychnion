@@ -129,22 +129,49 @@ mixin _ModelLoading on _AskPageBase {
         // other package installed from Downloads, searched together.
         // One broken or foreign file must not stop the app from answering
         // with the others: it is left out and logged.
-        KnowledgePackage? openOrSkip(String id, String path) {
+        // Only Lychnion's packages (built in, or downloaded and signed by
+        // Lychnion) supply the fixed official safety line; a publisher the
+        // user added brings guides, not "official" lines (#66).
+        KnowledgePackage? openOrSkip(
+          String id,
+          String path, {
+          required bool safetyLines,
+        }) {
           try {
-            return KnowledgePackage.open(path);
+            final p = KnowledgePackage.open(path);
+            if (safetyLines || p.alerts.isEmpty) return p;
+            _log({
+              'event': 'package_alerts_ignored',
+              'id': id,
+              'alerts': p.alerts.length,
+            });
+            return p.withoutAlerts();
           } on Object catch (e) {
             _log({'event': 'package_skipped', 'id': id, 'error': '$e'});
             return null;
           }
         }
 
+        // Bundled ids: Lychnion's download of them, else the bundled file;
+        // never a copy of that id from an added publisher.
+        final bundled = <KnowledgePackage>[];
+        for (final id in bundledPackages) {
+          final src = await store.bundledPackageSource(id, '$id.sqlite');
+          if (src.shadowed case final who?) {
+            _log({'event': 'package_shadow_ignored', 'id': id, 'by': who});
+          }
+          bundled.addAll([?openOrSkip(id, src.path, safetyLines: true)]);
+        }
         final pkg = KnowledgePackage.merge([
-          for (final id in bundledPackages)
-            ?openOrSkip(id, await store.packagePath(id, '$id.sqlite')),
+          ...bundled,
           for (final i in store.allInstalled(ItemKind.package))
             if (!bundledPackages.contains(i.id) &&
                 i.fileEnding('.sqlite') != null)
-              ?openOrSkip(i.id, store.path(i, i.fileEnding('.sqlite')!)),
+              ?openOrSkip(
+                i.id,
+                store.path(i, i.fileEnding('.sqlite')!),
+                safetyLines: i.builtInPublisher,
+              ),
         ]);
         HybridRetriever? hybrid;
         final embedPath = DevFlags.embedPath.isNotEmpty
