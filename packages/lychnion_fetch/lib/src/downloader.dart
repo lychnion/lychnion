@@ -408,22 +408,44 @@ class Downloader {
       a.scheme == b.scheme && a.host == b.host && a.port == b.port;
 }
 
-/// Whether [host] is on the local network: a private, loopback or
-/// link-local address, or a `.local` name.
-bool isLocalNetworkHost(String host) {
-  final h = host.toLowerCase();
-  if (h == 'localhost' || h.endsWith('.local')) return true;
-  final a = InternetAddress.tryParse(h);
-  if (a == null) return false;
-  if (a.isLoopback || a.isLinkLocal) return true;
+/// Whether [a] is a private IPv4 address, as on a local Wi-Fi or a phone's
+/// hotspot: 10/8, 172.16/12, 192.168/16 and 100.64/10 (some hotspots).
+/// The one definition: the app's base discovery and base addresses use it
+/// too, so a device found or connected as local is also treated as local
+/// here (lychnion/lychnion#73).
+bool isPrivateIPv4Address(InternetAddress a) {
+  if (a.type != InternetAddressType.IPv4) return false;
   final b = a.rawAddress;
-  if (a.type == InternetAddressType.IPv4) {
-    return b[0] == 10 ||
-        (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
-        (b[0] == 192 && b[1] == 168);
+  return b[0] == 10 ||
+      (b[0] == 172 && b[1] >= 16 && b[1] <= 31) ||
+      (b[0] == 192 && b[1] == 168) ||
+      (b[0] == 100 && b[1] >= 64 && b[1] <= 127);
+}
+
+/// Whether [host] is on the local network: a private
+/// ([isPrivateIPv4Address]), loopback or link-local address, an IPv6
+/// unique local address, a `.local` name, or a plain name without a dot
+/// (a name on the local network; the internet has none). A device at
+/// such a host may redirect downloads only to itself.
+bool isLocalNetworkHost(String host) {
+  var h = host.toLowerCase();
+  // `base.local.` is `base.local`: a name may end in the root dot.
+  if (h.endsWith('.')) h = h.substring(0, h.length - 1);
+  if (h == 'localhost' || h.endsWith('.local')) return true;
+  var a = InternetAddress.tryParse(h);
+  if (a == null) return h.isNotEmpty && !h.contains('.') && !h.contains(':');
+  // An IPv4 address written as IPv6 (::ffff:10.0.0.1) is that IPv4 one.
+  final raw = a.rawAddress;
+  if (a.type == InternetAddressType.IPv6 &&
+      raw.sublist(0, 10).every((b) => b == 0) &&
+      raw[10] == 0xff &&
+      raw[11] == 0xff) {
+    a = InternetAddress.fromRawAddress(raw.sublist(12));
   }
+  if (a.isLoopback || a.isLinkLocal) return true;
+  if (a.type == InternetAddressType.IPv4) return isPrivateIPv4Address(a);
   // IPv6 unique local addresses (fc00::/7).
-  return (b[0] & 0xfe) == 0xfc;
+  return (a.rawAddress[0] & 0xfe) == 0xfc;
 }
 
 /// [url] for logs: no user name or password, no query or fragment (signed

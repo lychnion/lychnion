@@ -821,7 +821,7 @@
       "property": "lan-device-same-origin",
       "violation_symptom": "info-leak",
       "severity_tier": "correctness",
-      "conditions": "from a base or a nearby phone, the app downloads only files on that device, never from other addresses its catalog names or redirects to.",
+      "conditions": "from a base or a nearby phone, the app downloads only files on that device, never from other addresses its catalog names or redirects to: the redirect guard counts as local every host that discovery and base addresses accept, from one shared definition of the private ranges (`packages/lychnion_fetch/lib/src/downloader.dart:416`), plus plain names without a dot (`packages/lychnion_fetch/lib/src/downloader.dart:430`).",
       "provenance": "documented",
       "source": "CHANGELOG.md \"Security\""
     },

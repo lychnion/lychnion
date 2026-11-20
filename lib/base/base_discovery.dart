@@ -14,6 +14,7 @@ import 'dart:io';
 
 import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lychnion_fetch/lychnion_fetch.dart' show isPrivateIPv4Address;
 
 import '../download/publisher_list.dart' show cleanShownText;
 import 'base_link.dart';
@@ -48,14 +49,10 @@ String instanceName(String name) {
 
 /// Whether [a] is a private IPv4 address, as on a local Wi-Fi or a phone's
 /// hotspot: 10/8, 172.16/12, 192.168/16 and 100.64/10 (some hotspots).
-bool isPrivateIPv4(InternetAddress a) {
-  if (a.type != InternetAddressType.IPv4) return false;
-  final b = a.rawAddress;
-  return b[0] == 10 ||
-      (b[0] == 172 && b[1] >= 16 && b[1] <= 31) ||
-      (b[0] == 192 && b[1] == 168) ||
-      (b[0] == 100 && b[1] >= 64 && b[1] <= 127);
-}
+/// The same definition as the download redirect guard's
+/// (isPrivateIPv4Address in lychnion_fetch), so what is local for finding
+/// and connecting a base is local for its downloads too (#73).
+bool isPrivateIPv4(InternetAddress a) => isPrivateIPv4Address(a);
 
 /// A found base as a link, or null when its announcement is not usable:
 /// the first private IPv4 address (bases are reached by IPv4 on the local

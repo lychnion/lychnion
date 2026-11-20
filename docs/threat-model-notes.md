@@ -119,6 +119,9 @@ proven. The property is the §1.11 claim each one breaks.
 11. **The LAN redirect guard misses ranges** ([#73](https://github.com/lychnion/lychnion/issues/73)) (confirmed,
     `lan-device-same-origin`): `packages/lychnion_fetch/lib/src/downloader.dart:421`
     lacks 100.64/10, which discovery accepts, and plain hostnames.
+    *Fixed for #73: one definition (`isPrivateIPv4Address` in
+    lychnion_fetch) for discovery and the guard; plain names count as
+    local.*
 12. **Node address filter gaps** ([#74](https://github.com/lychnion/lychnion/issues/74)) (confirmed, `node-private-address-filter`): `::` and some special ranges are not private
     (`packages/lychnion_node/lib/src/pull.dart:282`); catalog redirects are
     not filtered.
