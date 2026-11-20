@@ -840,7 +840,7 @@ abstract class AppLocalizations {
   /// Under the base name on an answer, when the base was found on the Wi-Fi or typed in, not connected by its QR code.
   ///
   /// In en, this message translates to:
-  /// **'Base not checked. Scan its QR code to make sure it is the right one.'**
+  /// **'Base not checked. Scan its QR code and compare its code to make sure it is the right one.'**
   String get answerBaseUnchecked;
 
   /// Under the base name on an answer, when the base was connected by its QR code but sent its answer without a signature (an older base app).
@@ -1466,6 +1466,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connect'**
   String get baseConnect;
+
+  /// No description provided for @baseKeyCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code of this base:'**
+  String get baseKeyCodeLabel;
+
+  /// No description provided for @baseTrustCodeMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'The base\'s screen shows the same code: trust its notices'**
+  String get baseTrustCodeMatches;
+
+  /// No description provided for @baseTrustCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare the code on the spot. A link from a web page or a message can name any computer; until you compare the code, its notices show as unconfirmed.'**
+  String get baseTrustCodeHint;
+
+  /// No description provided for @baseTrustTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust the notices of {name}?'**
+  String baseTrustTitle(String name);
+
+  /// No description provided for @baseTrustSame.
+  ///
+  /// In en, this message translates to:
+  /// **'Same code'**
+  String get baseTrustSame;
+
+  /// No description provided for @baseCompareToTrust.
+  ///
+  /// In en, this message translates to:
+  /// **'Its notices show as unconfirmed. Tap to compare its code with the base\'s screen.'**
+  String get baseCompareToTrust;
+
+  /// No description provided for @baseKeyCodeOnBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones show this code. People compare it before they trust this base\'s notices:'**
+  String get baseKeyCodeOnBase;
+
+  /// No description provided for @baseTrustedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted bases'**
+  String get baseTrustedTitle;
+
+  /// No description provided for @baseTrustedRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop trusting'**
+  String get baseTrustedRemove;
+
+  /// No description provided for @baseTrustedRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop trusting {name}?'**
+  String baseTrustedRemoveTitle(String name);
+
+  /// No description provided for @baseTrustedRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its notices will show as unconfirmed. To trust it again, scan its QR code and compare the code.'**
+  String get baseTrustedRemoveBody;
 
   /// No description provided for @baseAddress.
   ///
@@ -2820,7 +2886,7 @@ abstract class AppLocalizations {
   /// No description provided for @baseScanToTrust.
   ///
   /// In en, this message translates to:
-  /// **'Scan the base\'s QR code to trust its notices.'**
+  /// **'To trust its notices, scan the base\'s QR code and compare its code.'**
   String get baseScanToTrust;
 
   /// No description provided for @answerReading.

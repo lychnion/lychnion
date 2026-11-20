@@ -331,6 +331,36 @@ void main() {
       expect(lines, hasLength(2));
     });
 
+    // #63: the app may stop after a base key was removed but before
+    // facts.jsonl was written again.
+    test('facts saved as verified whose key is no longer trusted are '
+        'unconfirmed at start, and saved so', () async {
+      final base = await FactSigner.generate();
+      final signed = await base.sign(
+        Fact(
+          kind: FactKind.shelterStatus,
+          subject: 'site-1',
+          value: 'full',
+          observedAt: now.subtract(const Duration(minutes: 10)),
+          expiresAt: now.add(const Duration(hours: 2)),
+          sourceType: SourceType.official,
+        ),
+      );
+      file('facts.jsonl').writeAsStringSync(
+        '{"format":1}\n${line(signed)}\n${line(fact('open'))}\n',
+      );
+      final s = FactStore(clock: () => now, trust: TrustList());
+      await s.load(dir: tmp);
+      final byValue = {for (final f in s.all) f.value: f.verified};
+      expect(byValue, {'full': false, 'open': true});
+      final saved = file('facts.jsonl')
+          .readAsLinesSync()
+          .skip(1)
+          .map((l) => jsonDecode(l) as Map)
+          .firstWhere((j) => j['value'] == 'full');
+      expect(saved['v_ok'], isFalse);
+    });
+
     test('a broken line is skipped, the others stay', () async {
       file('facts.jsonl').writeAsStringSync(
         '{"format":1}\n${line(fact('open'))}\n{"kind":\n${line(fact('full'))}\n',
@@ -445,6 +475,61 @@ void main() {
       expect(t.trusts(id), isTrue);
       expect(t.trusts('bad'), isFalse);
     });
+
+    // lychnion/lychnion#63: base keys are listed in Settings and can be
+    // removed; the device's own key is not listed.
+    test('the kind of a key and a removal are saved', () async {
+      final base = await FactSigner.generate();
+      final own = await FactSigner.generate();
+      final t0 = TrustList();
+      await t0.load(file('trusted_keys.json'));
+      await t0.add(own.publicKeyText, 'Me', kind: TrustedKeyKind.own);
+      final baseId = (await t0.add(base.publicKeyText, 'Hall'))!;
+
+      final t1 = TrustList();
+      await t1.load(file('trusted_keys.json'));
+      expect(t1.keysOf(TrustedKeyKind.own).single.name, 'Me');
+      expect(t1.keysOf(TrustedKeyKind.base).single.name, 'Hall');
+      expect(await t1.remove(baseId), isTrue);
+      expect(await t1.remove(baseId), isFalse);
+
+      final t2 = TrustList();
+      await t2.load(file('trusted_keys.json'));
+      expect(t2.trustsKey(base.publicKeyText), isFalse);
+      expect(t2.trustsKey(own.publicKeyText), isTrue);
+    });
+
+    test('an entry from an older app, without a kind, is a base key', () async {
+      final base = await FactSigner.generate();
+      final t0 = TrustList();
+      await t0.load(file('trusted_keys.json'));
+      await t0.add(base.publicKeyText, 'Hall');
+      final j = jsonDecode(file('trusted_keys.json').readAsStringSync()) as Map;
+      for (final e in (j['keys'] as Map).values) {
+        (e as Map).remove('kind');
+      }
+      file('trusted_keys.json').writeAsStringSync(jsonEncode(j));
+      final t = TrustList();
+      await t.load(file('trusted_keys.json'));
+      expect(t.keysOf(TrustedKeyKind.base).single.name, 'Hall');
+    });
+
+    test(
+      'only the exact key is trusted, not one with the same short id',
+      () async {
+        final base = await FactSigner.generate();
+        final t = TrustList();
+        await t.load(file('trusted_keys.json'));
+        await t.add(base.publicKeyText, 'Hall');
+        // Same first 6 bytes (the key id), different rest.
+        final bytes = base.publicKey.toList();
+        bytes[31] ^= 1;
+        final lookalike = base64Url.encode(bytes).replaceAll('=', '');
+        expect(t.trustsKey(base.publicKeyText), isTrue);
+        expect(t.trustsKey(lookalike), isFalse);
+        expect(t.trustsKey(null), isFalse);
+      },
+    );
 
     test('a list instead of a map: no keys, a copy is kept', () async {
       file('trusted_keys.json').writeAsStringSync('[1,2]');

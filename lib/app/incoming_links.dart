@@ -4,6 +4,7 @@ part of 'app_shell.dart';
 /// publisher link, or a phone nearby that shares its downloads.
 mixin _IncomingLinks on State<AppShell> {
   DownloadManager? get _downloads;
+  FactStore get _facts;
   set _tab(int value);
   void _openDownloads();
 
@@ -52,26 +53,38 @@ mixin _IncomingLinks on State<AppShell> {
     if (link == null || !mounted || _asking) return;
     // Already connected, and nothing new: a QR code with the key of a base
     // connected by address or found on the Wi-Fi pins that key, and one
-    // saying the base signs is taken too.
+    // saying the base signs is taken too. A key not trusted yet is asked
+    // about again: the user may compare its code now.
     final s = widget.settings;
     if (link.changesNothing(
       url: s.baseUrl,
       key: s.baseKey,
       signedKey: s.baseSignedKey,
+      keyTrusted: _facts.trust?.trustsKey(link.key) ?? true,
     )) {
       return;
     }
     _asking = true;
     try {
-      if (await confirmBase(context, link)) {
-        await widget.settings.setBase(
-          link.url,
-          name: link.name,
-          key: link.key,
-          signs: link.signs,
+      final consent = await confirmBase(context, link);
+      if (consent == null) return;
+      await widget.settings.setBase(
+        link.url,
+        name: link.name,
+        key: link.key,
+        signs: link.signs,
+      );
+      // Only after the user compared the key's code with the base's
+      // screen: the link alone may come from a web page (#63).
+      final key = link.key;
+      if (consent.trust && key != null) {
+        await trustBaseKey(
+          key,
+          name: link.name ?? link.url.replaceFirst('http://', ''),
+          facts: _facts,
         );
-        setState(() => _tab = 0);
       }
+      if (mounted) setState(() => _tab = 0);
     } finally {
       _asking = false;
     }

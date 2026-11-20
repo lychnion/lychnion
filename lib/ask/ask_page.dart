@@ -284,8 +284,11 @@ class _AskPageState extends _AskPageBase
     // A base computer answers first: faster and better than a phone.
     final base = _base;
     if (base != null && _baseReady) {
-      // Its key matched the QR code when it connected, or there was none.
-      final unchecked = _baseKeyUsed == null;
+      // Its key matched the link when it connected, or there was none.
+      // Checked only once the user compared the key's code (#63).
+      final trust = widget.facts?.trust;
+      final keyTrusted = trust == null || trust.trustsKey(_baseKeyUsed);
+      final unchecked = _baseKeyUsed == null || !keyTrusted;
       final placeholder = GroundedAnswer(question, appLang: lang)
         ..answeredBy = base.name
         ..baseUnchecked = unchecked;
@@ -297,6 +300,7 @@ class _AskPageState extends _AskPageBase
         base,
         question,
         pinnedKey: _baseKeyUsed,
+        keyTrusted: keyTrusted,
         settings: widget.settings,
         onError: (e) => _log({
           'event': e is BadAnswerSignature

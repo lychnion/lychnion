@@ -46,22 +46,22 @@ mixin _BaseConnection on _AskPageBase {
     }
   }
 
-  /// Trusts the base's signing key, only when it came from its QR code
-  /// (checked in person): a computer with another key is refused (someone
-  /// else at that address). A base connected by its address or found on
-  /// the Wi-Fi gives answers and downloads (checked by signature anyway),
-  /// but its facts stay unverified until its QR code is scanned.
-  Future<bool> _trustBaseKey(Map<String, dynamic> info) async {
-    final check = await checkBaseKey(
+  /// Checks the base's key against the one from its link: a computer with
+  /// another key is refused (someone else at that address). Its facts are
+  /// verified only once the user compared the key's code in person
+  /// (lychnion/lychnion#63); until then, and for a base connected by its
+  /// address or found on the Wi-Fi, it gives answers and downloads
+  /// (checked by signature anyway), and its facts stay unconfirmed.
+  Future<bool> _checkBaseKey(Map<String, dynamic> info) async {
+    final check = checkBaseKey(
       info,
       pinned: widget.settings?.baseKey,
-      facts: widget.facts,
-      name: _base?.name ?? 'base',
+      trust: widget.facts?.trust,
     );
     _log({'event': check.logEvent});
     if (!check.connects) {
       setState(() {
-        _status = 'Base key does not match the QR code: not connected.';
+        _status = 'Base key does not match its link: not connected.';
         _phase = _llm.isLoaded ? AskPhase.ready : AskPhase.noModel;
       });
     }
@@ -74,7 +74,7 @@ mixin _BaseConnection on _AskPageBase {
     try {
       final info = await base.info();
       if (!identical(base, _base)) return; // switched meanwhile
-      if (!await _trustBaseKey(info)) return;
+      if (!await _checkBaseKey(info)) return;
       // Only what the app knows, cleaned: the rest of /info is the base's.
       final model = info['model'];
       final shownModel = cleanShownText(model is String ? model : null);

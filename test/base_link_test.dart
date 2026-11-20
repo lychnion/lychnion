@@ -111,5 +111,44 @@ void main() {
       expect(baseAppLink(base, name: 'Hall', keyText: 'k1').signs, isTrue);
       expect(baseAppLink(base, name: 'Hall', keyText: null).signs, isFalse);
     });
+
+    // lychnion/lychnion#63: a key that is pinned but not trusted yet is
+    // asked about again, so the user can compare its code.
+    test('the same key scanned again is asked about while not trusted', () {
+      const plain = BaseLink(base, key: 'k1');
+      bool same({required bool trusted}) => plain.changesNothing(
+        url: base,
+        key: 'k1',
+        signedKey: null,
+        keyTrusted: trusted,
+      );
+      expect(same(trusted: true), isTrue);
+      expect(same(trusted: false), isFalse);
+      // A link without a key has nothing to compare.
+      expect(
+        const BaseLink(base).changesNothing(
+          url: base,
+          key: 'k1',
+          signedKey: null,
+          keyTrusted: false,
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  // lychnion/lychnion#63: anyone can write a link, and its name is shown
+  // in the connect dialog and in Settings.
+  test('the name from a link is cleaned and capped', () {
+    BaseLink? read(String name) => BaseLink.fromUri(
+      Uri(
+        scheme: 'lychnion',
+        host: 'base',
+        queryParameters: {'url': '192.168.1.20', 'name': name},
+      ),
+    );
+    expect(read('Hall\u202e\u200b\n')!.name, 'Hall');
+    expect(read('  \u2066 ')!.name, isNull);
+    expect(read('あ' * 100)!.name, 'あ' * 60);
   });
 }

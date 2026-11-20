@@ -96,7 +96,14 @@ here should be relied on alone in an emergency. Source only; build it as
 - The app installs only package records signed by Lychnion or by a
   publisher the user added, checks every file's size and SHA-256, and
   never installs an older version.
-- Facts from a base are trusted only after its QR code was scanned.
+- Facts from a base are trusted only after the user compared the base's
+  code with its screen. A `lychnion://base` link, which a web page or a
+  message can open too, only connects and pins the key; before, one tap
+  on any such link made the base's facts official (#63). Settings lists
+  the trusted bases with their codes and can remove them; the name from
+  a link is cleaned and capped like publisher names. Answers from a base
+  whose code was not compared carry the "not checked" note. Bases trusted
+  before this version stay trusted: check the list in Settings → "Base".
 - A base limits what each phone can send and how long it may hold a
   connection, and its errors don't show file paths. Phones limit what
   they accept from a base.

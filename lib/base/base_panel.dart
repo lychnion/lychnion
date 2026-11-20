@@ -7,8 +7,14 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app/lang.dart';
 import '../app/settings.dart';
+import '../facts/fact_store.dart';
+import 'base_checks.dart' show trustBaseKey;
 import 'base_discovery.dart';
+import 'base_key_code.dart';
 import 'base_link.dart';
+import 'base_trust.dart';
+
+export 'base_trust.dart' show BaseConsent, confirmBase, TrustedBasesList;
 
 /// The link in the base's QR code for phones with the app. A base with a
 /// key signs every answer the app asks for (base_server.dart), so the
@@ -88,6 +94,9 @@ class _BaseQrCardState extends State<BaseQrCard> {
       ),
     };
     final big = widget.large;
+    // What phones show for this base's key: people compare it before its
+    // notices count as official (lychnion/lychnion#63).
+    final keyCode = _for == _QrFor.app ? baseKeyCode(widget.keyText) : null;
     final code = Container(
       padding: EdgeInsets.all(big ? 16 : 10),
       decoration: BoxDecoration(
@@ -116,6 +125,11 @@ class _BaseQrCardState extends State<BaseQrCard> {
         ),
         const SizedBox(height: 6),
         Text(hint, style: big ? theme.textTheme.titleMedium : null),
+        if (keyCode != null) ...[
+          SizedBox(height: big ? 20 : 12),
+          Text(l.baseKeyCodeOnBase, style: theme.textTheme.bodySmall),
+          BaseKeyCodeText(keyCode, large: big),
+        ],
         SizedBox(height: big ? 24 : 16),
         Text(l.baseOrEnterAddress, style: theme.textTheme.bodySmall),
         for (final u in widget.urls)
@@ -199,39 +213,21 @@ class _BaseQrCardState extends State<BaseQrCard> {
   }
 }
 
-/// Asks before connecting to a base from a scanned link.
-Future<bool> confirmBase(BuildContext context, BaseLink link) async =>
-    await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        icon: const Icon(Icons.cell_tower_rounded),
-        title: Text(c.l10n.baseConnectTo(link.name ?? c.l10n.baseThisBase)),
-        content: Text(
-          c.l10n.baseConnectBody(link.url.replaceFirst('http://', '')),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(c.l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(c.l10n.baseConnect),
-          ),
-        ],
-      ),
-    ) ??
-    false;
-
-/// Settings section on a phone: the saved base, connect by address.
+/// Settings section on a phone: the saved base, connect by address, and
+/// compare the base's code to trust its notices.
 class BaseSettingsTile extends StatelessWidget {
   const BaseSettingsTile({
     super.key,
     required this.settings,
+    this.facts,
     @visibleForTesting this.newFinder,
   });
 
   final AppSettings settings;
+
+  /// Where the base's notices go; its trust list says whether the base's
+  /// key is trusted.
+  final FactStore? facts;
 
   /// Tests: what lists the bases on the Wi-Fi.
   final BaseFinder Function()? newFinder;
@@ -245,18 +241,47 @@ class BaseSettingsTile extends StatelessWidget {
     final (link, found) = picked;
     // A base found on the Wi-Fi: the same question as for a QR code.
     if (found) {
-      if (!context.mounted || !await confirmBase(context, link)) return;
+      if (!context.mounted || await confirmBase(context, link) == null) return;
     }
     // No key: an announcement is not checked in person, so the base's
-    // facts are trusted only after its QR code is scanned.
+    // facts are trusted only after its QR code is scanned and its code
+    // compared.
     await settings.setBase(link.url, name: link.name);
+  }
+
+  /// The connected base's key is pinned but not trusted: compare its code.
+  Future<void> _compare(BuildContext context, String key) async {
+    final store = facts;
+    if (store == null) return;
+    final name =
+        settings.baseName ??
+        settings.baseUrl?.replaceFirst('http://', '') ??
+        context.l10n.baseThisBase;
+    if (!await compareBaseCode(context, keyText: key, name: name)) return;
+    await trustBaseKey(key, name: name, facts: store);
   }
 
   @override
   Widget build(BuildContext context) {
+    final trust = facts?.trust;
+    if (trust == null) return _build(context);
+    // The subtitle and tap change when the base's key is trusted.
+    return ListenableBuilder(
+      listenable: trust,
+      builder: (context, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final l = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final url = settings.baseUrl;
+    final key = settings.baseKey;
+    final canCompare =
+        url != null &&
+        key != null &&
+        facts?.trust != null &&
+        !facts!.trust!.trustsKey(key);
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: scheme.secondaryContainer,
@@ -271,9 +296,12 @@ class BaseSettingsTile extends StatelessWidget {
       subtitle: Text(
         url == null
             ? l.baseConnectComputerHint
-            : settings.baseKey == null
+            : key == null
             ? '${l.baseAskedFirst(url.replaceFirst('http://', ''))}\n'
                   '${l.baseScanToTrust}'
+            : canCompare
+            ? '${l.baseAskedFirst(url.replaceFirst('http://', ''))}\n'
+                  '${l.baseCompareToTrust}'
             : l.baseAskedFirst(url.replaceFirst('http://', '')),
       ),
       trailing: url == null
@@ -283,7 +311,11 @@ class BaseSettingsTile extends StatelessWidget {
               onPressed: () => settings.setBase(null),
               icon: const Icon(Icons.link_off_rounded),
             ),
-      onTap: url == null ? () => _enter(context) : null,
+      onTap: url == null
+          ? () => _enter(context)
+          : canCompare
+          ? () => _compare(context, key)
+          : null,
     );
   }
 }
