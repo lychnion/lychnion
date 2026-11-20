@@ -765,7 +765,7 @@
       "property": "fact-time-bounds",
       "violation_symptom": "bad-data-accepted",
       "severity_tier": "security",
-      "conditions": "a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.",
+      "conditions": "a fact dated in the future, or with a lifetime far beyond normal, does not win its topic: a fact dated more than 30 minutes ahead, living longer than 3 days, or expiring more than that from now is refused on arrival and never current (`lib/facts/fact_store.dart:352`); among facts of the same trust, one dated after now loses to every one that is not (`lib/facts/fact_store.dart:384`) until its date comes, so a date in the 30-minute window can delay an override by at most that long, as a report sent at that time could.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

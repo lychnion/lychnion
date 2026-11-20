@@ -98,6 +98,10 @@ proven. The property is the §1.11 claim each one breaks.
    `avoid`, `blockedPoints` and `warningHazard` use confirmed facts only.*
 8. **Facts from the future win** ([#70](https://github.com/lychnion/lychnion/issues/70)) (confirmed, `fact-time-bounds`): no cap on
    `observedAt` or `expiresAt` (`lib/facts/fact_store.dart:275`).
+   *Fixed for #70 (the line above is how it was): `FactStore.inTimeBounds`
+   (30 minutes skew, 3 days lifetime) on arrival and when choosing; a
+   fact dated after now ranks below every one that is not, until its
+   time comes.*
 9. **Questions and answers in the release log** ([#71](https://github.com/lychnion/lychnion/issues/71)) (confirmed, `device-egress`):
    `lib/ask/ask_page.dart:164` (`debugPrint`); each logged answer carries
    its question. Base answers are logged at `lib/ask/ask_page.dart:316`,

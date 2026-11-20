@@ -93,6 +93,15 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- A fact dated more than 30 minutes in the future, living longer than 3
+  days, or expiring more than 3 days from now is refused and never
+  current. Before, one fact dated 2099 won its topic for years, and a
+  "cleared" one hid it. A fact dated a little ahead (clocks differ) is
+  accepted, but until its time comes it loses to every report that is
+  not; one that only looks ahead after the device's clock was set back
+  is hidden, not deleted. A device whose clock is more than 30 minutes
+  behind refuses fresh facts, so set the clock on phones without network
+  time (#70).
 - Only confirmed facts change the suggested evacuation site and the
   walking route. A resident report, or an "official" fact whose
   signature does not check out (anyone on a base's Wi-Fi can send one),

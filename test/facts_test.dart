@@ -110,9 +110,10 @@ void main() {
               kind: FactKind.shelterStatus,
               subject: '35.7$i,139.7$i',
               value: 'closed',
-              // Claims to be from the future.
-              observedAt: now.add(const Duration(days: 1)),
-              expiresAt: now.add(const Duration(days: 2)),
+              // Newer than the official one (a date in the future is
+              // refused before it gets here, #70).
+              observedAt: now.subtract(Duration(minutes: i)),
+              expiresAt: now.add(const Duration(days: 1)),
               sourceType: SourceType.official,
               sourceName: 'fake',
             )..verified = false,
