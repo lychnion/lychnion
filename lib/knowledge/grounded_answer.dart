@@ -244,9 +244,16 @@ class GroundedAnswerer {
     // alone (no search model installed) still needs a Japanese question.
     final search = lang != 'ja' && hybrid == null ? await _toJapanese(q) : q;
     if (search != q) answer.searchQuery = search;
+    // Hazards first: a question that matches one starts with its safety
+    // line, also when it has an app word in it (「ベースキャンプ」,
+    // "offline"; lychnion/lychnion#77).
+    final alerts = package.alerts
+        .where((a) => a.matches(q) || a.matches(search))
+        .toList();
     // Questions about the app itself: from the app's help, without safety
     // lines; other questions never see help passages.
-    if (help case final h? when isAppQuestion(q) || isAppQuestion(search)) {
+    if (help case final h?
+        when alerts.isEmpty && (isAppQuestion(q) || isAppQuestion(search))) {
       final hits = helpHybrid != null
           ? await helpHybrid!.search(search, limit: topK, original: q)
           : Retriever(h).search(search, limit: topK);
@@ -257,9 +264,7 @@ class GroundedAnswerer {
         return;
       }
     }
-    answer.alerts = package.alerts
-        .where((a) => a.matches(q) || a.matches(search))
-        .toList();
+    answer.alerts = alerts;
     retriever.userRegion = userRegion;
     hybrid?.userRegion = userRegion;
     answer.hits = sameAnimal(
