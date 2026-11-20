@@ -93,8 +93,9 @@ Future<PullResult> _pull(
   // their publisher was not given (kept, with their files, until it is).
   final before = [...await folder.allRecords(), ...await folder.keptRecords()];
   final have = <String, PackageRecord>{};
-  // Files of records here that are no longer trusted are not deleted: a
-  // publisher left out by mistake must not cost its downloads.
+  // Files of records here that are no longer trusted (or not complete)
+  // are not deleted: a publisher left out by mistake must not cost its
+  // downloads.
   final untrusted = <String>{};
   final kept = <String, PackageRecord>{};
   for (final r in before) {
@@ -210,13 +211,34 @@ Future<PullResult> _pull(
   // A record whose key a source revoked meanwhile is set aside, files
   // kept, like one whose publisher was not given.
   final listed = <PackageRecord>[];
-  for (final r in [
-    for (final r in next.values)
-      if (await _complete(folder, r))
-        r
-      else if (have[r.id] case final old? when await _complete(folder, old))
-        old,
-  ]) {
+  final complete = <PackageRecord>[];
+  for (final r in next.values) {
+    if (await _complete(folder, r)) {
+      complete.add(r);
+    } else if (have[r.id] case final old? when await _complete(folder, old)) {
+      complete.add(old);
+    } else {
+      // No version complete (a file deleted by hand, the fetch failed):
+      // not listed, but set aside with its files, so its version still
+      // blocks an older one and the next pull fetches what is missing
+      // (lychnion/lychnion#75).
+      if (kept[r.id] == null || isOlder(kept[r.id]!.version, r.version)) {
+        kept[r.id] = r;
+      }
+      untrusted.addAll(r.files.map((f) => f.sha256));
+      if (have[r.id] case final old?) {
+        untrusted.addAll(old.files.map((f) => f.sha256));
+      }
+      // When kept already holds a newer version, that one blocks older
+      // ones. Reported every run until a source has the files again (or
+      // the operator deletes `.kept.json`, which forgets the version).
+      result.failed.add(
+        '${r.id} ${r.version}: files missing, not listed (set aside; '
+        'fetched again when a source has them)',
+      );
+    }
+  }
+  for (final r in complete) {
     if (await keys.verify(r)) {
       listed.add(r);
       continue;

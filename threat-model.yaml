@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:224cd93085a5d1f3833d377e3d118dc99c45ff5a0887987a0e2ac18a69897040
+prose_version: threat-model.md@sha256:6412ac272a9e96e3c9aa22bb894b1d7e53da1ea301afaea7b8c380b2263bff63
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1700,7 +1700,7 @@ properties_claimed:
   tier: security-critical
   x-known-violations:
   - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
-    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:168`).
+    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:169`).
   conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
     also not by upper or lower case, and its key statements count only for its own name. In the app, Lychnion''s
     ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
@@ -1720,9 +1720,6 @@ properties_claimed:
   - publishing
   - node
   tier: security-critical
-  x-known-violations:
-  - a node drops a record whose current and new versions are both incomplete, then accepts an older one
-    (`packages/lychnion_node/lib/src/pull.dart:214`).
   conditions: an installed item is never replaced with an older version.
   violation_symptoms:
   - bad-data-accepted
@@ -2002,7 +1999,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:315`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:337`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:

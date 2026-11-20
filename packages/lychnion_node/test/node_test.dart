@@ -337,6 +337,97 @@ void main() {
   });
 
   group('review fixes', () {
+    // lychnion/lychnion#75: a record no version of which is complete is
+    // not listed, but its version still blocks older ones.
+    test('an incomplete record keeps its version', () async {
+      publish([await offer('jp.a', '1', 'one')]);
+      await go();
+      final v2 = await offer('jp.a', '2', 'two');
+      publish([v2]);
+      await go();
+      expect((await folder.allRecords()).single.version, '2');
+
+      // v2's file deleted by hand, and v3's fetch fails.
+      folder.blob(v2.files.single.sha256)!.deleteSync();
+      publish([await offer('jp.a', '3', 'three', path: '')]);
+      final r = await go();
+      expect(await folder.allRecords(), isEmpty);
+      expect((await folder.keptRecords()).single.version, '2');
+      expect(
+        r.failed,
+        contains(startsWith('jp.a 2: files missing, not listed')),
+      );
+
+      // An older version, signed and complete, is still refused.
+      publish([await offer('jp.a', '1', 'one')]);
+      expect((await go()).changed, isEmpty);
+      expect(await folder.allRecords(), isEmpty);
+      expect((await folder.keptRecords()).single.version, '2');
+
+      // v2 offered again: fetched and listed, no longer set aside.
+      publish([await offer('jp.a', '2', 'two')]);
+      await go();
+      expect((await folder.allRecords()).single.version, '2');
+      expect(await folder.keptRecords(), isEmpty);
+      expect(await checkFolder(folder, trust), isEmpty);
+    });
+
+    test('an incomplete record still holds its id', () async {
+      final v1 = await offer('jp.a', '1', 'one');
+      publish([v1]);
+      await go();
+      folder.blob(v1.files.single.sha256)!.deleteSync();
+      src.files.clear();
+      await go();
+      expect((await folder.keptRecords()).single.publisher, 'jp.city.test');
+      // Another publisher's record for that id is not taken.
+      publish([
+        await offer('jp.a', '2', 'club', key: club, publisher: 'jp.club.test'),
+      ]);
+      final r = await go();
+      expect(r.taken, ['jp.a']);
+      expect(r.keptUntrusted, 0);
+      expect((await folder.keptRecords()).single.publisher, 'jp.city.test');
+    });
+
+    test('an incomplete record keeps the files that are here', () async {
+      // A record of two files.
+      final x = utf8.encode('xxx'), y = utf8.encode('yyy');
+      String hash(List<int> d) => sha256.convert(d).toString();
+      final r = await PackageRecord.sign({
+        'format': 1,
+        'id': 'jp.a',
+        'kind': 'package',
+        'version': '1',
+        'publisher': 'jp.city.test',
+        'title': {'en': 'jp.a'},
+        'files': [
+          {'name': 'x.sqlite', 'size': x.length, 'sha256': hash(x)},
+          {'name': 'y.sqlite', 'size': y.length, 'sha256': hash(y)},
+        ],
+        'signed': '2026-11-18T09:00:00+09:00',
+      }, city);
+      src.files['x.sqlite'] = x;
+      src.files['y.sqlite'] = y;
+      publish([r]);
+      await go();
+      // One file deleted by hand, and the source is gone: the record is
+      // set aside, the other file stays for the next try.
+      folder.blob(hash(x))!.deleteSync();
+      src.files.clear();
+      await go();
+      expect(await folder.allRecords(), isEmpty);
+      expect(folder.blob(hash(y))!.existsSync(), isTrue);
+      // Back: only the missing file is fetched.
+      src.files['x.sqlite'] = x;
+      src.files['y.sqlite'] = y;
+      src.hits.clear();
+      await go();
+      expect((await folder.allRecords()).single.version, '1');
+      expect(src.hits['/y.sqlite'], isNull);
+      expect(src.hits['/x.sqlite'], 1);
+    });
+
     test('a second pull on the same folder at the same time stops', () async {
       publish([await offer('jp.a', '1', 'aaa')]);
       await go();

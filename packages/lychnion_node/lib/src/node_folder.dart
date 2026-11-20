@@ -68,8 +68,10 @@ class NodeFolder {
     }
   }
 
-  /// Records set aside by `pull` because their publisher was not given:
-  /// not served, their files kept. `.kept.json` (not served).
+  /// Records set aside by `pull` because their publisher was not given,
+  /// or because their files are not all here (lychnion/lychnion#75): not
+  /// served, their files kept, their versions still count.
+  /// `.kept.json` (not served).
   File get keptFile => File('${dir.path}/.kept.json');
 
   Future<List<PackageRecord>> keptRecords() async {
