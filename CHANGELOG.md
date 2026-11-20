@@ -101,6 +101,8 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- One device on the base Wi-Fi can no longer take all of the base's
+  connections: at most 24 come from one address (#36).
 - Publishing your own: the app no longer tells you to keep a copy of the
   unencrypted key file; it points to "Save a key backup" instead.
   Passphrases are normalised (Unicode NFKC), so a Japanese passphrase
@@ -261,8 +263,11 @@ replacement key or honour a revocation.
   at one base ([#5](https://github.com/lychnion/lychnion/issues/5)),
   Android Nearby ([#6](https://github.com/lychnion/lychnion/issues/6)).
 - On phones without a fast GPU, answers are slow (Pixel 5a: about 48 s).
-- Questions and answers on the base Wi-Fi are not encrypted, and a base
-  found on the Wi-Fi without its QR code is not checked
-  ([#36](https://github.com/lychnion/lychnion/issues/36)).
+- Questions and answers on the base Wi-Fi are not encrypted
+  ([#109](https://github.com/lychnion/lychnion/issues/109)). A base found
+  on the Wi-Fi without its QR code is shown as not checked until its code
+  is compared. A base tells phones apart by address only, so phones
+  behind one hotspot share its limits (one question at a time, 24
+  connections).
 
 [Unreleased]: https://github.com/lychnion/lychnion/commits/main

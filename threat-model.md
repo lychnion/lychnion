@@ -615,7 +615,7 @@ plus phones that also use the internet when they can.
   (`lib/base/base_client.dart:96`); for a QR code without `s=1`, the first
   answers before the base has signed (`lib/base/base_checks.dart:78`);
   pinning another key (`lib/app/settings.dart:129`); a base without a signer
-  (`lib/base/base_server.dart:591`). *(documented, docs/shelter-results.md
+  (`lib/base/base_server.dart:617`). *(documented, docs/shelter-results.md
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
   verified only with a signature from a trusted key; others count as
@@ -651,15 +651,15 @@ plus phones that also use the internet when they can.
   clock is more than 30 minutes behind refuses fresh facts, silently, and
   one far ahead accepts old ones. *(maintainer, 2026-11)*
 - **`base-request-limits`** (`base-server`): every request has limits:
-  100 connections in all, body 8 KiB within 10 s, question 500 characters,
-  8 live questions, one per address, 30 s idle, 30 s send stall, answers
-  stop when the phone leaves. No
+  100 connections in all, 24 from one address, body 8 KiB within 10 s,
+  question 500 characters, 8 live questions, one per address, 30 s idle,
+  30 s send stall, answers stop when the phone leaves. No
   single request makes the base hang, crash or allocate without bound.
   Threshold: a hang or unbounded allocation is a bug; slow under a flood is
   not (§1.12 `lan-availability`). *Violation symptom*: hang,
   unbounded-allocation. *Tier*: security-critical. *Voided by*: nothing at
   run time; the limits are constructor defaults
-  (`lib/base/base_server.dart:58`) with no setting. Search:
+  (`lib/base/base_server.dart:59`) with no setting. Search:
   `grep -rn 'maxQuestions\|maxConnections' lib` — hits only in
   `lib/base/base_server.dart`, and no setting reads them. *(documented,
   docs/shelter-results.md "How it works"; lib/base/base_server.dart
@@ -698,7 +698,7 @@ plus phones that also use the internet when they can.
   node folder; no request part becomes a path. *Violation symptom*: info-leak.
   *Tier*: security-critical. *Voided by*: node `serve` on a folder it did not
   pull follows symlinks (§1.6, unsupported). The blob routes match
-  `lib/base/base_server.dart:504` and
+  `lib/base/base_server.dart:530` and
   `packages/lychnion_node/lib/src/server.dart:61`. *(documented,
   CHANGELOG.md "Security")*
 - **`browser-page-text-only`** (`base-server`): the browser page shows all

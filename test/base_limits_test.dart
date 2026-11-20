@@ -161,6 +161,7 @@ void main() {
     LocalLlm? llm,
     BaseLibrary? library,
     int maxConnections = 100,
+    int maxConnectionsPerPhone = 24,
     Duration idleTimeout = const Duration(seconds: 30),
     Duration bodyTimeout = const Duration(seconds: 10),
     int maxQuestions = 8,
@@ -173,6 +174,7 @@ void main() {
       name: 'Test base',
       library: library,
       maxConnections: maxConnections,
+      maxConnectionsPerPhone: maxConnectionsPerPhone,
       idleTimeout: idleTimeout,
       bodyTimeout: bodyTimeout,
       maxQuestions: maxQuestions,
@@ -464,6 +466,31 @@ void main() {
       expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
       llm.release.complete();
       expect((await first).$1, 200);
+    });
+
+    // lychnion/lychnion#36: one device cannot take all the connections.
+    test('connections over the limit for one address', () async {
+      final s = await start(maxConnections: 10, maxConnectionsPerPhone: 2);
+      final a = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
+      final b = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
+      addTearDown(a.destroy);
+      addTearDown(b.destroy);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final c = await Socket.connect(InternetAddress.loopbackIPv4, s.port);
+      addTearDown(c.destroy);
+      expect(await _closedWithin(c, const Duration(seconds: 1)), isTrue);
+      // Once one of them ends, that address may connect again (as soon as
+      // the base has seen it end).
+      a.destroy();
+      int? status;
+      for (var i = 0; i < 40 && status == null; i++) {
+        try {
+          status = (await call(s, 'GET', '/info')).$1;
+        } on Object {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        }
+      }
+      expect(status, 200);
     });
 
     test('connections over the limit, and closes idle ones', () async {

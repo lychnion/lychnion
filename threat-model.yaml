@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:f860c24c48457a47e9c52395451ac7c83cd4da07f6ff92cdafe785881374c5ad
+prose_version: threat-model.md@sha256:fcfc812add915910fad28e810ddb5779881e47e1935dda333edea57af0bbbf03
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1847,7 +1847,7 @@ properties_claimed:
   components:
   - base-server
   tier: security-critical
-  conditions: 'every request has limits: 100 connections in all, body 8 KiB within 10 s, question 500
+  conditions: 'every request has limits: 100 connections in all, 24 from one address, body 8 KiB within 10 s, question 500
     characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone
     leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang
     or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).'

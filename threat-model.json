@@ -773,7 +773,7 @@
       "property": "base-request-limits",
       "violation_symptom": "hang, unbounded-allocation",
       "severity_tier": "security",
-      "conditions": "every request has limits: 100 connections in all, body 8 KiB within 10 s, question 500 characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).",
+      "conditions": "every request has limits: 100 connections in all, 24 from one address, body 8 KiB within 10 s, question 500 characters, 8 live questions, one per address, 30 s idle, 30 s send stall, answers stop when the phone leaves. No single request makes the base hang, crash or allocate without bound. Threshold: a hang or unbounded allocation is a bug; slow under a flood is not (§1.12 `lan-availability`).",
       "provenance": "documented",
       "source": "docs/shelter-results.md \"How it works\"; lib/base/base_server.dart\n  `BaseServer` doc comment"
     },
