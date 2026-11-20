@@ -51,6 +51,26 @@ void main() {
     expect(await layers(), {'shapes', 'labels'});
   });
 
+  test('overlapping keepOnly calls keep the newest contours file', () async {
+    Future<Set<String>> layers() async => {
+      for (final e in Directory(
+        '${root.path}/${MapTileCache.folderName('map')}',
+      ).listSync())
+        e.path.split(RegExp(r'[/\\]')).last,
+    };
+    final c1 = MapTileCache.layerName('shapes', 'c.pmtiles-1-1');
+    final c2 = MapTileCache.layerName('shapes', 'c.pmtiles-2-2');
+    for (final layer in ['shapes', 'labels', c1, c2]) {
+      final d = await MapTileCache.folder('map', layer);
+      await File('${d.path}/0_0_0.png').create(recursive: true);
+    }
+    // Not awaited: the first cleanup runs after the second call.
+    unawaited(MapTileCache.keepOnly('map', contoursId: 'c.pmtiles-1-1'));
+    unawaited(MapTileCache.keepOnly('map', contoursId: 'c.pmtiles-2-2'));
+    await MapTileCache.idle;
+    expect(await layers(), {'shapes', 'labels', c2});
+  });
+
   test('folder names are safe file names', () {
     expect(
       MapTileCache.folderName('jp.map.a.pmtiles-10-20'),

@@ -93,14 +93,40 @@ void main() {
     },
   );
 
-  test('loading again after the file is gone drops the contours', () async {
+  test('a new state after the file is gone has no contours', () async {
+    // The app makes a new MapState for each load (app_shell).
     File(fixture).copySync(contours);
-    final s = area();
-    await s.load();
-    expect(s.contourTiles, isNotNull);
+    final first = area();
+    await first.load();
+    expect(first.contourTiles, isNotNull);
+    first.dispose();
     File(contours).deleteSync();
+    final s = area();
     await s.load();
     expectMapLoaded(s);
     expect(s.contourTiles, isNull);
+    expect(s.contoursId, isNull);
   });
+
+  test(
+    'a state dropped while opening the contours leaves the caches alone',
+    () async {
+      File(fixture).copySync(contours);
+      // The cache of the map a newer state shows.
+      final newer = await MapTileCache.folder('newer-map', 'shapes');
+      await File('${newer.path}/0_0_0.png').create(recursive: true);
+      final s = area();
+      final loading = s.load();
+      // Dropped once the base map is open, while the contours file opens.
+      while (s.tiles == null) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      s.dispose();
+      await loading;
+      await MapTileCache.idle;
+      expect(s.tilesId, isNull);
+      expect(s.contourTiles, isNull);
+      expect(newer.existsSync(), isTrue);
+    },
+  );
 }
