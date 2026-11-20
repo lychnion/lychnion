@@ -39,6 +39,10 @@ Theme offlineLightTheme({required String lang}) {
       .build(layers);
 }
 
+/// Raster tile images are cached by theme id: change this number when the
+/// look of the shapes changes, so no image drawn with the old look shows.
+const _shapesStyle = 1;
+
 /// The map in two parts: `shapes` for a raster-mode layer, `labels` for a
 /// vector-mode layer on top. See [splitLabels].
 typedef MapDrawing = ({Theme shapes, Theme labels});
@@ -54,7 +58,7 @@ typedef MapDrawing = ({Theme shapes, Theme labels});
 /// labels id names the language [lang]. The shapes have no text.
 MapDrawing splitLabels(Theme theme, {required String lang}) => (
   shapes: theme.copyWith(
-    id: 'lychnion-shapes',
+    id: 'lychnion-shapes-$_shapesStyle',
     types: ThemeLayerType.values
         .where((t) => t != ThemeLayerType.symbol)
         .toSet(),

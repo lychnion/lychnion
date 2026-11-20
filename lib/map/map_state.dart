@@ -37,11 +37,21 @@ class MapState extends ChangeNotifier {
     facts?.addListener(notifyListeners);
   }
 
+  /// Set once the screen dropped this state (another map was loaded); a
+  /// [load] still running then stops quietly.
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     facts?.removeListener(notifyListeners);
     inundationTiles?.dispose();
     super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
   }
 
   /// Current facts, e.g. a shelter that is full.
@@ -133,6 +143,8 @@ class MapState extends ChangeNotifier {
       final tilesPath = await resolvePath(pmtilesPath);
       final stat = await File(tilesPath).stat();
       tiles = await PmTilesVectorTileProvider.fromSource(tilesPath);
+      // A newer state owns the caches now: do not delete its folders.
+      if (_disposed) return;
       final id =
           '${tilesPath.split(Platform.pathSeparator).last}'
           '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';

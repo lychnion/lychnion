@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lychnion/map/map_state.dart';
 import 'package:lychnion/map/offline_theme.dart';
 import 'package:lychnion/map/tile_cache.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart';
@@ -42,6 +43,12 @@ void main() {
     );
     expect(MapTileCache.folderName('../x y:1'), 'm-..-x-y-1');
     expect(MapTileCache.folderName('..'), 'm-..');
+    final long = '${'x' * 300}.pmtiles-1-2';
+    final a = MapTileCache.folderName(long);
+    expect(a.length, lessThanOrEqualTo(82));
+    expect(a, matches(RegExp(r'^m-[a-zA-Z0-9.-]+$')));
+    // Same start, other size: another folder.
+    expect(MapTileCache.folderName('${'x' * 300}.pmtiles-9-2'), isNot(a));
   });
 
   test('removeOthers keeps only the current map file', () async {
@@ -63,5 +70,16 @@ void main() {
       'keep/shapes/0_0_0.pbf',
       'keep/labels/0_0_0.pbf',
     });
+  });
+
+  test('a load that ends after dispose stays quiet', () async {
+    final s = MapState(pmtilesPath: '/nonexistent.pmtiles', sitesAsset: '');
+    var notified = 0;
+    s.addListener(() => notified++);
+    final loading = s.load();
+    s.dispose();
+    await loading; // must not throw on the disposed notifier
+    expect(notified, 0);
+    expect(s.tilesId, isNull);
   });
 }

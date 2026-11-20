@@ -1,54 +1,92 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Disk caches of the map layers: one folder per map file and layer.
+/// Disk caches of the map layers: one folder per map file and layer, in the
+/// app's own cache folder.
 ///
 /// vector_map_tiles keys its cached files by tile number only (raw tiles)
 /// or by theme id and tile number (raster images), not by map file. With a
 /// folder per map file, another area or a new release never reads the old
 /// files; with a folder per layer, the two layers never read a file while
 /// the other one writes it.
+///
+/// The cache does not last: with `fileCacheTtl: Duration.zero` each layer
+/// empties its folder 3 s after it starts. Tiles still being loaded by a
+/// layer that was just removed may write into its old folder again; the
+/// next [keepOnly] removes it.
 class MapTileCache {
   MapTileCache._();
 
-  static const _root = 'lychnion-map-tiles';
+  static const _root = 'map-tiles';
 
   /// A folder name for [tilesId]: letters, digits, `.` and `-` only, never
-  /// `.` or `..`.
-  static String folderName(String tilesId) =>
-      'm-${tilesId.replaceAll(RegExp(r'[^a-zA-Z0-9.-]'), '-')}';
+  /// `.` or `..`, at most 82 characters (long ids end in a hash).
+  static String folderName(String tilesId) {
+    final safe = tilesId.replaceAll(RegExp(r'[^a-zA-Z0-9.-]'), '-');
+    if (safe.length <= 80) return 'm-$safe';
+    final hash = sha256.convert(utf8.encode(tilesId)).toString();
+    return 'm-${safe.substring(0, 60)}-${hash.substring(0, 16)}';
+  }
 
   /// The cache folder of [layer] for the map file [tilesId].
   static Future<Directory> folder(String tilesId, String layer) async {
-    final tmp = await getTemporaryDirectory();
-    return Directory('${tmp.path}/$_root/${folderName(tilesId)}/$layer');
+    final cache = await getApplicationCacheDirectory();
+    return Directory('${cache.path}/$_root/${folderName(tilesId)}/$layer');
   }
 
-  /// Deletes the caches of other map files, and the folder vector_map_tiles
-  /// used before (`.vector_map`). Best effort: the system may clear the
-  /// temporary folder anyway.
-  static Future<void> keepOnly(String tilesId) async {
+  static String? _latest;
+  static Future<void> _cleaning = Future.value();
+
+  /// Deletes the caches of other map files. Calls run one after another and
+  /// the last call wins: a slow earlier cleanup never deletes the folder of
+  /// a map asked for later. MapState calls this only while it is in use.
+  static Future<void> keepOnly(String tilesId) {
+    _latest = tilesId;
+    return _cleaning = _cleaning.then((_) => _clean());
+  }
+
+  static Future<void> _clean() async {
+    final keep = _latest;
+    if (keep == null) return;
     try {
-      final tmp = await getTemporaryDirectory();
-      await removeOthers(Directory('${tmp.path}/$_root'), folderName(tilesId));
-      final old = Directory('${tmp.path}/.vector_map');
-      if (await old.exists()) await old.delete(recursive: true);
+      final cache = await getApplicationCacheDirectory();
+      await removeOthers(Directory('${cache.path}/$_root'), folderName(keep));
     } catch (e) {
       debugPrint('map tile cache: $e');
     }
+    // vector_map_tiles' own default folder, used before. Only where the
+    // temporary folder belongs to this app alone (not Windows or Linux,
+    // where other apps may use the same folder name).
+    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+      try {
+        final old = Directory(
+          '${(await getTemporaryDirectory()).path}/'
+          '.vector_map',
+        );
+        if (await old.exists()) await old.delete(recursive: true);
+      } catch (e) {
+        debugPrint('map tile cache: $e');
+      }
+    }
   }
 
-  /// Deletes everything in [root] except the folder [keep].
+  /// Deletes everything in [root] except the entry named [keep]. One entry
+  /// that cannot be deleted does not stop the others.
   @visibleForTesting
   static Future<void> removeOthers(Directory root, String keep) async {
     if (!await root.exists()) return;
     await for (final e in root.list()) {
-      if (e.uri.pathSegments.where((s) => s.isNotEmpty).last == keep) {
-        continue;
+      if (e.path.split(RegExp(r'[/\\]')).last == keep) continue;
+      try {
+        await e.delete(recursive: true);
+      } catch (err) {
+        debugPrint('map tile cache: $err');
       }
-      await e.delete(recursive: true);
     }
   }
 }
