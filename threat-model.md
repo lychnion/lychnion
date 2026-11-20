@@ -719,11 +719,13 @@ plus phones that also use the internet when they can.
   2026-11)*
 - **`lan-device-same-origin`** (`downloads`): from a base or a nearby phone,
   the app downloads only files on that device, never from other addresses
-  its catalog names or redirects to. *Violation symptom*: info-leak. *Tier*:
-  correctness-only. *Voided by*: no switch. Known gap: the local-network test
-  misses 100.64/10 and plain hostnames
-  (`packages/lychnion_fetch/lib/src/downloader.dart:421`). *(documented,
-  CHANGELOG.md "Security")*
+  its catalog names or redirects to: the redirect guard counts as local
+  every host that discovery and base addresses accept, from one shared
+  definition of the private ranges
+  (`packages/lychnion_fetch/lib/src/downloader.dart:416`), plus plain
+  names without a dot (`packages/lychnion_fetch/lib/src/downloader.dart:430`).
+  *Violation symptom*: info-leak. *Tier*: correctness-only. *Voided by*: no
+  switch. *(documented, CHANGELOG.md "Security")*
 - **`atomic-file-install`** (`downloads`, `publishing`, `node`): a file gets
   its final name only after its size and hash match; on failure the last good
   file stays. *Violation symptom*: bad-data-accepted. *Tier*:

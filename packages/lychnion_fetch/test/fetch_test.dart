@@ -175,11 +175,50 @@ void main() {
       '::1',
       'base.local',
       'localhost',
+      // lychnion/lychnion#73: the hotspot range discovery accepts, and
+      // plain names on the local network.
+      '100.64.0.1',
+      '100.127.255.254',
+      'mybase',
+      // The root dot, and IPv4 written as IPv6.
+      'mybase.',
+      'base.local.',
+      '::ffff:10.0.0.1',
+      '::ffff:127.0.0.1',
     ]) {
       expect(isLocalNetworkHost(h), isTrue, reason: h);
     }
-    for (final h in ['8.8.8.8', '172.32.0.1', 'example.org', '2001:db8::1']) {
+    for (final h in [
+      '8.8.8.8',
+      '172.32.0.1',
+      '100.63.255.255',
+      '100.128.0.1',
+      'example.org',
+      'base.lan.example',
+      '2001:db8::1',
+      '::ffff:8.8.8.8',
+      'example.org.',
+      '',
+    ]) {
       expect(isLocalNetworkHost(h), isFalse, reason: h);
     }
+  });
+
+  test('isPrivateIPv4Address: the ranges, IPv4 only', () {
+    bool p(String a) => isPrivateIPv4Address(InternetAddress(a));
+    expect(
+      [
+        '10.1.2.3',
+        '172.16.0.1',
+        '172.31.0.1',
+        '192.168.0.1',
+        '100.64.0.1',
+      ].every(p),
+      isTrue,
+    );
+    expect(
+      ['11.0.0.1', '172.15.0.1', '172.32.0.1', '100.63.0.1', 'fd00::1'].any(p),
+      isFalse,
+    );
   });
 }
