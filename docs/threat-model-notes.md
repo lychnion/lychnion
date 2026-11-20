@@ -82,6 +82,10 @@ proven. The property is the §1.11 claim each one breaks.
    installed markers (`lib/download/stick.dart:313` calls
    `lib/download/download_store.dart:371`), and the installed copy then
    wins over the bundled one (`lib/download/download_store.dart:581`).
+   *Fixed in the app for #68: Lychnion's ids and file names are reserved
+   (`DownloadStore.reserve`, `reserveFrom`, `isReservedFor`), also when
+   not installed; copies installed before are not used, and Lychnion's
+   own replaces them. The headless node does not reserve ids yet.*
 7. **Unconfirmed facts steer the map** ([#69](https://github.com/lychnion/lychnion/issues/69)) (confirmed,
    `unverified-facts-not-acted-on`): `lib/map/map_state.dart:59` and
    `lib/map/map_state.dart:174` use facts whatever their trust, and

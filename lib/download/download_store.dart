@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart';
 
+import '../knowledge/bundled_packages.dart' show bundledPackages;
 import '../llm/engines.dart';
 import '../util/paths.dart';
 import '../util/versioned_file.dart';
@@ -152,11 +153,85 @@ class DownloadStore {
   /// [installed] only accepts records checked here.
   final _verified = <String>{};
 
+  /// Ids that belong to Lychnion (lower case): an added publisher never
+  /// installs an item under one of them, from a USB stick, a followed
+  /// catalog or a base, and a copy installed that way before is not used
+  /// (lychnion/lychnion#68).
+  final _reserved = <String>{};
+
+  /// File names of Lychnion's items (lower case): an added publisher's
+  /// file of that name, under any id, would block Lychnion's install.
+  final _reservedFiles = <String>{};
+
+  /// Reserves [ids] (and their [files]) for the built-in publishers (see
+  /// [isReservedFor]).
+  void reserve(Iterable<String> ids, {Iterable<String> files = const []}) {
+    _reserved.addAll(ids.map((i) => i.toLowerCase()));
+    _reservedFiles.addAll(files.map((f) => f.toLowerCase()));
+  }
+
+  /// Reserves Lychnion's items of a checked catalog: ids Lychnion added
+  /// since the app started count at once (Downloads refreshes).
+  void reserveFrom(Iterable<CatalogItem> items) {
+    for (final i in items) {
+      final r = i.record;
+      if (r == null || !_builtIn(r.publisher)) continue;
+      reserve([r.id], files: [for (final f in r.files) f.name]);
+    }
+  }
+
+  static bool _builtIn(String publisher) =>
+      builtInPublishers.publishers.contains(publisher);
+
+  /// Whether [id] is Lychnion's and [publisher] is not a built-in one.
+  bool isReservedFor(String id, String publisher) =>
+      !_builtIn(publisher) && _reserved.contains(id.toLowerCase());
+
+  /// Lychnion's ids: the bundled packages, every item of the bundled
+  /// catalog, and Lychnion's items in the catalog fetched last (ids it
+  /// added since this build). Their file names go to [files] if given.
+  Future<Set<String>> lychnionIds({Set<String>? files}) async {
+    final ids = <String>{...bundledPackages};
+    void addFrom(String text) {
+      final records = (jsonDecode(text) as Map)['records'];
+      if (records is! List) return;
+      for (final r in records.whereType<Map<String, Object?>>()) {
+        final id = r['id'], publisher = r['publisher'];
+        if (id is String && _builtIn('$publisher')) {
+          ids.add(id);
+          for (final f in (r['files'] as List?) ?? const []) {
+            if (f is Map && f['name'] is String) {
+              files?.add(f['name'] as String);
+            }
+          }
+        }
+      }
+    }
+
+    try {
+      addFrom(await rootBundle.loadString('assets/downloads/catalog.json'));
+    } on Object {
+      // No bundled catalog (tests): the bundled packages still count.
+    }
+    try {
+      if (await cachedCatalog.exists()) {
+        final j = jsonDecode(await cachedCatalog.readAsString()) as Map;
+        addFrom(j['body'] as String);
+      }
+    } on Object {
+      // A broken cache adds nothing; reserving less never lets more in
+      // than before this check existed.
+    }
+    return ids;
+  }
+
   static Future<DownloadStore>? _instance;
   static Future<DownloadStore> instance() => _instance ??= () async {
     final s = DownloadStore(await appSupportDirectory());
     await s.publishers.load();
     await s.followed.load();
+    final files = <String>{};
+    s.reserve(await s.lychnionIds(files: files), files: files);
     await s.verifyInstalled();
     return s;
   }();
@@ -329,6 +404,9 @@ class DownloadStore {
       final r = PackageRecord.fromJson((j['record'] as Map).cast());
       if (!_verified.contains(canonicalJson(r.json))) return null;
       if (r.id != id || r.kind != kind.name) return null;
+      // An added publisher's copy of a Lychnion id (installed before this
+      // check, #68): not used, and Lychnion's own may replace it.
+      if (isReservedFor(id, r.publisher)) return null;
       final i = Installed(r);
       for (final e in i.files.entries) {
         final f = File('${dirFor(kind).path}/${e.key}');
@@ -379,9 +457,14 @@ class DownloadStore {
   String? recordedVersion(CatalogItem item) =>
       recordedVersionOf(item.kind, item.id);
 
-  /// [recordedVersion] by kind and id.
-  String? recordedVersionOf(ItemKind kind, String id) =>
-      _onDisk(kind, id)?.version;
+  /// [recordedVersion] by kind and id. Not an added publisher's copy of a
+  /// Lychnion id: it could claim any version and so block Lychnion's own
+  /// updates, in Downloads, from a USB stick or here (#68).
+  String? recordedVersionOf(ItemKind kind, String id) {
+    final d = _onDisk(kind, id);
+    if (d == null || isReservedFor(id, d.publisher)) return null;
+    return d.version;
+  }
 
   /// File endings the store and the downloader use for their own files:
   /// a download must never be named like one.
@@ -411,8 +494,22 @@ class DownloadStore {
     final r = item.record;
     if (r == null) return false;
     if (r.files.any((f) => isReservedName(f.name))) return true;
+    // Lychnion's ids and file names are Lychnion's, also when not
+    // installed yet (#68).
+    if (isReservedFor(item.id, r.publisher)) return true;
+    final lychnion = _builtIn(r.publisher);
+    if (!lychnion &&
+        r.files.any((f) => _reservedFiles.contains(f.name.toLowerCase()))) {
+      return true;
+    }
     final mine = _onDisk(item.kind, item.id);
-    if (mine != null && mine.publisher != r.publisher) return true;
+    // Another publisher's copy blocks the id, except an added publisher's
+    // copy of a Lychnion id, which Lychnion's own replaces.
+    if (mine != null &&
+        mine.publisher != r.publisher &&
+        !isReservedFor(item.id, mine.publisher)) {
+      return true;
+    }
     final names = {for (final f in r.files) f.name.toLowerCase()};
     final ownId = item.id.toLowerCase();
     final dir = dirFor(item.kind);
@@ -422,9 +519,12 @@ class DownloadStore {
       if (!name.endsWith('.installed.json')) continue;
       final id = name.substring(0, name.length - 15);
       if (id == item.id) continue;
+      final other = _onDisk(item.kind, id);
+      // Lychnion's own item is never blocked by an added publisher's (an
+      // id in other case, or a file of the same name): Lychnion's wins.
+      if (lychnion && other != null && !_builtIn(other.publisher)) continue;
       // Another id that differs only in case is the same marker file there.
       if (id.toLowerCase() == ownId) return true;
-      final other = _onDisk(item.kind, id);
       if (other != null &&
           other.files.any((x) => names.contains(x.name.toLowerCase()))) {
         return true;
@@ -443,11 +543,17 @@ class DownloadStore {
     if (isTaken(item)) throw TakenItem(item.id);
     // Also against a record no longer trusted (its publisher was removed):
     // versions only go up.
-    final have = installedVersion(item) ?? _onDisk(item.kind, item.id)?.version;
+    final have = installedVersion(item) ?? recordedVersion(item);
     if (have != null && isOlder(r.version, have)) {
       throw OlderVersion(item.id, r.version, have);
     }
     await dirFor(item.kind).create(recursive: true);
+    // Lychnion's item may replace an added publisher's copy of its id (#68):
+    // remembered now, its leftover files removed once the new record is in.
+    final before = _onDisk(item.kind, item.id);
+    final shadow = before != null && isReservedFor(item.id, before.publisher)
+        ? before
+        : null;
     // Written next to it first: a full disk must not leave a cut-off
     // record of what was installed before.
     final marker = _marker(item.kind, item.id);
@@ -472,6 +578,34 @@ class DownloadStore {
       await tmp.rename(marker.path);
     }
     _verified.add(canonicalJson(r.json));
+    if (shadow != null) await _removeLeftovers(item.kind, item.id, shadow, r);
+  }
+
+  /// The files of [shadow] (an added publisher's copy of Lychnion's [id])
+  /// that Lychnion's [record] does not use and no other item lists. Names
+  /// compared in lower case: on macOS and Windows `JP.X.sqlite` is the file
+  /// Lychnion just wrote as `jp.x.sqlite`. Best effort: a file that cannot
+  /// be removed (in use) only stays behind.
+  Future<void> _removeLeftovers(
+    ItemKind kind,
+    String id,
+    PackageRecord shadow,
+    PackageRecord record,
+  ) async {
+    final keep = {for (final f in record.files) f.name.toLowerCase()};
+    for (final f in shadow.files) {
+      if (keep.contains(f.name.toLowerCase()) ||
+          isReservedName(f.name) ||
+          _usedByOther(kind, id, f.name)) {
+        continue;
+      }
+      try {
+        final file = File('${dirFor(kind).path}/${f.name}');
+        if (await file.exists()) await file.delete();
+      } on FileSystemException {
+        // Left behind; Lychnion's item is recorded either way.
+      }
+    }
   }
 
   /// Version of [item] installed now, if any.
@@ -498,7 +632,9 @@ class DownloadStore {
     return n;
   }
 
-  /// Removes the files, any partial download and the record.
+  /// Removes the files, any partial download and the record. A file that
+  /// another installed item also lists stays (Lychnion's item may have
+  /// replaced an added publisher's file of that name, #68).
   Future<void> delete(CatalogItem item) async {
     final dir = dirFor(item.kind);
     final m = _marker(item.kind, item.id);
@@ -506,10 +642,30 @@ class DownloadStore {
     final old = File('${m.path}.old');
     if (await old.exists()) await old.delete();
     for (final f in item.files) {
+      if (_usedByOther(item.kind, item.id, f.name)) continue;
       final file = File('${dir.path}/${f.name}');
       if (await file.exists()) await file.delete();
       await Downloader.deletePart(dir, f.name);
     }
+  }
+
+  /// Whether an install marker other than [id]'s lists [file] (names
+  /// compared in lower case, as file systems may).
+  bool _usedByOther(ItemKind kind, String id, String file) {
+    final dir = dirFor(kind);
+    if (!dir.existsSync()) return false;
+    final want = file.toLowerCase(), self = id.toLowerCase();
+    for (final f in dir.listSync()) {
+      final name = f.uri.pathSegments.last;
+      if (!name.endsWith('.installed.json')) continue;
+      final other = name.substring(0, name.length - 15);
+      if (other.toLowerCase() == self) continue;
+      final r = _onDisk(kind, other);
+      if (r != null && r.files.any((x) => x.name.toLowerCase() == want)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Bytes of partial downloads for [item].
