@@ -1,6 +1,6 @@
 {
   "format": 2,
-  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.8/",
+  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.9/",
   "refresh": "https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json",
   "records": [
     {
@@ -201,15 +201,15 @@
       "format": 1,
       "id": "jp.map.nishinomiya.contours",
       "kind": "map",
-      "version": "2026.11.8",
+      "version": "2026.11.9",
       "publisher": "lychnion",
       "title": {
         "ja": "等高線：西宮周辺",
         "en": "Contour lines: Nishinomiya area"
       },
       "note": {
-        "ja": "「地図：西宮周辺」に重ねる等高線（任意）。その地図と新しいアプリが必要です",
-        "en": "Optional contour lines over \"Map: Nishinomiya area\". Needs that map and a recent app"
+        "ja": "「地図：西宮周辺」に重ねる等高線（任意）。その地図と新しいアプリが必要です。",
+        "en": "Optional contour lines over \"Map: Nishinomiya area\". Needs that map and a recent app."
       },
       "licence": "出典：国土地理院最適化ベクトルタイルを加工して作成（国土地理院コンテンツ利用規約）",
       "area": [
@@ -223,9 +223,9 @@
           "sha256": "a350d5135f8d31a3090e0506db3bcbe834c55916318fdd88b75f1a56a4f10968"
         }
       ],
-      "signed": "2026-11-20T21:19:55+09:00",
+      "signed": "2026-11-20T23:03:43+09:00",
       "key": "vRIbo4Gi",
-      "signature": "9tUg9P0EFqBeJpvYAgQESQSjcypO1TqZvSg2nfBq7bviKLKXaB0kz2lAlwRWwArjBMu-fUixJLyEdSPqe6_mBg"
+      "signature": "nvfWGTBRmknBEgznzI-2hU3UYjQXd3rjPUp2IWmzmt95MmMvJhlwG-vSn9UdWcAtUIoUy2FqnlpTepS4Uq8MCA"
     },
     {
       "format": 1,
@@ -350,15 +350,15 @@
       "format": 1,
       "id": "jp.map.kushimoto.contours",
       "kind": "map",
-      "version": "2026.11.8",
+      "version": "2026.11.9",
       "publisher": "lychnion",
       "title": {
         "ja": "等高線：串本町（和歌山県）",
         "en": "Contour lines: Kushimoto (Wakayama)"
       },
       "note": {
-        "ja": "「地図：串本町（和歌山県）」に重ねる等高線（任意）。その地図と新しいアプリが必要です",
-        "en": "Optional contour lines over \"Map: Kushimoto (Wakayama)\". Needs that map and a recent app"
+        "ja": "「地図：串本町（和歌山県）」に重ねる等高線（任意）。その地図と新しいアプリが必要です。",
+        "en": "Optional contour lines over \"Map: Kushimoto (Wakayama)\". Needs that map and a recent app."
       },
       "licence": "出典：国土地理院最適化ベクトルタイルを加工して作成（国土地理院コンテンツ利用規約）",
       "area": [
@@ -371,9 +371,9 @@
           "sha256": "644fdab2d8ec3851f675e6df47ec7d56c4b763ffb0fcc6e7588d42edc466a45f"
         }
       ],
-      "signed": "2026-11-20T21:19:55+09:00",
+      "signed": "2026-11-20T23:03:43+09:00",
       "key": "vRIbo4Gi",
-      "signature": "5eGqvoWP7tAY-kSkVZKC0VETD962OG8RPBw4TyrOY4vIE4KWJCLwcYV_347rNm3z58cd2TeGoS3o4khqibdvAQ"
+      "signature": "EXgUiRZxbQKLEGIcFqcMMcFwXsESqE2VBKDl3JM0TRFS9c4Mu0aQUDLhoZEdN6D9s7HaSX6dkeiAwK_c2Pi8BQ"
     }
   ],
   "urls": {
@@ -385,9 +385,11 @@
     "574775487580ef51d16cd710e453db1add18789e5ef5938b99e24eb95d80efbf": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.7/jp.map.nishinomiya.sites.sqlite",
     "94a5f22980f5fbba04facec8f6c169a4c8ab70cfc2cc6263a372130de71a725d": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.1/jp.map.nishinomiya.routes.bin",
     "9faefaba90fb38a062a03d6eba829ae2ff2bebc47f63bd2a8ab32c2a3070620d": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.7/jp.map.nishinomiya.inundation.mbtiles",
+    "a350d5135f8d31a3090e0506db3bcbe834c55916318fdd88b75f1a56a4f10968": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.8/jp.map.nishinomiya.contours.pmtiles",
     "4ae3d25c19a3489c99653beee432d57344093411664315b0a46d1e9d6e3cd651": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.pmtiles",
     "12f41c5bb9a89b5c19c8093dcc1447ca4398c8949631cf499a4c7c4c5d4f9412": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.5/jp.map.kushimoto.sites.sqlite",
     "82d0f8f448907f94347a1b0424e10f77f11f586dd3c5a5bcb0b2cf1c8ada4ce4": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.routes.bin",
-    "c73441a12d360cabc42f7aa67fc80ad0e97869bb694d1307fbd60ac2866de456": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.inundation.mbtiles"
+    "c73441a12d360cabc42f7aa67fc80ad0e97869bb694d1307fbd60ac2866de456": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.2/jp.map.kushimoto.inundation.mbtiles",
+    "644fdab2d8ec3851f675e6df47ec7d56c4b763ffb0fcc6e7588d42edc466a45f": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.8/jp.map.kushimoto.contours.pmtiles"
   }
 }
