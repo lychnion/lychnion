@@ -630,10 +630,20 @@ plus phones that also use the internet when they can.
   (the map and Home also list every current fact, for display only).
   *(maintainer, 2026-11)*
 - **`fact-time-bounds`** (`facts`): a fact dated in the future, or with a
-  lifetime far beyond normal, does not win its topic. *Violation symptom*:
-  bad-data-accepted. *Tier*: security-critical. *Voided by*: no switch.
-  Known violation: the newest `observedAt` wins with no cap
-  (`lib/facts/fact_store.dart:275`). *(maintainer, 2026-11)*
+  lifetime far beyond normal, does not win its topic: a fact dated more
+  than 30 minutes ahead, living longer than 3 days, or expiring more than
+  that from now is refused on arrival and never current
+  (`lib/facts/fact_store.dart:352`; one living longer than 3 days is also
+  dropped from storage, one only ahead of this clock is hidden until the
+  clock reaches it, one more than a year ahead is dropped); among facts of
+  the same trust, one dated after now loses to every one that is not
+  (`lib/facts/fact_store.dart:384`) until its date comes, so a date in the
+  30-minute window can delay an override by at most that long, as a
+  report sent at that time could. *Violation symptom*: bad-data-accepted.
+  *Tier*: security-critical. *Voided by*: the device's own clock, which
+  the store judges by (`lib/facts/fact_store.dart:39`): a device whose
+  clock is more than 30 minutes behind refuses fresh facts, silently, and
+  one far ahead accepts old ones. *(maintainer, 2026-11)*
 - **`base-request-limits`** (`base-server`): every request has limits:
   100 connections in all, body 8 KiB within 10 s, question 500 characters,
   8 live questions, one per address, 30 s idle, 30 s send stall, answers

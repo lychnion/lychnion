@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:e7d157008eaa4e88db91fde43a2ff54ffffdd67d9b34a1dd777f87a6938d933f
+prose_version: threat-model.md@sha256:78e6199f2fbf98a4c8d1bcd3f605d150abba3002b2745ecf538ef82f44296bc1
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1835,9 +1835,11 @@ properties_claimed:
   components:
   - facts
   tier: security-critical
-  x-known-violations:
-  - the newest `observedAt` wins with no cap (`lib/facts/fact_store.dart:275`).
-  conditions: a fact dated in the future, or with a lifetime far beyond normal, does not win its topic.
+  conditions: 'a fact dated in the future, or with a lifetime far beyond normal, does not win its topic: a fact
+    dated more than 30 minutes ahead, living longer than 3 days, or expiring more than that from now is refused
+    on arrival and never current (`lib/facts/fact_store.dart:352`); among facts of the same trust, one dated after
+    now loses to every one that is not (`lib/facts/fact_store.dart:384`) until its date comes, so a date in the
+    30-minute window can delay an override by at most that long, as a report sent at that time could.'
   violation_symptoms:
   - bad-data-accepted
   provenance:
