@@ -681,5 +681,35 @@ void main() {
       expect(await File('$dir/u.contours.pmtiles').readAsBytes(), data);
       expect(await File('$dir/u.extra').readAsBytes(), other);
     });
+
+    test('force fetches a matching file again', () async {
+      // What AUTO_DOWNLOAD `!id` uses in scripted tests.
+      final store = DownloadStore(tmp, trust: trust);
+      final m = DownloadManager.forTest(store);
+      addTearDown(m.dispose);
+      final item = CatalogItem.fromRecord(
+        await signedRecord(key, 'jp.map.f.contours', 'map', [
+          ('f.contours.pmtiles', data.length, sum),
+        ]),
+        {
+          sum: [server.url.toString()],
+        },
+      );
+      m.catalog = Catalog([item]);
+      await m.download(item);
+      expect(server.ranges, hasLength(1));
+
+      // Without force the file on disk is only checked.
+      await m.download(item);
+      expect(m.stateOf(item).error, isNull);
+      expect(server.ranges, hasLength(1));
+
+      await m.download(item, force: true);
+      expect(m.stateOf(item).error, isNull);
+      expect(server.ranges, hasLength(2));
+      expect(store.installed(ItemKind.map, item.id)?.version, '1');
+      final dir = store.dirFor(ItemKind.map).path;
+      expect(await File('$dir/f.contours.pmtiles').readAsBytes(), data);
+    });
   });
 }
