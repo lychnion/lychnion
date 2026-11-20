@@ -124,9 +124,15 @@ a host folder mounted at /data must be writable by user 65534 for
   It still holds its id.
 - Addresses a catalog gives on private or local networks (also after
   a redirect, also written as `::ffff:a.b.c.d`) are skipped, unless the
-  catalog itself is on such a network (a base). Names are looked up
-  once per pull; a name that changes its address between the lookup
-  and the download is not caught.
+  catalog itself is on such a network (a base). That counts every
+  address that is not plain public unicast: loopback, link-local,
+  private and shared ranges, `0.0.0.0` and `::`, multicast, broadcast
+  and reserved space, 192.0.0.0/24, 198.18.0.0/15, Teredo, the old
+  site-local `fec0::/10`, and an IPv4 address carried in IPv6 (NAT64,
+  6to4, translated) by the address it reaches. A catalog fetched from
+  the internet may not redirect to such an address either.
+  Names are looked up once per pull; a name that changes its address
+  between the lookup and the download is not caught.
 - `pull` checks sizes; `check` also checks every hash. Run `check` now
   and then to find a damaged disk.
 - A record stays until a higher version replaces it; a publisher

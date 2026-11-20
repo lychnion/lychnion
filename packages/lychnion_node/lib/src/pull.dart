@@ -122,11 +122,21 @@ Future<PullResult> _pull(
     // A folder (a USB stick, step 5d): its catalog and files are read
     // from there; every file is still checked by its hash.
     final local = source.isScheme('file') ? _localFolder(source) : null;
+    final sourcePrivate = local != null || await private.isPrivate(source.host);
     final _Catalog cat;
     try {
       cat = local != null
           ? _Catalog.parse(await _readLocal(local), local.uri)
-          : _Catalog.parse(await fetchCatalogText(source), source);
+          : _Catalog.parse(
+              await fetchCatalogText(
+                source,
+                // An internet catalog must not redirect the node to its
+                // own network, as for file addresses (#74).
+                allowAddress: (u) async =>
+                    sourcePrivate || !await private.isPrivate(u.host),
+              ),
+              source,
+            );
     } on CatalogFetchError catch (e) {
       result.failed.add('${redactedUrl(source)}: ${e.code}');
       continue;
@@ -137,7 +147,6 @@ Future<PullResult> _pull(
       result.failed.add('${redactedUrl(source)}: invalid');
       continue;
     }
-    final sourcePrivate = local != null || await private.isPrivate(source.host);
     keys = keys.withStatements(await relevantStatements(keys, cat.keys));
     for (final raw in cat.records) {
       final r = await keys.check(raw);
@@ -262,12 +271,14 @@ Future<PullResult> _pull(
   return result;
 }
 
-/// Whether [host] is on a private, loopback or link-local network (a
-/// name that cannot be looked up counts as private).
+/// Whether [host] has an address that is not public
+/// ([isNonPublicAddress]; a name that cannot be looked up counts as
+/// private).
 Future<bool> isPrivateHost(String host) => _PrivateHosts().isPrivate(host);
 
-/// Whether a host is on a private, loopback or link-local network (looked
-/// up once per host; a name that cannot be looked up counts as private).
+/// Whether a host has an address that is not public
+/// ([isNonPublicAddress]; looked up once per host; a name that cannot be
+/// looked up counts as private).
 class _PrivateHosts {
   final _known = <String, bool>{};
 
@@ -287,27 +298,69 @@ class _PrivateHosts {
     return _known[host] = v;
   }
 
-  static bool _private(InternetAddress a) {
-    var b = a.rawAddress;
-    // ::ffff:a.b.c.d reaches the IPv4 address a.b.c.d.
-    if (a.type == InternetAddressType.IPv6 &&
-        b.take(10).every((x) => x == 0) &&
-        b[10] == 0xff &&
-        b[11] == 0xff) {
-      a = InternetAddress.fromRawAddress(b.sublist(12));
-      b = a.rawAddress;
-    }
-    if (a.isLoopback || a.isLinkLocal) return true;
-    if (a.type == InternetAddressType.IPv4) {
-      return b[0] == 10 ||
-          (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
-          (b[0] == 192 && b[1] == 168) ||
-          (b[0] == 100 && b[1] >= 64 && b[1] < 128) ||
-          b[0] == 0;
-    }
-    return (b[0] & 0xfe) == 0xfc; // fc00::/7
-  }
+  static bool _private(InternetAddress a) => isNonPublicAddress(a);
 }
+
+/// Whether [a] is not a plain public unicast address, so a node pulling
+/// from the internet must not send requests there (lychnion/lychnion#74):
+/// loopback, link-local, private and shared ranges, the unspecified
+/// address (`0.0.0.0/8`, `::`; on Linux a connect to either reaches this
+/// machine), multicast, broadcast and reserved space, 192.0.0.0/24,
+/// 198.18.0.0/15 (benchmarking), IPv6 unique local addresses, and an IPv4
+/// address carried in IPv6: mapped `::ffff:a.b.c.d`, compatible
+/// `::a.b.c.d`, NAT64 `64:ff9b::/96` and `64:ff9b:1::/48`, 6to4
+/// `2002::/16` and translated `::ffff:0:a.b.c.d`, each judged by the IPv4
+/// address it reaches. Teredo `2001::/32` and the old site-local
+/// `fec0::/10` are refused too.
+bool isNonPublicAddress(InternetAddress a) {
+  final b = a.rawAddress;
+  if (a.type == InternetAddressType.IPv4) return _nonPublicIPv4(b);
+  // An IPv4 address carried in IPv6.
+  final zero10 = b.take(10).every((x) => x == 0);
+  if (zero10 && b[10] == 0xff && b[11] == 0xff) {
+    return _nonPublicIPv4(b.sublist(12));
+  }
+  if (zero10 && b[10] == 0 && b[11] == 0) {
+    // `::` and `::1` and the old `::a.b.c.d` form.
+    return b.every((x) => x == 0) ||
+        a.isLoopback ||
+        _nonPublicIPv4(b.sublist(12));
+  }
+  if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b) {
+    // NAT64: the well-known prefix carries the IPv4 address last; the
+    // local-use prefix 64:ff9b:1::/48 is for networks of their own.
+    if (b[4] == 0 && b[5] == 1) return true;
+    if (b.sublist(4, 12).every((x) => x == 0)) {
+      return _nonPublicIPv4(b.sublist(12));
+    }
+  }
+  // IPv4-translated `::ffff:0:a.b.c.d` (SIIT).
+  final zero8 = b.take(8).every((x) => x == 0);
+  if (zero8 && b[8] == 0xff && b[9] == 0xff && b[10] == 0 && b[11] == 0) {
+    return _nonPublicIPv4(b.sublist(12));
+  }
+  if (b[0] == 0x20 && b[1] == 0x02) return _nonPublicIPv4(b.sublist(2, 6));
+  // Teredo 2001::/32 tunnels to an address it hides: refused.
+  if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0 && b[3] == 0) return true;
+  if (a.isLoopback) return true;
+  // Link-local fe80::/10 and the old site-local fec0::/10 (Dart's
+  // isLinkLocal covers only part of the first).
+  if (b[0] == 0xfe && (b[1] & 0x80) == 0x80) return true;
+  if (b[0] == 0xff) return true; // multicast
+  return (b[0] & 0xfe) == 0xfc; // fc00::/7
+}
+
+bool _nonPublicIPv4(List<int> b) =>
+    b[0] == 0 || // 0.0.0.0/8, "this network"
+    b[0] == 10 ||
+    b[0] == 127 ||
+    (b[0] == 100 && b[1] >= 64 && b[1] < 128) ||
+    (b[0] == 169 && b[1] == 254) ||
+    (b[0] == 172 && b[1] >= 16 && b[1] < 32) ||
+    (b[0] == 192 && b[1] == 0 && b[2] == 0) ||
+    (b[0] == 192 && b[1] == 168) ||
+    (b[0] == 198 && (b[1] == 18 || b[1] == 19)) ||
+    b[0] >= 224; // multicast, reserved, broadcast
 
 /// The node folder at [source] (a `file:` address): `<dir>/lychnion` when
 /// that holds the catalog (as the app writes a stick), else the folder.

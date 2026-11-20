@@ -124,7 +124,8 @@ proven. The property is the §1.11 claim each one breaks.
     local.*
 12. **Node address filter gaps** ([#74](https://github.com/lychnion/lychnion/issues/74)) (confirmed, `node-private-address-filter`): `::` and some special ranges are not private
     (`packages/lychnion_node/lib/src/pull.dart:282`); catalog redirects are
-    not filtered.
+    not filtered. *Fixed for #74: `isNonPublicAddress` covers them, and
+    `fetchCatalogText(allowAddress:)` checks each catalog redirect.*
 13. **Node forgets a version when a record is dropped** ([#75](https://github.com/lychnion/lychnion/issues/75)) (confirmed, `no-downgrade-installed`): `packages/lychnion_node/lib/src/pull.dart:196` drops a record whose
     current and new versions are incomplete, and the next pull accepts an
     older one.
