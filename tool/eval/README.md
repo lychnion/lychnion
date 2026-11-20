@@ -30,7 +30,8 @@ expected source ids, and the key passages that the judges see (`package:passage 
 
 ## Run
 
-1. **Answers** (about 2 minutes per model on an M-series Mac; the build adds a few).
+1. **Answers** (on an M4 Max: 28 s for E2B and 52 s for E4B, plus a few minutes for the
+   build).
    The model files are not in git. The script looks for them in a `models/` folder next to
    this checkout (`../models`), or in the folder named by `LYCHNION_MODELS` (set it when you
    work in a git worktree). `--model` takes a file name from that folder, or a path (anything
@@ -47,10 +48,13 @@ expected source ids, and the key passages that the judges see (`package:passage 
 
    This builds the real app in release mode under a **test app id**
    (`com.lychnion.app.eval`, via `FLUTTER_XCODE_PRODUCT_BUNDLE_IDENTIFIER`, no file change), so
-   the live app's data is never touched; it refuses to run if the built app has another id. The
+   the live app's data is never touched. `--app-id` takes only another `com.lychnion.app.<name>`,
+   and the script refuses to run if the built app has another id. The
    models are cloned (APFS, no extra space) into that test app's Documents folder, the app asks
    every question with the `ASK` flag, and the script keeps its `LYCHNION {"event":"answer"}`
-   log lines in `results/<date>/<label>.jsonl` (first line: model, commit, host, flags).
+   log lines in `results/<date>/<label>.jsonl` (first line: model, commit, host, flags, the
+   region the answers ranked local sources for, and `dirty` when `lib`, `assets`, `packages`,
+   `macos` or the pubspec files have changes that are not committed).
    `--define LLM_BACKEND=cpu` and other `--dart-define`s pass through; `--only tsunami-wait,bear-run`
    asks only some topics. The script reads only the log lines, so another engine (for example
    MediaPipe) is compared the same way.
@@ -64,7 +68,9 @@ expected source ids, and the key passages that the judges see (`package:passage 
    Writes `judging/<date>/batch-N.md` (10 questions each: question, key point, harms, the
    package's text, then every model's answer as A, B, … in a shuffle seeded by the question) and
    `key.json` (label → model). Once grades exist, the script refuses to change `key.json`
-   (the letters would point to other models); grade a new run folder instead. `key.json` also
+   (the letters would point to other models); grade a new run folder instead, or pass `--force`,
+   which moves the old grades and skeptic files into `replaced-<time>/` (not read by `score.py`;
+   delete it once nothing there is needed). `key.json` also
    holds a hash of each answer, and `score.py` stops if an answer no longer matches its grades.
 
 3. **Judges** (Claude Code subagents, no API key or extra bill). In Claude Code, ask:

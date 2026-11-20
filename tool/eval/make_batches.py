@@ -12,18 +12,21 @@ The shuffle is seeded by the question id, so the same run always gives the same 
 
 key.json must not change once grades exist (the letters would then point to other models or
 other answers):
-the script stops if it would, unless --force is given (then delete the old grades).
+the script stops if it would, unless --force is given: then the old grades (and their skeptic
+files) are moved into replaced-<time>/ next to them, where score.py does not read them.
 
 --flagged (after the safety judges): writes skeptic-<qid>-<label>.md for every answer a safety
 judge rated 2 or 3: that question's block with only that answer, and the judge's issue.
 """
 import argparse
+import datetime
 import glob
 import hashlib
 import json
 import os
 import random
 import re
+import shutil
 import sqlite3
 import sys
 
@@ -35,6 +38,18 @@ def answer_hash(text):
     return hashlib.sha256((text or "").strip().encode("utf-8")).hexdigest()[:16]
 REPO = os.path.dirname(os.path.dirname(HERE))
 PACKAGES = os.path.join(REPO, "assets", "packages")
+
+
+def set_aside(out_dir, graded):
+    """Moves the grades (and the skeptic files they came from) into replaced-<time>/, so that
+    score.py and this script no longer count them for the new answers. Moved, not deleted: the
+    person's verdicts in human.json may not be in git yet."""
+    old = graded + [os.path.basename(f) for f in glob.glob(os.path.join(out_dir, "skeptic-*.md"))]
+    dest = os.path.join(out_dir, "replaced-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(dest)
+    for name in sorted(old):
+        shutil.move(os.path.join(out_dir, name), os.path.join(dest, name))
+    print(f"moved {len(old)} old grade files to {os.path.relpath(dest, REPO)}")
 
 
 def load_run(run_dir):
@@ -99,8 +114,11 @@ def main():
     ap.add_argument("run_dir")
     ap.add_argument("--per-batch", type=int, default=10)
     ap.add_argument("--flagged", action="store_true", help="write the skeptic files instead")
-    ap.add_argument("--force", action="store_true", help="rewrite key.json even though grades exist")
+    ap.add_argument("--force", action="store_true",
+                    help="rewrite key.json even though grades exist, and move the old grades aside")
     a = ap.parse_args()
+    if a.force and a.flagged:
+        sys.exit("--flagged reads the safety grades, which --force would set aside: run them apart")
     run = os.path.basename(os.path.normpath(a.run_dir))
     out_dir = os.path.join(HERE, "judging", run)
     os.makedirs(out_dir, exist_ok=True)
@@ -158,10 +176,12 @@ def main():
     old_key = json.load(open(key_path, encoding="utf-8")) if os.path.exists(key_path) else None
     graded = [os.path.basename(f) for f in glob.glob(os.path.join(out_dir, "*.json"))
               if re.match(r"(accuracy|safety|skeptic)-.*\.json$|human\.json$", os.path.basename(f))]
-    if graded and old_key != key and not a.force:
-        sys.exit(f"the answers in {a.run_dir} no longer match key.json, and grades exist "
-                 f"({', '.join(sorted(graded)[:3])}, ...): they would be counted for the wrong model or answer. "
-                 "Grade a new run folder, or use --force and delete the old grades.")
+    if graded and old_key != key:
+        if not a.force:
+            sys.exit(f"the answers in {a.run_dir} no longer match key.json, and grades exist "
+                     f"({', '.join(sorted(graded)[:3])}, ...): they would be counted for the wrong model or "
+                     "answer. Grade a new run folder, or use --force to move the old grades aside.")
+        set_aside(out_dir, graded)
     if a.flagged:
         for path, text in pending:
             with open(path, "w", encoding="utf-8") as f:

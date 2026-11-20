@@ -20,6 +20,7 @@ import datetime
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import threading
@@ -48,6 +49,16 @@ def questions():
 
 def container_docs(app_id):
     return os.path.expanduser(f"~/Library/Containers/{app_id}/Data/Documents")
+
+
+LIVE_APP_ID = "com.lychnion.app"
+
+
+def test_app_id(app_id):
+    """Exits unless app_id is a test id of its own, com.lychnion.app.<name>: never the live app's id
+    in any spelling (macOS compares bundle ids without case), and never another app's."""
+    if not re.fullmatch(re.escape(LIVE_APP_ID) + r"(\.[A-Za-z0-9-]+)+", app_id):
+        sys.exit(f"--app-id {app_id!r}: use a test app id like {LIVE_APP_ID}.eval, never the live app's")
 
 
 def build(app_id, defines):
@@ -92,6 +103,11 @@ def clone_model(src, docs):
     return f"docs:eval-models/{os.path.basename(src)}"
 
 
+# Everything in the checkout that goes into the built app: a change here means the run is not the
+# commit's.
+BUILT_FROM = ("lib", "assets", "packages", "macos", "pubspec.yaml", "pubspec.lock")
+
+
 def git(*args):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True).stdout.strip()
 
@@ -120,8 +136,7 @@ def main():
     ap.add_argument("--timeout", type=int, default=3600, help="seconds for all answers")
     ap.add_argument("--force", action="store_true", help="overwrite an existing results file")
     a = ap.parse_args()
-    if a.app_id == "com.lychnion.app":
-        sys.exit("use a test app id, never the live app's")
+    test_app_id(a.app_id)
     model = model_file(a.model, "answer model")
     if a.embed != "none":
         a.embed = model_file(a.embed, "search model", " (--embed none: keyword search only)")
@@ -153,11 +168,14 @@ def main():
         "model_bytes": os.path.getsize(model),
         "embed": None if a.embed == "none" else os.path.basename(a.embed),
         "defines": a.define, "app_id": a.app_id, "commit": git("rev-parse", "HEAD"),
-        "dirty": bool(git("status", "--porcelain", "--", "lib", "assets", "pubspec.lock")),
+        "dirty": bool(git("status", "--porcelain", "--", *BUILT_FROM)),
         "host": platform.platform(), "chip": subprocess.run(
             ["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True).stdout.strip(),
         "started": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "questions": len(qs),
+        # The region answers ranked local sources for (lib/app/region.dart). The app logs it only
+        # when it changes from the answerer's default, 'JP'.
+        "region": "JP",
     }
     os.makedirs(os.path.dirname(out), exist_ok=True)
     print(f"asking {len(qs)} questions with {meta['model']} -> {os.path.relpath(out, REPO)}", flush=True)
@@ -177,6 +195,11 @@ def main():
                 continue
             if ev.get("event") == "load_failed":
                 sys.exit(f"model did not load: {ev.get('error')}")
+            if ev.get("event") == "region" and ev.get("region"):
+                if answers and ev["region"] != meta["region"]:
+                    sys.exit(f"the region changed during the run ({meta['region']} to {ev['region']})")
+                meta["region"] = ev["region"]
+                continue
             if ev.get("event") != "answer":
                 continue
             if ev.get("answered_by"):
