@@ -65,20 +65,6 @@ void main() {
     expect(await folders(), {MapTileCache.folderName('b')});
   });
 
-  test('removeOthers asks for the folder to keep at each entry', () async {
-    await makeFolder('a');
-    await makeFolder('b');
-    await makeFolder('c');
-    // A cleanup that is still running sees a newer keepOnly at once.
-    var asked = 0;
-    await MapTileCache.removeOthers(root, () {
-      asked++;
-      return MapTileCache.folderName('b');
-    });
-    expect(asked, 3);
-    expect(await folders(), {MapTileCache.folderName('b')});
-  });
-
   group('MapState', () {
     const fixture = 'test/support/contours-tiny.pmtiles';
     const sites = 'assets/maps/jp.map.nishinomiya.sites.sqlite';

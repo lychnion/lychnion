@@ -137,15 +137,22 @@ class MapState extends ChangeNotifier {
           sp = next;
         }
       }
-      sites = sp != null
+      // Dropped while loading (checked after every wait below): a newer
+      // state owns the caches, the routes, the inundation tiles and the
+      // position.
+      if (_disposed) return;
+      final evac = sp != null
           ? EvacSites.open(sp)
           : await EvacSites.fromAsset(sitesAsset);
+      if (_disposed) return;
+      sites = evac;
       final tilesPath = await resolvePath(pmtilesPath);
       final stat = await File(tilesPath).stat();
       final t = await PmTilesVectorTileProvider.fromSource(tilesPath);
-      // Dropped while loading: a newer state owns the caches, the routes,
-      // the inundation tiles and the position.
-      if (_disposed) return;
+      if (_disposed) {
+        await t.archive.close();
+        return;
+      }
       tiles = t;
       final id =
           '${tilesPath.split(Platform.pathSeparator).last}'
@@ -274,6 +281,14 @@ class MapState extends ChangeNotifier {
   /// Whether routes take at least one blocked road into account.
   bool get avoidsBlocked => routes != null && blockedPoints.isNotEmpty;
 
+  /// The permission request on screen, shared: a new state (another map
+  /// loaded while the dialog is open) waits for the same answer instead of
+  /// asking again, which geolocator refuses.
+  static Future<LocationPermission>? _asking;
+
+  static Future<LocationPermission> _requestPermission() => _asking ??=
+      Geolocator.requestPermission().whenComplete(() => _asking = null);
+
   Future<void> locate() async {
     final mock = mockLocation;
     if (mock != null && mock.isNotEmpty) {
@@ -290,7 +305,8 @@ class MapState extends ChangeNotifier {
       // Dropped meanwhile: do not ask for permission for a state not shown.
       if (_disposed) return;
       if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
+        perm = await _requestPermission();
+        if (_disposed) return;
       }
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
@@ -303,11 +319,13 @@ class MapState extends ChangeNotifier {
           timeLimit: Duration(seconds: 20),
         ),
       );
+      if (_disposed) return;
       here = LatLng(pos.latitude, pos.longitude);
       accuracy = pos.accuracy;
       focus = here;
       notifyListeners();
     } catch (_) {
+      if (_disposed) return;
       error = 'no-location';
       notifyListeners();
     }

@@ -37,8 +37,7 @@ class MapTileCache {
   @visibleForTesting
   static Future<Directory> Function()? rootForTest;
 
-  static Future<Directory> _rootDir() async {
-    final test = rootForTest;
+  static Future<Directory> _rootDir(Future<Directory> Function()? test) async {
     if (test != null) return test();
     final cache = await getApplicationCacheDirectory();
     return Directory('${cache.path}/$_root');
@@ -46,7 +45,9 @@ class MapTileCache {
 
   /// The cache folder of [layer] for the map file [tilesId].
   static Future<Directory> folder(String tilesId, String layer) async =>
-      Directory('${(await _rootDir()).path}/${folderName(tilesId)}/$layer');
+      Directory(
+        '${(await _rootDir(rootForTest)).path}/${folderName(tilesId)}/$layer',
+      );
 
   static String? _latest;
   static Future<void> _cleaning = Future.value();
@@ -57,21 +58,24 @@ class MapTileCache {
   /// only while it is in use.
   static Future<void> keepOnly(String tilesId) {
     _latest = tilesId;
-    return _cleaning = _cleaning.then((_) => _clean());
+    // The root as it is now: a test that ends never sends a late cleanup
+    // to the real cache folder.
+    final test = rootForTest;
+    return _cleaning = _cleaning.then((_) => _clean(test));
   }
 
   /// Done when every cleanup asked for so far has run.
   @visibleForTesting
   static Future<void> get idle => _cleaning;
 
-  static Future<void> _clean() async {
+  static Future<void> _clean(Future<Directory> Function()? test) async {
     if (_latest == null) return;
     try {
-      await removeOthers(await _rootDir(), () => folderName(_latest!));
+      await removeOthers(await _rootDir(test), () => folderName(_latest!));
     } catch (e) {
       debugPrint('map tile cache: $e');
     }
-    if (rootForTest != null) return;
+    if (test != null) return;
     // Folders used before: this app's own (in the temporary folder, so
     // app-specific in name), and vector_map_tiles' default `.vector_map`,
     // only where the temporary folder belongs to this app alone (not
