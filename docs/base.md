@@ -31,9 +31,26 @@ Phones do not answer each other's questions: phones are too slow for that.
   this ("client isolation").
 - The safest setup is a Wi-Fi that the shelter controls: the computer's
   own hotspot or a small router. No internet is needed.
-- The base listens on port 8642. The browser page uses plain http on a
-  local address. Chrome shows "not secure" in the address bar, but no
-  warning page (checked on a Pixel 5a).
+- The base listens on port 8642, only on the computer's private
+  addresses (10/8, 172.16/12, 192.168/16) on interfaces with a known
+  Wi-Fi, hotspot, tethering or wired name: never on a public address,
+  mobile data, carrier-grade NAT (100.64/10), or a known VPN or virtual
+  machine network (`lib/base/lan_sockets.dart`,
+  [#64](https://github.com/lychnion/lychnion/issues/64)). Windows names
+  its interfaces in the system's language; English, Japanese
+  (イーサネット, ローカル エリア接続), Chinese, French and Spanish names
+  are known. An interface with an unknown name is not used: the screen
+  then shows no address rather than listening on mobile data, and the
+  log says `base_interface_unknown` with the name, so it can be added. It looks at the addresses every
+  10 seconds, so a hotspot turned on later works too. The screen lists
+  every address it listens on, Wi-Fi and hotspot first; a computer on an
+  office LAN as well as the shelter Wi-Fi listens on both. It also
+  listens on loopback (`127.0.0.1`, not shown), so the iOS simulator or
+  Android emulator on the same computer can use it. Share nearby on a
+  phone (port 8643) works the same way.
+- The browser page uses plain http on a local address. Chrome shows "not
+  secure" in the address bar, but no warning page (checked on a Pixel
+  5a).
 - Opening the page by itself when a phone joins the Wi-Fi is planned
   ([#3](https://github.com/lychnion/lychnion/issues/3)).
 
@@ -46,7 +63,10 @@ wrong one:
   phone.
 - 「アプリで」 / "With the app": a `lychnion://base?url=…&name=…&key=…`
   link (with `&s=1` when the base signs its answers) that connects the
-  app. The app asks before it connects and remembers the base.
+  app. The app asks before it connects and remembers the base. Under
+  this code the base shows its key's code (`XXXX-XXXX-XXXX`); the phone
+  trusts the base's notices only when the user ticks that the code on
+  the phone is the same (lychnion/lychnion#63).
 
 Older codes (`lychnion://shelter`) still work.
 

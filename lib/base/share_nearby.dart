@@ -68,11 +68,18 @@ class _ShareNearbyScreenState extends State<ShareNearbyScreen> {
         await server.stop();
         return;
       }
-      final addrs = await BaseServer.localAddresses();
+      // Exactly where it listens: Wi-Fi or hotspot, never mobile data,
+      // followed as the hotspot or Wi-Fi comes and goes (#64).
+      List<String> urlsOf(List<String> a) => [
+        for (final x in a) 'http://$x:${server.port}',
+      ];
+      server.onAddressesChanged = (a) {
+        if (mounted) setState(() => _urls = urlsOf(a));
+      };
       setState(() {
         _server = server;
         _items = library.items.length;
-        _urls = [for (final a in addrs) 'http://$a:$port'];
+        _urls = urlsOf(server.addresses);
       });
     } on Object catch (e) {
       if (mounted) setState(() => _error = '$e');

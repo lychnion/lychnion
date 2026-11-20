@@ -228,10 +228,11 @@ Trust transitions:
    trust")*.
 4. **Installed file to answer.** Package passages go into the model prompt.
    The model's text is shown with the sources and the safety line.
-5. **Base to phone.** A base is trusted for facts and signed answers only
-   after an in-person QR scan pins its key *(maintainer, 2026-11)*. Before
-   that, its answers carry a "not checked" note and its facts show as
-   unconfirmed *(documented, CHANGELOG.md "Security")*.
+5. **Base to phone.** A base link pins the base's key, which checks its
+   signed answers; its facts are trusted only after the user compared the
+   key's code with the base's screen, in person *(maintainer, 2026-11)*.
+   Until the code is compared, its answers carry a "not checked" note and
+   its facts show as unconfirmed *(documented, CHANGELOG.md "Security")*.
 6. **Link to setting.** A `lychnion://` link changes nothing before the user
    says yes in a dialog *(documented, docs/base.md "QR codes")*.
 
@@ -497,14 +498,14 @@ plus phones that also use the internet when they can.
 
 | Actor | In scope? | Capabilities held | Capabilities excluded | Goals | Provenance |
 | --- | --- | --- | --- | --- | --- |
-| Device on the same Wi-Fi | yes | Send any request to a base or a sharing phone; announce a fake base; read and change plain http; flood connections | Holding a pinned base's private key; getting its own QR code scanned in person as a base's; tapping dialogs for the user | Fake facts or answers, read questions, crash or hang a base or phone | *(maintainer, 2026-11)* |
+| Device on the same Wi-Fi | yes | Send any request to a base or a sharing phone; announce a fake base; read and change plain http; flood connections | Holding a trusted base's private key; getting its own code compared in person as a base's; tapping dialogs for the user | Fake facts or answers, read questions, crash or hang a base or phone | *(maintainer, 2026-11)* |
 | Host outside the local Wi-Fi | yes | Reach a port the base or a sharing phone opened on another interface | Reaching a port that is bound only to the Wi-Fi | Use the base or read installed items | *(maintainer, 2026-11)* |
 | Sender of links (web page, message, other app, printed QR) | yes | Open `lychnion://` links with any parameters | Confirming the dialog for the user; being scanned in person as a base's QR code | Get a key trusted, follow a hostile catalog, point the phone at a hostile base | *(maintainer, 2026-11)* |
 | Catalog, mirror or file host that is not a publisher | yes | Serve any bytes, old signed records, redirects; delay or withhold; drop or replay key statements | Signing records; forging a key statement; making a wrong file install | Install a tampered file, hide updates, learn what users download | *(maintainer, 2026-11)* |
 | USB stick author | yes | Any catalog, files and links on the stick | Signing records | Install a tampered or squatting item | *(documented, docs/distribution.md "Sync between nodes")* |
 | Publisher the user added | yes, for its own name | Sign any record, content and key statement for its name, including text that steers the model | Signing records or statements for `lychnion` or another name; naming a successor key it does not hold; shipping models; supplying the official safety line | Replace Lychnion's items or files, make its lines look official | *(maintainer, 2026-11)* |
 | Holder of an old or stolen publisher key | yes, for that name until revoked | Sign records and statements for that name; revoke the key; name a second successor | Keys it does not hold; the user's dialogs | Impersonate the publisher, or make phones drop it | *(documented, docs/distribution.md "Backing up and replacing the key")* |
-| Operator of a QR-pinned base | no, for content | Sign facts and answers that phones trust | — | — | *(maintainer, 2026-11)* |
+| Operator of a trusted base (code compared in person) | no, for content | Sign facts and answers that phones trust | — | — | *(maintainer, 2026-11)* |
 | Lychnion key holder, maintainers, build machines | no | Sign anything as Lychnion, ship builds | — | — | *(maintainer, 2026-11)* |
 | Someone controlling the device | no | Read and change app files and memory | — | — | *(documented, SECURITY.md "In scope", the "Out of scope:" paragraph)* |
 | The user asking | no | Type any question | — | — | *(maintainer, 2026-11)* |
@@ -545,15 +546,15 @@ plus phones that also use the internet when they can.
   "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
-  trust only from an in-person QR scan. Two exceptions come from the
+  trust only after the user compared its code with the base's screen in
+  person (`lib/base/base_key_code.dart`); a link alone, from the QR code
+  or a web page, only pins the key. Two exceptions come from the
   publisher's own statements: a successor named by a trusted key's
   replacement is trusted without a dialog, and a revoked publisher's new
   link replaces its entry after a dialog. *Violation symptom*:
   integrity-bypass.
   *Tier*: security-critical. *Voided by*: `BASE_URL` (or `SHELTER_URL`) connects without a link
-  (`lib/ask/base_connection.dart:9`). Known violation: any `lychnion://base`
-  or `lychnion://shelter` link, from a web page too, pins its key after one
-  tap (`lib/app/incoming_links.dart:67`). *(maintainer, 2026-11)*
+  (`lib/ask/base_connection.dart:9`). *(maintainer, 2026-11)*
 - **`grounded-answer-presentation`** (`answers`): an answer is built only
   from installed guides and shows its sources; an answer whose citations do
   not check out carries a warning; the app never shows bare-model text as an
@@ -637,10 +638,17 @@ plus phones that also use the internet when they can.
   (`packages/lychnion_format/lib/src/key_statement.dart:328`).
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
-  reachable only from the local Wi-Fi or hotspot. *Violation symptom*:
-  info-leak. *Tier*: security-critical. *Voided by*: no switch. Known
-  violation: both bind every IPv4 interface
-  (`lib/base/base_server.dart:167`). *(maintainer, 2026-11)*
+  reachable only from the local Wi-Fi or hotspot: they listen only on the
+  device's private IPv4 addresses on interfaces with a known Wi-Fi,
+  hotspot, tethering or wired name, never on mobile data, a known VPN or
+  virtual interface, carrier-grade NAT (100.64/10) or a public address
+  (and on loopback, which only the device itself reaches), and follow
+  those addresses as the network changes
+  (`lib/base/lan_sockets.dart`). Known gaps: a computer on two private
+  networks (the shelter Wi-Fi and an office LAN) listens on both, and
+  the screen lists both addresses; a VPN or virtual adapter whose name
+  is not known, but starts like a wired one, is listened on too. *Violation symptom*: info-leak. *Tier*:
+  security-critical. *Voided by*: no switch. *(maintainer, 2026-11)*
 - **`blob-serving-by-hash`** (`base-server`, `node`): servers answer only
   fixed routes and serve files only by SHA-256 from verified records or the
   node folder; no request part becomes a path. *Violation symptom*: info-leak.
@@ -740,9 +748,9 @@ plus phones that also use the internet when they can.
 
 | Reported | Sink | Attacker needs | Symptom | Routes to | Licensed by |
 | --- | --- | --- | --- | --- | --- |
-| A web page opens a base link; after one tap its facts show as official | `lychnion://base` link | a link the user taps | integrity-bypass | `VALID` | `key-consent` |
+| A web page opens a base link; its facts show as official without the code being compared (fixed in #63) | `lychnion://base` link | a link the user taps | integrity-bypass | `VALID` | `key-consent` |
 | Base downloads go over plain http, so a man in the middle could swap files | base blobs | a device on the Wi-Fi | integrity-bypass | `KNOWN-NON-FINDING` **(closed)** | `plain-http-file-tamper` |
-| A pinned base posts a false "shelter open" fact | `FactStore.addAll` | the pinned base's own key | bad-data-accepted | `OUT-OF-MODEL: adversary-not-in-scope` **(closed)** | §1.10 pinned base operator |
+| A trusted base posts a false "shelter open" fact | `FactStore.addAll` | the trusted base's own key | bad-data-accepted | `OUT-OF-MODEL: adversary-not-in-scope` **(closed)** | §1.10 trusted base operator |
 | Someone on the Wi-Fi reads the questions phones send to the base | `POST /ask` | passive Wi-Fi access | info-leak | `BY-DESIGN: property-disclaimed` **(closed)** | `lan-confidentiality` |
 
 Row 2 shows the precedence: §1.12 does not cover it, but the §1.15 entry

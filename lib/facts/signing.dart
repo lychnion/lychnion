@@ -81,23 +81,61 @@ class FactSigner {
   }
 }
 
+/// Why a key is in the [TrustList].
+enum TrustedKeyKind {
+  /// This device's own signing key, added at every start.
+  own,
+
+  /// A base computer's key, trusted after the user compared its code in
+  /// person (base_key_code.dart). The user can remove it.
+  base,
+}
+
+/// A key in the [TrustList].
+typedef TrustedKey = ({String id, String keyText, String name});
+
 /// Keys this device trusts, with a name for each (e.g. the base).
 /// Saved in trusted_keys.json.
 class TrustList extends ChangeNotifier {
   File? _file;
-  final _keys = <String, ({List<int> key, String name})>{};
+  final _keys = <String, ({List<int> key, String name, TrustedKeyKind kind})>{};
 
   Iterable<String> get names => _keys.values.map((k) => k.name);
   bool trusts(String keyId) => _keys.containsKey(keyId);
   String? nameOf(String keyId) => _keys[keyId]?.name;
 
+  /// Whether exactly [publicKeyText] is trusted (not only a key with the
+  /// same short id).
+  bool trustsKey(String? publicKeyText) {
+    if (publicKeyText == null) return false;
+    final List<int> key;
+    try {
+      key = _unb64(publicKeyText);
+    } on FormatException {
+      return false;
+    }
+    if (key.length != 32) return false;
+    final k = _keys[keyIdOf(key)];
+    return k != null && listEquals(k.key, key);
+  }
+
+  /// The trusted keys of [kind], by name.
+  List<TrustedKey> keysOf(TrustedKeyKind kind) => [
+    for (final e in _keys.entries)
+      if (e.value.kind == kind)
+        (id: e.key, keyText: _b64(e.value.key), name: e.value.name),
+  ]..sort((a, b) => a.name.compareTo(b.name));
+
   /// Format of trusted_keys.json (see versioned_file.dart). 0: key id →
-  /// {key, name} at the top; 1: `{"format": 1, "keys": {...}}`.
+  /// {key, name} at the top; 1: `{"format": 1, "keys": {...}}`. An entry
+  /// may say `"kind": "own"`; one without a kind is a base's key (older
+  /// apps trusted only those and their own key, which is added again at
+  /// every start).
   static const format = 1;
 
   /// Reads [file]. A broken file means no trusted keys, not a crash at
-  /// start: keys are added again from the base QR. A broken entry is
-  /// skipped.
+  /// start: base keys are trusted again by comparing their code. A broken
+  /// entry is skipped.
   Future<void> load(File file) => _loading = _load(file);
 
   /// The running or finished load: [add] waits for it, so a key added
@@ -115,6 +153,7 @@ class TrustList extends ChangeNotifier {
         _keys[e.key] = (
           key: _unb64(v['key'] as String),
           name: v['name'] as String,
+          kind: v['kind'] == 'own' ? TrustedKeyKind.own : TrustedKeyKind.base,
         );
       } on Object {
         continue;
@@ -125,8 +164,13 @@ class TrustList extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Trusts [publicKeyText]; returns its key id, or null if malformed.
-  Future<String?> add(String publicKeyText, String name) async {
+  /// Trusts [publicKeyText]; returns its key id, or null if malformed or
+  /// if another trusted key has the same id.
+  Future<String?> add(
+    String publicKeyText,
+    String name, {
+    TrustedKeyKind kind = TrustedKeyKind.base,
+  }) async {
     await _loading;
     final List<int> key;
     try {
@@ -136,10 +180,26 @@ class TrustList extends ChangeNotifier {
     }
     if (key.length != 32) return null;
     final id = keyIdOf(key);
-    _keys[id] = (key: key, name: name);
+    // Another key with the same short id (6 bytes): never replace it, or
+    // a base key could take the place of this device's own key or of
+    // another trusted base. The same key is updated (name, kind).
+    final old = _keys[id];
+    if (old != null && !listEquals(old.key, key)) return null;
+    _keys[id] = (key: key, name: name, kind: kind);
     notifyListeners();
     await _save();
     return id;
+  }
+
+  /// Stops trusting the key with id [keyId]; returns whether it was
+  /// trusted. Facts it signed then count as unconfirmed again
+  /// (FactStore.forgetKey).
+  Future<bool> remove(String keyId) async {
+    await _loading;
+    if (_keys.remove(keyId) == null) return false;
+    notifyListeners();
+    await _save();
+    return true;
   }
 
   Future<void> _save() async {
@@ -150,7 +210,11 @@ class TrustList extends ChangeNotifier {
         'format': format,
         'keys': {
           for (final e in _keys.entries)
-            e.key: {'key': _b64(e.value.key), 'name': e.value.name},
+            e.key: {
+              'key': _b64(e.value.key),
+              'name': e.value.name,
+              if (e.value.kind == TrustedKeyKind.own) 'kind': 'own',
+            },
         },
       }),
     );

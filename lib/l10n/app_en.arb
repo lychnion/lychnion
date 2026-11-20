@@ -308,8 +308,8 @@
   "mapNoLocation": "Location not available",
   "mapHazard": "Hazard",
   "mapChooseHazard": "Choose the hazard",
-  "mapAttributionSites": "Evacuation sites: GSI Japan",
-  "mapAttributionHeights": "Heights: GSI elevation tiles",
+  "mapAttributionSites": "Evacuation sites: from GSI Japan designated emergency evacuation site and shelter data, edited by Lychnion",
+  "mapAttributionHeights": "Heights: from GSI Japan elevation tiles (digital elevation model), edited by Lychnion",
   "mapAttributionFlood": "Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited",
   "mapAttributionContours": "Contours: GSI optimal vector tiles, edited",
   "mapNearbySites": "Nearby evacuation sites",
@@ -369,7 +369,7 @@
       }
     }
   },
-  "answerBaseUnchecked": "Base not checked. Scan its QR code to make sure it is the right one.",
+  "answerBaseUnchecked": "Base not checked. Scan its QR code and compare its code to make sure it is the right one.",
   "@answerBaseUnchecked": {
     "description": "Under the base name on an answer, when the base was found on the Wi-Fi or typed in, not connected by its QR code."
   },
@@ -617,6 +617,31 @@
     }
   },
   "baseConnect": "Connect",
+  "baseKeyCodeLabel": "Code of this base:",
+  "baseTrustCodeMatches": "The base's screen shows the same code: trust its notices",
+  "baseTrustCodeHint": "Compare the code on the spot. A link from a web page or a message can name any computer; until you compare the code, its notices show as unconfirmed.",
+  "baseTrustTitle": "Trust the notices of {name}?",
+  "@baseTrustTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "baseTrustSame": "Same code",
+  "baseCompareToTrust": "Its notices show as unconfirmed. Tap to compare its code with the base's screen.",
+  "baseKeyCodeOnBase": "Phones show this code. People compare it before they trust this base's notices:",
+  "baseTrustedTitle": "Trusted bases",
+  "baseTrustedRemove": "Stop trusting",
+  "baseTrustedRemoveTitle": "Stop trusting {name}?",
+  "@baseTrustedRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "baseTrustedRemoveBody": "Its notices will show as unconfirmed. To trust it again, scan its QR code and compare the code.",
   "baseAddress": "Base address",
   "baseAddressHelper": "Shown on the base, under the QR code.",
   "baseConnectComputer": "Connect to a base",
@@ -1065,7 +1090,7 @@
   "baseFoundTitle": "Bases on this Wi-Fi",
   "baseFoundLooking": "Looking…",
   "baseFoundNone": "No base found yet. Enter its address below, or scan its QR code.",
-  "baseScanToTrust": "Scan the base's QR code to trust its notices.",
+  "baseScanToTrust": "To trust its notices, scan the base's QR code and compare its code.",
   "answerReading": "Reading {count, plural, =1{1 source} other{{count} sources}}…",
   "@answerReading": {"placeholders": {"count": {"type": "int"}}},
   "answerTimeLeft": "About {seconds} s left",

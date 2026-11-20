@@ -117,8 +117,9 @@ void main() {
     await t.pumpAndSettle();
     expect(settings.baseUrl, base.url);
     expect(settings.baseName, 'Central school');
-    // Its facts are trusted only after its QR code is scanned.
+    // Its facts are trusted only after its QR code is scanned and its
+    // code compared (#63).
     expect(settings.baseKey, isNull);
-    expect(find.textContaining('QR code to trust'), findsOneWidget);
+    expect(find.textContaining('compare its code'), findsOneWidget);
   });
 }

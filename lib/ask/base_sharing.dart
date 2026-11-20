@@ -63,11 +63,18 @@ mixin _BaseSharing on _AskPageBase {
       return;
     }
     _server = server;
-    final urls = [
-      for (final a in await BaseServer.localAddresses())
-        'http://$a:${BaseServer.defaultPort}',
+    // Exactly where it listens: the local-network addresses, followed as
+    // the network changes (#64).
+    List<String> urlsOf(List<String> addresses) => [
+      for (final a in addresses) 'http://$a:${BaseServer.defaultPort}',
     ];
+    final urls = urlsOf(server.addresses);
     widget.baseUrls?.value = urls;
+    server.onAddressesChanged = (a) {
+      if (!identical(_server, server)) return;
+      widget.baseUrls?.value = urlsOf(a);
+      _log({'event': 'base_addresses', 'urls': urlsOf(a)});
+    };
     _log({'event': 'base_started', 'name': name, 'urls': urls});
     // Phones on this Wi-Fi find the base without its QR code (step 5e).
     // Serving goes on if announcing is not possible here.

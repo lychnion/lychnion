@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:896e866b3fa48d235e1f0bdedf9104376dd1487b7b82bbb418d69230e80f4c71
+prose_version: threat-model.md@sha256:3682731a954dce73a5d8aa3442ac18aaffb59ea52161a0f174b987271e33b248
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1361,8 +1361,8 @@ adversaries:
   - read and change plain http
   - flood connections
   excluded_capabilities:
-  - Holding a pinned base's private key
-  - getting its own QR code scanned in person as a base's
+  - Holding a trusted base's private key
+  - getting its own code compared in person as a base's
   - tapping dialogs for the user
   goals:
   - Fake facts or answers, read questions, crash or hang a base or phone
@@ -1446,7 +1446,7 @@ adversaries:
   provenance:
     kind: documented
     source: docs/distribution.md "Backing up and replacing the key"
-- name: operator-of-a-qr-pinned-base
+- name: operator-of-a-trusted-base-code-compared-in-person
   scope: out
   capabilities:
   - Sign facts and answers that phones trust
@@ -1732,11 +1732,9 @@ properties_claimed:
   - downloads
   - base-client
   tier: security-critical
-  x-known-violations:
-  - any `lychnion://base` or `lychnion://shelter` link, from a web page too, pins its key after one tap
-    (`lib/app/incoming_links.dart:67`).
   conditions: 'a publisher key or base key becomes trusted only after the user says yes, and a base key
-    gets fact trust only from an in-person QR scan. Two exceptions come from the publisher''s own statements:
+    gets fact trust only after the user compared its code with the base''s screen in person (`lib/base/base_key_code.dart`);
+    a link alone, from the QR code or a web page, only pins the key. Two exceptions come from the publisher''s own statements:
     a successor named by a trusted key''s replacement is trusted without a dialog, and a revoked publisher''s
     new link replaces its entry after a dialog.'
   violation_symptoms:
@@ -1883,7 +1881,13 @@ properties_claimed:
   components:
   - base-server
   tier: security-critical
-  conditions: the base and Share nearby are reachable only from the local Wi-Fi or hotspot.
+  conditions: 'the base and Share nearby are reachable only from the local Wi-Fi or hotspot: they listen
+    only on the device''s private IPv4 addresses on interfaces with a known Wi-Fi, hotspot, tethering or wired name, never on mobile data,
+    a known VPN or virtual interface, carrier-grade NAT (100.64/10) or a public address (and on loopback, which only the device itself reaches), and follow those addresses as the network changes (`lib/base/lan_sockets.dart`).'
+  x-known-violations:
+  - a VPN or virtual adapter whose name is not known, but starts like a wired one, is listened on too.
+  - a computer on two private networks (the shelter Wi-Fi and an office LAN) listens on both; the screen
+    lists both addresses.
   violation_symptoms:
   - info-leak
   provenance:
