@@ -33,35 +33,57 @@ class MapTileCache {
     return 'm-${safe.substring(0, 60)}-${hash.substring(0, 16)}';
   }
 
-  /// The cache folder of [layer] for the map file [tilesId].
-  static Future<Directory> folder(String tilesId, String layer) async {
+  /// Where the folders go; tests point it at a temporary folder.
+  @visibleForTesting
+  static Future<Directory> Function()? rootForTest;
+
+  static Future<Directory> _rootDir() async {
+    final test = rootForTest;
+    if (test != null) return test();
     final cache = await getApplicationCacheDirectory();
-    return Directory('${cache.path}/$_root/${folderName(tilesId)}/$layer');
+    return Directory('${cache.path}/$_root');
   }
+
+  /// The cache folder of [layer] for the map file [tilesId].
+  static Future<Directory> folder(String tilesId, String layer) async =>
+      Directory('${(await _rootDir()).path}/${folderName(tilesId)}/$layer');
 
   static String? _latest;
   static Future<void> _cleaning = Future.value();
 
-  /// Deletes the caches of other map files. Calls run one after another and
-  /// the last call wins: a slow earlier cleanup never deletes the folder of
-  /// a map asked for later. MapState calls this only while it is in use.
+  /// Deletes the caches of other map files. Calls run one after another, and
+  /// each delete checks the newest call first, so a cleanup still running
+  /// never deletes the folder of a map asked for later. MapState calls this
+  /// only while it is in use.
   static Future<void> keepOnly(String tilesId) {
     _latest = tilesId;
     return _cleaning = _cleaning.then((_) => _clean());
   }
 
+  /// Done when every cleanup asked for so far has run.
+  @visibleForTesting
+  static Future<void> get idle => _cleaning;
+
   static Future<void> _clean() async {
-    final keep = _latest;
-    if (keep == null) return;
+    if (_latest == null) return;
     try {
-      final cache = await getApplicationCacheDirectory();
-      await removeOthers(Directory('${cache.path}/$_root'), folderName(keep));
+      await removeOthers(await _rootDir(), () => folderName(_latest!));
     } catch (e) {
       debugPrint('map tile cache: $e');
     }
-    // vector_map_tiles' own default folder, used before. Only where the
-    // temporary folder belongs to this app alone (not Windows or Linux,
-    // where other apps may use the same folder name).
+    if (rootForTest != null) return;
+    // Folders used before: this app's own (in the temporary folder, so
+    // app-specific in name), and vector_map_tiles' default `.vector_map`,
+    // only where the temporary folder belongs to this app alone (not
+    // Windows or Linux, where other apps may use that name).
+    try {
+      final old = Directory(
+        '${(await getTemporaryDirectory()).path}/lychnion-map-tiles',
+      );
+      if (await old.exists()) await old.delete(recursive: true);
+    } catch (e) {
+      debugPrint('map tile cache: $e');
+    }
     if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
       try {
         final old = Directory(
@@ -75,13 +97,17 @@ class MapTileCache {
     }
   }
 
-  /// Deletes everything in [root] except the entry named [keep]. One entry
-  /// that cannot be deleted does not stop the others.
+  /// Deletes everything in [root] except the entry named [keep] (asked
+  /// again before each delete). One entry that cannot be deleted does not
+  /// stop the others.
   @visibleForTesting
-  static Future<void> removeOthers(Directory root, String keep) async {
+  static Future<void> removeOthers(
+    Directory root,
+    String Function() keep,
+  ) async {
     if (!await root.exists()) return;
     await for (final e in root.list()) {
-      if (e.path.split(RegExp(r'[/\\]')).last == keep) continue;
+      if (e.path.split(RegExp(r'[/\\]')).last == keep()) continue;
       try {
         await e.delete(recursive: true);
       } catch (err) {

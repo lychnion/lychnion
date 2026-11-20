@@ -142,9 +142,11 @@ class MapState extends ChangeNotifier {
           : await EvacSites.fromAsset(sitesAsset);
       final tilesPath = await resolvePath(pmtilesPath);
       final stat = await File(tilesPath).stat();
-      tiles = await PmTilesVectorTileProvider.fromSource(tilesPath);
-      // A newer state owns the caches now: do not delete its folders.
+      final t = await PmTilesVectorTileProvider.fromSource(tilesPath);
+      // Dropped while loading: a newer state owns the caches, the routes,
+      // the inundation tiles and the position.
       if (_disposed) return;
+      tiles = t;
       final id =
           '${tilesPath.split(Platform.pathSeparator).last}'
           '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
@@ -152,9 +154,12 @@ class MapState extends ChangeNotifier {
       unawaited(MapTileCache.keepOnly(id));
       notifyListeners();
       await _loadRoutes();
+      if (_disposed) return;
       await _loadInundationTiles();
+      if (_disposed) return;
       await locate();
     } catch (e) {
+      if (_disposed) return;
       error = '$e';
       notifyListeners();
     }
@@ -171,6 +176,7 @@ class MapState extends ChangeNotifier {
     if (!path.endsWith('.inundation.mbtiles') || !await File(path).exists()) {
       return;
     }
+    if (_disposed) return;
     try {
       inundationTiles = InundationTiles.open(path);
       notifyListeners();
@@ -185,9 +191,12 @@ class MapState extends ChangeNotifier {
           pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.routes.bin'),
     );
     if (!path.endsWith('.routes.bin') || !await File(path).exists()) return;
+    if (_disposed) return;
     try {
       final sw = Stopwatch()..start();
-      routes = await RouteGraph.load(path);
+      final g = await RouteGraph.load(path);
+      if (_disposed) return;
+      routes = g;
       debugPrint(
         'routes: ${routes!.nodeCount} nodes in ${sw.elapsedMilliseconds} ms',
       );
@@ -278,6 +287,8 @@ class MapState extends ChangeNotifier {
     try {
       // GPS works without a network; only the satellite fix takes time.
       var perm = await Geolocator.checkPermission();
+      // Dropped meanwhile: do not ask for permission for a state not shown.
+      if (_disposed) return;
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
