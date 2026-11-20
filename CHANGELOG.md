@@ -97,6 +97,11 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- A catalog with a deeply nested entry in its `keys` list can no longer
+  crash the reader with a stack overflow; on the headless node it could
+  end the whole pull, for every source. Such entries are now skipped,
+  and a record with a nested id costs only that record, not the whole
+  catalog (#78).
 - A hazard question that also has an app word in it (for example
   「ベースキャンプ」, 「共有」 or "offline") is no longer answered from the
   app's help without its safety line: hazards are matched first, and the

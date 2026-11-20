@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:94cc8e6932dc8dacab7ac4540da6187bce990c19fefbb217cd138ec5ee066fb8
+prose_version: threat-model.md@sha256:21fc30e99991af5debd882320c23d7f6316d8fd2011d51fd52f321e8d615384a
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1700,7 +1700,7 @@ properties_claimed:
   tier: security-critical
   x-known-violations:
   - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
-    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:169`).
+    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:177`).
   conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
     also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion''s
     ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
@@ -1866,8 +1866,6 @@ properties_claimed:
   - facts
   - node
   tier: security-critical
-  x-known-violations:
-  - key statements are canonicalised before any shape check (`packages/lychnion_format/lib/src/key_statement.dart:328`).
   conditions: 'what a phone or node accepts is capped: 16 KiB for a base''s `/info`, 1 MiB for facts and
     answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements
     per list and 1000 kept. A hostile response does not crash or hang the reader, and deeply nested JSON
@@ -1999,7 +1997,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:337`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:345`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:

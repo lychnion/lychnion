@@ -25,7 +25,12 @@ Future<List<String>> checkFolder(NodeFolder folder, TrustedKeys trust) async {
   for (final raw in doc.records) {
     final r = await keys.check(raw);
     if (r == null) {
-      final id = raw is Map ? raw['id'] : null;
+      // Only a string id is shown: a nested one would overflow the stack
+      // when printed (lychnion/lychnion#78).
+      final id = switch (raw) {
+        {'id': final String id} => id,
+        _ => null,
+      };
       problems.add('${id ?? '?'}: not signed by a trusted publisher');
       continue;
     }

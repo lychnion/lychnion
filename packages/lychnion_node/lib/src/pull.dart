@@ -148,7 +148,15 @@ Future<PullResult> _pull(
       result.failed.add('${redactedUrl(source)}: invalid');
       continue;
     }
-    keys = keys.withStatements(await relevantStatements(keys, cat.keys));
+    try {
+      keys = keys.withStatements(await relevantStatements(keys, cat.keys));
+    } on Object {
+      // Not expected (relevantStatements skips what it cannot read), but
+      // one catalog's keys must never end the pull for every source
+      // (lychnion/lychnion#78).
+      result.failed.add('${redactedUrl(source)}: invalid keys');
+      continue;
+    }
     for (final raw in cat.records) {
       final r = await keys.check(raw);
       if (r == null) {

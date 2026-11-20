@@ -149,7 +149,11 @@ proven. The property is the §1.11 claim each one breaks.
     check and catches only `FormatException`
     (`packages/lychnion_format/lib/src/key_statement.dart:328`); on the node
     the call is outside the parse `try`
-    (`packages/lychnion_node/lib/src/pull.dart:139`).
+    (`packages/lychnion_node/lib/src/pull.dart:139`). *Fixed for #78: an
+    entry that is not a flat object of a statement's fields is skipped
+    first (a nested one overflowed the stack, now tested); a nested record
+    id is no longer printed; on the node any unexpected error in one
+    catalog's keys marks only that source failed.*
 
 ### Breaks a correctness-only property (not filed)
 
