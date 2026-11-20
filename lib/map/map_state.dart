@@ -117,7 +117,7 @@ class MapState extends ChangeNotifier {
   String? contoursId;
 
   /// Names the map file's contents (name, size, date) for its tile caches
-  /// ([MapTileCache]); set right after [tiles].
+  /// ([MapTileCache]); set once [tiles] and the contours are loaded.
   String? tilesId;
   LatLng? here;
   bool hereIsMock = false;
@@ -162,9 +162,11 @@ class MapState extends ChangeNotifier {
       }
       tiles = t;
       final id = _fileId(tilesPath, stat);
-      tilesId = id;
       await _loadContours();
       if (_disposed) return;
+      // Set with the contours, so the screen never builds its layers once
+      // without them first.
+      tilesId = id;
       unawaited(MapTileCache.keepOnly(id, contoursId: contoursId));
       notifyListeners();
       await _loadRoutes();
