@@ -97,6 +97,12 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- A hazard question that also has an app word in it (for example
+  「ベースキャンプ」, 「共有」 or "offline") is no longer answered from the
+  app's help without its safety line: hazards are matched first, and the
+  help answers only when none matches (#77). A question about the app
+  that also names a hazard (「津波のガイドをダウンロード」) now gets the
+  safety line and the guides instead of the help.
 - A record whose id or file name ends in a dot or is a Windows device
   name (`NUL`, `con.sqlite`) is refused, as is one with two file names
   that differ only in case: such a name could reach another publisher's

@@ -59,6 +59,33 @@ void main() {
     expect(llm.prompt, contains('近くの人に共有'));
   });
 
+  // lychnion/lychnion#77: an app word in a hazard question does not skip
+  // the safety line.
+  test('a hazard question with an app word keeps its safety line', () async {
+    for (final q in [
+      // Each also finds help passages, so before #77 the help answered.
+      '地震で津波が来たら、近くの人に共有するには？',
+      '海岸で地震、ベースにつなぐには？',
+      'ベースキャンプが海の近くで、強い揺れを感じたら？',
+      // On purpose: an app question that also names a hazard gets the
+      // safety line and the guides, not the help.
+      '地震と津波のガイドをダウンロードするには？',
+      'Strong shaking at the coast: how do I share offline?',
+    ]) {
+      expect(isAppQuestion(q), isTrue, reason: q);
+      final llm = FakeLlm();
+      final answerer = GroundedAnswerer(llm, safety, help: help);
+      final a = GroundedAnswer(q, lang: q.contains('shaking') ? 'en' : 'ja');
+      await answerer.answer(a, () {});
+      expect(a.alerts, isNotEmpty, reason: q);
+      expect(
+        a.hits.any((h) => h.passage.source.publisher == 'Lychnion'),
+        isFalse,
+        reason: q,
+      );
+    }
+  });
+
   test('a safety question never sees help passages', () async {
     final llm = FakeLlm();
     final answerer = GroundedAnswerer(llm, safety, help: help);

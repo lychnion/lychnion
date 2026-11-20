@@ -588,8 +588,12 @@ plus phones that also use the internet when they can.
   (`DownloadStore.bundledPackageSource`), and an empty trigger word matches
   nothing. *Violation symptom*:
   x-missing-or-forged-safety-line. *Tier*: security-critical. *Voided by*:
-  questions routed to the app help skip the line
-  (`lib/knowledge/grounded_answer.dart:242`). *(maintainer, 2026-11)*
+  nothing in this build voids it for a matching question: a question about
+  the app goes to the app help (without safety lines) only when no hazard
+  matches, also when it has an app word such as 「ベース」 or "offline" in
+  it (`lib/knowledge/grounded_answer.dart:256`). A base answers with its
+  own build, and the phone shows the lines the base sent
+  (`base-answer-signature`). *(maintainer, 2026-11)*
 - **`models-lychnion-only`** (`downloads`, `answers`): only models signed by
   Lychnion are installed and loaded: a `model` record from any other
   publisher is refused in catalogs (also followed ones and bases), on USB

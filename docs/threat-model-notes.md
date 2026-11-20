@@ -140,7 +140,9 @@ proven. The property is the §1.11 claim each one breaks.
 15. **App-help words skip safety lines** ([#77](https://github.com/lychnion/lychnion/issues/77)) (suspected,
     `safety-line-lychnion-only`): a safety question containing a word such
     as 「ベース」, 「共有」, "offline" or "settings" may take the help path
-    (`lib/knowledge/grounded_answer.dart:242`).
+    (`lib/knowledge/grounded_answer.dart:242`). *Fixed for #77: hazards are
+    matched first, and the help answers only when none matches
+    (`lib/knowledge/grounded_answer.dart:256`).*
 
 16a. **Nested key statements may abort a node pull** ([#78](https://github.com/lychnion/lychnion/issues/78)) (suspected, `client-response-limits`):
     `relevantStatements` canonicalises each `keys` entry before any shape

@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:5fa27dbf2b63fd715e0601ca9018b63187208f7f29abe815d133f4d476ccc6f6
+prose_version: threat-model.md@sha256:94cc8e6932dc8dacab7ac4540da6187bce990c19fefbb217cd138ec5ee066fb8
 model_status: accepted
 triage_policy: strict
 confidence:
