@@ -444,11 +444,17 @@ trusted: only private addresses are listed (10/8, 172.16/12,
 192.168/16, 100.64/10), the address is only where to ask, and the
 announced key is not kept. A base found on the Wi-Fi or typed in by its
 address gives answers and downloads (checked by signature anyway), but
-its signed facts (shelter status and other notices) show as unverified
-until its QR code is scanned: only the QR code, checked in person, pins
-its key (a computer at that address with another key is then refused).
-Scanning the QR code of the base already connected pins the key and
-checks the earlier facts again (also at every start). At most 20 bases
+its signed facts (shelter status and other notices) show as unverified.
+A `lychnion://base` link pins the base's key: a computer at that address
+with another key is then refused. But a web page, a message or another
+app can open the same link as the QR code, and the app cannot tell them
+apart, so the link alone gives no fact trust (lychnion/lychnion#63).
+The base's facts count as official only after the user compares the
+key's code (12 characters, from the key's SHA-256) with the code on the
+base's screen: in the connect dialog, or later by tapping the base in
+Settings. Then the earlier facts are checked again (also at every
+start). Settings lists the trusted bases with their codes; removing one
+makes its facts unconfirmed again. At most 20 bases
 are listed, one per announced name, at its latest address. Not yet: a
 phone following its base to a new address by itself, and the headless
 node announcing itself.
@@ -519,7 +525,7 @@ list, so people do not have to judge keys themselves. To decide later.
 | Stolen node key | Each key signs only its publisher's packages; Lychnion's key is not on any node. Key rotation and revocation: a later step |
 | Bad or slow mirror | Mirrors are unsigned on purpose: a file from one must match the signed hash, or it is thrown away and the next address is tried. A bad mirror costs time, not safety |
 | Malicious file content | Packages are data; opened read-only, only after the checks; size limits |
-| Fake base announced on the Wi-Fi | Listed only (private addresses); the user picks it and answers a question. Its facts stay unverified and its answers are marked "Base not checked" until the base's QR code is scanned, so a fake cannot make its notices look official. After the scan, the base signs each answer with its key and a value the phone picks per question; the phone refuses answers that do not check out. Downloads from any base are checked by signature and hash. A device flooding the network with announcements can hide real bases from the list; the address and QR code still work |
+| Fake base announced on the Wi-Fi | Listed only (private addresses); the user picks it and answers a question. Its facts stay unverified and its answers are marked "Base not checked" until the base's QR code is scanned and its code compared with the base's screen, so a fake (or a web page with a base link) cannot make its notices look official. After the scan, the base signs each answer with its key and a value the phone picks per question; the phone refuses answers that do not check out. Downloads from any base are checked by signature and hash. A device flooding the network with announcements can hide real bases from the list; the address and QR code still work |
 | Wrong publisher trusted | Keys are added only by an explicit action (QR at the shelter), shown with the publisher's name; the user can remove them |
 | Licence problems | Every source has a licence entry; each package carries its licences and attributions |
 

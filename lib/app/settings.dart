@@ -127,8 +127,8 @@ class AppSettings extends ChangeNotifier {
     // Kept for the same key (the base got a new address): forgetting it
     // would let someone take the signature off again.
     if (newKey != baseKey) baseSignedKey = null;
-    // Known from the QR code (checked in person): no unsigned answer is
-    // taken, not even the first.
+    // The link says the base signs: no unsigned answer is taken, not even
+    // the first. (A link from a web page can only make this stricter.)
     if (signs && newKey != null) baseSignedKey = newKey;
     baseKey = newKey;
     notifyListeners();

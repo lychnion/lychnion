@@ -54,16 +54,40 @@ class FactStore extends ChangeNotifier {
     dir ??= await getApplicationSupportDirectory();
     final file = _file = File('${dir.path}/facts.jsonl');
     await _serial(() => _loadFrom(file));
-    // Keys trusted since the facts were saved (a base's QR code scanned
+    // Keys trusted since the facts were saved (a base's code compared
     // after its facts came): checked again at every start, before the
     // limit drops unverified facts first.
     await reverify();
+    // Keys no longer trusted (a base removed, and the app stopped before
+    // facts.jsonl was written again): their facts are unconfirmed again.
+    final dropped = _untrust();
     await _serial(() async {
-      if (_prune() && mayReplace(file) && await file.exists()) {
+      if ((_prune() || dropped > 0) &&
+          mayReplace(file) &&
+          await file.exists()) {
         await _rewrite(file, [for (final f in _facts) _line(f)]);
       }
     });
     notifyListeners();
+  }
+
+  /// Marks unconfirmed the verified facts signed by a key id that [trust]
+  /// no longer holds; returns how many. Facts from a signed radio message
+  /// keep no key id and are left as they are (see [forgetKey]).
+  int _untrust() {
+    final t = trust;
+    if (t == null) return 0;
+    var n = 0;
+    for (final f in _facts) {
+      final id = f.keyId;
+      if (!f.verified || f.sourceType == SourceType.citizen || id == null) {
+        continue;
+      }
+      if (t.trusts(id)) continue;
+      f.verified = false;
+      n++;
+    }
+    return n;
   }
 
   /// Reading, upgrading and adding to the file go one after another: an
@@ -233,6 +257,41 @@ class FactStore extends ChangeNotifier {
       }
     }
     if (n > 0) notifyListeners();
+    return n;
+  }
+
+  /// The key with id [keyId] (named [name]) is no longer trusted: facts it
+  /// signed count as unconfirmed again. Facts from a signed radio message
+  /// keep no key id; they are recognised by the key's name, which the
+  /// phone gave them when it checked the message. Names are not unique, so
+  /// radio facts of another trusted key with the same name are marked too
+  /// (unconfirmed, never the other way round). Returns how many changed.
+  Future<int> forgetKey(String keyId, {String? name}) async {
+    var n = 0;
+    for (final f in _facts) {
+      if (!f.verified || f.sourceType == SourceType.citizen) continue;
+      final signedBy = f.keyId == keyId;
+      final fromRadio =
+          f.keyId == null &&
+          name != null &&
+          name.isNotEmpty &&
+          f.sourceName == name;
+      if (!signedBy && !fromRadio) continue;
+      f.verified = false;
+      n++;
+    }
+    if (n == 0) return 0;
+    final file = _file;
+    try {
+      await _serial(() async {
+        if (file != null && mayReplace(file) && await file.exists()) {
+          await _rewrite(file, [for (final f in _facts) _line(f)]);
+        }
+      });
+    } finally {
+      // Shown as unconfirmed now, even when the file could not be written.
+      notifyListeners();
+    }
     return n;
   }
 

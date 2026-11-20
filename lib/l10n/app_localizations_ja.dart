@@ -493,7 +493,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get answerBaseUnchecked =>
-      '確認されていないベースです。正しいベースか、QR コードを読み取って確かめてください。';
+      '確認されていないベースです。正しいベースか、QR コードを読み取ってコードを見比べ、確かめてください。';
 
   @override
   String get answerBaseUnsigned =>
@@ -851,6 +851,47 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get baseConnect => '接続';
+
+  @override
+  String get baseKeyCodeLabel => 'このベースのコード：';
+
+  @override
+  String get baseTrustCodeMatches => 'ベースの画面に同じコードが表示されている：お知らせを信頼する';
+
+  @override
+  String get baseTrustCodeHint =>
+      'その場でコードを見比べてください。ウェブページやメッセージのリンクは、どのコンピューターでも指定できます。コードを見比べるまで、お知らせは「未確認」と表示されます。';
+
+  @override
+  String baseTrustTitle(String name) {
+    return '$nameのお知らせを信頼しますか？';
+  }
+
+  @override
+  String get baseTrustSame => '同じコード';
+
+  @override
+  String get baseCompareToTrust =>
+      'お知らせは「未確認」と表示されます。タップして、ベースの画面のコードと見比べてください。';
+
+  @override
+  String get baseKeyCodeOnBase =>
+      'スマートフォンにはこのコードが表示されます。このベースのお知らせを信頼する前に見比べてもらいます：';
+
+  @override
+  String get baseTrustedTitle => '信頼しているベース';
+
+  @override
+  String get baseTrustedRemove => '信頼をやめる';
+
+  @override
+  String baseTrustedRemoveTitle(String name) {
+    return '$nameの信頼をやめますか？';
+  }
+
+  @override
+  String get baseTrustedRemoveBody =>
+      'お知らせは「未確認」と表示されるようになります。もう一度信頼するには、QR コードを読み取ってコードを見比べてください。';
 
   @override
   String get baseAddress => 'ベースのアドレス';
@@ -1627,7 +1668,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get baseFoundNone => 'まだ見つかりません。下にアドレスを入力するか、ベースの QR コードを読み取ってください。';
 
   @override
-  String get baseScanToTrust => 'お知らせを信頼するには、ベースの QR コードを読み取ってください。';
+  String get baseScanToTrust => 'お知らせを信頼するには、ベースの QR コードを読み取り、コードを見比べてください。';
 
   @override
   String answerReading(int count) {

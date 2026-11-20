@@ -25,6 +25,7 @@ import '../map/hazard_detect.dart';
 import '../map/map_screen.dart';
 import '../map/map_state.dart';
 import '../base/share_nearby.dart';
+import '../base/base_checks.dart' show trustBaseKey;
 import '../base/base_link.dart';
 import '../base/base_panel.dart';
 import '../ui/ask_view.dart';
@@ -62,6 +63,7 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
   /// Current facts (shelter status, blocked roads, warnings), kept apart
   /// from the model and the knowledge packages.
   final _trust = TrustList();
+  @override
   late final _facts = FactStore(trust: _trust);
 
   /// Map data and position, shared by the answers and the map tab.
@@ -179,7 +181,11 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
         File('${dir.path}/signing_key'),
       );
       _facts.signer = signer;
-      await _trust.add(signer.publicKeyText, sharingName(widget.settings));
+      await _trust.add(
+        signer.publicKeyText,
+        sharingName(widget.settings),
+        kind: TrustedKeyKind.own,
+      );
     }
     await _facts.load();
     if (!DevFlags.demoFacts) return;
@@ -251,7 +257,8 @@ class _AppShellState extends State<AppShell> with _IncomingLinks {
                 urls: _baseUrls,
                 keyText: _facts.signer?.publicKeyText,
               )
-            : BaseSettingsTile(settings: widget.settings),
+            : BaseSettingsTile(settings: widget.settings, facts: _facts),
+        trustedBases: TrustedBasesList(facts: _facts),
       ),
     ),
   );

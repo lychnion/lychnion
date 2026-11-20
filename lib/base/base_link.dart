@@ -4,8 +4,14 @@
 /// code. Scanning it with the phone's camera opens Lychnion, which asks the
 /// user before it connects. A typed address (`192.168.1.20`,
 /// `http://192.168.1.20:8642`) works too.
+///
+/// A web page or a message can open the same link, so its key only names
+/// the computer to connect to. Its notices count as official only after
+/// the user compared the key's code with the base's screen
+/// (base_key_code.dart, lychnion/lychnion#63).
 library;
 
+import '../download/publisher_list.dart' show cleanShownText;
 import 'base_server.dart';
 
 class BaseLink {
@@ -15,8 +21,9 @@ class BaseLink {
   final String url;
   final String? name;
 
-  /// The base's public signing key: its signed facts are trusted, and a
-  /// computer at this address with another key is refused.
+  /// The base's public signing key: a computer at this address with
+  /// another key is refused. Its signed facts are trusted only after the
+  /// user compared the key's code.
   final String? key;
 
   /// The base signs its answers with [key] (`s=1`, from bases that sign):
@@ -44,15 +51,18 @@ class BaseLink {
   );
 
   /// Whether this link changes nothing for a phone connected to [url]
-  /// with [key], whose base is known to sign with [signedKey].
+  /// with [key], whose base is known to sign with [signedKey]. With
+  /// [keyTrusted] false the link is still asked about: the user may now
+  /// compare the key's code.
   bool changesNothing({
     required String? url,
     required String? key,
     required String? signedKey,
+    bool keyTrusted = true,
   }) =>
       this.url == url &&
       (this.key == null ||
-          (this.key == key && (!signs || signedKey == this.key)));
+          (this.key == key && keyTrusted && (!signs || signedKey == this.key)));
 
   /// A lychnion:// link, or null if [uri] is something else.
   static BaseLink? fromUri(Uri uri) {
@@ -61,12 +71,14 @@ class BaseLink {
     }
     final url = normalize(uri.queryParameters['url'] ?? '');
     if (url == null) return null;
-    final name = uri.queryParameters['name'];
+    // Shown in dialogs and Settings, and anyone can write a link: no
+    // control or direction-changing characters, at most 60 characters.
+    final name = cleanShownText(uri.queryParameters['name']);
     final rawKey = uri.queryParameters['key'];
     final key = rawKey == null || rawKey.isEmpty ? null : rawKey;
     return BaseLink(
       url,
-      name: name == null || name.isEmpty ? null : name,
+      name: name,
       key: key,
       signs: key != null && uri.queryParameters['s'] == '1',
     );

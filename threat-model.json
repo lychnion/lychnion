@@ -673,7 +673,7 @@
       "holder-of-an-old-or-stolen-publisher-key"
     ],
     "out_of_scope": [
-      "operator-of-a-qr-pinned-base",
+      "operator-of-a-trusted-base-code-compared-in-person",
       "lychnion-key-holder-maintainers-build-ma",
       "someone-controlling-the-device",
       "the-user-asking"
@@ -709,7 +709,7 @@
       "property": "key-consent",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a publisher key or base key becomes trusted only after the user says yes, and a base key gets fact trust only from an in-person QR scan. Two exceptions come from the publisher's own statements: a successor named by a trusted key's replacement is trusted without a dialog, and a revoked publisher's new link replaces its entry after a dialog.",
+      "conditions": "a publisher key or base key becomes trusted only after the user says yes, and a base key gets fact trust only after the user compared its code with the base's screen in person (`lib/base/base_key_code.dart`); a link alone, from the QR code or a web page, only pins the key. Two exceptions come from the publisher's own statements: a successor named by a trusted key's replacement is trusted without a dialog, and a revoked publisher's new link replaces its entry after a dialog.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

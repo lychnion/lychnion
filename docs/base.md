@@ -46,7 +46,10 @@ wrong one:
   phone.
 - 「アプリで」 / "With the app": a `lychnion://base?url=…&name=…&key=…`
   link (with `&s=1` when the base signs its answers) that connects the
-  app. The app asks before it connects and remembers the base.
+  app. The app asks before it connects and remembers the base. Under
+  this code the base shows its key's code (`XXXX-XXXX-XXXX`); the phone
+  trusts the base's notices only when the user ticks that the code on
+  the phone is the same (lychnion/lychnion#63).
 
 Older codes (`lychnion://shelter`) still work.
 

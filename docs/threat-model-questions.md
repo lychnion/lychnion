@@ -145,7 +145,7 @@ proposed answer every time, and the model is accepted.
 | Q7 | Releases | Maintainer accounts and build machines are trusted. CI ships nothing and holds no secrets. |
 | Q8 | Licence | Not a security property. |
 | Q9 | Headless node | Trusts the built-in key plus `--publisher` keys. A non-publisher host is in scope. LAN plain HTTP supported; a reverse proxy is required on the internet. Pull a stick, do not serve it. |
-| Q10 | Link pinning | **Vulnerability:** only an in-person QR scan may give fact trust. |
+| Q10 | Link pinning | **Vulnerability:** only an in-person QR scan may give fact trust. The app cannot tell a camera scan from a tapped link, so comparing the key's code with the base's screen counts as the in-person check (maintainer, 2026-11-20, #63). |
 | Q11 | Bind address | The base and Share nearby are for the local Wi-Fi or hotspot only; other interfaces are a vulnerability. |
 | Q12 | Base availability | Per-request limits are promised; flooding from the Wi-Fi is disclaimed. |
 | Q13 | Freshness | No-downgrade while installed is promised; freshness is disclaimed, tier security-critical. |

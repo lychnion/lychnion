@@ -27,6 +27,7 @@ class SettingsScreen extends StatelessWidget {
     required this.settings,
     required this.downloads,
     this.base,
+    this.trustedBases,
     this.onShareNearby,
     this.region,
     this.userRegion,
@@ -41,6 +42,10 @@ class SettingsScreen extends StatelessWidget {
 
   /// Base section: the QR code on a base computer, else connect.
   final Widget? base;
+
+  /// Under [base]: the bases whose notices are trusted, removable
+  /// (TrustedBasesList; empty when there are none).
+  final Widget? trustedBases;
 
   /// Phones: pass on downloads to phones nearby.
   final VoidCallback? onShareNearby;
@@ -116,7 +121,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             if (region != null)
               _Group(title: l.settingsRegion, children: [region!]),
-            if (base != null) _Group(title: l.settingsBase, children: [base!]),
+            if (base != null)
+              _Group(title: l.settingsBase, children: [base!, ?trustedBases]),
             _Group(
               title: l.settingsOfflineData,
               children: [

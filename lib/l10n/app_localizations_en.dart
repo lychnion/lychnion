@@ -503,7 +503,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get answerBaseUnchecked =>
-      'Base not checked. Scan its QR code to make sure it is the right one.';
+      'Base not checked. Scan its QR code and compare its code to make sure it is the right one.';
 
   @override
   String get answerBaseUnsigned =>
@@ -881,6 +881,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get baseConnect => 'Connect';
+
+  @override
+  String get baseKeyCodeLabel => 'Code of this base:';
+
+  @override
+  String get baseTrustCodeMatches =>
+      'The base\'s screen shows the same code: trust its notices';
+
+  @override
+  String get baseTrustCodeHint =>
+      'Compare the code on the spot. A link from a web page or a message can name any computer; until you compare the code, its notices show as unconfirmed.';
+
+  @override
+  String baseTrustTitle(String name) {
+    return 'Trust the notices of $name?';
+  }
+
+  @override
+  String get baseTrustSame => 'Same code';
+
+  @override
+  String get baseCompareToTrust =>
+      'Its notices show as unconfirmed. Tap to compare its code with the base\'s screen.';
+
+  @override
+  String get baseKeyCodeOnBase =>
+      'Phones show this code. People compare it before they trust this base\'s notices:';
+
+  @override
+  String get baseTrustedTitle => 'Trusted bases';
+
+  @override
+  String get baseTrustedRemove => 'Stop trusting';
+
+  @override
+  String baseTrustedRemoveTitle(String name) {
+    return 'Stop trusting $name?';
+  }
+
+  @override
+  String get baseTrustedRemoveBody =>
+      'Its notices will show as unconfirmed. To trust it again, scan its QR code and compare the code.';
 
   @override
   String get baseAddress => 'Base address';
@@ -1711,7 +1753,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get baseScanToTrust =>
-      'Scan the base\'s QR code to trust its notices.';
+      'To trust its notices, scan the base\'s QR code and compare its code.';
 
   @override
   String answerReading(int count) {
