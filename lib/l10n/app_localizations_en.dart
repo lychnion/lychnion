@@ -409,10 +409,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapChooseHazard => 'Choose the hazard';
 
   @override
-  String get mapAttributionSites => 'Evacuation sites: GSI Japan';
+  String get mapAttributionSites =>
+      'Evacuation sites: from GSI Japan designated emergency evacuation site and shelter data, edited by Lychnion';
 
   @override
-  String get mapAttributionHeights => 'Heights: GSI elevation tiles';
+  String get mapAttributionHeights =>
+      'Heights: from GSI Japan elevation tiles (digital elevation model), edited by Lychnion';
 
   @override
   String get mapAttributionFlood =>
