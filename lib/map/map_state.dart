@@ -37,11 +37,21 @@ class MapState extends ChangeNotifier {
     facts?.addListener(notifyListeners);
   }
 
+  /// Set once the screen dropped this state (another map was loaded); a
+  /// [load] still running then stops quietly.
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     facts?.removeListener(notifyListeners);
     inundationTiles?.dispose();
     super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
   }
 
   /// Current facts, e.g. a shelter that is full.
@@ -127,12 +137,23 @@ class MapState extends ChangeNotifier {
           sp = next;
         }
       }
-      sites = sp != null
+      // Dropped while loading (checked after every wait below): a newer
+      // state owns the caches, the routes, the inundation tiles and the
+      // position.
+      if (_disposed) return;
+      final evac = sp != null
           ? EvacSites.open(sp)
           : await EvacSites.fromAsset(sitesAsset);
+      if (_disposed) return;
+      sites = evac;
       final tilesPath = await resolvePath(pmtilesPath);
       final stat = await File(tilesPath).stat();
-      tiles = await PmTilesVectorTileProvider.fromSource(tilesPath);
+      final t = await PmTilesVectorTileProvider.fromSource(tilesPath);
+      if (_disposed) {
+        await t.archive.close();
+        return;
+      }
+      tiles = t;
       final id =
           '${tilesPath.split(Platform.pathSeparator).last}'
           '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
@@ -140,9 +161,12 @@ class MapState extends ChangeNotifier {
       unawaited(MapTileCache.keepOnly(id));
       notifyListeners();
       await _loadRoutes();
+      if (_disposed) return;
       await _loadInundationTiles();
+      if (_disposed) return;
       await locate();
     } catch (e) {
+      if (_disposed) return;
       error = '$e';
       notifyListeners();
     }
@@ -159,6 +183,7 @@ class MapState extends ChangeNotifier {
     if (!path.endsWith('.inundation.mbtiles') || !await File(path).exists()) {
       return;
     }
+    if (_disposed) return;
     try {
       inundationTiles = InundationTiles.open(path);
       notifyListeners();
@@ -173,9 +198,12 @@ class MapState extends ChangeNotifier {
           pmtilesPath.replaceFirst(RegExp(r'\.pmtiles$'), '.routes.bin'),
     );
     if (!path.endsWith('.routes.bin') || !await File(path).exists()) return;
+    if (_disposed) return;
     try {
       final sw = Stopwatch()..start();
-      routes = await RouteGraph.load(path);
+      final g = await RouteGraph.load(path);
+      if (_disposed) return;
+      routes = g;
       debugPrint(
         'routes: ${routes!.nodeCount} nodes in ${sw.elapsedMilliseconds} ms',
       );
@@ -253,6 +281,21 @@ class MapState extends ChangeNotifier {
   /// Whether routes take at least one blocked road into account.
   bool get avoidsBlocked => routes != null && blockedPoints.isNotEmpty;
 
+  /// The permission request on screen, shared: a new state (another map
+  /// loaded while the dialog is open) waits for the same answer instead of
+  /// asking again, which geolocator refuses.
+  static Future<LocationPermission>? _asking;
+
+  /// The system's permission dialog; tests replace it.
+  @visibleForTesting
+  static Future<LocationPermission> Function() askSystem =
+      Geolocator.requestPermission;
+
+  /// Asks for location permission, or joins the request already on screen.
+  @visibleForTesting
+  static Future<LocationPermission> requestPermission() =>
+      _asking ??= askSystem().whenComplete(() => _asking = null);
+
   Future<void> locate() async {
     final mock = mockLocation;
     if (mock != null && mock.isNotEmpty) {
@@ -266,8 +309,11 @@ class MapState extends ChangeNotifier {
     try {
       // GPS works without a network; only the satellite fix takes time.
       var perm = await Geolocator.checkPermission();
+      // Dropped meanwhile: do not ask for permission for a state not shown.
+      if (_disposed) return;
       if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
+        perm = await requestPermission();
+        if (_disposed) return;
       }
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
@@ -280,11 +326,13 @@ class MapState extends ChangeNotifier {
           timeLimit: Duration(seconds: 20),
         ),
       );
+      if (_disposed) return;
       here = LatLng(pos.latitude, pos.longitude);
       accuracy = pos.accuracy;
       focus = here;
       notifyListeners();
     } catch (_) {
+      if (_disposed) return;
       error = 'no-location';
       notifyListeners();
     }
