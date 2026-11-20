@@ -107,19 +107,22 @@ class NodeFolder {
   /// Writes catalog.json (next to it, then renamed: a cut write leaves
   /// the old one). Every file is listed at its place in this folder.
   /// [keys]: key statements to pass on (replaced and revoked keys).
-  Future<void> writeCatalog(
+  /// Returns how many of [keys] were left out to fit.
+  Future<int> writeCatalog(
     List<PackageRecord> records, {
     List<String> mirrors = const [],
     Iterable<KeyStatement> keys = const [],
   }) async {
     await dir.create(recursive: true);
-    final text = CatalogDocument.byHash(
+    final doc = CatalogDocument.byHash(
       records,
       keys: keys,
       mirrors: mirrors,
-    ).encode();
+    ).fitted();
+    final text = doc.encode();
     final tmp = File('${catalogFile.path}.$pid.tmp');
     await tmp.writeAsString(text, flush: true);
     await tmp.rename(catalogFile.path);
+    return CatalogDocument.keysLeftOut(keys, doc);
   }
 }

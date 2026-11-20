@@ -102,6 +102,25 @@ void main() {
     expect(CatalogDocument.parse(c.encode()).keys, [rev]);
   });
 
+  // lychnion/lychnion#59: whoever writes a catalog is told what did not
+  // fit.
+  test('keysLeftOut counts statements given but not written', () async {
+    final pair = await keyPairFromSeed((await newKeyPair()).seed);
+    Future<KeyStatement> revoke(String d) =>
+        KeyStatement.revoke(publisher: 'jp.test', key: pair, signed: d);
+    final a = await revoke('1'), b = await revoke('2');
+    final written = CatalogDocument(records: const [], keys: [a.json]);
+    expect(CatalogDocument.keysLeftOut([a, a, b], written), 1);
+    expect(CatalogDocument.keysLeftOut([a], written), 0);
+    // More than a catalog takes (KeyStatement.maxPerSource).
+    final many = [
+      for (var i = 0; i < KeyStatement.maxPerSource + 3; i++)
+        await revoke('$i'),
+    ];
+    final doc = CatalogDocument.byHash(const [], keys: many).fitted();
+    expect(CatalogDocument.keysLeftOut(many, doc), 3);
+  });
+
   test('too large to encode', () {
     final c = CatalogDocument(records: ['x' * CatalogDocument.maxBytes]);
     expect(c.encode, throwsA(isA<CatalogTooLarge>()));

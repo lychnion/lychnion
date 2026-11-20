@@ -1261,7 +1261,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String publishKeyNote(String path) {
-    return '鍵は $path に保存されています。オフラインで控えを保管してください。失うと、スマートフォンで新しい鍵を追加し直す必要があります。';
+    return '鍵は $path に保存されています。このファイルは暗号化されていないため、コピーしないでください。「鍵のバックアップを保存」（パスフレーズで保護）を使い、バックアップをオフラインで保管してください。バックアップなしで鍵を失うと、スマートフォンで新しい鍵を追加し直す必要があります。';
   }
 
   @override
@@ -1349,7 +1349,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String publishKeyUnreadable(String path) {
-    return '鍵ファイル $path を読み込めません。控えから戻してください。新しい鍵にすると、スマートフォンで発行元を追加し直す必要があります。';
+    return '鍵ファイル $path を読み込めません。鍵のバックアップから戻すには、このファイルを別の場所へ移し（削除はしないでください）、「自分で発行」を開き直して「バックアップから復元」を使ってください。新しい鍵にすると、スマートフォンで発行元を追加し直す必要があります。';
   }
 
   @override
@@ -1672,6 +1672,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String stickKeysLeftOut(String count) {
+    return '鍵の宣言 $count 件は USB メモリのカタログに入りきりませんでした。無効化の宣言は優先して残しています。';
+  }
+
+  @override
   String publishErrorPackage(String detail) {
     return 'このファイルはアプリで使えるガイドではありません（$detail）。lychnion-data のツールで作り直してください。';
   }
@@ -1814,6 +1819,15 @@ class AppLocalizationsJa extends AppLocalizations {
       '新しい鍵を作り、今の鍵で署名します。今の鍵を信頼しているスマートフォンは、カタログや USB メモリを受け取ったときに新しい鍵を受け入れます。これまでに署名したものは有効なままです。交換後は新しいバックアップを作ってください（古いバックアップには古い鍵が入っています）。古いバックアップも安全に保管してください。古い鍵の署名はまだ有効で、その無効化の宣言はそのバックアップに入っています。';
 
   @override
+  String publishReplaceFewLeft(int left) {
+    return '交換できるのはあと $left 回です（スマートフォンが受け付けるのは発行元ごとに 50 回まで）。その後の鍵の変更はすべて「鍵を無効にする」（新しい鍵が作られます）で行います。スマートフォンで新しいリンクを追加し直す必要があります。';
+  }
+
+  @override
+  String get publishReplaceNoneLeft =>
+      '鍵はスマートフォンが 1 つの発行元に受け付ける上限の 50 回まで交換されています。今後の鍵の変更は「鍵を無効にする」（新しい鍵が作られます）で行ってください。スマートフォンで新しいリンクを追加し直す必要があります。';
+
+  @override
   String get publishRevokeKey => '鍵を無効にする';
 
   @override
@@ -1852,4 +1866,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishRestoreReplaced => 'このバックアップの鍵は交換済みです。最新のバックアップから復元してください。';
+
+  @override
+  String publishRestoreCheck(String keyId, String made) {
+    return 'このバックアップには鍵 $keyId（$made に保存）が入っています。復元するのは最新のバックアップだけにしてください。この日付より後に鍵を交換していた場合、ここからもう一度交換すると、スマートフォンがこの発行元を信頼しなくなります。復元しますか？';
+  }
+
+  @override
+  String publishRestoreCheckNoDate(String keyId) {
+    return 'このバックアップには鍵 $keyId が入っています。復元するのは最新のバックアップだけにしてください。このバックアップの後に鍵を交換していた場合、ここからもう一度交換すると、スマートフォンがこの発行元を信頼しなくなります。復元しますか？';
+  }
+
+  @override
+  String get publishReplaceAlreadyReplaced =>
+      'この鍵はすでに交換されています。古いバックアップの鍵であれば、代わりに最新のバックアップから復元してください（もう一度交換すると、スマートフォンがこの発行元を信頼しなくなります）。交換した覚えがない場合は、他の人が鍵を持っています。「鍵を無効にする」を使ってください。';
 }

@@ -537,7 +537,7 @@ plus phones that also use the internet when they can.
   headless node reserves nothing; it accepts an added publisher's record
   for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
   the id back only when its source is pulled
-  (`packages/lychnion_node/lib/src/pull.dart:177`). *Violation symptom*:
+  (`packages/lychnion_node/lib/src/pull.dart:181`). *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: nothing voids
   it in the app; the check runs in `isTaken`, `installed` and
   `recordedVersionOf`, and no flag or dev define turns it off (the
@@ -555,7 +555,7 @@ plus phones that also use the internet when they can.
   again (§1.12 `freshness`). After a revocation a node lists the version it
   listed before, never one below it. A record no version of which is
   complete is not listed but set aside in `.kept.json`, where its version
-  still counts (`packages/lychnion_node/lib/src/pull.dart:234`).
+  still counts (`packages/lychnion_node/lib/src/pull.dart:238`).
   *(documented, docs/distribution.md "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
@@ -615,7 +615,7 @@ plus phones that also use the internet when they can.
   (`lib/base/base_client.dart:96`); for a QR code without `s=1`, the first
   answers before the base has signed (`lib/base/base_checks.dart:78`);
   pinning another key (`lib/app/settings.dart:129`); a base without a signer
-  (`lib/base/base_server.dart:581`). *(documented, docs/shelter-results.md
+  (`lib/base/base_server.dart:591`). *(documented, docs/shelter-results.md
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
   verified only with a signature from a trusted key; others count as
@@ -698,7 +698,7 @@ plus phones that also use the internet when they can.
   node folder; no request part becomes a path. *Violation symptom*: info-leak.
   *Tier*: security-critical. *Voided by*: node `serve` on a folder it did not
   pull follows symlinks (§1.6, unsupported). The blob routes match
-  `lib/base/base_server.dart:494` and
+  `lib/base/base_server.dart:504` and
   `packages/lychnion_node/lib/src/server.dart:61`. *(documented,
   CHANGELOG.md "Security")*
 - **`browser-page-text-only`** (`base-server`): the browser page shows all
@@ -747,7 +747,7 @@ plus phones that also use the internet when they can.
   stays in the app folder and is never served or shared. The only copy that
   leaves it is the passphrase-encrypted backup the operator saves. *Violation symptom*:
   info-leak. *Tier*: security-critical. *Voided by*: on Windows the app does
-  not restrict the file (`lib/publish/local_publisher.dart:258`); macOS
+  not restrict the file (`lib/publish/local_publisher.dart:273`); macOS
   relies on the sandbox. *(documented, docs/distribution.md "Publishers and
   keys")*
 - **`publisher-removal-deletes`** (`downloads`): removing a publisher deletes
@@ -760,10 +760,10 @@ plus phones that also use the internet when they can.
   is on such a network; an internet catalog's own redirects are checked the
   same way. Private or local means any address that is not plain public
   unicast, including `::`, multicast, special ranges and IPv4 carried in
-  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:345`). DNS rebinding is
+  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:352`). DNS rebinding is
   not caught. *Violation symptom*: x-request-forgery. *Tier*:
   correctness-only. *Voided by*: a catalog on a private network or a folder
-  (`packages/lychnion_node/lib/src/pull.dart:126`). *(documented,
+  (`packages/lychnion_node/lib/src/pull.dart:130`). *(documented,
   packages/lychnion_node/README.md "Operating")*
 
 - **`key-statement-verification`** (`records`, `downloads`, `node`): a
@@ -791,7 +791,7 @@ plus phones that also use the internet when they can.
   wrong passphrase or a damaged file. *Violation symptom*: info-leak. *Tier*:
   security-critical. *Voided by*: no switch. A file may ask for weaker
   Argon2id settings within limits
-  (`packages/lychnion_format/lib/src/key_backup.dart:234`); weak passphrases
+  (`packages/lychnion_format/lib/src/key_backup.dart:254`); weak passphrases
   are §1.12 `backup-passphrase-and-storage`. *(maintainer, 2026-11)*
 
 - **`answers-never-mix`** (`answers`, `base-server`): while a computer

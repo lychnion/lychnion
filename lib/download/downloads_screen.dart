@@ -210,6 +210,9 @@ Future<void> _stick(
       if (r.clashed.isNotEmpty) {
         text += '\n${l.stickClashed(r.clashed.join(', '))}';
       }
+      if (r.keysLeftOut > 0) {
+        text += '\n${l.stickKeysLeftOut('${r.keysLeftOut}')}';
+      }
     } else {
       if (m.busy) throw const _Busy();
       final r = await m.withoutDownloads(() => loadFromStick(m.store, dir));

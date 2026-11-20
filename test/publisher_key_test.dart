@@ -420,6 +420,20 @@ void main() {
       expect(again.keyStateOf(_name), PublisherKeyState.revoked);
     });
 
+    // lychnion/lychnion#59: phones take at most 50 replacements of one
+    // publisher; past that only revoke-and-renew works.
+    test('no replacement past the limit', () async {
+      var p = me;
+      for (var i = 0; i < KeyStatement.maxReplacesPerPublisher; i++) {
+        expect(p.replacementsLeft, KeyStatement.maxReplacesPerPublisher - i);
+        p = await p.replaceKey(pubDir);
+      }
+      expect(p.replacementsLeft, 0);
+      expect(() => p.replaceKey(pubDir), throwsStateError);
+      final renewed = await p.revokeAndRenew(pubDir);
+      expect(renewed.replacementsLeft, 0);
+    });
+
     test('a revocation listed before its replacement is kept', () async {
       final p = await phone('phone', me.link);
       final next = await me.replaceKey(pubDir);

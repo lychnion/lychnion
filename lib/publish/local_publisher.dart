@@ -118,7 +118,20 @@ class LocalPublisher {
   /// phones that trust the old key accept the new one. Records signed by
   /// the old key stay valid. Old backups hold the old key: a new backup
   /// is needed.
+  /// How many times this publisher's key was replaced.
+  int get replacements =>
+      statements.where((s) => s.type == KeyStatementType.replace).length;
+
+  /// Replacements left before phones stop taking them
+  /// ([KeyStatement.maxReplacesPerPublisher]); then only revoke-and-renew
+  /// works (lychnion/lychnion#59).
+  int get replacementsLeft =>
+      KeyStatement.maxReplacesPerPublisher - replacements;
+
+  /// Throws [StateError] when no replacement is left ([replacementsLeft]):
+  /// phones would drop it.
   Future<LocalPublisher> replaceKey(Directory dir) async {
+    if (replacementsLeft <= 0) throw StateError('no replacement left');
     final k = await newKeyPair();
     final s = await KeyStatement.replace(
       publisher: name,
@@ -238,8 +251,10 @@ class LocalPublisher {
           if (p.statements.isNotEmpty)
             'statements': [for (final s in p.statements) s.json],
           'note':
-              'Private signing key of this publisher. Keep a copy offline; '
-              'never put it on a server, a stick or in a repository.',
+              'Private signing key of this publisher, not encrypted. Do not '
+              'copy this file; for a backup use "Save a key backup" in the '
+              'app (protected by a passphrase). Never put it on a server, a '
+              'stick or in a repository.',
         }),
         flush: true,
       );

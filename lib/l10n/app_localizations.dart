@@ -2172,7 +2172,7 @@ abstract class AppLocalizations {
   /// No description provided for @publishKeyNote.
   ///
   /// In en, this message translates to:
-  /// **'The key is saved in {path}. Keep a copy offline. If it is lost, phones have to add a new key.'**
+  /// **'The key is saved in {path}. Do not copy this file: it is not encrypted. Use \"Save a key backup\" (protected by a passphrase) and keep the backup offline. If the key is lost without a backup, phones have to add a new key.'**
   String publishKeyNote(String path);
 
   /// No description provided for @publishScanHint.
@@ -2328,7 +2328,7 @@ abstract class AppLocalizations {
   /// No description provided for @publishKeyUnreadable.
   ///
   /// In en, this message translates to:
-  /// **'The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.'**
+  /// **'The key file {path} cannot be read. To restore your key backup, move that file elsewhere (keep it), open Publish your own again and use \"Restore from a backup\". A new key would mean that phones have to add your publisher again.'**
   String publishKeyUnreadable(String path);
 
   /// No description provided for @publishKeyExists.
@@ -2889,6 +2889,12 @@ abstract class AppLocalizations {
   /// **'Not copied, the stick has another publisher\'s item with this id: {items}'**
   String stickClashed(String items);
 
+  /// No description provided for @stickKeysLeftOut.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} key statements did not fit in the catalog on the stick. Revocations were kept first.'**
+  String stickKeysLeftOut(String count);
+
   /// No description provided for @publishErrorPackage.
   ///
   /// In en, this message translates to:
@@ -3123,6 +3129,18 @@ abstract class AppLocalizations {
   /// **'Makes a new key, signed by the current one. Phones that trust the current key accept the new one when they get your catalog or a stick. What you signed so far stays valid. Make a new backup afterwards: old backups hold the old key. Keep the old backup safe too: the old key still signs validly, and its revocation is in that backup.'**
   String get publishReplaceKeyText;
 
+  /// No description provided for @publishReplaceFewLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{left, plural, =1{Only 1 replacement is left} other{Only {left} replacements are left}}: phones take at most 50 per publisher. After that, every key change is \"Revoke the key\", which makes a new one; phones then have to add your new link.'**
+  String publishReplaceFewLeft(int left);
+
+  /// No description provided for @publishReplaceNoneLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Your keys were replaced 50 times, the most phones take for one publisher. From now on, change the key with \"Revoke the key\", which makes a new one; phones then have to add your new link.'**
+  String get publishReplaceNoneLeft;
+
   /// No description provided for @publishRevokeKey.
   ///
   /// In en, this message translates to:
@@ -3182,6 +3200,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This backup holds a key that was replaced. Restore the newest backup.'**
   String get publishRestoreReplaced;
+
+  /// No description provided for @publishRestoreCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup holds key {keyId}, saved on {made}. Restore only your newest backup: if you replaced this key after that date, replacing it again from here makes phones stop trusting your publisher. Restore it?'**
+  String publishRestoreCheck(String keyId, String made);
+
+  /// No description provided for @publishRestoreCheckNoDate.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup holds key {keyId}. Restore only your newest backup: if you replaced this key after making it, replacing it again from here makes phones stop trusting your publisher. Restore it?'**
+  String publishRestoreCheckNoDate(String keyId);
+
+  /// No description provided for @publishReplaceAlreadyReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'This key was replaced already. If it comes from an older backup, restore your newest backup instead: replacing it again would make phones stop trusting your publisher. If you did not replace it, someone else has the key: use \"Revoke the key\".'**
+  String get publishReplaceAlreadyReplaced;
 }
 
 class _AppLocalizationsDelegate

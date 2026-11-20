@@ -867,7 +867,7 @@
   "publishDisplayName": "Shown name, e.g. 神戸市",
   "publishCreate": "Create publisher key",
   "publishBadName": "Use lower case letters, digits, dots and hyphens. 'lychnion' is taken.",
-  "publishKeyNote": "The key is saved in {path}. Keep a copy offline. If it is lost, phones have to add a new key.",
+  "publishKeyNote": "The key is saved in {path}. Do not copy this file: it is not encrypted. Use \"Save a key backup\" (protected by a passphrase) and keep the backup offline. If the key is lost without a backup, phones have to add a new key.",
   "@publishKeyNote": {
     "placeholders": {
       "path": {
@@ -931,7 +931,7 @@
       }
     }
   },
-  "publishKeyUnreadable": "The key file {path} cannot be read. Put back your copy of it. A new key would mean that phones have to add your publisher again.",
+  "publishKeyUnreadable": "The key file {path} cannot be read. To restore your key backup, move that file elsewhere (keep it), open Publish your own again and use \"Restore from a backup\". A new key would mean that phones have to add your publisher again.",
   "@publishKeyUnreadable": {
     "placeholders": {
       "path": {
@@ -1088,6 +1088,8 @@
   "aboutCopyHint": "Long press to copy (for reports)",
   "aboutCopied": "Copied",
   "stickClashed": "Not copied, the stick has another publisher's item with this id: {items}",
+  "stickKeysLeftOut": "{count} key statements did not fit in the catalog on the stick. Revocations were kept first.",
+  "@stickKeysLeftOut": {"placeholders": {"count": {"type": "String"}}},
   "@stickClashed": {"placeholders": {"items": {"type": "String"}}},
   "publishErrorPackage": "This file is not a guide the app can use ({detail}). Build it again with the lychnion-data tools.",
   "@publishErrorPackage": {"placeholders": {"detail": {"type": "String"}}},
@@ -1139,6 +1141,9 @@
   "publishBackupNewer": "This backup was made by a newer version of the app. Update the app.",
   "publishReplaceKey": "Replace the key",
   "publishReplaceKeyText": "Makes a new key, signed by the current one. Phones that trust the current key accept the new one when they get your catalog or a stick. What you signed so far stays valid. Make a new backup afterwards: old backups hold the old key. Keep the old backup safe too: the old key still signs validly, and its revocation is in that backup.",
+  "publishReplaceFewLeft": "{left, plural, =1{Only 1 replacement is left} other{Only {left} replacements are left}}: phones take at most 50 per publisher. After that, every key change is \"Revoke the key\", which makes a new one; phones then have to add your new link.",
+  "@publishReplaceFewLeft": {"placeholders": {"left": {"type": "int"}}},
+  "publishReplaceNoneLeft": "Your keys were replaced 50 times, the most phones take for one publisher. From now on, change the key with \"Revoke the key\", which makes a new one; phones then have to add your new link.",
   "publishRevokeKey": "Revoke the key",
   "publishRevokeKeyText": "Use this when someone else may have the key. Phones stop trusting it and everything it signed, and have to add your new link (QR code). Your packages here are signed again with the new key.",
   "publishKeyChanged": "New key made; {count} packages signed again. Put the statements in {path} into your catalog (\"keys\"). Sticks made here carry them already.",
@@ -1152,5 +1157,10 @@
   "publishersReplacesRevoked": "This replaces the revoked key {id}. Anyone who had that key can make such a link: add it only if you got it from the publisher in person or from its official page.",
   "@publishersReplacesRevoked": {"placeholders": {"id": {"type": "String"}}},
   "publishRestoreRevoked": "This backup holds a key that was revoked. Make a new key instead.",
-  "publishRestoreReplaced": "This backup holds a key that was replaced. Restore the newest backup."
+  "publishRestoreReplaced": "This backup holds a key that was replaced. Restore the newest backup.",
+  "publishRestoreCheck": "This backup holds key {keyId}, saved on {made}. Restore only your newest backup: if you replaced this key after that date, replacing it again from here makes phones stop trusting your publisher. Restore it?",
+  "@publishRestoreCheck": {"placeholders": {"keyId": {"type": "String"}, "made": {"type": "String"}}},
+  "publishRestoreCheckNoDate": "This backup holds key {keyId}. Restore only your newest backup: if you replaced this key after making it, replacing it again from here makes phones stop trusting your publisher. Restore it?",
+  "@publishRestoreCheckNoDate": {"placeholders": {"keyId": {"type": "String"}}},
+  "publishReplaceAlreadyReplaced": "This key was replaced already. If it comes from an older backup, restore your newest backup instead: replacing it again would make phones stop trusting your publisher. If you did not replace it, someone else has the key: use \"Revoke the key\"."
 }
