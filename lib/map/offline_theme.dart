@@ -67,6 +67,10 @@ Theme offlineLightTheme({required String lang, bool contours = false}) {
   ).build(layers);
 }
 
+/// Raster tile images are cached by theme id: change this number when the
+/// look of the shapes changes, so no image drawn with the old look shows.
+const _shapesStyle = 1;
+
 // Contour lines from the GSI optimal vector tiles (layer Cntr, height in
 // vt_alti). The tiles hold 100 m lines up to z13 and 10 m lines from z14.
 // Drawn: all lines at z11-13, 50 m index lines from z14, all lines from z15.
@@ -144,7 +148,7 @@ MapDrawing splitLabels(
   bool contours = false,
 }) => (
   shapes: theme.copyWith(
-    id: 'lychnion-shapes${contours ? '-contours' : ''}',
+    id: 'lychnion-shapes-$_shapesStyle${contours ? '-contours' : ''}',
     types: ThemeLayerType.values
         .where((t) => t != ThemeLayerType.symbol)
         .toSet(),

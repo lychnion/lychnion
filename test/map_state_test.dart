@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/map/map_state.dart';
+import 'package:lychnion/map/tile_cache.dart';
 
 // test/support/contours-tiny.pmtiles: a few tiles of contour lines around
 // Nishinomiya city hall (z4–11), cut from the lychnion-data build.
@@ -17,12 +18,18 @@ void main() {
 
   setUp(() {
     tmp = Directory.systemTemp.createTempSync('map_state_test');
+    // The tile cache cleanup goes to this test's folder.
+    MapTileCache.rootForTest = () async => Directory('${tmp.path}/cache');
     base = '${tmp.path}/area.pmtiles';
     contours = '${tmp.path}/area.contours.pmtiles';
     File(fixture).copySync(base);
   });
 
-  tearDown(() => tmp.deleteSync(recursive: true));
+  tearDown(() async {
+    await MapTileCache.idle;
+    MapTileCache.rootForTest = null;
+    tmp.deleteSync(recursive: true);
+  });
 
   MapState area() => MapState(
     pmtilesPath: base,

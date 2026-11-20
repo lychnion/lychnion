@@ -97,6 +97,12 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- A base or a phone nearby at a 100.64/10 address (some hotspots), or at
+  a plain name without a dot, can no longer redirect downloads to another
+  host. The download guard and base discovery now share one definition of
+  the local network (#73). A followed catalog at a plain name (for
+  example `http://intranet/`) counts as local too, so its files must be
+  served from that same host.
 - A fact dated more than 30 minutes in the future, living longer than 3
   days, or expiring more than 3 days from now is refused and never
   current. Before, one fact dated 2099 won its topic for years, and a

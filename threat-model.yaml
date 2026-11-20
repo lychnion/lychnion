@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:78e6199f2fbf98a4c8d1bcd3f605d150abba3002b2745ecf538ef82f44296bc1
+prose_version: threat-model.md@sha256:d6e8d636868b111629d10b48865c1dc24b8d8df29980e1aa2fca3e3dd9ea3ce2
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1948,10 +1948,10 @@ properties_claimed:
   components:
   - downloads
   tier: correctness-only
-  x-known-violations:
-  - the local-network test misses 100.64/10 and plain hostnames (`packages/lychnion_fetch/lib/src/downloader.dart:421`).
-  conditions: from a base or a nearby phone, the app downloads only files on that device, never from other
-    addresses its catalog names or redirects to.
+  conditions: 'from a base or a nearby phone, the app downloads only files on that device, never from other
+    addresses its catalog names or redirects to: the redirect guard counts as local every host that discovery
+    and base addresses accept, from one shared definition of the private ranges (`packages/lychnion_fetch/lib/src/downloader.dart:416`),
+    plus plain names without a dot (`packages/lychnion_fetch/lib/src/downloader.dart:430`).'
   violation_symptoms:
   - info-leak
   provenance:
