@@ -149,8 +149,11 @@ enum PublisherKeyState {
 
 /// The publishers the user added, saved in a JSON file.
 class PublisherList extends ChangeNotifier {
-  PublisherList(this.file, {TrustedKeys? builtIn})
-    : builtIn = builtIn ?? builtInPublishers;
+  PublisherList(
+    this.file, {
+    TrustedKeys? builtIn,
+    this.maxStatements = defaultMaxStatements,
+  }) : builtIn = builtIn ?? builtInPublishers;
 
   final File file;
 
@@ -170,8 +173,16 @@ class PublisherList extends ChangeNotifier {
   /// again.
   final _statements = <KeyStatement>[];
 
-  /// At most this many statements are kept.
-  static const maxStatements = 1000;
+  /// At most this many statements are kept, besides revocations and
+  /// theft proofs ([maxStatements]).
+  static const defaultMaxStatements = 1000;
+
+  /// [defaultMaxStatements]; smaller in tests.
+  final int maxStatements;
+
+  /// Revocations and theft proofs past [maxStatements] are kept up to this
+  /// many times [maxStatements] in all, what [load] reads back.
+  static const _readBack = 4;
 
   List<KeyStatement> get statements => List.unmodifiable(_statements);
 
@@ -221,9 +232,19 @@ class PublisherList extends ChangeNotifier {
     // file), and no publishers are added.
     final json = await readVersioned(file, format, (json, _) => json! as Map);
     final raw = json?['publishers'];
-    // Each one checked again: a file edited by hand proves nothing.
+    // Each one checked again: a file edited by hand proves nothing. All
+    // that learn kept are read back: revocations and theft proofs may be
+    // past maxStatements (lychnion/lychnion#59).
+    // A signature stored before #59 may be spelled another way (padding,
+    // the other alphabet): written the one way first, then verified.
+    final stored = json?['statements'];
     _statements.addAll(
-      await KeyStatement.checkAll(json?['statements'], max: maxStatements),
+      _keptOf(
+        await KeyStatement.checkAll(
+          stored is List ? stored.map(KeyStatement.respelled).toList() : null,
+          max: maxStatements * _readBack,
+        ),
+      ),
     );
     // Each entry on its own: one bad entry does not drop the others. A
     // file edited by hand is checked like a link.
@@ -284,8 +305,8 @@ class PublisherList extends ChangeNotifier {
 
   /// Keeps the valid [learned] statements about publishers this device
   /// knows (built in, added, or with statements already kept; with [any],
-  /// every one: a publisher's own revocation on a new computer), and
-  /// saves them. Returns true when the trusted keys changed (then install
+  /// every one: a publisher's own revocation on a new computer, so [any]
+  /// must only get the user's own statements), and saves them. Returns true when the trusted keys changed (then install
   /// records and catalogs must be checked again). Throws the save's error
   /// (then nothing changed).
   Future<bool> learn(Iterable<KeyStatement> learned, {bool any = false}) =>
@@ -304,12 +325,27 @@ class PublisherList extends ChangeNotifier {
               ]
             : await relevantStatements(trust, learned.toList());
         var left = room;
+        // Like a revocation: a second successor of a key proves a theft,
+        // and losing it would trust the thief's chain. Its other half may
+        // be in this batch too, but only for a key trusted before it: a
+        // thief's own new keys cannot each add a pair (#59).
+        final trustedBefore = trust;
+        bool inBatchProof(KeyStatement s) =>
+            s.type == KeyStatementType.replace &&
+            trustedBefore.keysOf(s.publisher).contains(s.oldKey) &&
+            candidates.any(
+              (o) =>
+                  o.type == KeyStatementType.replace &&
+                  o.publisher == s.publisher &&
+                  o.oldKey == s.oldKey &&
+                  o.newKey != s.newKey,
+            );
+        // A hard limit for those too, as far as load reads back.
+        var hard = maxStatements * _readBack - _statements.length;
         final fresh = [
           for (final s in candidates)
-            // Like a revocation: a second successor of a key proves a
-            // theft, and losing it would trust the thief's chain.
-            if (s.type == KeyStatementType.revoke ||
-                provesTheft(s, _statements) ||
+            if (((_protects(s, _statements) || inBatchProof(s)) &&
+                    hard-- > 0) ||
                 left-- > 0)
               s,
         ];
@@ -324,6 +360,22 @@ class PublisherList extends ChangeNotifier {
         _changed();
         return changed;
       });
+
+  /// A revocation, or a replacement that proves a theft: kept even past
+  /// [maxStatements], since losing one would trust a stolen key again.
+  static bool _protects(KeyStatement s, List<KeyStatement> all) =>
+      s.type == KeyStatementType.revoke || provesTheft(s, all);
+
+  /// What [learn] could have kept of [read]: every revocation and theft
+  /// proof, and up to [maxStatements] others ([learn] adds others only
+  /// while the list is shorter than that).
+  List<KeyStatement> _keptOf(List<KeyStatement> read) {
+    var left = maxStatements;
+    return [
+      for (final s in read)
+        if (_protects(s, read) || left-- > 0) s,
+    ];
+  }
 
   String _keySummary() {
     final t = trust;

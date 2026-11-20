@@ -491,7 +491,7 @@ void main() {
       },
     );
 
-    test('capped keeps revocations first, then the newest', () async {
+    test('capped keeps revocations and theft proofs first', () async {
       final a = await _key();
       final rs = [
         for (var i = 0; i < 3; i++)
@@ -507,8 +507,64 @@ void main() {
         key: a.pair,
         signed: 'r',
       );
-      expect(KeyStatement.capped([...rs, rev], 2), [rs[2], rev]);
+      // Three successors of one key: each proves a theft.
+      expect(KeyStatement.capped([...rs, rev], 2), [rs[0], rev]);
       expect(KeyStatement.capped([rev, ...rs], 9), [rev, ...rs]);
+    });
+
+    // lychnion/lychnion#59: trimming keeps a chain connected to the key a
+    // device knows, not its newest links.
+    test('capped keeps chains from their first key', () async {
+      final k = [for (var i = 0; i < 4; i++) await _key()];
+      Future<KeyStatement> link(int i) => KeyStatement.replace(
+        publisher: 'jp.test',
+        oldKey: k[i].pair,
+        newKey: k[i + 1].pair,
+        signed: '$i',
+      );
+      final ab = await link(0), bc = await link(1), cd = await link(2);
+      final other = await _key();
+      final rev = await KeyStatement.revoke(
+        publisher: 'jp.other',
+        key: other.pair,
+        signed: 'r',
+      );
+      // Newest first in the list, the revocation last.
+      expect(KeyStatement.capped([cd, bc, ab, rev], 3), [bc, ab, rev]);
+      expect(KeyStatement.capped([cd, bc, ab, rev], 1), [rev]);
+      expect(KeyStatement.keepOrder([cd.json, bc.json, ab.json, rev.json]), [
+        3,
+        2,
+        1,
+        0,
+      ]);
+      // Junk entries go last.
+      expect(KeyStatement.keepOrder(['x', ab.json]), [1, 0]);
+    });
+
+    // lychnion/lychnion#59: one statement, one spelling.
+    test('keys and signatures must be written one way', () async {
+      final a = await _key(), b = await _key();
+      final r = await KeyStatement.replace(
+        publisher: 'jp.test',
+        oldKey: a.pair,
+        newKey: b.pair,
+        signed: '2026-11-19',
+      );
+      String padded(String v) => base64Url.encode(_bytes(v));
+      String std(String v) => base64.encode(_bytes(v)).replaceAll('=', '');
+      for (final field in ['signature', 'new_signature', 'old', 'new']) {
+        final v = r.json[field]! as String;
+        for (final other in [padded(v), std(v), '$v%3D']) {
+          if (other == v) continue;
+          expect(
+            await KeyStatement.check({...r.json, field: other}),
+            isNull,
+            reason: '$field $other',
+          );
+        }
+      }
+      expect(await KeyStatement.check(r.json), r);
     });
   });
 }

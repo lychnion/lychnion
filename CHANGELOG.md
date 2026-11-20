@@ -97,6 +97,15 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- A key statement whose key or signature is written another way
+  (base64 padding, the other alphabet) is refused, so one statement can
+  no longer count many times against the limits. When not all
+  statements fit (a catalog, stick or base), revocations and theft
+  proofs are kept first, then each chain of replacements from its first
+  key. A phone reads back every revocation it kept past its 1000-statement
+  limit (also one stored with its signature spelled the old way), and
+  keeps a theft proof whose two halves arrive together also when the list
+  is full, for a key it trusted before (#59).
 - A catalog with a deeply nested entry in its `keys` list can no longer
   crash the reader with a stack overflow; on the headless node it could
   end the whole pull, for every source. Such entries are now skipped,

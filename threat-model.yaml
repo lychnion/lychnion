@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:21fc30e99991af5debd882320c23d7f6316d8fd2011d51fd52f321e8d615384a
+prose_version: threat-model.md@sha256:7ecb359d5069d50c3db701e88ccd0a15386341ac44f1aa44ec9bb74fd7a644e5
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1868,7 +1868,7 @@ properties_claimed:
   tier: security-critical
   conditions: 'what a phone or node accepts is capped: 16 KiB for a base''s `/info`, 1 MiB for facts and
     answers, 500 facts per pull and 5,000 kept, 2 MB per catalog read within 45 s, 500 key statements
-    per list and 1000 kept. A hostile response does not crash or hang the reader, and deeply nested JSON
+    per list and 1000 kept (besides revocations and theft proofs). A hostile response does not crash or hang the reader, and deeply nested JSON
     from any of these sources is rejected *(maintainer, 2026-11)*.'
   violation_symptoms:
   - unbounded-allocation
