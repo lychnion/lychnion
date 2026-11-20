@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lychnion/map/map_state.dart';
 import 'package:lychnion/map/tile_cache.dart';
 
@@ -117,6 +119,40 @@ void main() {
       s.dispose();
       await loading; // must not throw on the disposed notifier
       expect(s.error, isNull);
+    });
+  });
+
+  group('location permission', () {
+    tearDown(() => MapState.askSystem = Geolocator.requestPermission);
+
+    test('states asking at once share one dialog', () async {
+      var asked = 0;
+      final answer = Completer<LocationPermission>();
+      MapState.askSystem = () {
+        asked++;
+        return answer.future;
+      };
+      final a = MapState.requestPermission();
+      final b = MapState.requestPermission();
+      answer.complete(LocationPermission.whileInUse);
+      expect(await a, LocationPermission.whileInUse);
+      expect(await b, LocationPermission.whileInUse);
+      expect(asked, 1);
+      // Answered: the next request asks again.
+      await MapState.requestPermission();
+      expect(asked, 2);
+    });
+
+    test('a failed request is not kept', () async {
+      var asked = 0;
+      MapState.askSystem = () async {
+        asked++;
+        if (asked == 1) throw StateError('dialog failed');
+        return LocationPermission.denied;
+      };
+      await expectLater(MapState.requestPermission(), throwsStateError);
+      expect(await MapState.requestPermission(), LocationPermission.denied);
+      expect(asked, 2);
     });
   });
 }

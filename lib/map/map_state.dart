@@ -286,8 +286,15 @@ class MapState extends ChangeNotifier {
   /// asking again, which geolocator refuses.
   static Future<LocationPermission>? _asking;
 
-  static Future<LocationPermission> _requestPermission() => _asking ??=
-      Geolocator.requestPermission().whenComplete(() => _asking = null);
+  /// The system's permission dialog; tests replace it.
+  @visibleForTesting
+  static Future<LocationPermission> Function() askSystem =
+      Geolocator.requestPermission;
+
+  /// Asks for location permission, or joins the request already on screen.
+  @visibleForTesting
+  static Future<LocationPermission> requestPermission() =>
+      _asking ??= askSystem().whenComplete(() => _asking = null);
 
   Future<void> locate() async {
     final mock = mockLocation;
@@ -305,7 +312,7 @@ class MapState extends ChangeNotifier {
       // Dropped meanwhile: do not ask for permission for a state not shown.
       if (_disposed) return;
       if (perm == LocationPermission.denied) {
-        perm = await _requestPermission();
+        perm = await requestPermission();
         if (_disposed) return;
       }
       if (perm == LocationPermission.denied ||
