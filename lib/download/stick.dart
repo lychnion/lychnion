@@ -49,6 +49,10 @@ class StickResult {
   /// same id, trusted here.
   final clashed = <String>[];
 
+  /// Key statements left out of the stick's catalog to keep it under 2 MB
+  /// (revocations and theft proofs kept first; #59).
+  var keysLeftOut = 0;
+
   /// Items whose files were missing, did not match or could not be
   /// written.
   final failed = <String>[];
@@ -179,7 +183,9 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   final records = onStick.values.toList();
   final String text;
   try {
-    text = CatalogDocument.byHash(records, keys: statements).encode();
+    final doc = CatalogDocument.byHash(records, keys: statements).fitted();
+    result.keysLeftOut = CatalogDocument.keysLeftOut(statements, doc);
+    text = doc.encode();
   } on CatalogTooLarge {
     // Larger, and no device would read the stick any more.
     throw const FileSystemException('catalog.json would be over 2 MB');

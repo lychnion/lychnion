@@ -140,7 +140,11 @@ in Publish your own (desktop app).
 **Backup.** "Save a key backup" writes `<name>.lychnion-key`: name,
 title, public key, the private key encrypted with a passphrase (at least
 12 characters; Argon2id, then AES-256-GCM; name and public key are bound
-to it), and a warning in English and Japanese. Keep it offline
+to it), and a warning in English and Japanese. The passphrase is
+normalised (Unicode NFKC) first, also for the length check, so the same
+passphrase typed on another system (composed or decomposed kana,
+full-width digits) opens it; a backup made before that is opened with
+the passphrase as typed, composed or decomposed. Keep it offline
 (1Password, or a USB stick in a safe), never on a server, in a repository
 or on a stick you hand out. A forgotten passphrase cannot be recovered.
 "Restore from a backup" works only on a computer without a key (a key is
@@ -151,7 +155,20 @@ file asking for more than 128 MiB or 4 rounds of Argon2id is refused as
 damaged; the key is derived in a separate isolate. A computer that never saw the
 publisher's statements cannot tell that a backup holds a replaced key:
 restore the newest backup only, and destroy backups of replaced keys or
-keep them as safely as the newest one.
+keep them as safely as the newest one. Restoring therefore asks first,
+showing the key id and the date the backup was made, and Replace is
+refused once the computer learns that its key was replaced already (a
+second successor would make phones treat the key as stolen).
+
+**Replacement limit.** Phones take at most 50 replacements of one
+publisher. The desktop app warns when five or fewer are left and refuses
+a replacement past the limit; from then on a key is changed with "Revoke
+the key", and phones add the new link. It counts the replacements in the
+publisher file and those the computer learned from catalogs, whichever
+is more: a key restored from a backup does not carry its earlier
+replacements. The publisher file
+(`publisher/publisher.json`) is not encrypted: copy the backup, never
+that file.
 
 **Key statements.** Small signed statements, carried in a catalog's
 `keys` list (`packages/lychnion_format`, `KeyStatement`):
@@ -198,7 +215,10 @@ opens, in case a step failed) the desktop app re-signs the newest
 record of each item it published with the new key, so what is installed
 there stays in use. The statements are kept with the key
 (`publisher/publisher.json`) and in `publisher/keys.json` (no private
-key), whose `keys` the publisher puts into its catalog.
+key), whose `keys` the publisher puts into its catalog. When a stick,
+a base or a node leaves statements out to keep its catalog under 2 MB,
+it says how many (the stick's message, the base's log, the node's
+output).
 
 **How phones learn of them**, often offline: statements check themselves,
 so any carrier will do. A catalog (Lychnion's, a followed one, and its

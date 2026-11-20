@@ -67,10 +67,11 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
 
   void _ok() {
     final l = context.l10n;
-    if (widget.confirm &&
-        _a.text.runes.length < KeyBackup.minPassphraseLength) {
+    // Compared as the backup will use them (NFKC, #59).
+    final a = KeyBackup.normalizedPassphrase(_a.text);
+    if (widget.confirm && a.runes.length < KeyBackup.minPassphraseLength) {
       setState(() => _error = l.publishPassphraseShort);
-    } else if (widget.confirm && _a.text != _b.text) {
+    } else if (widget.confirm && a != KeyBackup.normalizedPassphrase(_b.text)) {
       setState(() => _error = l.publishPassphraseMismatch);
     } else if (_a.text.isNotEmpty) {
       Navigator.pop(context, _a.text);
@@ -230,6 +231,21 @@ Future<LocalPublisher?> restoreKey(
       if (context.mounted) _tell(context, l.publishRestoreReplaced);
       return null;
     }
+    // This computer may not know yet that the key was replaced after the
+    // backup was made (a new computer): only the newest backup is safe to
+    // replace from (#59).
+    if (!context.mounted) return null;
+    // The date only; it comes from the backup file (a hint, not checked).
+    final made = k.made?.split('T').first;
+    final keyId = link.keyId ?? '?';
+    final sure = await _confirm(
+      context,
+      l.publishRestore,
+      made == null
+          ? l.publishRestoreCheckNoDate(keyId)
+          : l.publishRestoreCheck(keyId, made),
+    );
+    if (!sure) return null;
     final me = await LocalPublisher.restore(dir, k);
     // Trusts its own publisher, and gets back what it signed.
     await adoptNewKey(manager.store, dir, me);
@@ -305,10 +321,44 @@ Future<LocalPublisher?> changeKey(
   required bool revoke,
 }) async {
   final l = context.l10n;
+  // Phones take at most KeyStatement.maxReplacesPerPublisher replacements
+  // of one publisher (#59).
+  // Also what this computer learned: a key restored from a backup does
+  // not have its earlier replacements with it, and phones count them all.
+  final known = manager.store.publishers.statements
+      .where(
+        (s) => s.publisher == me.name && s.type == KeyStatementType.replace,
+      )
+      .length;
+  final left =
+      KeyStatement.maxReplacesPerPublisher -
+      (known > me.replacements ? known : me.replacements);
+  if (!revoke && left <= 0) {
+    _tell(context, l.publishReplaceNoneLeft);
+    return null;
+  }
+  // Replaced already (an old backup restored): a second successor would
+  // make phones treat the key as stolen and drop the whole chain (#59).
+  final myId = me.link.keyId;
+  if (!revoke &&
+      manager.store.publishers.statements.any(
+        (s) =>
+            s.publisher == me.name &&
+            s.type == KeyStatementType.replace &&
+            s.oldKeyId == myId,
+      )) {
+    _tell(context, l.publishReplaceAlreadyReplaced);
+    return null;
+  }
   final ok = await _confirm(
     context,
     revoke ? l.publishRevokeKey : l.publishReplaceKey,
-    revoke ? l.publishRevokeKeyText : l.publishReplaceKeyText,
+    revoke
+        ? l.publishRevokeKeyText
+        : [
+            l.publishReplaceKeyText,
+            if (left <= 5) l.publishReplaceFewLeft(left),
+          ].join('\n\n'),
     danger: revoke,
   );
   if (!ok || !context.mounted) return null;

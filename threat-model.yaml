@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:7ecb359d5069d50c3db701e88ccd0a15386341ac44f1aa44ec9bb74fd7a644e5
+prose_version: threat-model.md@sha256:f860c24c48457a47e9c52395451ac7c83cd4da07f6ff92cdafe785881374c5ad
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1700,7 +1700,7 @@ properties_claimed:
   tier: security-critical
   x-known-violations:
   - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
-    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:177`).
+    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:181`).
   conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
     also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion''s
     ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
@@ -1997,7 +1997,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:345`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:352`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:

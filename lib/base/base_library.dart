@@ -29,13 +29,20 @@ class BaseLibrary {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.
     _remember(all);
-    return CatalogDocument.byHash(
+    final keys = store.publishers.statements;
+    final doc = CatalogDocument.byHash(
       [for (final i in all) i.record],
-      keys: store.publishers.statements,
+      keys: keys,
       // The order phones show, as before.
       sort: false,
-    ).fitted().toJson();
+    ).fitted();
+    keysLeftOut = CatalogDocument.keysLeftOut(keys, doc);
+    return doc.toJson();
   }
+
+  /// Key statements the last [catalog] left out to stay under 2 MB
+  /// (revocations and theft proofs kept first; #59).
+  var keysLeftOut = 0;
 
   /// The installed file with this SHA-256, or null. Only files listed in a
   /// signed install record are served (no paths from the request).

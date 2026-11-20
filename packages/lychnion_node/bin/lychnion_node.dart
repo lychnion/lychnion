@@ -200,6 +200,12 @@ Future<bool> _pullOnce(
       'left out of the catalog, their files kept',
     );
   }
+  if (r.keysLeftOut > 0) {
+    stdout.writeln(
+      '${r.keysLeftOut} key statements did not fit in catalog.json '
+      '(revocations kept first)',
+    );
+  }
   stdout.writeln(
     '${DateTime.now().toUtc().toIso8601String()} '
     '${r.changed.length} new, ${r.notTrusted} not trusted, '
@@ -302,6 +308,12 @@ Future<int> _pull(List<String> args) async {
       stdout.writeln(
         '${r.keptUntrusted} records here are from publishers not given '
         'now: left out of the catalog, their files kept',
+      );
+    }
+    if (r.keysLeftOut > 0) {
+      stdout.writeln(
+        '${r.keysLeftOut} key statements did not fit in catalog.json '
+        '(revocations kept first)',
       );
     }
     stdout.writeln(

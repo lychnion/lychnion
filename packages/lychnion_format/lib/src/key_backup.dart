@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:isolate';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import 'encoding.dart';
 import 'key_statement.dart';
@@ -62,9 +63,18 @@ class KeyBackupKdf {
 
 /// What a backup holds once opened.
 class RestoredKey {
-  const RestoredKey(this.name, this.title, this.seed, this.publicKey);
+  const RestoredKey(
+    this.name,
+    this.title,
+    this.seed,
+    this.publicKey, {
+    this.made,
+  });
   final String name;
   final String? title;
+
+  /// When the backup was made (the date of the revocation in it), or null.
+  final String? made;
 
   /// 32-byte private seed, base64url.
   final String seed;
@@ -99,6 +109,12 @@ class KeyBackup {
 
   static final _aes = AesGcm.with256bits();
 
+  /// [passphrase] in Unicode NFKC: what is typed as the same text on
+  /// another system (NFC or NFD, full-width or half-width letters and
+  /// digits) gives the same key.
+  static String normalizedPassphrase(String passphrase) =>
+      unorm.nfkc(passphrase);
+
   /// The file text of a backup of [seed] (the publisher [name]'s key).
   /// [signed] dates the revocation inside. Throws [ArgumentError]
   /// (`passphrase`) for a passphrase shorter than [minPassphraseLength].
@@ -110,6 +126,10 @@ class KeyBackup {
     required String signed,
     KeyBackupKdf kdf = const KeyBackupKdf(),
   }) async {
+    // The same passphrase typed on another system may come as other
+    // code points (NFC or NFD, full-width digits): normalised first
+    // (lychnion/lychnion#59).
+    passphrase = normalizedPassphrase(passphrase);
     if (passphrase.runes.length < minPassphraseLength) {
       throw ArgumentError('passphrase');
     }
@@ -237,14 +257,28 @@ class KeyBackup {
     } on Object {
       throw const KeyBackupException(KeyBackupProblem.damaged);
     }
-    final List<int> seed;
-    try {
-      seed = await _aes.decrypt(
-        SecretBox(unb64(data), nonce: unb64(nonce), mac: Mac(unb64(mac))),
-        secretKey: await _derive(passphrase, unb64(salt), kdf),
-        aad: _aad(name, publicKey),
-      );
-    } on SecretBoxAuthenticationError {
+    // Normalised as when created; a backup made before that rule
+    // (lychnion/lychnion#59) was made from the passphrase as typed then,
+    // which may have been composed or decomposed: tried after.
+    List<int>? seed;
+    for (final p in {
+      normalizedPassphrase(passphrase),
+      passphrase,
+      unorm.nfc(passphrase),
+      unorm.nfd(passphrase),
+    }) {
+      try {
+        seed = await _aes.decrypt(
+          SecretBox(unb64(data), nonce: unb64(nonce), mac: Mac(unb64(mac))),
+          secretKey: await _derive(p, unb64(salt), kdf),
+          aad: _aad(name, publicKey),
+        );
+        break;
+      } on SecretBoxAuthenticationError {
+        continue;
+      }
+    }
+    if (seed == null) {
       throw const KeyBackupException(KeyBackupProblem.wrongPassphrase);
     }
     final seedText = b64(seed);
@@ -254,11 +288,16 @@ class KeyBackup {
       throw const KeyBackupException(KeyBackupProblem.damaged);
     }
     final title = j['title'];
+    final made = switch (j['revocation']) {
+      {'signed': final String d} when d.length <= 64 => d,
+      _ => null,
+    };
     return RestoredKey(
       name,
       title is String ? title : null,
       seedText,
       b64(unb64(publicKey)),
+      made: made,
     );
   }
 }

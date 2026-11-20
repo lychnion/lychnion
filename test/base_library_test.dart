@@ -37,6 +37,9 @@ class _OneFile implements BaseLibrary {
   _OneFile(this.file, this.sha, this.catalogJson);
   final File file;
   final String sha;
+
+  @override
+  var keysLeftOut = 0;
   final Map<String, Object?> catalogJson;
 
   @override

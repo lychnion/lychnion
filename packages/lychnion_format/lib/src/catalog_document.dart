@@ -139,6 +139,14 @@ class CatalogDocument {
     if (keys.isNotEmpty) 'keys': keys,
   };
 
+  /// How many of [given] (each once) [written] leaves out to fit
+  /// ([fitted], [KeyStatement.capped]): to tell whoever writes it
+  /// (lychnion/lychnion#59).
+  static int keysLeftOut(
+    Iterable<KeyStatement> given,
+    CatalogDocument written,
+  ) => {for (final s in given) s.id}.length - written.keys.length;
+
   /// The file text (indented, ending in a newline). Records come first:
   /// when the catalog would be over [maxBytes], key statements are left
   /// out ([fitted]). Throws [CatalogTooLarge] when the records alone are

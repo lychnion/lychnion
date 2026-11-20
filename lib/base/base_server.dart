@@ -414,6 +414,16 @@ class BaseServer {
           req.uri.path == '/catalog.json' &&
           library != null) {
         _send(res, 200, library!.catalog());
+        // Told once per change, not per request (#59).
+        if (library!.keysLeftOut != _keysLeftOut) {
+          _keysLeftOut = library!.keysLeftOut;
+          if (_keysLeftOut > 0) {
+            _log(
+              'base_keys_left_out',
+              '$_keysLeftOut key statements did not fit in the catalog',
+            );
+          }
+        }
       } else if (req.method == 'GET' &&
           _blob.hasMatch(req.uri.path) &&
           library != null) {
@@ -756,6 +766,8 @@ class BaseServer {
       // The other side went away.
     }
   }
+
+  var _keysLeftOut = 0;
 
   /// For whoever runs the base: what went wrong, on this computer only.
   static void _log(String event, Object error, [HttpRequest? req]) {

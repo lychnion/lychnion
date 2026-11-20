@@ -57,6 +57,53 @@ void main() {
       );
     });
 
+    // lychnion/lychnion#59: the same passphrase typed on another system
+    // (NFC or NFD, full-width digits) opens the backup.
+    test('passphrases are compared in Unicode NFKC', () async {
+      final k = await _key();
+      const nfd = 'か\u3099っこうのそと１２３４５６７８';
+      const nfc = 'がっこうのそと12345678';
+      final text = await KeyBackup.create(
+        name: 'jp.test',
+        seed: k.seed,
+        passphrase: nfd,
+        signed: '2026-11-19',
+        kdf: _fastKdf,
+      );
+      expect((await KeyBackup.open(text, nfc)).seed, k.seed);
+      expect((await KeyBackup.open(text, nfd)).seed, k.seed);
+      expect(
+        () => KeyBackup.open(text, 'がっこうのそと12345679'),
+        _problem(KeyBackupProblem.wrongPassphrase),
+      );
+    });
+
+    test(
+      'a backup made before NFKC opens with the passphrase as typed',
+      () async {
+        // Made by the app before #59 from the NFD passphrase as it was (a
+        // throwaway test key).
+        const old =
+            r'''{"format":1,"type":"lychnion-publisher-key","warning":{"en":"This file can sign packages in this publisher's name. Keep it offline (1Password, or a USB stick in a safe). Never put it on a server, in a repository or on a stick you hand out. Without the passphrase it cannot be opened. Whoever has the file can revoke the key with it, even without the passphrase.","ja":"\u3053\u306e\u30d5\u30a1\u30a4\u30eb\u304c\u3042\u308c\u3070\u3001\u3053\u306e\u767a\u884c\u8005\u306e\u540d\u524d\u3067\u30d1\u30c3\u30b1\u30fc\u30b8\u306b\u7f72\u540d\u3067\u304d\u307e\u3059\u3002\u30aa\u30d5\u30e9\u30a4\u30f3\u3067\u4fdd\u7ba1\u3057\u3066\u304f\u3060\u3055\u3044\uff081Password\u3001\u91d1\u5eab\u306e USB \u30e1\u30e2\u30ea\u306a\u3069\uff09\u3002\u30b5\u30fc\u30d0\u30fc\u3001\u30ea\u30dd\u30b8\u30c8\u30ea\u3001\u4eba\u306b\u6e21\u3059 USB \u30e1\u30e2\u30ea\u306b\u306f\u7f6e\u304b\u306a\u3044\u3067\u304f\u3060\u3055\u3044\u3002\u30d1\u30b9\u30d5\u30ec\u30fc\u30ba\u304c\u306a\u3044\u3068\u958b\u3051\u307e\u305b\u3093\u3002\u3053\u306e\u30d5\u30a1\u30a4\u30eb\u304c\u3042\u308c\u3070\u3001\u30d1\u30b9\u30d5\u30ec\u30fc\u30ba\u304c\u306a\u304f\u3066\u3082\u9375\u3092\u7121\u52b9\u306b\u3067\u304d\u307e\u3059\u3002"},"name":"jp.test","public_key":"41-eKWLudKcR-VTsdxOUt-ny8zC8NqxW4oyioCuYfOA","kdf":{"name":"argon2id","memory":64,"iterations":1,"parallelism":1,"salt":"-DhY_34DBzKWoDM7DOGaJw"},"cipher":{"name":"aes-256-gcm","nonce":"eJZmxme1wD5mkBSw","data":"uvqS8F3-KVRoXqL_QEXtv0fLICmKxfGOq-hzaFxWDvY","mac":"90Qb7whXhm3RopmbmSWNHQ"},"revocation":{"format":1,"type":"revoke","publisher":"jp.test","old":"41-eKWLudKcR-VTsdxOUt-ny8zC8NqxW4oyioCuYfOA","signed":"2026-11-19","signature":"5b4fEdgKynoDfRt5WYHdd8k6JAIQMuDja-P2s6_4Z4ABOl2Y1zDpFizXAqoVyWwlPcpCfDrGNmOvBCNpKqvnBA"}}''';
+        const nfd = 'か\u3099っこうのそと１２３４５６７８';
+        expect(
+          (await KeyBackup.open(old, nfd)).publicKey,
+          '41-eKWLudKcR-VTsdxOUt-ny8zC8NqxW4oyioCuYfOA',
+        );
+        // Typed composed (NFC) on another system, digits still full-width.
+        expect(
+          (await KeyBackup.open(old, 'がっこうのそと１２３４５６７８')).publicKey,
+          '41-eKWLudKcR-VTsdxOUt-ny8zC8NqxW4oyioCuYfOA',
+        );
+      },
+    );
+
+    test('a restored key says when its backup was made', () async {
+      final k = await _key();
+      final restored = await KeyBackup.open(await _backup(k.seed), _pass);
+      expect(restored.made, '2026-11-19');
+    });
+
     test('a wrong passphrase does not open it', () async {
       final k = await _key();
       final text = await _backup(k.seed);

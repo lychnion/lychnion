@@ -97,6 +97,9 @@ class _OneFile implements BaseLibrary {
   final String sha;
 
   @override
+  var keysLeftOut = 0;
+
+  @override
   Map<String, Object?> catalog() => {'format': 2, 'records': <Object>[]};
   @override
   File? blob(String sha256) => sha256 == sha ? file : null;

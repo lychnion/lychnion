@@ -26,6 +26,10 @@ class PullResult {
   /// Records here whose publisher is not trusted in this run (left out
   /// of the catalog; their files are kept).
   var keptUntrusted = 0;
+
+  /// Key statements left out of catalog.json to keep it under 2 MB
+  /// (revocations and theft proofs kept first).
+  var keysLeftOut = 0;
 }
 
 /// Another pull is working on this folder (cron runs overlapping).
@@ -264,7 +268,10 @@ Future<PullResult> _pull(
     }
   }
   try {
-    await folder.writeCatalog(listed, keys: keys.statements);
+    result.keysLeftOut = await folder.writeCatalog(
+      listed,
+      keys: keys.statements,
+    );
   } on CatalogTooLarge catch (e) {
     // The catalog served stays as it was, and so do the files it lists.
     result.failed.add('catalog.json: $e');
