@@ -620,10 +620,15 @@ plus phones that also use the internet when they can.
   (`lib/app/app_shell.dart:185`). *(documented, docs/facts-results.md
   "Signed facts (2026-11-05)")*
 - **`unverified-facts-not-acted-on`** (`facts`): only verified facts change
-  the suggested evacuation site or walking route. *Violation symptom*:
-  bad-data-accepted. *Tier*: security-critical. *Voided by*: no switch.
-  Known violation: shelters are avoided whatever the trust
-  (`lib/map/map_state.dart:59`). *(maintainer, 2026-11)*
+  the suggested evacuation site or walking route: a shelter is avoided, a
+  road routed around and a warning's hazard used only when the fact is
+  confirmed (`lib/map/map_state.dart:64`, `lib/map/map_state.dart:183`,
+  `lib/map/map_state.dart:56`); unconfirmed ones are shown with their label.
+  *Violation symptom*: bad-data-accepted. *Tier*: security-critical.
+  *Voided by*: nothing voids it: `grep -rn "unconfirmed" lib/map` shows the
+  three checks, and the suggestion and route read only these three getters
+  (the map and Home also list every current fact, for display only).
+  *(maintainer, 2026-11)*
 - **`fact-time-bounds`** (`facts`): a fact dated in the future, or with a
   lifetime far beyond normal, does not win its topic. *Violation symptom*:
   bad-data-accepted. *Tier*: security-critical. *Voided by*: no switch.
