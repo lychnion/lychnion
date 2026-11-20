@@ -491,6 +491,12 @@ class AppLocalizationsJa extends AppLocalizations {
       '指定緊急避難場所は災害の種類ごとに指定されています。指定避難所は危険が去った後に滞在する施設です。データは最新でない場合や未掲載の場合があるため、最新の状況は市町村に確認してください。';
 
   @override
+  String get mapCreditsShort => '© OpenStreetMap';
+
+  @override
+  String get mapCredits => '地図データの出典';
+
+  @override
   String get mapGsiNotes => '国土地理院 ご利用上の注意';
 
   @override

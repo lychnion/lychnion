@@ -837,6 +837,18 @@ abstract class AppLocalizations {
   /// **'Emergency evacuation sites (指定緊急避難場所) are designated per hazard; shelters (指定避難所) are for staying after the danger has passed. The data may be out of date or incomplete: check with your city.'**
   String get mapAboutSites;
 
+  /// No description provided for @mapCreditsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'© OpenStreetMap'**
+  String get mapCreditsShort;
+
+  /// No description provided for @mapCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Map data'**
+  String get mapCredits;
+
   /// No description provided for @mapGsiNotes.
   ///
   /// In en, this message translates to:

@@ -503,6 +503,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Emergency evacuation sites (指定緊急避難場所) are designated per hazard; shelters (指定避難所) are for staying after the danger has passed. The data may be out of date or incomplete: check with your city.';
 
   @override
+  String get mapCreditsShort => '© OpenStreetMap';
+
+  @override
+  String get mapCredits => 'Map data';
+
+  @override
   String get mapGsiNotes => 'GSI usage notes (Japanese)';
 
   @override
