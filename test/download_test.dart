@@ -236,18 +236,29 @@ void main() {
       for (final i in c.items.where((i) => i.kind == ItemKind.model)) {
         expect(c.canDownload(i), isTrue);
       }
-      for (final id in [
-        'jp.bousai.core',
-        'jp.outdoor.hiking',
-        'intl.firstaid.basics',
-      ]) {
-        final pkg = c.byId(id)!.files.single;
-        final bundled = File('assets/packages/${pkg.name}');
-        expect(bundled.lengthSync(), pkg.size, reason: id);
+      // Every file the app bundles matches its signed record.
+      final bundledFiles = [
+        for (final id in [
+          'jp.bousai.core',
+          'jp.outdoor.hiking',
+          'intl.firstaid.basics',
+        ])
+          (c.byId(id)!.files.single, 'assets/packages'),
+        (
+          c
+              .byId('jp.map.nishinomiya')!
+              .files
+              .singleWhere((f) => f.name == 'jp.map.nishinomiya.sites.sqlite'),
+          'assets/maps',
+        ),
+      ];
+      for (final (f, dir) in bundledFiles) {
+        final bundled = File('$dir/${f.name}');
+        expect(bundled.lengthSync(), f.size, reason: f.name);
         expect(
           sha256.convert(bundled.readAsBytesSync()).toString(),
-          pkg.sha256,
-          reason: id,
+          f.sha256,
+          reason: f.name,
         );
       }
     });
