@@ -237,6 +237,10 @@ class _MapScreenState extends State<MapScreen> {
     }
     final from = s.from!;
     final hazard = s.hazard;
+    final drawing = splitLabels(
+      offlineLightTheme(lang: context.lang),
+      dataId: s.tilesId ?? '',
+    );
     final nearest = s.nearest(hazard);
     final shown = [
       for (final site in sites.sites)
@@ -353,10 +357,18 @@ class _MapScreenState extends State<MapScreen> {
                   onLongPress: _editor == null ? null : (_, p) => _addPoint(p),
                 ),
                 children: [
+                  // Shapes as raster tiles, labels as vectors: see
+                  // splitLabels.
                   VectorTileLayer(
-                    theme: offlineLightTheme(lang: context.lang),
+                    theme: drawing.shapes,
                     tileProviders: TileProviders({'protomaps': tiles}),
-                    // Vector mode draws the labels; raster mode dropped them.
+                    layerMode: VectorTileLayerMode.raster,
+                    fileCacheTtl: Duration.zero,
+                    maximumZoom: 18,
+                  ),
+                  VectorTileLayer(
+                    theme: drawing.labels,
+                    tileProviders: TileProviders({'protomaps': tiles}),
                     layerMode: VectorTileLayerMode.vector,
                     fileCacheTtl: Duration.zero,
                     maximumZoom: 18,

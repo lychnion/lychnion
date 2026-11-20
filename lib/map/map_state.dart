@@ -96,6 +96,10 @@ class MapState extends ChangeNotifier {
 
   EvacSites? sites;
   PmTilesVectorTileProvider? tiles;
+
+  /// Names the map file's contents (name, size, date) for caches keyed by
+  /// it; set together with [tiles].
+  String? tilesId;
   LatLng? here;
   bool hereIsMock = false;
   double? accuracy;
@@ -124,9 +128,12 @@ class MapState extends ChangeNotifier {
       sites = sp != null
           ? EvacSites.open(sp)
           : await EvacSites.fromAsset(sitesAsset);
-      tiles = await PmTilesVectorTileProvider.fromSource(
-        await resolvePath(pmtilesPath),
-      );
+      final tilesPath = await resolvePath(pmtilesPath);
+      final stat = await File(tilesPath).stat();
+      tilesId =
+          '${tilesPath.split(Platform.pathSeparator).last}'
+          '-${stat.size}-${stat.modified.millisecondsSinceEpoch}';
+      tiles = await PmTilesVectorTileProvider.fromSource(tilesPath);
       notifyListeners();
       await _loadRoutes();
       await _loadInundationTiles();
