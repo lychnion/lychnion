@@ -311,6 +311,7 @@
   "mapAttributionSites": "Evacuation sites: from GSI Japan designated emergency evacuation site and shelter data, edited by Lychnion",
   "mapAttributionHeights": "Heights: from GSI Japan elevation tiles (digital elevation model), edited by Lychnion",
   "mapAttributionFlood": "Tsunami inundation: MLIT National Land Numerical Information (A40), CC BY 4.0, edited",
+  "mapContours": "Contour lines",
   "mapAttributionContours": "Contours: GSI optimal vector tiles, edited",
   "mapNearbySites": "Nearby evacuation sites",
   "mapAnyHazard": "Any hazard",

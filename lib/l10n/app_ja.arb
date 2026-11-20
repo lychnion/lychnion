@@ -100,6 +100,7 @@
   "mapAttributionSites": "避難場所：国土地理院「指定緊急避難場所データ」「指定避難所データ」をもとにリクニオンが加工",
   "mapAttributionHeights": "標高：国土地理院 標高タイル（数値標高モデル）をもとにリクニオンが加工",
   "mapAttributionFlood": "津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工",
+  "mapContours": "等高線",
   "mapAttributionContours": "等高線：国土地理院最適化ベクトルタイルを加工して作成",
   "mapNearbySites": "近くの避難場所",
   "mapAnyHazard": "すべての災害",

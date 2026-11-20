@@ -16,6 +16,10 @@ class AppSettings extends ChangeNotifier {
   /// Developer aid: speed and memory under each answer.
   bool showStats = false;
 
+  /// Map: draw contour lines where the area has them. On until the user
+  /// turns them off.
+  bool showContours = true;
+
   /// The base computer this phone asks first (from a QR code or typed).
   String? baseUrl;
   String? baseName;
@@ -85,6 +89,7 @@ class AppSettings extends ChangeNotifier {
           ? lang
           : null;
       showStats = j['show_stats'] == true;
+      showContours = j['show_contours'] != false;
       // Older files wrote shelter_url, shelter_name and shelter_key.
       baseUrl = (j['base_url'] ?? j['shelter_url']) as String?;
       baseName = (j['base_name'] ?? j['shelter_name']) as String?;
@@ -109,6 +114,13 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> setShowStats(bool v) async {
     showStats = v;
+    notifyListeners();
+    await _save();
+  }
+
+  Future<void> setShowContours(bool v) async {
+    if (showContours == v) return;
+    showContours = v;
     notifyListeners();
     await _save();
   }
@@ -170,6 +182,7 @@ class AppSettings extends ChangeNotifier {
         'format': format,
         'language': ?language,
         'show_stats': showStats,
+        'show_contours': showContours,
         'base_url': ?baseUrl,
         'base_name': ?baseName,
         'base_key': ?baseKey,

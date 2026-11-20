@@ -413,6 +413,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapAttributionFlood => '津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工';
 
   @override
+  String get mapContours => '等高線';
+
+  @override
   String get mapAttributionContours => '等高線：国土地理院最適化ベクトルタイルを加工して作成';
 
   @override

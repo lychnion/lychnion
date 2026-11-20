@@ -22,9 +22,21 @@ import '../ui/breathing_light.dart';
 /// Offline map: base map from a local PMTiles file, emergency evacuation
 /// sites for the chosen hazard, and the nearest ones from the current position.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.state, this.editor});
+  const MapScreen({
+    super.key,
+    required this.state,
+    this.editor,
+    this.showContours = true,
+    this.onShowContours,
+  });
 
   final MapState state;
+
+  /// Draw contour lines when the area has them (a user setting).
+  final bool showContours;
+
+  /// Turns contour lines on or off; null: no switch on the map.
+  final ValueChanged<bool>? onShowContours;
 
   /// Set on the base computer: lets staff enter current facts.
   final FactEditor? editor;
@@ -249,6 +261,8 @@ class _MapScreenState extends State<MapScreen> {
     }
     final from = s.from!;
     final hazard = s.hazard;
+    // Contour lines: only where the area has them and the user wants them.
+    final contours = s.contourTiles != null && widget.showContours;
     final nearest = s.nearest(hazard);
     final shown = [
       for (final site in sites.sites)
@@ -366,10 +380,10 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 children: [
                   VectorTileLayer(
-                    theme: _themeFor(context.lang, s.contourTiles != null),
+                    theme: _themeFor(context.lang, contours),
                     tileProviders: TileProviders({
                       'protomaps': tiles,
-                      if (s.contourTiles != null) 'contours': s.contourTiles!,
+                      if (contours) 'contours': s.contourTiles!,
                     }),
                     // Vector mode draws the labels; raster mode dropped them.
                     layerMode: VectorTileLayerMode.vector,
@@ -492,7 +506,7 @@ class _MapScreenState extends State<MapScreen> {
                         TextSourceAttribution(l.mapAttributionHeights),
                       if (s.routes?.hasFlood ?? false)
                         TextSourceAttribution(l.mapAttributionFlood),
-                      if (s.contourTiles != null)
+                      if (contours)
                         TextSourceAttribution(l.mapAttributionContours),
                     ],
                   ),
@@ -563,6 +577,18 @@ class _MapScreenState extends State<MapScreen> {
                         ],
                       ),
                     ),
+                    if (s.contourTiles != null && widget.onShowContours != null)
+                      Semantics(
+                        toggled: widget.showContours,
+                        child: IconButton(
+                          tooltip: l.mapContours,
+                          isSelected: widget.showContours,
+                          onPressed: () =>
+                              widget.onShowContours!(!widget.showContours),
+                          icon: const Icon(Icons.terrain_outlined),
+                          selectedIcon: const Icon(Icons.terrain_rounded),
+                        ),
+                      ),
                     IconButton(
                       tooltip: l.mapAboutData,
                       onPressed: () =>
