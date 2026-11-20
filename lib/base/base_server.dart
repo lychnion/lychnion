@@ -34,7 +34,8 @@ import 'watched_socket.dart';
 /// are answered one after another.
 ///
 /// Anyone on the Wi-Fi can also send anything, so every request has
-/// limits: at most [maxConnections] connections, idle ones close after
+/// limits: at most [maxConnections] connections, [maxConnectionsPerPhone]
+/// of them from one address, idle ones close after
 /// [idleTimeout], a question is at most [maxBodyBytes] and must arrive
 /// within [bodyTimeout], at most [maxQuestions] wait for the model and
 /// [maxQuestionsPerPhone] per address, and a question that waited longer
@@ -56,6 +57,7 @@ class BaseServer {
     this.page,
     this.placeName,
     this.maxConnections = 100,
+    this.maxConnectionsPerPhone = 24,
     this.idleTimeout = const Duration(seconds: 30),
     this.maxBodyBytes = 8 * 1024,
     this.bodyTimeout = const Duration(seconds: 10),
@@ -86,6 +88,12 @@ class BaseServer {
   /// Open connections at most; more are closed at once. A Mac app may
   /// have only 256 files and sockets open, and the model needs some.
   final int maxConnections;
+
+  /// Open connections from one address at most, so one device cannot take
+  /// them all (lychnion/lychnion#36). Phones behind one hotspot share an
+  /// address, so this is well above what one phone needs (a few at a
+  /// time), and those phones also share [maxQuestionsPerPhone].
+  final int maxConnectionsPerPhone;
 
   /// A connection without a request (or with half a request) closes
   /// after this, at most twice this.
@@ -149,13 +157,28 @@ class BaseServer {
 
   static String _connKey(InternetAddress a, int port) => '${a.address}:$port';
 
+  /// Connections open now by address (every connection is watched until
+  /// it ends). Counted apart from [_connections]: an IPv6 address has
+  /// colons, so its keys cannot be matched by a prefix.
+  final _openByAddress = <String, int>{};
+
+  int _openFrom(InternetAddress a) => _openByAddress[a.address] ?? 0;
+
   Socket _watch(Socket s) {
     final w = WatchedSocket(s);
     final key = _connKey(s.remoteAddress, s.remotePort);
+    final address = s.remoteAddress.address;
     _connections[key] = w;
+    _openByAddress[address] = (_openByAddress[address] ?? 0) + 1;
     unawaited(
       w.gone.then((_) {
         if (identical(_connections[key], w)) _connections.remove(key);
+        final left = (_openByAddress[address] ?? 1) - 1;
+        if (left > 0) {
+          _openByAddress[address] = left;
+        } else {
+          _openByAddress.remove(address);
+        }
       }),
     );
     return w;
@@ -222,7 +245,10 @@ class BaseServer {
       socket,
       socket
           .where((s) {
-            if (server.connectionsInfo().total < maxConnections) return true;
+            if (server.connectionsInfo().total < maxConnections &&
+                _openFrom(s.remoteAddress) < maxConnectionsPerPhone) {
+              return true;
+            }
             s.destroy();
             return false;
           })
