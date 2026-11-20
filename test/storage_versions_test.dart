@@ -142,6 +142,13 @@ void main() {
       expect(again.showContours, isFalse);
     });
 
+    test('contour lines: setting the same value writes nothing', () async {
+      final s = AppSettings();
+      await s.load(dir: tmp);
+      await s.setShowContours(true);
+      expect(file('settings.json').existsSync(), isFalse);
+    });
+
     test('contour lines: on for files from before the setting', () async {
       file('settings.json')
           .writeAsStringSync(jsonEncode({'format': 1, 'region': 'JP-28'}));

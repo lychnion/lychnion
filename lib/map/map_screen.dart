@@ -380,6 +380,11 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 children: [
                   VectorTileLayer(
+                    // vector_map_tiles only rebuilds its tiles when the
+                    // theme id changes, and our themes share one id: a new
+                    // key per language and contours on/off makes it start
+                    // over (the tiles are local, so this is cheap).
+                    key: ValueKey((context.lang, contours)),
                     theme: _themeFor(context.lang, contours),
                     tileProviders: TileProviders({
                       'protomaps': tiles,
@@ -578,15 +583,18 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                     if (s.contourTiles != null && widget.onShowContours != null)
+                      // Announced as a switch (on/off), not as "selected".
                       Semantics(
                         toggled: widget.showContours,
                         child: IconButton(
                           tooltip: l.mapContours,
-                          isSelected: widget.showContours,
                           onPressed: () =>
                               widget.onShowContours!(!widget.showContours),
-                          icon: const Icon(Icons.terrain_outlined),
-                          selectedIcon: const Icon(Icons.terrain_rounded),
+                          icon: Icon(
+                            widget.showContours
+                                ? Icons.terrain_rounded
+                                : Icons.terrain_outlined,
+                          ),
                         ),
                       ),
                     IconButton(
