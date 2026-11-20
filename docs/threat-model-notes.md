@@ -98,11 +98,16 @@ proven. The property is the §1.11 claim each one breaks.
    `lib/ask/ask_page.dart:164` (`debugPrint`); each logged answer carries
    its question. Base answers are logged at `lib/ask/ask_page.dart:316`,
    the phone's own at `lib/ask/ask_page.dart:384`, and the region at
-   `lib/ask/ask_page.dart:363`.
+   `lib/ask/ask_page.dart:363`. *Fixed for #71: release builds leave
+   them out (`loggable` in `lib/app/dev_flags.dart`) unless `LOG_ANSWERS`,
+   `ASK` or `AUTO_BENCH` is set.*
 10. **A base may be any host** ([#72](https://github.com/lychnion/lychnion/issues/72)) (confirmed, `device-egress`):
     `lib/base/base_link.dart:88` accepts public hosts, and Android allows
     cleartext to every host. `help/en/08-privacy.md` also needs the base
-    case.
+    case. *Fixed for #72: `BaseLink.normalize` accepts only local-network
+    hosts (`isLocalHost`); the privacy help names the base case.
+    Cleartext stays allowed on Android, which cannot limit it by address
+    range; the app checks the host instead.*
 11. **The LAN redirect guard misses ranges** ([#73](https://github.com/lychnion/lychnion/issues/73)) (confirmed,
     `lan-device-same-origin`): `packages/lychnion_fetch/lib/src/downloader.dart:421`
     lacks 100.64/10, which discovery accepts, and plain hostnames.
@@ -183,7 +188,7 @@ proven. The property is the §1.11 claim each one breaks.
 30. `lib/facts/compact_codec.dart` says "Not signed yet"; signed packing
     exists.
 31. `help/en/08-privacy.md` says questions never leave the device; they go
-    to a connected base.
+    to a connected base. *Fixed for #72: the help (en/ja) names the base.*
 32. `docs/distribution.md` "Security" still says key rotation and
     revocation are "a later step", and the roadmap lists key revocation;
     both now exist for publisher keys, Lychnion's included (Q32).

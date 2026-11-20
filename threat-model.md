@@ -685,11 +685,20 @@ plus phones that also use the internet when they can.
 - **`device-egress`** (`device-data`, `base-client`): questions leave the
   device only to a base the user connected to on the local network; position
   never leaves; release builds do not log questions, answers or position.
-  *Violation symptom*: info-leak. *Tier*: security-critical. *Voided by*: no
-  switch. Known violations: a base link may name any host
-  (`lib/base/base_link.dart:88`), and questions, answers and the region go
-  to the system log (`lib/ask/ask_page.dart:164`, with the phone's own
-  answers at `lib/ask/ask_page.dart:384`). *(maintainer, 2026-11)*
+  A base address must be on the local network: a private IPv4 address, a
+  link-local or private IPv6 address, a `.local` name, or loopback in debug
+  builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an
+  older build is checked again when the settings load and before
+  connecting. Release builds leave the question, answer, search query,
+  matched sources and region out of the log, and errors keep only their
+  type (`lib/app/dev_flags.dart:95`). Known gap: a `.local` name goes
+  through the system resolver, so a DNS server on the network could point
+  one at an internet host. *Violation symptom*: info-leak. *Tier*:
+  security-critical. *Voided by*: the `LOG_ANSWERS`, `ASK` and `AUTO_BENCH`
+  defines log them in a release build too (`lib/app/dev_flags.dart:72`), and
+  the `BASE_URL` define connects to its address unchecked
+  (`lib/app/dev_flags.dart:62`); all are development builds. *(maintainer,
+  2026-11)*
 - **`lan-device-same-origin`** (`downloads`): from a base or a nearby phone,
   the app downloads only files on that device, never from other addresses
   its catalog names or redirects to. *Violation symptom*: info-leak. *Tier*:

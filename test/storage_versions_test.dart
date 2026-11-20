@@ -162,6 +162,32 @@ void main() {
       expect(j.containsKey('shelter_url'), isFalse);
     });
 
+    // lychnion/lychnion#72: an older build saved any host.
+    test(
+      'a saved base on the internet is forgotten, with its name and keys',
+      () async {
+        file('settings.json').writeAsStringSync(
+          jsonEncode({
+            'format': 1,
+            'base_url': 'http://203.0.113.5:8642',
+            'base_name': 'Not a base',
+            'base_key': 'k1',
+            'base_signed_key': 'k1',
+          }),
+        );
+        final s = AppSettings();
+        await s.load(dir: tmp);
+        expect(s.baseUrl, isNull);
+        expect(s.baseName, isNull);
+        expect(s.baseKey, isNull);
+        expect(s.baseSignedKey, isNull);
+        // Saved without it the next time anything is saved.
+        await s.setShowStats(true);
+        final j = jsonDecode(file('settings.json').readAsStringSync()) as Map;
+        expect(j.containsKey('base_url'), isFalse);
+      },
+    );
+
     test('a base known to sign is kept for its key only', () async {
       final s = AppSettings();
       await s.load(dir: tmp);

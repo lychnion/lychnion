@@ -48,6 +48,7 @@ the comment on `DevFlags` in
 | `BASE_URL` | `http://192.168.1.20:8642` | Phone: ask this base first. |
 | `FACTS_EDIT` | `true` | Allow entering current information on the map. On with `BASE_SERVER`. |
 | `DEMO_FACTS` | `true` | Add made-up current information (test data). Needs a map area. |
+| `LOG_ANSWERS` | `true` | Log questions, answers, matched sources, the region and full error messages in a release build too (without it, errors show only their type). Debug builds always log them; `ASK` and `AUTO_BENCH` turn this on as well. |
 
 The old names `SHELTER_SERVER`, `SHELTER_NAME` and `SHELTER_URL` still work.
 

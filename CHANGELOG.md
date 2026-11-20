@@ -93,6 +93,18 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Release builds no longer write questions, answers, the sources that
+  matched or the region to the system log (logcat on Android), and log
+  errors only by their type; timings are still logged. The `LOG_ANSWERS`
+  define (and `ASK`, `AUTO_BENCH`, which the eval reads) logs them in a
+  release build for development (#71).
+- A base address must be on the local network: a private IPv4 address,
+  a link-local or private IPv6 address, a `.local` name, or loopback
+  (debug builds and desktops only), on a port from 1 to 65535. A link or
+  a typed address naming an internet host is refused, so a web page can
+  no longer send a phone's questions to a server on the internet; a base
+  saved that way by an older build is forgotten. The privacy help now
+  says that questions go to a connected base (#72).
 - Only Lychnion publishes models. A publisher the user added can bring
   guides and maps, but its model records are refused in catalogs, on USB
   sticks, from bases and by nodes when they pull, and a model of theirs

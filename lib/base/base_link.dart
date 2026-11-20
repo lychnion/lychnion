@@ -11,7 +11,13 @@
 /// (base_key_code.dart, lychnion/lychnion#63).
 library;
 
+import 'dart:io' show InternetAddress, InternetAddressType;
+
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kDebugMode;
+
 import '../download/publisher_list.dart' show cleanShownText;
+import 'base_discovery.dart' show isPrivateIPv4;
 import 'base_server.dart';
 
 class BaseLink {
@@ -85,7 +91,10 @@ class BaseLink {
   }
 
   /// Turns what a user typed into a base URL, or null if it is not one.
-  /// Adds http:// and the default port when they are missing.
+  /// Adds http:// and the default port when they are missing. Only hosts
+  /// on the local network ([isLocalHost]): a base is a computer at the
+  /// same place, and a link from a web page must not send the phone's
+  /// questions to a server on the internet (lychnion/lychnion#72).
   static String? normalize(String input) {
     var s = input.trim();
     if (s.isEmpty) return null;
@@ -96,9 +105,41 @@ class BaseLink {
     if (u.hasQuery || u.hasFragment || (u.path.isNotEmpty && u.path != '/')) {
       return null;
     }
+    if (u.userInfo.isNotEmpty || !isLocalHost(u.host)) return null;
     final port = u.hasPort ? u.port : BaseServer.defaultPort;
-    return '${u.scheme}://${u.host}:$port';
+    if (port < 1 || port > 65535) return null;
+    // An IPv6 address keeps its brackets in a URL.
+    final host = u.host.contains(':') ? '[${u.host}]' : u.host;
+    return '${u.scheme}://$host:$port';
   }
+
+  /// Whether [host] is on the local network: a private IPv4 address (the
+  /// ranges discovery lists, isPrivateIPv4), a link-local or private IPv6
+  /// address (fe80::/10, fc00::/7), or a `.local` name (mDNS; a DNS server
+  /// could still point one elsewhere, see threat-model.md
+  /// `device-egress`). Loopback only with [loopback]: in debug builds (a
+  /// simulator reaching a base on the same computer) and on desktops, not
+  /// on a phone, where it would be another app. Not a public address or
+  /// another name, which DNS could point anywhere.
+  static bool isLocalHost(String host, {bool? loopback}) {
+    final h = host.toLowerCase();
+    if (h.endsWith('.local') && h.length > '.local'.length) return true;
+    final a = InternetAddress.tryParse(h);
+    if (a == null) return false;
+    if (a.isLoopback) return loopback ?? _loopbackAllowed;
+    if (a.isLinkLocal) return true;
+    if (a.type == InternetAddressType.IPv4) return isPrivateIPv4(a);
+    return (a.rawAddress[0] & 0xfe) == 0xfc;
+  }
+
+  static bool get _loopbackAllowed =>
+      kDebugMode ||
+      switch (defaultTargetPlatform) {
+        TargetPlatform.macOS ||
+        TargetPlatform.windows ||
+        TargetPlatform.linux => true,
+        _ => false,
+      };
 }
 
 /// A phone sharing its downloads with phones nearby:

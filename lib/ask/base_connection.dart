@@ -5,8 +5,13 @@ part of 'ask_page.dart';
 mixin _BaseConnection on _AskPageBase {
   Timer? _retry;
 
-  String? get _wantedBase =>
-      DevFlags.baseUrl.isNotEmpty ? DevFlags.baseUrl : widget.settings?.baseUrl;
+  /// The base to ask: the dev define, else the saved one, checked again
+  /// (only the local network, #72; AppSettings checks it when loading too).
+  String? get _wantedBase {
+    if (DevFlags.baseUrl.isNotEmpty) return DevFlags.baseUrl;
+    final saved = widget.settings?.baseUrl;
+    return saved == null ? null : BaseLink.normalize(saved);
+  }
 
   /// Connects, switches or disconnects when the saved base changes.
   void _baseChanged() {
