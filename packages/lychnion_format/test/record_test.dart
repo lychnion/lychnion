@@ -91,6 +91,69 @@ void main() {
     expect(() => PackageRecord.sign(bad, key), throwsFormatException);
   });
 
+  // lychnion/lychnion#76: a name must be the same file on Windows too.
+  test('names Windows would change or open as a device are refused', () async {
+    final key = await keyPairFromSeed((await newKeyPair()).seed);
+    Map<String, Object?> withFile(String name) => _unsigned()
+      ..['files'] = [
+        {'name': name, 'size': 3, 'sha256': 'a' * 64},
+      ];
+    for (final name in [
+      'x.sqlite.',
+      'x..',
+      'NUL',
+      'nul.sqlite',
+      'CON',
+      'con.txt',
+      'prn',
+      'Aux.db',
+      'COM1',
+      'com9.sqlite',
+      'LPT1',
+      'com0',
+      '${'a' * 127}.',
+      'lpt0.x',
+    ]) {
+      await expectLater(
+        PackageRecord.sign(withFile(name), key),
+        throwsFormatException,
+        reason: name,
+      );
+      await expectLater(
+        PackageRecord.sign(_unsigned()..['id'] = name, key),
+        throwsFormatException,
+        reason: 'id $name',
+      );
+    }
+    for (final name in [
+      'x.sqlite',
+      'nullable.sqlite',
+      'console',
+      'com10.x',
+      'lpt',
+      'auxx',
+      'jp.con.sqlite',
+      'x.nul',
+    ]) {
+      expect(
+        (await PackageRecord.sign(withFile(name), key)).files.single.name,
+        name,
+      );
+    }
+    // Two files that are one on macOS and Windows, also with one hash.
+    await expectLater(
+      PackageRecord.sign(
+        _unsigned()
+          ..['files'] = [
+            {'name': 'x.sqlite', 'size': 3, 'sha256': 'a' * 64},
+            {'name': 'X.sqlite', 'size': 3, 'sha256': 'a' * 64},
+          ],
+        key,
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('plus adds publishers without changing the original', () async {
     final pair = await newKeyPair();
     final key = await keyPairFromSeed(pair.seed);

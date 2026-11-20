@@ -133,7 +133,10 @@ proven. The property is the §1.11 claim each one breaks.
 14. **Windows file names ending in a dot** ([#76](https://github.com/lychnion/lychnion/issues/76)) (suspected, `publisher-namespace`):
     `packages/lychnion_format/lib/src/record.dart:128` allows a trailing dot
     and device names such as `NUL`; Windows may map `x.sqlite.` onto
-    another publisher's `x.sqlite`.
+    another publisher's `x.sqlite`. *Fixed for #76
+    (`packages/lychnion_format/lib/src/record.dart:140`): a record may not use a
+    name ending in a dot or a Windows device name (also with an ending),
+    and its file names must differ without case.*
 15. **App-help words skip safety lines** ([#77](https://github.com/lychnion/lychnion/issues/77)) (suspected,
     `safety-line-lychnion-only`): a safety question containing a word such
     as 「ベース」, 「共有」, "offline" or "settings" may take the help path
