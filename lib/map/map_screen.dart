@@ -584,16 +584,20 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     if (s.contourTiles != null && widget.onShowContours != null)
                       // Announced as a switch (on/off), not as "selected".
-                      Semantics(
-                        toggled: widget.showContours,
-                        child: IconButton(
-                          tooltip: l.mapContours,
-                          onPressed: () =>
-                              widget.onShowContours!(!widget.showContours),
-                          icon: Icon(
-                            widget.showContours
-                                ? Icons.terrain_rounded
-                                : Icons.terrain_outlined,
+                      // MergeSemantics keeps the state on this button: a
+                      // bare Semantics gave it to the panel heading.
+                      MergeSemantics(
+                        child: Semantics(
+                          toggled: widget.showContours,
+                          child: IconButton(
+                            tooltip: l.mapContours,
+                            onPressed: () =>
+                                widget.onShowContours!(!widget.showContours),
+                            icon: Icon(
+                              widget.showContours
+                                  ? Icons.terrain_rounded
+                                  : Icons.terrain_outlined,
+                            ),
                           ),
                         ),
                       ),
