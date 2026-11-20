@@ -684,13 +684,13 @@ abstract class AppLocalizations {
   /// No description provided for @mapAttributionSites.
   ///
   /// In en, this message translates to:
-  /// **'Evacuation sites: GSI Japan'**
+  /// **'Evacuation sites: GSI Japan evacuation site data, edited'**
   String get mapAttributionSites;
 
   /// No description provided for @mapAttributionHeights.
   ///
   /// In en, this message translates to:
-  /// **'Heights: GSI elevation tiles'**
+  /// **'Heights: GSI elevation tiles, edited'**
   String get mapAttributionHeights;
 
   /// No description provided for @mapAttributionFlood.

@@ -403,10 +403,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapChooseHazard => '災害の種類を選ぶ';
 
   @override
-  String get mapAttributionSites => '避難場所：国土地理院';
+  String get mapAttributionSites => '避難場所：国土地理院「指定緊急避難場所データ」「指定避難所データ」を加工して作成';
 
   @override
-  String get mapAttributionHeights => '標高：国土地理院 標高タイル';
+  String get mapAttributionHeights => '標高：国土地理院 標高タイルを加工して作成';
 
   @override
   String get mapAttributionFlood => '津波浸水想定：国土数値情報（国土交通省）CC BY 4.0・加工';
