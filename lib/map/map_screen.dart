@@ -15,6 +15,7 @@ import 'inundation_tiles.dart';
 import 'map_labels.dart';
 import 'map_state.dart';
 import 'route_graph.dart';
+import 'tile_cache.dart';
 import 'offline_theme.dart';
 import '../ui/breathing_light.dart';
 
@@ -33,6 +34,9 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  /// The map theme split for drawing, built once per language.
+  MapDrawing? _drawing;
+  String? _drawingLang;
   final _map = MapController();
   bool _mapReady = false;
 
@@ -237,10 +241,13 @@ class _MapScreenState extends State<MapScreen> {
     }
     final from = s.from!;
     final hazard = s.hazard;
-    final drawing = splitLabels(
-      offlineLightTheme(lang: context.lang),
-      dataId: s.tilesId ?? '',
-    );
+    final lang = context.lang;
+    if (_drawing == null || _drawingLang != lang) {
+      _drawing = splitLabels(offlineLightTheme(lang: lang), lang: lang);
+      _drawingLang = lang;
+    }
+    final drawing = _drawing!;
+    final tilesId = s.tilesId ?? '';
     final nearest = s.nearest(hazard);
     final shown = [
       for (final site in sites.sites)
@@ -359,18 +366,24 @@ class _MapScreenState extends State<MapScreen> {
                 children: [
                   // Shapes as raster tiles, labels as vectors: see
                   // splitLabels.
+                  // Each layer caches on disk in its own folder per map
+                  // file (MapTileCache); a new map file starts both over.
                   VectorTileLayer(
+                    key: ValueKey(('shapes', tilesId)),
                     theme: drawing.shapes,
                     tileProviders: TileProviders({'protomaps': tiles}),
                     layerMode: VectorTileLayerMode.raster,
                     fileCacheTtl: Duration.zero,
+                    cacheFolder: () => MapTileCache.folder(tilesId, 'shapes'),
                     maximumZoom: 18,
                   ),
                   VectorTileLayer(
+                    key: ValueKey(('labels', tilesId)),
                     theme: drawing.labels,
                     tileProviders: TileProviders({'protomaps': tiles}),
                     layerMode: VectorTileLayerMode.vector,
                     fileCacheTtl: Duration.zero,
+                    cacheFolder: () => MapTileCache.folder(tilesId, 'labels'),
                     maximumZoom: 18,
                   ),
                   if (hazard == Hazard.tsunami && s.inundationTiles != null)

@@ -50,21 +50,17 @@ typedef MapDrawing = ({Theme shapes, Theme labels});
 /// Pixel 5a. Raster mode draws each tile once into an image (60 fps); the
 /// labels stay vectors on top, placed across tile edges (55-58 fps).
 ///
-/// Raster mode saves the tile images on disk, keyed by theme id and tile
-/// number only, so both parts get an id from the map file ([dataId]):
-/// another map area or a new release never shows old images.
-MapDrawing splitLabels(Theme theme, {required String dataId}) {
-  final id = dataId.replaceAll(RegExp(r'[^a-zA-Z0-9.-]'), '-');
-  return (
-    shapes: theme.copyWith(
-      id: 'lychnion-shapes-$id',
-      types: ThemeLayerType.values
-          .where((t) => t != ThemeLayerType.symbol)
-          .toSet(),
-    ),
-    labels: theme.copyWith(
-      id: 'lychnion-labels-$id',
-      types: {ThemeLayerType.symbol},
-    ),
-  );
-}
+/// vector_map_tiles only starts over when the theme id changes, so the
+/// labels id names the language [lang]. The shapes have no text.
+MapDrawing splitLabels(Theme theme, {required String lang}) => (
+  shapes: theme.copyWith(
+    id: 'lychnion-shapes',
+    types: ThemeLayerType.values
+        .where((t) => t != ThemeLayerType.symbol)
+        .toSet(),
+  ),
+  labels: theme.copyWith(
+    id: 'lychnion-labels-$lang',
+    types: {ThemeLayerType.symbol},
+  ),
+);
