@@ -638,10 +638,17 @@ plus phones that also use the internet when they can.
   (`packages/lychnion_format/lib/src/key_statement.dart:328`).
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
-  reachable only from the local Wi-Fi or hotspot. *Violation symptom*:
-  info-leak. *Tier*: security-critical. *Voided by*: no switch. Known
-  violation: both bind every IPv4 interface
-  (`lib/base/base_server.dart:167`). *(maintainer, 2026-11)*
+  reachable only from the local Wi-Fi or hotspot: they listen only on the
+  device's private IPv4 addresses on interfaces with a known Wi-Fi,
+  hotspot, tethering or wired name, never on mobile data, a known VPN or
+  virtual interface, carrier-grade NAT (100.64/10) or a public address
+  (and on loopback, which only the device itself reaches), and follow
+  those addresses as the network changes
+  (`lib/base/lan_sockets.dart`). Known gaps: a computer on two private
+  networks (the shelter Wi-Fi and an office LAN) listens on both, and
+  the screen lists both addresses; a VPN or virtual adapter whose name
+  is not known, but starts like a wired one, is listened on too. *Violation symptom*: info-leak. *Tier*:
+  security-critical. *Voided by*: no switch. *(maintainer, 2026-11)*
 - **`blob-serving-by-hash`** (`base-server`, `node`): servers answer only
   fixed routes and serve files only by SHA-256 from verified records or the
   node folder; no request part becomes a path. *Violation symptom*: info-leak.

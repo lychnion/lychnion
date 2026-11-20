@@ -93,6 +93,13 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- The base and Share nearby listen only on the device's private
+  addresses on interfaces with a known Wi-Fi, hotspot, tethering or
+  wired name, the addresses the screen shows, and follow them as the
+  network changes. Before, they listened on every interface: a desktop
+  base on its upstream network or the internet, a sharing phone on
+  mobile data (#64). A computer on two private networks still listens on
+  both.
 - The app installs only package records signed by Lychnion or by a
   publisher the user added, checks every file's size and SHA-256, and
   never installs an older version.

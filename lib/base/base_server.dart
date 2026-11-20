@@ -11,9 +11,11 @@ import '../facts/fact_store.dart';
 import '../facts/signing.dart';
 import 'answer_signing.dart';
 import '../knowledge/grounded_answer.dart';
+import 'base_discovery.dart' show isPrivateIPv4;
 import 'base_library.dart';
 import 'base_protocol.dart';
 import 'base_web.dart';
+import 'lan_sockets.dart';
 import 'watched_socket.dart';
 
 /// Answers questions from phones on the base's local network.
@@ -162,11 +164,56 @@ class BaseServer {
   /// The port actually bound (useful with port 0 in tests).
   int get port => _server!.port;
 
+  /// The local-network addresses listened on now (see [start]); empty
+  /// with an explicit address.
+  List<String> get addresses => switch (_socket) {
+    final LanSockets s => _shown(s.addresses),
+    _ => const [],
+  };
+
+  static const _loopback = '127.0.0.1';
+
+  /// Where phones can connect: without loopback.
+  static List<String> _shown(List<String> a) => [
+    for (final x in a)
+      if (x != _loopback) x,
+  ];
+
+  /// Called when [addresses] changed (a Wi-Fi joined or left, the hotspot
+  /// turned on or off), so the screen shows where phones can connect.
+  void Function(List<String> addresses)? onAddressesChanged;
+
+  /// Starts listening on [port]. Without [address] only on this device's
+  /// local-network addresses ([localAddresses]: Wi-Fi, hotspot or wired,
+  /// private ranges, never mobile data), followed as the network changes
+  /// (lychnion/lychnion#64), and on loopback. [address] binds that one
+  /// address instead (tests).
   Future<void> start({int port = defaultPort, InternetAddress? address}) async {
-    final socket = await ServerSocket.bind(
-      address ?? InternetAddress.anyIPv4,
-      port,
-    );
+    final ServerSocket socket;
+    if (address != null) {
+      socket = await ServerSocket.bind(address, port);
+    } else {
+      // Loopback too: only this computer reaches it, and the iOS
+      // simulator and Android emulator reach a base on the same computer
+      // that way. It is not shown ([addresses]).
+      final lan = await LanSockets.bind(
+        port,
+        addresses: () async => [...await localAddresses(), _loopback],
+      );
+      // Loopback alone does not count: when no local-network address
+      // could be bound (the port is taken there), starting fails, as it
+      // did with one socket.
+      if (_shown(lan.addresses).isEmpty && lan.lastError != null) {
+        final error = lan.lastError!;
+        await lan.close();
+        throw error;
+      }
+      // Some addresses bound, another failed at start: say so.
+      if (lan.lastError case final e?) _log('base_bind_failed', e);
+      lan.onError = (e) => _log('base_bind_failed', e);
+      lan.onChanged = (a) => onAddressesChanged?.call(_shown(a));
+      socket = lan;
+    }
     _socket = socket;
     late final HttpServer server;
     // HttpServer has no limit of its own: connections over the limit are
@@ -198,27 +245,114 @@ class BaseServer {
   }
 
   /// IPv4 addresses phones can use, e.g. 192.168.1.20: Wi-Fi and hotspot
-  /// first, never mobile data (other phones cannot reach it).
+  /// first, never mobile data (other phones cannot reach it), and only
+  /// private ranges: a public address would put the base on the
+  /// internet. The base listens on exactly these (#64).
   static Future<List<String>> localAddresses() async {
-    final found = [
+    final all = [
       for (final i in await NetworkInterface.list(
         type: InternetAddressType.IPv4,
       ))
-        for (final a in i.addresses)
-          if (!a.isLoopback && !a.isLinkLocal && !_cellular.hasMatch(i.name))
-            (i.name, a.address),
+        for (final a in i.addresses) (i.name, a),
+    ];
+    final unknown = unknownInterfaces(all);
+    final key = unknown.join('|');
+    if (unknown.isNotEmpty && key != _lastUnknown) {
+      _log('base_interface_unknown', unknown.join(', '));
+    }
+    _lastUnknown = key;
+    return pickLocalAddresses(all);
+  }
+
+  /// The unknown names logged last: logged again only when they change.
+  static String? _lastUnknown;
+
+  /// [localAddresses] from (interface name, address) pairs (tests).
+  @visibleForTesting
+  static List<String> pickLocalAddresses(
+    List<(String, InternetAddress)> addresses,
+  ) {
+    // Only known Wi-Fi, hotspot, tethering and wired names (an unknown
+    // name may be mobile data), and of those never a known mobile-data or
+    // virtual one: a failure shows "no network", never mobile data (#64).
+    final found = [
+      for (final (name, a) in addresses)
+        if (a.type == InternetAddressType.IPv4 &&
+            !a.isLoopback &&
+            !a.isLinkLocal &&
+            _isLanIPv4(a) &&
+            _lan.hasMatch(name) &&
+            !_cellular.hasMatch(name) &&
+            !_virtual.hasMatch(name))
+          (name, a.address),
     ];
     int rank((String, String) x) => _wifi.hasMatch(x.$1) ? 0 : 1;
     found.sort((a, b) => rank(a).compareTo(rank(b)));
     return [for (final (_, a) in found) a];
   }
 
-  /// Interface names: Android mobile data (rmnet, ccmni), iOS (pdp_ip).
-  static final _cellular = RegExp(r'^(rmnet|ccmni|pdp_ip|v4-rmnet)');
+  /// 10/8, 172.16/12 and 192.168/16. Not 100.64/10, which carriers use
+  /// for mobile data (discovery still accepts it, isPrivateIPv4).
+  static bool _isLanIPv4(InternetAddress a) =>
+      isPrivateIPv4(a) && !(a.rawAddress[0] == 100);
 
-  /// Wi-Fi, hotspot and wired: Android wlan/swlan/ap, Apple en/bridge
-  /// (Internet Sharing), Linux and Windows names.
-  static final _wifi = RegExp(r'^(wlan|swlan|ap|en|bridge|eth|wl|Wi-Fi)');
+  /// Interfaces that may be the local network: Wi-Fi, hotspot, USB or
+  /// Bluetooth tethering, Wi-Fi Direct and wired, on Android (wlan, swlan,
+  /// ap, softap, rndis, usb, p2p, bt-pan, eth), Apple (en, bridge),
+  /// Linux (wl…, en…, eth, br0) and Windows, whose names are in the
+  /// system's language: "Wi-Fi", "WLAN", "Ethernet", "Local Area
+  /// Connection* N" (its hotspot), "LAN…"; Japanese イーサネット and
+  /// ローカル エリア接続; Chinese 以太网, 乙太網路, 本地连接, 區域連線;
+  /// French "Connexion au réseau local"; Spanish "Conexión de área local".
+  static final _lan = RegExp(
+    r'^(wlan|swlan|ap|softap|wl|wi-?fi|en|eth|bridge|br\d|rndis|usb|p2p|'
+    r'bt-pan|local area connection|lan|イーサネット|ローカル ?エリア接続|'
+    r'以太网|乙太網路|本地连接|區域連線|connexion au réseau local|'
+    r'conexión de área local)',
+    caseSensitive: false,
+  );
+
+  /// Names of interfaces left out only because their name is not known
+  /// (private address, not blocked): logged, so a missing name is found.
+  @visibleForTesting
+  static List<String> unknownInterfaces(
+    List<(String, InternetAddress)> addresses,
+  ) => {
+    for (final (name, a) in addresses)
+      if (a.type == InternetAddressType.IPv4 &&
+          !a.isLoopback &&
+          !a.isLinkLocal &&
+          _isLanIPv4(a) &&
+          !_lan.hasMatch(name) &&
+          !_cellular.hasMatch(name) &&
+          !_virtual.hasMatch(name))
+        name,
+  }.toList();
+
+  /// Mobile data: Android (rmnet, r_rmnet, ccmni, ccemni, sipa, v4-rmnet),
+  /// iOS (pdp_ip), Linux modems (wwan, wwp).
+  static final _cellular = RegExp(
+    r'^(rmnet|r_rmnet|v4-rmnet|ccmni|ccemni|sipa|pdp_ip|wwan|wwp)',
+    caseSensitive: false,
+  );
+
+  /// VPNs, virtual machines and containers: private addresses, but not
+  /// the Wi-Fi phones are on, and a VPN reaches other networks (#64).
+  /// Windows uses friendly names ("vEthernet (WSL)", "VMware Network
+  /// Adapter VMnet8").
+  static final _virtual = RegExp(
+    r'^(utun|tun|tap|wg|tailscale|zt|ipsec|ppp|docker|br-|veth|vboxnet|'
+    r'vmnet|virbr|llw|awdl|vethernet|vmware|virtualbox|hyper-v|parallels|'
+    r'vnic|lxc|cni|podman|flannel|openvpn|nordlynx|proton)',
+    caseSensitive: false,
+  );
+
+  /// Wi-Fi and hotspot first (the QR code shows the first address): the
+  /// phones are most likely there.
+  static final _wifi = RegExp(
+    r'^(wlan|swlan|ap|softap|wl|wi-?fi|en|bridge)',
+    caseSensitive: false,
+  );
 
   Future<void> _handle(HttpRequest req) async {
     final res = req.response;

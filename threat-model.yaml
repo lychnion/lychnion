@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:f468054810f8617be52a13eae84c960551f36e898ae0c5db8f4d97689f1eef6a
+prose_version: threat-model.md@sha256:3682731a954dce73a5d8aa3442ac18aaffb59ea52161a0f174b987271e33b248
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1881,7 +1881,13 @@ properties_claimed:
   components:
   - base-server
   tier: security-critical
-  conditions: the base and Share nearby are reachable only from the local Wi-Fi or hotspot.
+  conditions: 'the base and Share nearby are reachable only from the local Wi-Fi or hotspot: they listen
+    only on the device''s private IPv4 addresses on interfaces with a known Wi-Fi, hotspot, tethering or wired name, never on mobile data,
+    a known VPN or virtual interface, carrier-grade NAT (100.64/10) or a public address (and on loopback, which only the device itself reaches), and follow those addresses as the network changes (`lib/base/lan_sockets.dart`).'
+  x-known-violations:
+  - a VPN or virtual adapter whose name is not known, but starts like a wired one, is listened on too.
+  - a computer on two private networks (the shelter Wi-Fi and an office LAN) listens on both; the screen
+    lists both addresses.
   violation_symptoms:
   - info-leak
   provenance:

@@ -789,7 +789,7 @@
       "property": "lan-only-exposure",
       "violation_symptom": "info-leak",
       "severity_tier": "security",
-      "conditions": "the base and Share nearby are reachable only from the local Wi-Fi or hotspot.",
+      "conditions": "the base and Share nearby are reachable only from the local Wi-Fi or hotspot: they listen only on the device's private IPv4 addresses on interfaces with a known Wi-Fi, hotspot, tethering or wired name, never on mobile data, a known VPN or virtual interface, carrier-grade NAT (100.64/10) or a public address (and on loopback, which only the device itself reaches), and follow those addresses as the network changes (`lib/base/lan_sockets.dart`).",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

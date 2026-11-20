@@ -50,11 +50,14 @@ proven. The property is the §1.11 claim each one breaks.
    (`lib/app/incoming_links.dart:67`, `lib/base/base_checks.dart:47`). This
    holds for the new `lychnion://base` host too. The dialog does not show
    the key, the link's name is not cleaned (`lib/base/base_link.dart:64`),
-   and trusted base keys cannot be removed.
+   and trusted base keys cannot be removed. *Fixed in
+   [#86](https://github.com/lychnion/lychnion/pull/86): links only pin
+   the key; the user compares a code to trust it.*
 2. **The base and Share nearby listen on every interface** ([#64](https://github.com/lychnion/lychnion/issues/64)) (confirmed,
    `lan-only-exposure`): `lib/base/base_server.dart:167` binds
    `anyIPv4`, including a desktop's upstream network and a phone's mobile
-   data.
+   data. *Fixed for #64: they listen only on local-network addresses
+   (`lib/base/lan_sockets.dart`).*
 3. **Bare-model answers without a warning** ([#65](https://github.com/lychnion/lychnion/issues/65)) (confirmed path, trigger
    suspected, `grounded-answer-presentation`). If the embedder or index
    fails after the model loaded, the question bar stays on and the warning
