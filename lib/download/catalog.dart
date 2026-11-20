@@ -205,7 +205,12 @@ class Catalog {
     final raw = doc.records;
     for (var n = 0; n < raw.length; n++) {
       final r = await keys.check(raw[n]);
-      final id = raw[n] is Map ? (raw[n] as Map)['id'] : null;
+      // Only a string id is shown: a nested one would overflow the stack
+      // when printed (lychnion/lychnion#78).
+      final id = switch (raw[n]) {
+        {'id': final String id} => id,
+        _ => null,
+      };
       if (r == null) {
         rejected.add('${id ?? '#$n'}: bad signature or record');
       } else if (!ItemKind.values.any((k) => k.name == r.kind)) {

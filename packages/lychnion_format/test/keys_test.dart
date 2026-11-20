@@ -362,6 +362,33 @@ void main() {
       },
     );
 
+    // lychnion/lychnion#78: a hostile catalog's keys list cannot make the
+    // reader throw (a deeply nested entry used to overflow the stack).
+    test('relevantStatements: deeply nested junk is skipped', () async {
+      final a = await _key();
+      final trust = TrustedKeys({
+        'jp.test': [a.pub],
+      });
+      final r = await KeyStatement.revoke(
+        publisher: 'jp.test',
+        key: a.pair,
+        signed: '2026-11-19',
+      );
+      // As jsonDecode would give it: lists nested 200,000 deep.
+      Object? deep = 0;
+      for (var i = 0; i < 200000; i++) {
+        deep = [deep];
+      }
+      final got = await relevantStatements(trust, [
+        deep,
+        {...r.json, 'x': deep},
+        {'publisher': 'jp.test', 'old': a.pub, 'signed': deep},
+        {1: 'x'},
+        r.json,
+      ]);
+      expect(got, [r]);
+    });
+
     test('a long chain is cut, a revocation still counts', () async {
       final root = await _key();
       final trust = TrustedKeys({

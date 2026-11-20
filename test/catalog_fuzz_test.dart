@@ -69,6 +69,21 @@ void main() {
     expect(c!.items.single.id, record.id);
   });
 
+  // lychnion/lychnion#78: deeply nested JSON in a record or in `keys`
+  // costs only that entry, not the catalog.
+  test('deeply nested entries are skipped', () async {
+    const depth = 200000;
+    final deep = '${'[' * depth}0${']' * depth}';
+    final c = await Catalog.parse(
+      '{"format":2,"records":[{"id":$deep},${jsonEncode(record.json)}],'
+      '"keys":[$deep]}',
+      fetchedFrom: from,
+      trust: trust,
+    );
+    expect(c.items.single.id, record.id);
+    expect(c.rejected.single, startsWith('#0:'));
+  });
+
   test('cut off at every character', () async {
     for (var n = 0; n < text.length; n++) {
       onlySigned(await parse(text.substring(0, n)));

@@ -537,7 +537,7 @@ plus phones that also use the internet when they can.
   headless node reserves nothing; it accepts an added publisher's record
   for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
   the id back only when its source is pulled
-  (`packages/lychnion_node/lib/src/pull.dart:169`). *Violation symptom*:
+  (`packages/lychnion_node/lib/src/pull.dart:177`). *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: nothing voids
   it in the app; the check runs in `isTaken`, `installed` and
   `recordedVersionOf`, and no flag or dev define turns it off (the
@@ -555,7 +555,7 @@ plus phones that also use the internet when they can.
   again (§1.12 `freshness`). After a revocation a node lists the version it
   listed before, never one below it. A record no version of which is
   complete is not listed but set aside in `.kept.json`, where its version
-  still counts (`packages/lychnion_node/lib/src/pull.dart:226`).
+  still counts (`packages/lychnion_node/lib/src/pull.dart:234`).
   *(documented, docs/distribution.md "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
@@ -676,9 +676,10 @@ plus phones that also use the internet when they can.
   (`lib/base/base_client.dart:31`,
   `packages/lychnion_fetch/lib/src/catalog_fetch.dart:17`). Search:
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
-  — no setting or dev flag sets them. Known gap: key statements are
-  canonicalised before any shape check
-  (`packages/lychnion_format/lib/src/key_statement.dart:328`).
+  — no setting or dev flag sets them. A `keys` entry that is not a flat
+  object of a statement's own fields is skipped before anything walks it
+  (`packages/lychnion_format/lib/src/key_statement.dart:344`), and on a
+  node one catalog's keys never end the pull for the other sources.
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
   reachable only from the local Wi-Fi or hotspot: they listen only on the
@@ -759,7 +760,7 @@ plus phones that also use the internet when they can.
   is on such a network; an internet catalog's own redirects are checked the
   same way. Private or local means any address that is not plain public
   unicast, including `::`, multicast, special ranges and IPv4 carried in
-  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:337`). DNS rebinding is
+  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:345`). DNS rebinding is
   not caught. *Violation symptom*: x-request-forgery. *Tier*:
   correctness-only. *Voided by*: a catalog on a private network or a folder
   (`packages/lychnion_node/lib/src/pull.dart:126`). *(documented,

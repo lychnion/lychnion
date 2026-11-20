@@ -291,6 +291,18 @@ const _maxScanned = 2000;
 /// each, and anyone can make them.
 const _maxBadSignatures = 32;
 
+/// A JSON object with only a key statement's fields, each a string or a
+/// number: nothing nested.
+bool _flat(Object? e) =>
+    e is Map &&
+    e.length <= KeyStatement._fields.length &&
+    e.entries.every(
+      (f) =>
+          f.key is String &&
+          KeyStatement._fields.contains(f.key) &&
+          (f.value is String || f.value is num),
+    );
+
 /// The statements in [list] (raw JSON, as in a catalog's `keys`, or
 /// [KeyStatement]s) that change something for [trust]: each made by a key
 /// [trust] trusts for that publisher, counting the statements taken
@@ -326,9 +338,14 @@ Future<List<KeyStatement>> relevantStatements(
   final pending = <({String publisher, String old, Object raw})>[];
   final rawSeen = <String>{};
   for (final e in list.take(_maxScanned)) {
+    // Only a flat object of a statement's own fields is looked at, before
+    // anything walks it: a deeply nested entry would overflow the stack
+    // (lychnion/lychnion#78).
+    if (e is! KeyStatement && !_flat(e)) continue;
     try {
       if (!rawSeen.add(e is KeyStatement ? e.id : canonicalJson(e))) continue;
     } on FormatException {
+      // A number JSON cannot write (1e999 decodes to Infinity).
       continue;
     }
     final (publisher, old) = switch (e) {

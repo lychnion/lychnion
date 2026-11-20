@@ -14,6 +14,9 @@ class Source {
   final hits = <String, int>{};
   Map<String, Object?> catalog = {'format': 2, 'records': []};
 
+  /// Served instead of [catalog] when set (text jsonEncode cannot make).
+  String? rawCatalog;
+
   Uri get url => Uri.parse('http://127.0.0.1:${server.port}/catalog.json');
   String get base => 'http://127.0.0.1:${server.port}/';
 
@@ -23,7 +26,7 @@ class Source {
       final p = req.uri.path;
       hits[p] = (hits[p] ?? 0) + 1;
       if (p == '/catalog.json') {
-        req.response.write(jsonEncode(catalog));
+        req.response.write(rawCatalog ?? jsonEncode(catalog));
       } else if (files[p.substring(1)] case final data?) {
         req.response.add(data);
       } else {
@@ -428,6 +431,21 @@ void main() {
       expect(src.hits['/x.sqlite'], 1);
     });
 
+    // lychnion/lychnion#78: a deeply nested `keys` entry is skipped; the
+    // catalog's records are still pulled.
+    test('a deeply nested key statement does not stop the pull', () async {
+      final a = await offer('jp.a', '1', 'aaa');
+      const depth = 200000;
+      final deep = '${'[' * depth}0${']' * depth}';
+      final records = jsonEncode([a.json]);
+      src.rawCatalog =
+          '{"format":2,"records":$records,"keys":[$deep,{"publisher":'
+          '"jp.city.test","x":$deep}]}';
+      final r = await go();
+      expect(r.changed, ['jp.a 1']);
+      expect(r.failed, isEmpty);
+    });
+
     test('a second pull on the same folder at the same time stops', () async {
       publish([await offer('jp.a', '1', 'aaa')]);
       await go();
@@ -659,6 +677,19 @@ void main() {
     // Without the city's key its record is not trusted.
     expect(await checkFolder(folder, builtInPublishers), [
       'jp.a: not signed by a trusted publisher',
+    ]);
+  });
+
+  // lychnion/lychnion#78: a nested record id is not printed.
+  test('check reports a record with a nested id', () async {
+    await go();
+    const depth = 200000;
+    final deep = '${'[' * depth}0${']' * depth}';
+    folder.catalogFile.writeAsStringSync(
+      '{"format":2,"records":[{"id":$deep}],"keys":[$deep]}',
+    );
+    expect(await checkFolder(folder, trust), [
+      '?: not signed by a trusted publisher',
     ]);
   });
 }
