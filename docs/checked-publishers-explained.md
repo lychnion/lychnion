@@ -19,7 +19,7 @@ say "add only publishers you know".
 So Lychnion checks official publishers itself, and the app shows the
 result.
 
-## The idea: a seal only Lychnion can make
+## The idea: a seal that needs Lychnion's secret key
 
 Think of a document with an official seal on it.
 
@@ -29,7 +29,7 @@ Think of a document with an official seal on it.
   publishes. The app checks the seal with the public part. A guide with
   a wrong or missing seal is never installed.
 - The **short code** is the first 8 characters of the public part. People
-  can compare it by eye.
+  can compare it by eye. (The app calls it the "code".)
 - Lychnion has a key too. The app has the public part of Lychnion's key
   **built in**, so it can recognise Lychnion's seal.
 - When a person at Lychnion has checked that a key belongs to, say,
@@ -41,6 +41,10 @@ Think of a document with an official seal on it.
 The note travels to phones together with the list of guides and maps.
 When a phone sees a publisher whose key matches a sealed note from
 Lychnion, it shows **Checked by Lychnion**.
+
+**In November 2026, no publisher has this label yet.** The checks start
+when the form and the tools that seal the notes are released
+(lychnion/lychnion-data#38).
 
 ## How a city gets checked
 
@@ -65,17 +69,18 @@ flowchart TD
 3. The city asks Lychnion to check, with a form on GitHub. The form needs
    a GitHub account, and everything written in it is public, so it asks
    for no personal data.
-4. A person at Lychnion opens that official page and compares the code
-   with the whole key. Anyone can make the same check; it needs no
-   special access.
+4. A person at Lychnion opens that official page and compares the
+   short code, and also the whole key from the city's application.
+   Anyone can compare the short code the same way; it needs no special
+   access.
 5. Lychnion seals the note with its own key. Only one person signs for
    Lychnion.
 6. The note travels with the list of guides and maps: by download, on a
    USB stick, from a base computer in a shelter, or from a phone nearby.
    It works offline.
 
-The form opens together with the tools that seal the notes
-(lychnion/lychnion-data#38).
+The form is not open yet. It opens together with the tools that seal
+the notes (lychnion/lychnion-data#38).
 
 ## What the phone does when you scan a publisher's QR code
 
@@ -85,9 +90,9 @@ flowchart TD
   a{"Sealed note from<br>Lychnion for this<br>name and key?"}
   ok["✔ Checked by Lychnion"]
   b{"A note for this name,<br>but another key<br>or taken back?"}
-  red["⚠ In red: may be fake<br>or taken back;<br>check the box to add"]
+  red["⚠ In red: may be fake<br>or taken back;<br>select the box to add"]
   c{"Does the name look<br>like a public body?"}
-  warn["⚠ Warning: compare the<br>code, check the box to add"]
+  warn["⚠ Warning: compare the<br>code, select the box to add"]
   plain["Added by you ·<br>not checked"]
   q --> a
   a -- yes --> ok
@@ -106,11 +111,11 @@ flowchart TD
 - **In red, check taken back**: Lychnion took its check back, for
   example because the city changed its website or merged with another.
   Add it only if you know why, for example after asking the city.
-- **A warning**: nobody checked this publisher, but its name looks like a
-  public body (a city, a prefecture, a ministry, a fire department, the
-  police…) or like a checked publisher. Compare the code with the
-  official website.
-- In these three cases, the app asks you to check the box "I compared
+- **A warning** (also in red): nobody checked this publisher, but its
+  name looks like a public body (a city, a prefecture, a ministry, a fire
+  department, the police…) or like a checked publisher. Compare the code
+  with the official website.
+- In these three cases, the app asks you to select the box "I compared
   the code" before you can add the publisher.
 - **Added by you · not checked by Lychnion**: an ordinary publisher, for
   example a club. It works normally. Lychnion does not check clubs, so
@@ -133,10 +138,12 @@ the passages of an answer, a line says whose guide it is, for example
   notes on cannot change them; they can only pass them on or leave them
   out.
 - **The note is about one key.** A fake that copies a checked name has
-  another key, so the phone shows it in red, not as checked.
+  another key. A phone that has Lychnion's note shows it in red, not as
+  checked. (A phone that has not received the note yet shows it as "not
+  checked"; see "News travels slowly offline" below.)
 - **Lychnion can take a check back** with a newer sealed note, for
   example when a city changes its website, merges with another, or its
-  key is misused.
+  key is misused. Phones follow when they receive it.
 
 ## What the label does not mean
 
@@ -153,8 +160,9 @@ the passages of an answer, a line says whose guide it is, for example
   label changes by itself, and nothing has to be added again. A shelter
   group or a club handing out its QR code will stay "not checked".
 - **No warning does not mean safe.** The warning only appears for names
-  with words from a list. A fake with another name ("Sendai Shelter
-  Info") gets no warning. Only "Checked by Lychnion" means checked.
+  with words from a list, or names very close to a checked publisher's.
+  A fake with another name ("Sendai Shelter Info") gets no warning. Only
+  "Checked by Lychnion" means checked.
 
 ## Where it can still go wrong
 
@@ -165,7 +173,7 @@ Being honest about the limits helps you use it well:
   checking is not fooled. If a city's website were taken over, Lychnion
   could be fooled too. That is why Lychnion checks again when someone
   reports a problem, and can take a check back.
-- **Checking the box without comparing.** For a name that looks
+- **Selecting the box without comparing.** For a name that looks
   official, the box is the last protection. Compare the code with the
   official website, or ask staff at the city office or shelter. If you
   cannot, do not add it.

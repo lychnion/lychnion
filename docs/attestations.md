@@ -56,7 +56,8 @@ lychnion/lychnion#121.
    sentence saying it is the body's Lychnion key.
 3. It applies with the issue form "Ask Lychnion to check your publisher
    key" in
-   [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data/issues/new/choose),
+   [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data/issues/new/choose)
+   (it opens with the attestation tools, lychnion/lychnion-data#38),
    giving the publisher name, its name in Japanese and English, the
    publisher link, the code and the page's address. The form needs a
    GitHub account and is public: no personal names, phone numbers or
