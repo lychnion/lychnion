@@ -518,9 +518,9 @@ plus phones that also use the internet when they can.
   and SHA-256 match. A trusted key is a built-in or added key, or a successor
   named by a valid key statement, and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
-  `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:61`,
-  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:232`, and "Open a model
-  file…" at `lib/ask/model_loading.dart:335`. Bundled guides are trusted by
+  `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:34`,
+  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:205`, and "Open a model
+  file…" at `lib/ask/model_loading.dart:308`. Bundled guides are trusted by
   the app signature, not a record (`lib/download/download_store.dart:825`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
@@ -615,7 +615,7 @@ plus phones that also use the internet when they can.
   (`lib/base/base_client.dart:96`); for a QR code without `s=1`, the first
   answers before the base has signed (`lib/base/base_checks.dart:78`);
   pinning another key (`lib/app/settings.dart:129`); a base without a signer
-  (`lib/base/base_server.dart:746`). *(documented, docs/shelter-results.md
+  (`lib/base/base_server.dart:750`). *(documented, docs/shelter-results.md
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
   verified only with a signature from a trusted key; others count as
@@ -698,7 +698,7 @@ plus phones that also use the internet when they can.
   node folder; no request part becomes a path. *Violation symptom*: info-leak.
   *Tier*: security-critical. *Voided by*: node `serve` on a folder it did not
   pull follows symlinks (§1.6, unsupported). The blob routes match
-  `lib/base/base_server.dart:659` and
+  `lib/base/base_server.dart:663` and
   `packages/lychnion_node/lib/src/server.dart:61`. *(documented,
   CHANGELOG.md "Security")*
 - **`browser-page-text-only`** (`base-server`): the browser page shows all

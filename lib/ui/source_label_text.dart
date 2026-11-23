@@ -1,5 +1,7 @@
-import '../download/publisher_label.dart' show PublisherCheck;
-import '../knowledge/source_label.dart';
+import '../download/download_store.dart';
+import '../download/publisher_label.dart';
+import '../knowledge/grounded_answer.dart';
+import '../knowledge/knowledge_package.dart';
 import '../l10n/app_localizations.dart';
 
 /// The line under a source in an answer: who signed its guide and whether
@@ -25,3 +27,14 @@ String? sourceLabelText(
   if (text == null) return null;
   return fromBase ? l.answerSourceBaseSays(text) : text;
 }
+
+/// The label of [s] in [answer]: for a base's answer the base's word
+/// ([Source.label]); for this device's own, looked up from who signed the
+/// guide with [store], so it follows the vouches and publishers now.
+SourceLabel? sourceLabelFor(
+  GroundedAnswer answer,
+  Source s,
+  DownloadStore? store,
+) => answer.answeredBy != null || store == null
+    ? s.label
+    : store.sourceLabelOf(s.signer, s.signerKeyId) ?? s.label;

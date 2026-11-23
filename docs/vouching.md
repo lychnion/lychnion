@@ -13,8 +13,8 @@ this publisher, called this, checked on this day, in this way, at this
 address". The app then shows the publisher as **Checked by Lychnion**,
 under the name Lychnion checked, in the publishers screen, the add
 dialog and Downloads. Answers say under a passage whose guide it is
-when that is not Lychnion: "via 仙台市 · checked by Lychnion" or "via
-Aoba Club · not checked by Lychnion". In a base's answers that label is
+when that is not Lychnion: "via “仙台市” · checked by Lychnion" or
+"via “Aoba Club” · not checked by Lychnion". In a base's answers that label is
 the base's word, and says so.
 
 A vouch gives a label, never access:

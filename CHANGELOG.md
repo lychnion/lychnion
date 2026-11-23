@@ -118,9 +118,10 @@ here should be relied on alone in an emergency. Source only; build it as
   whose name looks like a public body or like a checked publisher, or
   that has another key than the checked one, is warned about in red, and
   Add works only after ticking "I compared the code". Answers say under
-  a passage who signed its guide when that is not Lychnion ("via Aoba
-  Club · not checked by Lychnion"), also for a base's answers (as the
-  base says) and on the base's web page. Labels only: a
+  a passage who signed its guide when that is not Lychnion ("via “Aoba
+  Club” · not checked by Lychnion"; in red when its key is no longer
+  trusted), also for a base's answers (as the base says) and on the
+  base's web page. Labels only: a
   publisher never needs Lychnion's check, and nothing is refused. How
   Lychnion checks: [docs/vouching.md](docs/vouching.md) (#119).
 - The base's browser page (for phones without the app) no longer shows

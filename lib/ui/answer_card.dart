@@ -8,7 +8,8 @@ import '../app/lang.dart';
 import '../facts/fact.dart';
 import '../facts/fact_view.dart';
 import '../knowledge/grounded_answer.dart';
-import '../knowledge/knowledge_package.dart' show Alert, Source, foreignLabel;
+import '../knowledge/knowledge_package.dart'
+    show Alert, Source, SourceLabel, foreignLabel;
 import '../l10n/app_localizations.dart';
 import '../map/hazard_detect.dart';
 import '../map/map_labels.dart';
@@ -51,12 +52,17 @@ class AnswerCard extends StatelessWidget {
   const AnswerCard({
     super.key,
     required this.answer,
+    this.labelOf,
     required this.grounded,
     required this.done,
     this.map,
     this.onShowOnMap,
     this.showStats = false,
   });
+
+  /// How each source's signer is labelled (#119); by default the label
+  /// it came with.
+  final SourceLabel? Function(Source)? labelOf;
 
   final GroundedAnswer answer;
   final bool grounded;
@@ -187,6 +193,7 @@ class AnswerCard extends StatelessWidget {
                   _SourcesFooter(
                     answer: answer,
                     numbers: sources,
+                    labelOf: _labelOf,
                     onTap: () => _showSources(context, sources),
                   ),
                 if (showStats && s != null)
@@ -285,6 +292,8 @@ class AnswerCard extends StatelessWidget {
         ),
       );
 
+  SourceLabel? _labelOf(Source s) => labelOf?.call(s) ?? s.label;
+
   Widget _passage(ThemeData theme, int n, AppLocalizations l) {
     final p = answer.hits[n - 1].passage;
     final lang = answer.lang;
@@ -325,24 +334,25 @@ class AnswerCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (sourceLabelText(
-                  l,
-                  p.source.label,
-                  lang,
-                  fromBase: answer.answeredBy != null,
-                )
-                case final label?)
-              Padding(
-                padding: const EdgeInsets.only(left: 34, top: 4),
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: p.source.label!.isProblem
-                        ? theme.colorScheme.error
-                        : theme.colorScheme.onSurfaceVariant,
+            if (_labelOf(p.source) case final sl?)
+              if (sourceLabelText(
+                    l,
+                    sl,
+                    lang,
+                    fromBase: answer.answeredBy != null,
+                  )
+                  case final label?)
+                Padding(
+                  padding: const EdgeInsets.only(left: 34, top: 4),
+                  child: Text(
+                    label,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: sl.isProblem
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
             const SizedBox(height: 10),
             // English readers see a translated passage in its original;
             // Japanese readers see our translation, the original one tap away.
@@ -594,11 +604,13 @@ class _SourcesFooter extends StatelessWidget {
   const _SourcesFooter({
     required this.answer,
     required this.numbers,
+    required this.labelOf,
     required this.onTap,
   });
 
   final GroundedAnswer answer;
   final List<int> numbers;
+  final SourceLabel? Function(Source) labelOf;
   final VoidCallback onTap;
 
   @override
@@ -617,7 +629,7 @@ class _SourcesFooter extends StatelessWidget {
     // Guides of a publisher Lychnion has not checked (#119): said here
     // too, not only under each passage.
     final unchecked = numbers.any(
-      (n) => answer.hits[n - 1].passage.source.label?.isUnchecked ?? false,
+      (n) => labelOf(answer.hits[n - 1].passage.source)?.isUnchecked ?? false,
     );
     final label = unchecked
         ? '$first\n${l.answerSourcesNotChecked(l.appName)}'

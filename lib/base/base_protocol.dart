@@ -9,7 +9,9 @@ import '../llm/local_llm.dart';
 /// so the answer card, citation check and map link work unchanged.
 const baseProtocolVersion = 1;
 
-Map<String, Object?> sourceToWire(Source s) => {
+/// [label]: how this device labels the source's signer (a base sends
+/// it with its answers).
+Map<String, Object?> sourceToWire(Source s, {SourceLabel? label}) => {
   'id': s.id,
   'title': s.title,
   'publisher': s.publisher,
@@ -17,8 +19,11 @@ Map<String, Object?> sourceToWire(Source s) => {
   'licence': s.licence,
   'attribution': s.attribution,
   'region': s.region,
-  // Who signed the source's package, as this device labels it (#119).
-  if (s.label case final l?) 'label': l.toWire(),
+  // Who signed the source's package (#119): kept with saved answers, so
+  // their labels follow the vouches; never looked up for a base's answer.
+  'signer': ?s.signer,
+  'signer_key': ?s.signerKeyId,
+  'label': ?(label ?? s.label)?.toWire(),
 };
 
 /// A source as a base sent it. Its link is kept only when it is a web
@@ -31,9 +36,16 @@ Source sourceFromWire(Map<String, dynamic> j) => Source(
   j['licence'] as String,
   j['attribution'] as String,
   region: j['region'] as String? ?? 'JP',
+  signer: _plain(j['signer'], 64),
+  signerKeyId: _plain(j['signer_key'], 16),
   // The sender's word, checked only for form (see SourceLabel.fromWire).
   label: SourceLabel.fromWire(j['label']),
 );
+
+String? _plain(Object? v, int max) =>
+    v is String && v.length <= max && RegExp(r'^[A-Za-z0-9._-]+$').hasMatch(v)
+    ? v
+    : null;
 
 String _webUrl(String s) {
   final u = Uri.tryParse(s.trim());
@@ -49,7 +61,12 @@ String _webUrl(String s) {
 const maxWireHits = 30;
 const maxWireAlerts = 30;
 
-Map<String, Object?> answerToWire(GroundedAnswer a) => {
+/// [labelOf]: how this device labels each source's signer (a base sends
+/// its labels; saved answers keep the signer instead).
+Map<String, Object?> answerToWire(
+  GroundedAnswer a, {
+  SourceLabel? Function(Source)? labelOf,
+}) => {
   'v': baseProtocolVersion,
   'question': a.question,
   'lang': a.lang,
@@ -64,7 +81,7 @@ Map<String, Object?> answerToWire(GroundedAnswer a) => {
         'translations': al.translations,
         // Phones from before translations were maps read this one.
         'text_en': al.translations['en'],
-        'source': sourceToWire(al.source),
+        'source': sourceToWire(al.source, label: labelOf?.call(al.source)),
       },
   ],
   'hits': [
@@ -83,7 +100,10 @@ Map<String, Object?> answerToWire(GroundedAnswer a) => {
               for (final e in h.passage.texts.entries)
                 e.key: {'heading': e.value.$1, 'text': e.value.$2},
             },
-          'source': sourceToWire(h.passage.source),
+          'source': sourceToWire(
+            h.passage.source,
+            label: labelOf?.call(h.passage.source),
+          ),
         },
       },
   ],

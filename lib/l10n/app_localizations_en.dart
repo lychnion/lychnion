@@ -2057,27 +2057,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String answerSourceChecked(String app, String name) {
-    return 'via $name · checked by $app';
+    return 'via “$name” · checked by $app';
   }
 
   @override
   String answerSourceNotChecked(String app, String name) {
-    return 'via $name · not checked by $app';
+    return 'via “$name” · not checked by $app';
   }
 
   @override
   String answerSourceWithdrawn(String app, String name) {
-    return 'via $name · $app took back its check';
+    return 'via “$name” · $app took back its check';
   }
 
   @override
   String answerSourceOtherKey(String app, String name) {
-    return 'via $name · not the key $app checked';
+    return 'via “$name” · not the key $app checked';
   }
 
   @override
   String answerSourceRevoked(String name) {
-    return 'via $name · key revoked';
+    return 'via “$name” · no longer trusted on this device';
   }
 
   @override

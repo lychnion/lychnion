@@ -71,7 +71,7 @@ void main() {
   tearDownAll(() => tmp.delete(recursive: true));
 
   group('sourceLabelOf', () {
-    test('Lychnion, vouched, added, unknown', () {
+    test('Lychnion, vouched, added; never none for a signer', () {
       expect(store.sourceLabelOf('lychnion', null)?.isBuiltIn, isTrue);
       final v = store.sourceLabelOf('jp.city.sendai', idOf(sendaiKey))!;
       expect(v.check, PublisherCheck.vouched);
@@ -81,10 +81,66 @@ void main() {
       expect(c.check, PublisherCheck.notChecked);
       expect(c.titleIn('ja'), 'Aoba Club');
       expect(c.isUnchecked, isTrue);
-      // Another key with that name, no signer, a publisher not added.
-      expect(store.sourceLabelOf('club.aoba', idOf(sendaiKey)), isNull);
+      // A key not trusted here (revoked, or the publisher removed) is
+      // labelled in red, never left without a label like Lychnion's.
+      for (final (name, id) in [
+        ('club.aoba', idOf(sendaiKey)),
+        ('x.unknown', idOf(clubKey)),
+        ('club.aoba', null),
+      ]) {
+        final l = store.sourceLabelOf(name, id)!;
+        expect(l.check, PublisherCheck.revoked, reason: '$name $id');
+        expect(l.isProblem, isTrue);
+      }
+      expect(
+        store.sourceLabelOf('club.aoba', idOf(sendaiKey))!.titleIn('en'),
+        'Aoba Club',
+      );
+      // The app's help has no signer.
       expect(store.sourceLabelOf(null, null), isNull);
-      expect(store.sourceLabelOf('x.unknown', idOf(clubKey)), isNull);
+    });
+  });
+
+  group('sourceLabelFor', () {
+    Source src({SourceLabel? label}) => Source(
+      's1',
+      'Guide',
+      'Aoba Club',
+      '',
+      '',
+      '',
+      signer: 'club.aoba',
+      signerKeyId: idOf(clubKey),
+      label: label,
+    );
+
+    test('this device\'s answer: looked up now from the signer', () {
+      final a = GroundedAnswer('q');
+      // A stale label saved with it does not count.
+      final s = src(
+        label: const SourceLabel(PublisherCheck.vouched, name: 'club.aoba'),
+      );
+      expect(sourceLabelFor(a, s, store)?.check, PublisherCheck.notChecked);
+    });
+
+    test('a base\'s answer: the base\'s word, never looked up', () {
+      final a = GroundedAnswer('q')..answeredBy = 'Shelter';
+      final s = src(
+        label: const SourceLabel(PublisherCheck.vouched, name: 'club.aoba'),
+      );
+      expect(sourceLabelFor(a, s, store)?.check, PublisherCheck.vouched);
+      expect(sourceLabelFor(a, src(), store), isNull);
+    });
+
+    test('a saved answer keeps its signer, so its label follows', () {
+      final a = GroundedAnswer('q', lang: 'en')
+        ..hits = [Hit(Passage(1, src(), 'h', 'text'), 1)]
+        ..text = 'answer [1]';
+      final back = answerFromWire(answerToWire(a));
+      final s = back.hits.single.passage.source;
+      expect(s.signer, 'club.aoba');
+      expect(s.signerKeyId, idOf(clubKey));
+      expect(sourceLabelFor(back, s, store)?.check, PublisherCheck.notChecked);
     });
   });
 
@@ -105,21 +161,34 @@ void main() {
         {'check': 'trusted', 'name': 'a.b'},
         {'check': 'vouched', 'name': 'Not A Name'},
         {'check': 'vouched'},
+        // Only Lychnion's own guides carry its name.
+        {'check': 'vouched', 'name': 'lychnion'},
       ]) {
         expect(SourceLabel.fromWire(bad), isNull, reason: '$bad');
       }
-      // Titles are cleaned like a link's: never the app's own name.
+      expect(
+        SourceLabel.fromWire({'check': 'builtIn', 'name': 'lychnion'})?.check,
+        PublisherCheck.builtIn,
+      );
+      // Titles are cleaned like a link's, and none reads as part of the
+      // label line: no app name, no separator.
       final odd = SourceLabel.fromWire({
         'check': 'notChecked',
         'name': 'club.x',
-        'titles': {'und': 'Lychnion', 'en': 'Club\u202eX', 'toolong': 'x'},
+        'titles': {
+          'und': 'Lychnion',
+          'ja': 'リクニオン公式',
+          'en': 'Club · checked by Lychnion',
+          'fr': 'Club\u202eX',
+          'toolong': 'x',
+          'de': 42,
+        },
       })!;
-      expect(odd.titles.containsKey('und'), isFalse);
-      expect(odd.titles.containsKey('toolong'), isFalse);
-      expect(odd.titles['en'] ?? '', isNot(contains('\u202e')));
+      expect(odd.titles.keys, everyElement(isIn(['fr'])));
+      expect(odd.titles['fr'] ?? '', isNot(contains('\u202e')));
     });
 
-    test('a base answer keeps its labels; saved answers too', () {
+    test('a base answer keeps its labels', () {
       final src = Source(
         's1',
         'Guide',
@@ -127,35 +196,51 @@ void main() {
         'https://example.org',
         'CC-BY-4.0',
         '',
-        label: const SourceLabel(
+      );
+      final a = GroundedAnswer('q', lang: 'en')
+        ..hits = [Hit(Passage(1, src, 'h', 'text'), 1)]
+        ..text = 'answer [1]';
+      final wire = answerToWire(
+        a,
+        labelOf: (_) => const SourceLabel(
           PublisherCheck.notChecked,
           name: 'club.aoba',
           titles: {'und': 'Aoba Club'},
         ),
       );
-      final a = GroundedAnswer('q', lang: 'en')
-        ..hits = [Hit(Passage(1, src, 'h', 'text'), 1)]
-        ..text = 'answer [1]';
-      final back = answerFromWire(answerToWire(a));
-      final l = back.hits.single.passage.source.label!;
+      final l = answerFromWire(wire).hits.single.passage.source.label!;
       expect(l.check, PublisherCheck.notChecked);
       expect(l.titleIn('en'), 'Aoba Club');
     });
   });
 
-  test('relabel follows the store', () {
-    final pkg = KnowledgePackage.open(
+  test('merged packages keep each source\'s own signer', () {
+    final mine = KnowledgePackage.open(
+      'assets/packages/jp.bousai.core.sqlite',
+      signer: 'lychnion',
+    );
+    final theirs = KnowledgePackage.open(
       'assets/packages/jp.bousai.core.sqlite',
       signer: 'club.aoba',
       signerKeyId: idOf(clubKey),
     );
-    expect(pkg.passages.first.source.label, isNull);
-    pkg.relabel((s) => store.sourceLabelOf(s.signer, s.signerKeyId));
+    final merged = KnowledgePackage.merge([mine, theirs]);
+    final n = mine.passages.length;
+    expect(merged.passages.take(n).map((p) => p.source.signer).toSet(), {
+      'lychnion',
+    });
+    expect(merged.passages.skip(n).map((p) => p.source.signer).toSet(), {
+      'club.aoba',
+    });
+    final a = GroundedAnswer('q')
+      ..hits = [Hit(merged.passages.first, 1), Hit(merged.passages[n], 1)];
     expect(
-      pkg.passages.every(
-        (p) => p.source.label?.check == PublisherCheck.notChecked,
-      ),
+      sourceLabelFor(a, a.hits[0].passage.source, store)?.isBuiltIn,
       isTrue,
+    );
+    expect(
+      sourceLabelFor(a, a.hits[1].passage.source, store)?.check,
+      PublisherCheck.notChecked,
     );
   });
 
@@ -168,11 +253,11 @@ void main() {
     );
     expect(
       sourceLabelText(l, club, 'en'),
-      'via Aoba Club · not checked by Lychnion',
+      'via “Aoba Club” · not checked by Lychnion',
     );
     expect(
       sourceLabelText(l, club, 'en', fromBase: true),
-      'via Aoba Club · not checked by Lychnion (as the base says)',
+      'via “Aoba Club” · not checked by Lychnion (as the base says)',
     );
     expect(
       sourceLabelText(
@@ -185,46 +270,32 @@ void main() {
     expect(sourceLabelText(l, null, 'en'), isNull);
   });
 
-  test('the base web page shows the label', () {
-    Source src(String id, SourceLabel? label) =>
-        Source(id, 'Guide $id', 'p', '', '', '', label: label);
+  test('the base web page shows the label and says some are unchecked', () {
+    Source src(String signer) =>
+        Source('s', 'Guide', 'p', '', '', '', signer: signer);
     final a = GroundedAnswer('q', lang: 'en')
       ..hits = [
-        Hit(
-          Passage(
-            1,
-            src(
-              's',
-              const SourceLabel(
-                PublisherCheck.notChecked,
-                name: 'club.aoba',
-                titles: {'und': 'Aoba Club'},
-              ),
-            ),
-            'h',
-            't',
-          ),
-          1,
-        ),
+        Hit(Passage(1, src('club.aoba'), 'h', 't'), 1),
         // Same source id, Lychnion's package: shown once each.
-        Hit(
-          Passage(
-            2,
-            src(
-              's',
-              const SourceLabel(PublisherCheck.builtIn, name: 'lychnion'),
-            ),
-            'h',
-            't',
-          ),
-          1,
-        ),
+        Hit(Passage(2, src('lychnion'), 'h', 't'), 1),
       ]
       ..text = 'answer [1][2]';
-    final web = webAnswer(a)['sources']! as List;
+    final page = webAnswer(
+      a,
+      labelOf: (s) => store.sourceLabelOf(s.signer, idOf(clubKey)),
+    );
+    final web = page['sources']! as List;
     expect(web, hasLength(2));
-    expect((web[0] as Map)['label'], 'via Aoba Club · not checked by Lychnion');
+    expect(
+      (web[0] as Map)['label'],
+      'via “Aoba Club” · not checked by Lychnion',
+    );
     expect((web[1] as Map).containsKey('label'), isFalse);
+    expect(page['some_unchecked'], isTrue);
+    expect(
+      (page['texts']! as Map)['someUnchecked'],
+      'Some sources were not checked by Lychnion',
+    );
   });
 
   testWidgets('the answer card says some sources were not checked', (t) async {
@@ -240,10 +311,8 @@ void main() {
               '',
               '',
               '',
-              label: const SourceLabel(
-                PublisherCheck.notChecked,
-                name: 'club.aoba',
-              ),
+              signer: 'club.aoba',
+              signerKeyId: idOf(clubKey),
             ),
             'h',
             't',
@@ -259,7 +328,14 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: ListView(
-            children: [AnswerCard(answer: a, grounded: true, done: true)],
+            children: [
+              AnswerCard(
+                answer: a,
+                grounded: true,
+                done: true,
+                labelOf: (s) => sourceLabelFor(a, s, store),
+              ),
+            ],
           ),
         ),
       ),

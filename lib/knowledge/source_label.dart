@@ -59,12 +59,22 @@ class SourceLabel {
     if (check == null || name is! String || !_name.hasMatch(name)) {
       return null;
     }
+    // Only Lychnion's own guides carry its name.
+    if (name == _lychnion && check != PublisherCheck.builtIn) return null;
     final titles = <String, String>{};
     if (j['titles'] case final Map<Object?, Object?> t) {
       for (final e in t.entries.take(4)) {
         final k = e.key, v = e.value;
         if (k is! String || !_lang.hasMatch(k) || v is! String) continue;
-        if (PublisherLink.cleanTitle(v) case final clean?) titles[k] = clean;
+        final clean = PublisherLink.cleanTitle(v);
+        // Nor words that read as part of the label line around it.
+        if (clean == null ||
+            clean.contains('·') ||
+            clean.toLowerCase().contains(_lychnion) ||
+            clean.contains('リクニオン')) {
+          continue;
+        }
+        titles[k] = clean;
       }
     }
     return SourceLabel(check, name: name, titles: titles);
@@ -72,4 +82,5 @@ class SourceLabel {
 
   static final _name = RegExp(r'^[a-z0-9][a-z0-9._-]{0,63}$');
   static final _lang = RegExp(r'^[a-z]{2,3}$');
+  static const _lychnion = 'lychnion';
 }

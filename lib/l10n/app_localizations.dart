@@ -3300,31 +3300,31 @@ abstract class AppLocalizations {
   /// No description provided for @answerSourceChecked.
   ///
   /// In en, this message translates to:
-  /// **'via {name} · checked by {app}'**
+  /// **'via “{name}” · checked by {app}'**
   String answerSourceChecked(String app, String name);
 
   /// No description provided for @answerSourceNotChecked.
   ///
   /// In en, this message translates to:
-  /// **'via {name} · not checked by {app}'**
+  /// **'via “{name}” · not checked by {app}'**
   String answerSourceNotChecked(String app, String name);
 
   /// No description provided for @answerSourceWithdrawn.
   ///
   /// In en, this message translates to:
-  /// **'via {name} · {app} took back its check'**
+  /// **'via “{name}” · {app} took back its check'**
   String answerSourceWithdrawn(String app, String name);
 
   /// No description provided for @answerSourceOtherKey.
   ///
   /// In en, this message translates to:
-  /// **'via {name} · not the key {app} checked'**
+  /// **'via “{name}” · not the key {app} checked'**
   String answerSourceOtherKey(String app, String name);
 
   /// No description provided for @answerSourceRevoked.
   ///
   /// In en, this message translates to:
-  /// **'via {name} · key revoked'**
+  /// **'via “{name}” · no longer trusted on this device'**
   String answerSourceRevoked(String name);
 
   /// No description provided for @answerSourceBaseSays.

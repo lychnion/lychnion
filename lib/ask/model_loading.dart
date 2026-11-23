@@ -21,36 +21,9 @@ mixin _ModelLoading on _AskPageBase {
   /// left by an earlier run is read only then).
   bool _loadedOnce = false;
 
-  /// The store whose vouches and publishers label the loaded sources.
-  DownloadStore? _labelStore;
-  KnowledgePackage? _labeled;
-
-  /// Labels [pkg]'s sources from Lychnion's vouches (#119), and again
-  /// whenever the vouches or the publishers change: a withdrawal learned
-  /// later shows on answers without loading the packages again.
-  void _labelSources(DownloadStore store, KnowledgePackage pkg) {
-    _labeled = pkg;
-    if (_labelStore != store) {
-      _stopLabels();
-      _labelStore = store
-        ..vouches.addListener(_relabel)
-        ..publishers.addListener(_relabel);
-    }
-    _relabel();
-  }
-
-  void _relabel() {
-    final store = _labelStore;
-    if (store == null) return;
-    _labeled?.relabel((s) => store.sourceLabelOf(s.signer, s.signerKeyId));
-    if (mounted) setState(() {});
-  }
-
-  void _stopLabels() {
-    _labelStore?.vouches.removeListener(_relabel);
-    _labelStore?.publishers.removeListener(_relabel);
-    _labelStore = null;
-  }
+  /// The store that labels answer sources by who signed their guide
+  /// (#119), set once Downloads are loaded.
+  DownloadStore? _labels;
 
   /// Loads the model on start: GGUF_MODEL_PATH, a download for AUTO_BENCH
   /// on phones, else the model from Downloads (again whenever it changes).
@@ -226,7 +199,7 @@ mixin _ModelLoading on _AskPageBase {
                 signerKeyId: i.record.keyId,
               ),
         ]);
-        _labelSources(store, pkg);
+        _labels = store;
         HybridRetriever? hybrid;
         final embedPath = DevFlags.embedPath.isNotEmpty
             ? await resolvePath(DevFlags.embedPath)

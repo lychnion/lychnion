@@ -102,17 +102,24 @@ extension PublisherLabels on DownloadStore {
 
   /// The label a source shows for the package [signer] signed with the key
   /// [keyId] (see `Source.label`): the name Lychnion checked when vouched,
-  /// else the title the publisher was added with. Null without a signer,
-  /// or when its key is not trusted here.
+  /// else the title the publisher was added with. Null only without a
+  /// signer (the app's help). A key no longer trusted here (revoked, or
+  /// its publisher removed) is [PublisherCheck.revoked]: never no label,
+  /// which would look like Lychnion's own guides.
   SourceLabel? sourceLabelOf(String? signer, String? keyId) {
     if (signer == null) return null;
     if (publishers.builtIn.known.contains(signer)) {
       return SourceLabel(PublisherCheck.builtIn, name: signer);
     }
-    if (keyId == null) return null;
-    final label = labelOfKeyId(signer, keyId);
-    if (label == null) return null;
     final added = publishers.added.where((p) => p.name == signer).firstOrNull;
+    final label = keyId == null ? null : labelOfKeyId(signer, keyId);
+    if (label == null) {
+      return SourceLabel(
+        PublisherCheck.revoked,
+        name: signer,
+        titles: {'und': ?added?.title},
+      );
+    }
     return SourceLabel(
       label.check,
       name: signer,

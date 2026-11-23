@@ -174,6 +174,7 @@
           if (x.label) s.append(' — ' + x.label);
         });
         card.append(s);
+        if (a.some_unchecked) card.append(el('div', 'note', L.someUnchecked));
       }
     } catch (err) {
       card.replaceChildren(el('div', null, T.error));

@@ -32,11 +32,11 @@ class Source {
   /// package (help, a base's answer).
   final String? signer, signerKeyId;
 
-  /// What Lychnion's vouches say about [signer] (lychnion/lychnion#119):
-  /// set when the package is loaded, and again when the vouches or the
-  /// publishers change ([KnowledgePackage.relabel]). From a base: the
-  /// base's word.
-  SourceLabel? label;
+  /// What Lychnion's vouches say about the signer, as a base labelled it
+  /// (lychnion/lychnion#119): the base's word. For sources of this
+  /// device's own packages the label is looked up from [signer] when an
+  /// answer is shown, so it follows the vouches the device knows.
+  final SourceLabel? label;
 
   /// Where the source's advice applies, as an ISO 3166 code: 'JP' (Japan),
   /// 'JP-13' (Tokyo), 'GB', 'US'. More local sources rank a little higher;
@@ -407,17 +407,6 @@ class KnowledgePackage {
   static Future<KnowledgePackage> fromAsset(String name) async {
     final store = await DownloadStore.instance();
     return open(await store.copyBundled('packages', name));
-  }
-
-  /// Labels every source again with [labelOf] (see [Source.label]).
-  void relabel(SourceLabel? Function(Source) labelOf) {
-    for (final src in {
-      ...sources.values,
-      for (final p in passages) p.source,
-      for (final a in alerts) a.source,
-    }) {
-      src.label = labelOf(src);
-    }
   }
 
   /// [signer] and [signerKeyId]: who signed the package (see
