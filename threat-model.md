@@ -19,7 +19,8 @@
   The maintainer questions are this repository's own bank,
   `docs/threat-model-questions.md`.
 - **Reporting cross-reference**: findings against a §1.11 property go to
-  GitHub private vulnerability reporting, as `SECURITY.md` says. Findings that
+  the private channels in `SECURITY.md` (GitHub private vulnerability
+  reporting, or email for reporters without a GitHub account). Findings that
   §1.3 or §1.12 rule out are closed by citing this document. `SECURITY.md`
   keeps a short summary; where the two differ, this model wins
   *(maintainer, 2026-11)*.

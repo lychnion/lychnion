@@ -9,6 +9,12 @@ Use GitHub's private reporting:
 [Report a vulnerability](https://github.com/lychnion/lychnion/security/advisories/new).
 Please do not open a public issue.
 
+No GitHub account? Write to
+[hello@lychnion.com](mailto:hello@lychnion.com) instead. Email is not
+end-to-end encrypted: describe the problem and how to reach you, and we
+will arrange a safer way to send the full details. We reply by email and
+track the report as a private advisory on our side.
+
 Say what you found, how to reproduce it, and which version or commit you
 used. We will answer as soon as we can and tell you before anything is
 made public.
