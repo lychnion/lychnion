@@ -142,9 +142,8 @@ What OpenMapTiles commits us to:
 - **Labels** from `name:ja` and `name:latin`, as Geolonia and OSM Japan
   do.
 - **Moving off Protomaps:** `lib/map/offline_theme.dart` has to be
-  rewritten for OpenMapTiles layers. Check early that
-  vector_tile_renderer draws the chosen styles, as it did not draw the
-  Protomaps v4 label expressions.
+  rewritten for OpenMapTiles layers, together with the renderer change
+  below.
 
 Shortbread is the alternative to watch. Choosing it now would rule out
 Geolonia and OSM Japan tiles as alternatives.
@@ -190,14 +189,23 @@ Other forms exist, but a grid fits terrain best:
 
 **Renderer**
 
-flutter_map draws no hillshade or 3D terrain from DEM tiles. Options:
+The prototype uses vector_map_tiles 8 with vector_map_tiles_pmtiles,
+which pins flutter_map 7. Its author now calls vector_map_tiles
+"minimally maintained" and works on mapigrade instead. So the renderer
+has to change anyway. Candidates (from their docs, 2026-11-23, not yet
+tested here):
 
-- Pre-built hillshade as raster tiles, and contours as vector tiles
-  (as the contour items do now).
-- Move the map to MapLibre Native, which reads Terrarium DEM tiles
-  directly.
+| Plugin | How it draws | Platforms | Terrain | Notes |
+| --- | --- | --- | --- | --- |
+| [flutter_map_vector_tiles](https://pub.dev/packages/flutter_map_vector_tiles) 2.12 | Pure Dart, in flutter_map ≥ 8.2 | Android, iOS, macOS, Windows, Linux, web | Hillshade from Terrarium, Mapbox or custom DEM | PMTiles local and remote (gzip tiles only); MBTiles via a companion package; style glyphs, CJK from the system font; fill-extrusion buildings |
+| [mapigrade](https://github.com/greensopinion/mapigrade) | MapLibre Native into a texture, flutter_map layers on top | Android (API 29+), iOS and macOS on arm64 | Not documented | Pre-1.0; no Windows or Linux |
+| vector_map_tiles 10 beta | Flutter GPU | Needs Flutter's main channel | Hillshade, DEM contours (beta) | Not for production yet |
+| MapLibre Native through a platform view | Native map | Android, iOS | Full, including 3D | Leaves flutter_map |
 
-This is open; it decides how much terrain work happens on the device.
+flutter_map_vector_tiles fits best: it keeps flutter_map, runs on the
+Windows and Linux computers a base may run on, and draws hillshade from
+the Terrarium tiles this note proposes. mapigrade is worth watching but
+does not run on Windows or Linux yet.
 
 **Point clouds**
 
@@ -303,12 +311,13 @@ PostGIS ────────▶ Martin (tiles on request) ──────
 Each phase works on its own.
 
 1. **Japan online:** OpenMapTiles base map on a CDN, the bundled
-   overview, one or two styles, the theme rewritten for OpenMapTiles.
+   overview, one or two styles, the move to flutter_map 8 and
+   flutter_map_vector_tiles.
 2. **Offline areas:** box selection, cell download, shared cells with
    reference counts, signed manifest, area list with size and date.
 3. **Updates:** background updates of changed cells.
 4. **Outdoor:** outdoor overlay, outdoor style, terrain and contours
-   (after the renderer decision).
+   (after the renderer test).
 5. **Map data package types:** metadata block, `grid` reader with point
    query, inundation depth as the first `grid` package.
 6. **Alternative providers:** Geolonia Maps and OSM Japan first.
@@ -330,10 +339,10 @@ Risks:
 
 Open questions:
 
-- [ ] Renderer: stay on flutter_map, or move to MapLibre Native for
-  terrain?
-- [ ] Does vector_tile_renderer draw OpenMapTiles styles well (labels,
-  Japanese text)?
+- [ ] Renderer: test flutter_map_vector_tiles on the Pixel 5a with an
+  OpenMapTiles style, Japanese labels and Terrarium hillshade.
+- [ ] Contours: draw from the DEM on the device, or keep pre-built
+  contour tiles?
 - [ ] Are Geolonia's OpenStreetMap tiles updated on a schedule we can
   rely on as an alternative?
 - [ ] Does MapTiler Planet v4 still work with OpenMapTiles 3.x styles?
