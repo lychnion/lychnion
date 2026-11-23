@@ -47,11 +47,12 @@ lychnion/lychnion#121.
    has long used (for example `www.city.sendai.jp`). Next to the code: a
    sentence saying it is the body's Lychnion key.
 3. It applies with the issue form "Apply for a vouch" in
-   [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data),
-   giving the publisher name, its name in Japanese and English, the code
+   [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data)
+   (added there with the vouch tools, the next step of #119), giving the publisher name, its name in Japanese and English, the code
    and the page's address. The form is public: no personal names, phone
-   numbers or e-mail addresses in it. Lychnion contacts the body through
-   the contact details on its official website if needed.
+   numbers or e-mail addresses in it. If Lychnion needs to ask the body
+   something, it uses the contact details on the body's official
+   website.
 
 ## How Lychnion checks
 
@@ -66,7 +67,8 @@ The person checking:
 3. checks that the name in Japanese and English is the body's own
    official name, and that the publisher name is not like a name already
    vouched for;
-4. writes the vouch as a file in `vouches/` in lychnion-data, with
+4. writes the vouch as a file in lychnion-data (where the catalog is
+   built and signed), with
    `checked` (that day), `method: official-website` and `url` (the
    page), in a pull request that someone reviews when there is someone
    to review it (the self-review rule of the lychnion org applies
@@ -75,7 +77,12 @@ The person checking:
    (lychnion/lychnion#118). The next catalog carries it to phones.
 
 Anyone can make the same check without Lychnion: the code in the app's
-add dialog and the code on the official page must be the same.
+add dialog and the code on the official page must be the same. The code
+is the key's first 6 bytes (48 bits): enough against a link made in a
+hurry, but someone with a lot of computing power could make a key with
+the same code. That is why Lychnion compares the whole key, and why a
+vouch, not the code alone, is what makes a publisher "Checked by
+Lychnion".
 
 `method` names how the key was checked. `official-website` is the only
 method so far; a new one is written down here before it is used.
@@ -83,8 +90,8 @@ method so far; a new one is written down here before it is used.
 ## Checking again, and taking a vouch back
 
 - The vouch keeps the day of the check, and the app shows it. Lychnion
-  checks the page again when the body applies with a new key, when
-  someone reports a problem, and at least once a year.
+  checks the page again when the body applies with a new key and when
+  someone reports a problem.
 - A key the body **replaces** by its own key statement stays vouched
   for: the statement proves the new key is the body's. A key the body
   **revokes** is shown as revoked, vouched for or not.
@@ -107,4 +114,10 @@ City, Prefecture, Ministry, Fire…; names `jp.go.*`, `jp.lg.*`,
 user to tick "I compared the code" before Add works. The same applies
 when the name has a vouch for another key, or a withdrawn one. It never
 refuses: an official body Lychnion has not checked must still be
-addable offline. The rules are in `lib/download/lookalike.dart`.
+addable offline. Titles are compared after folding full-width letters,
+case, spaces and separators, and Cyrillic and Greek letters drawn like
+Latin ones. It is a list, not a proof: other look-alikes (other
+scripts, words not on the list) pass, and are still labelled "not
+checked by Lychnion". Words like 市 also match names that are not
+public bodies (市場); that costs a tick. The rules are in
+`lib/download/lookalike.dart`.

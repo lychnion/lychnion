@@ -1061,7 +1061,7 @@
     },
     {
       "property": "lookalike-warning-completeness",
-      "reason": "A warning for every misleading publisher name. A list of words and look-alike letters; other names pass, still labelled \"not checked by Lychnion\"; never refuses",
+      "reason": "A warning for every misleading publisher name. A list of words and some look-alike letters; other names pass, still labelled \"not checked by Lychnion\"; never refuses. The code the user compares is 48 bits",
       "false_friend": false,
       "provenance": "documented",
       "source": "docs/vouching.md \"The warning for names that look official\""

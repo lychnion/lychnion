@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:lychnion_format/lychnion_format.dart';
 
 import 'download_store.dart';
@@ -69,5 +71,27 @@ extension PublisherLabels on DownloadStore {
       VouchStatus.revoked => PublisherCheck.revoked,
       VouchStatus.none => PublisherCheck.notChecked,
     }, r.vouch);
+  }
+
+  /// The label of the publisher that signed [r]. A record names only the
+  /// short id of its key ([recordKeyIdOf]): the label is for the key
+  /// trusted here with that id. Null when no trusted key has it (a key
+  /// revoked meanwhile, say).
+  PublisherLabel? labelOfRecord(PackageRecord r) {
+    if (publishers.builtIn.known.contains(r.publisher)) {
+      return const PublisherLabel(PublisherCheck.builtIn);
+    }
+    for (final k in trust.keysOf(r.publisher)) {
+      final List<int> bytes;
+      try {
+        bytes = base64Url.decode(base64Url.normalize(k));
+      } on FormatException {
+        continue;
+      }
+      if (bytes.length == 32 && recordKeyIdOf(bytes) == r.keyId) {
+        return labelOf(r.publisher, k);
+      }
+    }
+    return null;
   }
 }

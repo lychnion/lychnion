@@ -110,6 +110,76 @@ void main() {
     );
   });
 
+  group('a store where the vouched publisher was added', () {
+    late DownloadStore added;
+    setUp(() async {
+      final dir = Directory(
+        '${tmp.path}/added-${DateTime.now().microsecondsSinceEpoch}',
+      );
+      // Trust from its own publisher list, as on a phone: Lychnion built
+      // in, Sendai added.
+      added = DownloadStore(
+        dir,
+        publishers: PublisherList(
+          File('${dir.path}/publishers.json'),
+          builtIn: trust,
+        ),
+      );
+      await added.learnVouches([vouched]);
+      await added.publishers.add(
+        PublisherLink(name: 'jp.city.sendai', key: sendaiKey),
+      );
+    });
+
+    Future<PackageRecord> record(SimpleKeyPair by) => PackageRecord.sign({
+      'format': 1,
+      'id': 'jp.sendai.guide',
+      'kind': 'package',
+      'version': '1',
+      'publisher': 'jp.city.sendai',
+      'title': {'en': 'Guide'},
+      'files': [
+        {'name': 'g.sqlite', 'size': 1, 'sha256': 'a' * 64},
+      ],
+      'signed': '2026-11-23T09:00:00+09:00',
+    }, by);
+
+    test('a record names a short key id: labelled by the full key', () async {
+      final label = added.labelOfRecord(await record(sendai));
+      expect(label?.check, PublisherCheck.vouched);
+      // A key not trusted here: no label rather than a wrong one.
+      expect(added.labelOfRecord(await record(fake)), isNull);
+    });
+
+    test('a key the publisher replaced stays vouched', () async {
+      final next = await Ed25519().newKeyPair();
+      final s = await KeyStatement.replace(
+        publisher: 'jp.city.sendai',
+        oldKey: sendai,
+        newKey: next,
+        signed: '2026-11-23T12:00:00+09:00',
+      );
+      expect(await added.publishers.learn([s]), isTrue);
+      expect(
+        added.labelOf('jp.city.sendai', await publicKeyOf(next)).check,
+        PublisherCheck.vouched,
+      );
+    });
+
+    test('a key the publisher revoked shows as revoked', () async {
+      final s = await KeyStatement.revoke(
+        publisher: 'jp.city.sendai',
+        key: sendai,
+        signed: '2026-11-23T12:00:00+09:00',
+      );
+      expect(await added.publishers.learn([s]), isTrue);
+      final label = added.labelOf('jp.city.sendai', sendaiKey);
+      expect(label.check, PublisherCheck.revoked);
+      expect(label.isProblem, isTrue);
+      expect(label.titleIn('en', 'jp.city.sendai'), 'jp.city.sendai');
+    });
+  });
+
   group('lookalikeOf', () {
     List<Vouch> vs() => [vouched, gone];
 
@@ -119,6 +189,8 @@ void main() {
       expect(lookalikeOf('org.help', '仙台市 防災', vs()), Lookalike.vouched);
       expect(lookalikeOf('org.help', 'ＳＥＮＤＡＩ　ＣＩＴＹ', vs()), Lookalike.vouched);
       expect(lookalikeOf('org.help', 'Old Town', vs()), Lookalike.vouched);
+      // Cyrillic letters drawn like Latin ones.
+      expect(lookalikeOf('org.help', 'Ѕеndаі Сіtу', vs()), Lookalike.vouched);
       // The vouched name itself is decided by its vouch, not here.
       expect(
         lookalikeOf('jp.city.sendai', 'Sendai', vs()),
@@ -137,6 +209,9 @@ void main() {
         ('org.help', 'Ministry of Health'),
         ('org.help', 'Ｍｉｎｉｓｔｒｙ'),
         ('org.help', 'Kobe City Fire Department'),
+        ('org.help', 'KobeCity'),
+        ('org.sendai-city', null),
+        ('org.help', 'Міnіstrу'),
       ]) {
         expect(
           lookalikeOf(name, title, const []),
@@ -150,6 +225,8 @@ void main() {
       expect(lookalikeOf('club.example', 'Aoba Running Club', vs()), isNull);
       expect(lookalikeOf('jp.example', 'Electricity notes', vs()), isNull);
       expect(lookalikeOf('club.example', null, vs()), isNull);
+      expect(lookalikeOf('club.example', '', vs()), isNull);
+      expect(lookalikeOf('club.example', 'A', vs()), isNull);
     });
   });
 
@@ -209,6 +286,12 @@ void main() {
       await t.tap(find.byType(CheckboxListTile));
       await t.pump();
       expect(add(t).onPressed, isNotNull);
+    });
+
+    testWidgets('a withdrawn vouch: warned, tick', (t) async {
+      await open(t, PublisherLink(name: 'jp.town.gone', key: sendaiKey));
+      expect(find.textContaining('took back its check'), findsOneWidget);
+      expect(add(t).onPressed, isNull);
     });
 
     testWidgets('the vouched name with another key: warned, tick', (t) async {

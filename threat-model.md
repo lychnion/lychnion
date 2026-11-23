@@ -843,7 +843,7 @@ proves origin, not truth.
 | `base-key-id-collision` | Protection against a 48-bit key-id collision that replaces a trusted base key | Denial of service only; the attacker cannot sign as the base | correctness-only | no | *(maintainer, 2026-11)* |
 | `source-label-destination` | That a source link's label names its destination, or that it uses https | Links from packages or bases | correctness-only | **yes** | *(maintainer, 2026-11)* |
 | `vouch-means-vetted` | That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not checked is not official | A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access | security-critical | **yes** | *(documented, docs/vouching.md "What a vouch does, and what it never does")* |
-| `lookalike-warning-completeness` | A warning for every misleading publisher name | A list of words and look-alike letters; other names pass, still labelled "not checked by Lychnion"; never refuses | security-critical | no | *(documented, docs/vouching.md "The warning for names that look official")* |
+| `lookalike-warning-completeness` | A warning for every misleading publisher name | A list of words and some look-alike letters; other names pass, still labelled "not checked by Lychnion"; never refuses. The code the user compares is 48 bits | security-critical | no | *(documented, docs/vouching.md "The warning for names that look official")* |
 
 Well-known attack classes left open: **prompt injection** by a trusted
 publisher's text (`publisher-content`); **freeze and replay** of old signed

@@ -300,6 +300,8 @@ class _AddDialogState extends State<_AddDialog> {
     final warning = switch ((label.check, widget.lookalike)) {
       (PublisherCheck.withdrawn, _) => l.publishersWithdrawnBody(app),
       (PublisherCheck.otherKey, _) => l.publishersNotVouchedKeyBody(app),
+      // Refused before the dialog (problemWith); said all the same.
+      (PublisherCheck.revoked, _) => l.publishersKeyRevoked,
       (_, Lookalike.vouched) => l.publishersLooksVouched(app),
       (_, Lookalike.publicBody) => l.publishersLooksPublic(app),
       _ => null,

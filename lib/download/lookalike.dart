@@ -31,6 +31,7 @@ Lookalike? lookalikeOf(String name, String? title, Iterable<Vouch> vouches) {
   }
   if (_publicName(name) ||
       _publicJa.any(t.contains) ||
+      _publicWords(name) ||
       (title != null && _publicWords(title))) {
     return Lookalike.publicBody;
   }
@@ -46,15 +47,30 @@ String foldTitle(String s) => [
 ].join();
 
 /// [s] in lower case, with full-width ASCII (U+FF01–U+FF5E) and the
-/// ideographic space as their ASCII forms.
-String _narrow(String s) => String.fromCharCodes([
-  for (final c in s.runes)
-    c >= 0xFF01 && c <= 0xFF5E
+/// ideographic space as their ASCII forms, and Cyrillic and Greek letters
+/// that look like Latin ones as those ("Ѕеndаі" → "sendai").
+String _narrow(String s) {
+  final b = StringBuffer();
+  for (final c in s.toLowerCase().runes) {
+    final n = c >= 0xFF01 && c <= 0xFF5E
         ? c - 0xFEE0
         : c == 0x3000
         ? 0x20
-        : c,
-]).toLowerCase();
+        : c;
+    final ch = String.fromCharCode(n).toLowerCase();
+    b.write(_latinLookalikes[ch] ?? ch);
+  }
+  return b.toString();
+}
+
+/// Cyrillic and Greek lower-case letters drawn like Latin ones.
+const _latinLookalikes = {
+  'а': 'a', 'в': 'b', 'е': 'e', 'ё': 'e', 'һ': 'h', 'і': 'i', 'ј': 'j', //
+  'к': 'k', 'м': 'm', 'н': 'h', 'о': 'o', 'р': 'p', 'с': 'c', 'ѕ': 's',
+  'т': 't', 'у': 'y', 'х': 'x', 'ԁ': 'd', 'ԛ': 'q', 'ԝ': 'w', 'ү': 'y',
+  'α': 'a', 'β': 'b', 'ε': 'e', 'ι': 'i', 'κ': 'k', 'ν': 'v', 'ο': 'o',
+  'ρ': 'p', 'τ': 't', 'υ': 'u', 'χ': 'x', 'ϲ': 'c',
+};
 
 const _separators = {
   ' ', '\t', '.', ',', '-', '_', '・', '･', '·', '(', ')', '（', '）', //
@@ -93,6 +109,12 @@ const _publicEn = {
   'cabinet', 'agency',
 };
 
-/// Whether [title] has an English word of a public body.
-bool _publicWords(String title) =>
-    _narrow(title).split(RegExp('[^a-z]+')).any(_publicEn.contains);
+/// Whether [text] (a title, or a name's parts) has an English word of a
+/// public body, also when written together ("KobeCity", "sendai-city").
+bool _publicWords(String text) {
+  final spaced = text.replaceAllMapped(
+    RegExp('([a-z])([A-Z])'),
+    (m) => '${m[1]} ${m[2]}',
+  );
+  return _narrow(spaced).split(RegExp('[^a-z]+')).any(_publicEn.contains);
+}
