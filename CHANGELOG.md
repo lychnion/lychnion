@@ -264,10 +264,11 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Formats
 
-Catalog `format: 2` (with an optional `keys` list), signed record
-`format: 1`, key statement `format: 1`, key backup `format: 1`, base
-protocol `v: 1`. Older builds ignore `keys`: they do not accept a
-replacement key or honour a revocation.
+Catalog `format: 2` (with optional `keys` and `vouches` lists), signed
+record `format: 1`, key statement `format: 1`, vouch `format: 1`, key
+backup `format: 1`, base protocol `v: 1`. Older builds ignore `keys`:
+they do not accept a replacement key or honour a revocation. They also
+ignore `vouches` (Lychnion's labels for official publishers, #119).
 
 ### Known gaps
 

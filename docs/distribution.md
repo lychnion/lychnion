@@ -560,11 +560,62 @@ What cities and others need, as planned:
   (`lychnion-data/tool/build_package.py`, `lychnion-data/tool/add_translations.py`,
   `lychnion-data/tool/pdf_sections.py`).
 
-### Open: whom to trust
+### Whom to trust: vouches
 
 The app has Lychnion's key built in; other keys are added by QR code at a
-shelter. Lychnion could also vouch for known city keys with a signed
-list, so people do not have to judge keys themselves. To decide later.
+shelter. Lychnion also vouches for official publishers
+(lychnion/lychnion#119), so people do not have to judge a key alone. The
+list gives labels, not access: a publisher never needs to be on it to
+publish, a vouch never adds a publisher by itself, and it never lets one
+publish more (models and safety lines stay Lychnion's).
+
+A **vouch** (`format: 1`, `packages/lychnion_format/lib/src/vouch.dart`)
+is signed by a key of the `lychnion` publisher and names a publisher's
+key, its name for people (`title`, `ja`/`en`), the day the key was
+checked, how (`method`, for example `official-website`) and where
+(`url`, https). It travels in a catalog's optional `vouches` list, next
+to `keys`, through every carrier like other signed data:
+
+```json
+{"format": 1,
+ "publisher": "jp.city.sendai", "key": "<Ed25519, base64url>",
+ "title": {"ja": "仙台市", "en": "Sendai City"},
+ "checked": "2026-11-23", "method": "official-website",
+ "url": "https://www.city.sendai.jp/…",
+ "signed": "2026-11-23T14:00:00+09:00",
+ "signer": "<Lychnion's key>", "signature": "…"}
+```
+
+- Only the listed fields, base64url written one way, at most 500 per
+  catalog or stick (about 300 KB; older apps download them too), and no
+  more checks after 32 wrong signatures from one source. A title has no
+  control, format (zero-width, direction) or separator characters and at
+  most 60 characters; the address is plain https, without `user@` or a
+  port. `signed` is a time with seconds and a zone (`Z` or `+09:00`)
+  between 2020 and 2100, so every device orders vouches the same way and
+  no vouch can be dated beyond any later withdrawal.
+- It counts only when its `signer` is a key the device trusts for
+  `lychnion`, after key statements: a successor of Lychnion's key may
+  vouch, a revoked key's vouches lapse.
+- **The newest vouch for a publisher name decides** (on the same time, a
+  withdrawal wins, then the same one on every device). Lychnion takes a vouch back with a newer one marked
+  `"withdrawn": true`; it re-vouches with a newer one again. A
+  withdrawal can be held back by a carrier until freshness exists
+  (lychnion/lychnion#117).
+- A vouched key's successors, and the keys it replaced, by the
+  publisher's own key statements, are vouched too; a key the publisher
+  revoked shows as revoked. A link with the same name but another key is
+  told apart ("another key than the vouched one").
+- A device keeps vouches as they came and checks them again with its
+  current keys whenever it reads them.
+- A catalog too large for 2 MB leaves vouches out before key statements
+  (withdrawals last).
+
+**Older apps** ignore `vouches`, and leave them out when they write a
+catalog (a base, a stick, a node), as with `keys`.
+
+Showing the labels, carrying and storing vouches on devices, and how
+Lychnion checks a publisher are the next steps of #119.
 
 ## Security
 
