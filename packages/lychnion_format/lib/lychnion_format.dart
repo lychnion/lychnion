@@ -1,5 +1,6 @@
 /// Lychnion's signed package records (record format 1), key statements
-/// (format 1), attestations (format 1), publisher key backups (format 1) and
+/// (format 1), attestations (format 1), publisher statuses (format 1),
+/// publisher key backups (format 1) and
 /// catalogs (format 2).
 ///
 /// See docs/distribution.md and docs/versioning.md in the app repository.
@@ -10,4 +11,5 @@ export 'src/record.dart';
 export 'src/key_backup.dart';
 export 'src/key_statement.dart';
 export 'src/attestation.dart';
+export 'src/publisher_status.dart';
 export 'src/catalog_document.dart';

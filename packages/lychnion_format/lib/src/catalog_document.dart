@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'key_statement.dart';
 import 'record.dart';
 import 'attestation.dart';
+import 'publisher_status.dart';
 
 // A catalog (catalog.json, format 2), as written by the app (base, USB
 // stick), the headless node and lychnion-data's tools, and read by all of
@@ -18,13 +19,15 @@ import 'attestation.dart';
 ///  "mirrors": ["https://node.example.org/"],
 ///  "keys": [<key statement>, …],
 ///  "attestations": [<attestation>, …],
+///  "status": [<publisher status>, …],
 ///  "base": "https://…/", "refresh": "https://…/catalog.json"}
 /// ```
 ///
 /// `records` is required; the rest is optional. Older apps read only
 /// `records`, `urls` (one address per file), `base` and `refresh`, and
-/// ignore the rest. Apps before `attestations` (lychnion/lychnion#119) ignore
-/// them, and leave them out when they write a catalog (a base, a stick).
+/// ignore the rest. Apps before `attestations` (lychnion/lychnion#119) or
+/// `status` (lychnion/lychnion#117) ignore them, and leave them out when they
+/// write a catalog (a base, a stick).
 class CatalogDocument {
   CatalogDocument({
     required List<Object?> records,
@@ -32,13 +35,15 @@ class CatalogDocument {
     List<String> mirrors = const [],
     List<Object?> keys = const [],
     List<Object?> attestations = const [],
+    List<Object?> status = const [],
     this.base,
     this.refresh,
   }) : records = List.unmodifiable(records),
        urls = Map.unmodifiable(urls),
        mirrors = List.unmodifiable(mirrors),
        keys = List.unmodifiable(keys),
-       attestations = List.unmodifiable(attestations);
+       attestations = List.unmodifiable(attestations),
+       status = List.unmodifiable(status);
 
   static const format = 2;
 
@@ -60,12 +65,15 @@ class CatalogDocument {
   /// Attestations as given (see Attestation.checkAll).
   final List<Object?> attestations;
 
+  /// Publisher statuses as given (see PublisherStatus.checkAll).
+  final List<Object?> status;
+
   final String? base, refresh;
 
   /// Reads [text]. Throws [CatalogFormatException] when it is not JSON,
   /// not a format 2 catalog, or `urls` is not an object (its addresses
   /// matter). Optional fields only advise (`mirrors`, `keys`, `attestations`,
-  /// `base`, `refresh`): of the wrong type they are ignored, as older
+  /// `status`, `base`, `refresh`): of the wrong type they are ignored, as older
   /// readers did.
   /// Entries of `urls` and `mirrors` that are not strings are left out.
   factory CatalogDocument.parse(String text) {
@@ -101,6 +109,7 @@ class CatalogDocument {
       ],
       keys: opt<List<Object?>>('keys') ?? const [],
       attestations: opt<List<Object?>>('attestations') ?? const [],
+      status: opt<List<Object?>>('status') ?? const [],
       base: opt<String>('base'),
       refresh: opt<String>('refresh'),
     );
@@ -112,11 +121,13 @@ class CatalogDocument {
   /// keeps the order it shows. At most [KeyStatement.maxPerSource] of [keys],
   /// revocations first ([KeyStatement.capped]), and at most
   /// [Attestation.maxPerSource] of [attestations], withdrawals first
-  /// ([Attestation.capped]).
+  /// ([Attestation.capped]). Of [status], the newest of each publisher
+  /// ([PublisherStatus.newest]), at most [PublisherStatus.maxPerSource].
   factory CatalogDocument.byHash(
     Iterable<PackageRecord> records, {
     Iterable<KeyStatement> keys = const [],
     Iterable<Attestation> attestations = const [],
+    Iterable<PublisherStatus> status = const [],
     List<String> mirrors = const [],
     bool sort = true,
   }) {
@@ -140,7 +151,21 @@ class CatalogDocument {
       attestations: [
         for (final v in Attestation.capped({...attestations})) v.json,
       ],
+      status: _statusFor(status),
     );
+  }
+
+  /// The newest status of each publisher in [given], at most
+  /// [PublisherStatus.maxPerSource], chosen in [PublisherStatus.keepOrder]
+  /// (Lychnion's first, then the newest) and sorted by publisher, so the
+  /// same statuses give the same text.
+  static List<Object?> _statusFor(Iterable<PublisherStatus> given) {
+    final newest = PublisherStatus.newest(given);
+    final order = PublisherStatus.keepOrder([for (final s in newest) s.json]);
+    final kept = [
+      for (final i in order.take(PublisherStatus.maxPerSource)) newest[i],
+    ]..sort((a, b) => a.publisher.compareTo(b.publisher));
+    return [for (final s in kept) s.json];
   }
 
   /// Fields in the order the tools always wrote them; `urls` always
@@ -154,6 +179,7 @@ class CatalogDocument {
     if (mirrors.isNotEmpty) 'mirrors': mirrors,
     if (keys.isNotEmpty) 'keys': keys,
     if (attestations.isNotEmpty) 'attestations': attestations,
+    if (status.isNotEmpty) 'status': status,
   };
 
   /// How many of [given] (each once) [written] leaves out to fit
@@ -171,9 +197,16 @@ class CatalogDocument {
     CatalogDocument written,
   ) => {for (final v in given) v.id}.length - written.attestations.length;
 
+  /// How many of [given] (each once) [written] leaves out to fit, as
+  /// [keysLeftOut] for statuses.
+  static int statusLeftOut(
+    Iterable<PublisherStatus> given,
+    CatalogDocument written,
+  ) => PublisherStatus.newest(given).length - written.status.length;
+
   /// The file text (indented, ending in a newline). Records come first: when
-  /// the catalog would be over [maxBytes], attestations and then key statements
-  /// are left out ([fitted]). Throws [CatalogTooLarge] when the records alone
+  /// the catalog would be over [maxBytes], attestations, then key statements,
+  /// then statuses are left out ([fitted]). Throws [CatalogTooLarge] when the records alone
   /// are over it: no reader would take it.
   String encode() => _text(fitted());
 
@@ -188,12 +221,15 @@ class CatalogDocument {
   /// statements go only when all attestations are out, chosen as
   /// [KeyStatement.capped] chooses them ([KeyStatement.keepOrder]: revocations
   /// and theft proofs last, chains cut from their newest end). Their order is
-  /// otherwise kept. Throws [CatalogTooLarge] when even without both it does
-  /// not fit.
+  /// otherwise kept. Statuses go last (they carry the newest revocations and
+  /// withdrawals themselves), chosen in [PublisherStatus.keepOrder]
+  /// (Lychnion's first). Throws [CatalogTooLarge] when even without all three
+  /// it does not fit.
   CatalogDocument fitted() {
     if (_size(this) <= maxBytes) return this;
     final keyOrder = KeyStatement.keepOrder(keys);
     final attestationOrder = Attestation.keepOrder(attestations);
+    final statusOrder = PublisherStatus.keepOrder(status);
     List<Object?> firstOf(List<Object?> all, List<int> order, int n) {
       final keep = order.take(n).toSet();
       return [
@@ -202,15 +238,17 @@ class CatalogDocument {
       ];
     }
 
-    CatalogDocument keeping(int nKeys, int nAttestations) => CatalogDocument(
-      records: records,
-      urls: urls,
-      mirrors: mirrors,
-      keys: firstOf(keys, keyOrder, nKeys),
-      attestations: firstOf(attestations, attestationOrder, nAttestations),
-      base: base,
-      refresh: refresh,
-    );
+    CatalogDocument keeping(int nKeys, int nAttestations, [int? nStatus]) =>
+        CatalogDocument(
+          records: records,
+          urls: urls,
+          mirrors: mirrors,
+          keys: firstOf(keys, keyOrder, nKeys),
+          attestations: firstOf(attestations, attestationOrder, nAttestations),
+          status: firstOf(status, statusOrder, nStatus ?? status.length),
+          base: base,
+          refresh: refresh,
+        );
 
     /// The largest n in 0..max with fits(n), given fits(0): a binary
     /// search, a few encodings instead of one per entry left out.
@@ -228,7 +266,10 @@ class CatalogDocument {
     }
 
     bool fits(CatalogDocument c) => _size(c) <= maxBytes;
-    if (!fits(keeping(0, 0))) throw const CatalogTooLarge();
+    if (!fits(keeping(0, 0))) {
+      if (!fits(keeping(0, 0, 0))) throw const CatalogTooLarge();
+      return keeping(0, 0, most(status.length, (n) => fits(keeping(0, 0, n))));
+    }
     if (fits(keeping(keys.length, 0))) {
       return keeping(
         keys.length,

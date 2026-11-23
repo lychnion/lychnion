@@ -532,6 +532,65 @@ they have any connection, and phones on a shelter's Wi-Fi get it there.
 Current facts (shelter status, closed roads) already travel the same way,
 signed, from shelter computers.
 
+### Freshness: publisher status
+
+Offline, whoever carries data (a mirror, a USB stick, a base, a phone
+nearby) can always hold something back: a newer version, a key
+revocation, an attestation taken back. No signature prevents that. A
+**publisher status** (lychnion/lychnion#117) makes it visible instead,
+and never stops old data from working.
+
+A status (`format: 1`,
+`packages/lychnion_format/lib/src/publisher_status.dart`) is signed by a
+key of its publisher and says what is newest from it:
+
+```json
+{"format": 1, "publisher": "lychnion",
+ "signed": "2026-11-24T09:00:00+09:00",
+ "items": {"jp.bousai.core": "2026.11.10", "jp.map.kushimoto": "2026.11.3"},
+ "keys": [<key statement>, …],
+ "attestations": [<withdrawn attestation>, …],
+ "signer": "<key>", "signature": "…"}
+```
+
+- `items`: the newest version of each of its items (at most 1,000;
+  ids and versions as records have them).
+- `keys`: its own key statements (replacements, revocations), in full,
+  only about its own keys. A successor key may sign the status together
+  with the statement that names it; only statements a key trusted here
+  made are verified for that (`relevantStatements`), and for at most 8
+  statuses of one catalog, so statuses cannot make a reader check
+  hundreds of statements about keys of a stranger. A reader that knows
+  the replacement from the catalog's `keys` needs no inline check.
+- `attestations`: only in Lychnion's status, and only withdrawals, in
+  full. A carrier that passes on the newest status passes on these too;
+  holding them back means holding back the whole status, which then
+  shows as old news.
+- At most 512 KB, a signing time as for attestations (seconds and a
+  zone, 2020 to 2100), and the newest status of a publisher decides (on
+  the same time, the same one on every device).
+
+It travels in a catalog's optional `status` list (the newest of each
+publisher, at most 100), through every carrier like other signed data. A
+catalog too large for 2 MB leaves statuses out last, after attestations
+and key statements; Lychnion's is kept first. Older apps ignore `status`.
+
+What a device will do with it (the next steps of #117): keep the newest
+status of each publisher it trusts; take in the key statements and
+withdrawals it carries; say when a newer version of an item exists that
+is not on the device; show how old an item's data and the latest news
+are; and, after 30 days without a newer status from Lychnion, say gently
+that its data may be out of date. Lychnion's tools will sign a status
+with every catalog; other publishers can sign one with the same format
+later.
+
+A thief holding a publisher's key can sign a status too, also one dated
+far ahead with old `items` and no revocation. So a device must take in
+the key statements and withdrawals of **every** valid status it sees, not
+only of the newest; check the statuses it keeps again with its current
+keys whenever it reads them (a revoked key's status then lapses); and not
+let a status signed more than a day ahead of its own clock decide.
+
 ### Publishing your own packages
 
 Built in a first slice (2026-11-19, step 6) in its own repository,

@@ -279,9 +279,10 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Formats
 
-Catalog `format: 2` (with optional `keys` and `attestations` lists), signed
-record `format: 1`, key statement `format: 1`, attestation `format: 1`, key
-backup `format: 1`, base protocol `v: 1`. Older builds ignore `keys`:
+Catalog `format: 2` (with optional `keys`, `attestations` and `status`
+lists), signed record `format: 1`, key statement `format: 1`, attestation
+`format: 1`, publisher status `format: 1`, key backup `format: 1`, base
+protocol `v: 1`. Older builds ignore `keys`:
 they do not accept a replacement key or honour a revocation. They also
 ignore `attestations` (Lychnion's labels for official publishers, #119).
 The app keeps attestations in `downloads/attestations.json` (`format: 1`) and
@@ -289,6 +290,11 @@ passes them on with sticks and a base's catalog; a node keeps those of
 every source it pulls and passes them on. A source in a base's answer
 may carry a `label` (who signed its guide, as the base labels it);
 older phones ignore it.
+A publisher status (#117) says what is newest from a publisher: its
+items' newest versions, its key statements and, for Lychnion, the
+attestations it took back. It travels in a catalog's `status` list; the
+format is defined, devices do not use it yet. Older builds ignore
+`status`.
 
 ### Known gaps
 
