@@ -58,9 +58,10 @@ lychnion/lychnion#121.
    key" in
    [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data/issues/new/choose),
    giving the publisher name, its name in Japanese and English, the
-   publisher link, the code and the page's address. The form is public: no personal names, phone
-   numbers or e-mail addresses in it. If Lychnion needs to ask the body
-   something, it uses the contact details on the body's official
+   publisher link, the code and the page's address. The form needs a
+   GitHub account and is public: no personal names, phone numbers or
+   e-mail addresses in it. If Lychnion needs to ask the body something,
+   it uses the contact details on the body's official
    website.
 
 ## How Lychnion checks
