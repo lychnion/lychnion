@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:fcfc812add915910fad28e810ddb5779881e47e1935dda333edea57af0bbbf03
+prose_version: threat-model.md@sha256:f184bb0d43ebb10bd57ecf683b1901b8d73c9db766daea0f9c03b9c1d5e048c9
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1932,7 +1932,7 @@ properties_claimed:
     local network: a private IPv4 address, a link-local or private IPv6 address, a `.local` name, or loopback
     in debug builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an older build is checked
     again when the settings load and before connecting. Release builds leave the question, answer, search query,
-    matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:95`).'
+    matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:99`).'
   violation_symptoms:
   - info-leak
   provenance:

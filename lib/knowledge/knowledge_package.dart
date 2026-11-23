@@ -320,12 +320,32 @@ class KnowledgePackage {
       });
     }
     final vectors = <String, List<List<double>>>{};
-    for (final model in packages.first.vectors.keys) {
-      if (packages.every(
-        (p) => p.vectors[model]?.length == p.passages.length,
-      )) {
+    bool complete(KnowledgePackage p, String key) =>
+        p.vectors[key]?.length == p.passages.length;
+    for (final model in packages.first.vectors.keys.where(
+      (k) => !k.contains('@'),
+    )) {
+      if (packages.every((p) => complete(p, model))) {
         vectors[model] = [for (final p in packages) ...p.vectors[model]!];
       }
+    }
+    // Vectors of the texts in another language (`<model>@<lang>`) are kept
+    // where some packages ship them: an empty vector stands for none, so
+    // one package without them does not turn them off for all
+    // (lychnion/lychnion#85).
+    final textKeys = {
+      for (final p in packages)
+        for (final k in p.vectors.keys)
+          if (k.contains('@') && vectors.containsKey(k.split('@').first)) k,
+    };
+    for (final key in textKeys) {
+      vectors[key] = [
+        for (final p in packages)
+          if (complete(p, key))
+            ...p.vectors[key]!
+          else
+            for (final _ in p.passages) const <double>[],
+      ];
     }
     return KnowledgePackage._(
       [for (final p in packages) p.id].join('+'),

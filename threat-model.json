@@ -813,7 +813,7 @@
       "property": "device-egress",
       "violation_symptom": "info-leak",
       "severity_tier": "security",
-      "conditions": "questions leave the device only to a base the user connected to on the local network; position never leaves; release builds do not log questions, answers or position. A base address must be on the local network: a private IPv4 address, a link-local or private IPv6 address, a `.local` name, or loopback in debug builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an older build is checked again when the settings load and before connecting. Release builds leave the question, answer, search query, matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:95`).",
+      "conditions": "questions leave the device only to a base the user connected to on the local network; position never leaves; release builds do not log questions, answers or position. A base address must be on the local network: a private IPv4 address, a link-local or private IPv6 address, a `.local` name, or loopback in debug builds and on desktops (`lib/base/base_link.dart:124`); a base saved by an older build is checked again when the settings load and before connecting. Release builds leave the question, answer, search query, matched sources and region out of the log, and errors keep only their type (`lib/app/dev_flags.dart:99`).",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },

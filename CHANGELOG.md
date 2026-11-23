@@ -78,6 +78,17 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Changed
 
+- Search gives the model the rest of a guide's section when fewer
+  passages than it reads (4) pass the relevance cut-off: the Japanese question about
+  carbon monoxide in a tent found only the prevention passage, now also
+  the symptoms and what to do (#85).
+- Search compares an English question with a passage's English text when
+  the guide ships vectors for it (`<model>@en`, from
+  [lychnion-data](https://github.com/lychnion/lychnion-data)), and across
+  languages otherwise, as before (also for a guide without them next to
+  one with them). With them, "water for four people for
+  three days" in English finds its source (#85); the bundled guides get
+  them with the next data release.
 - A base builds and fits its catalog again only when what is installed
   or the key statements changed, instead of for every phone that asks
   (about 6 ms each time for a catalog near 2 MB). It still reads the

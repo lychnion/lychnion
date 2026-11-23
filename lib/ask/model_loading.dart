@@ -191,6 +191,7 @@ mixin _ModelLoading on _AskPageBase {
             pkg,
             _embedder,
             minCosine: double.parse(DevFlags.minCos),
+            embedTexts: DevFlags.embedTexts,
           );
           await hybrid.index();
           _log({
@@ -352,7 +353,7 @@ mixin _ModelLoading on _AskPageBase {
   /// Logs the ranking for every eval question, so the cut-off can be tuned.
   Future<void> _logRetrieval(HybridRetriever hybrid) async {
     for (final e in evalQuestions) {
-      final ranked = await hybrid.rankAll(e.text);
+      final ranked = await hybrid.rankAll(e.text, lang: e.lang);
       _log({
         'event': 'rank',
         'q': e.text,

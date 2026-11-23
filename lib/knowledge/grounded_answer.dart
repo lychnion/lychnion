@@ -255,7 +255,12 @@ class GroundedAnswerer {
     if (help case final h?
         when alerts.isEmpty && (isAppQuestion(q) || isAppQuestion(search))) {
       final hits = helpHybrid != null
-          ? await helpHybrid!.search(search, limit: topK, original: q)
+          ? await helpHybrid!.search(
+              search,
+              limit: topK,
+              original: q,
+              lang: lang,
+            )
           : Retriever(h).search(search, limit: topK);
       if (hits.isNotEmpty) {
         answer.hits = hits;
@@ -270,7 +275,7 @@ class GroundedAnswerer {
     answer.hits = sameAnimal(
       [q, search],
       hybrid != null
-          ? await hybrid!.search(search, limit: topK, original: q)
+          ? await hybrid!.search(search, limit: topK, original: q, lang: lang)
           : retriever.search(search, limit: topK),
     );
     onUpdate();
