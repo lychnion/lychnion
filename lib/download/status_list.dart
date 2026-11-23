@@ -60,7 +60,9 @@ class StatusList extends ChangeNotifier {
   /// statuses whose inline key statements and withdrawals are all in
   /// [statements] and [attestations] (the ids the device keeps). One whose
   /// contents the device lost (a reset file, a save that failed) is read
-  /// again, so they are taken in again.
+  /// again, so they are taken in again; so is one carrying statements the
+  /// device does not keep (about publishers it does not know): one check
+  /// each, within PublisherStatus.checkAll's limits.
   Set<String> knownIds({
     required Set<String> statements,
     required Set<String> attestations,
@@ -117,6 +119,8 @@ class StatusList extends ChangeNotifier {
     );
     _set(_deciding(checked));
     notifyListeners();
+    // A status signed too far ahead of the clock (a clock set back) is left
+    // out here and from the next save; any carrier brings it back.
   }
 
   /// Keeps those of [learned] that are newer than what is kept for their
@@ -132,8 +136,12 @@ class StatusList extends ChangeNotifier {
     final now = trust();
     final next = Map.of(_status);
     var changed = false;
-    for (final s in _deciding(learned)) {
-      if (!_trusted(s, now)) continue;
+    // Trusted ones only, before picking the newest: a revoked key's status
+    // dated later must not hide the real one in the same batch.
+    for (final s in _deciding([
+      for (final s in learned)
+        if (_trusted(s, now)) s,
+    ])) {
       final cur = next[s.publisher];
       // One whose key was revoked meanwhile no longer counts: a replacement
       // signed earlier (a thief's status dated later) must still be kept.

@@ -132,6 +132,10 @@ void main() {
       final real = await status(by: next, signed: '2026-11-24T10:00:00+09:00');
       expect(await l.learn([real], () => revoked), isTrue);
       expect(l.statusFor('lychnion', revoked), real);
+      // Both in one batch (one catalog): the real one is still kept.
+      final fresh = list();
+      expect(await fresh.learn([thief, real], () => revoked), isTrue);
+      expect(fresh.statusFor('lychnion', revoked), real);
     });
 
     test('a far-future status in the file never decides', () async {
@@ -293,7 +297,10 @@ void main() {
       final here = store('here');
       await install(here, 'jp.a');
       final stick = Directory('${tmp.path}/stick')..createSync();
-      final ahead = await status(signed: '2027-06-01T00:00:00+09:00');
+      // A year after the real clock (copyToStick uses it).
+      final ahead = await status(
+        signed: _stamp(DateTime.now().add(const Duration(days: 365))),
+      );
       // An older stick that carried a stolen key's status dated far ahead.
       File('${stick.path}/catalog.json').writeAsStringSync(
         jsonEncode({
@@ -327,3 +334,6 @@ void main() {
     expect(c.status, [st]);
   });
 }
+
+/// [t] as a signing time in UTC with seconds (PublisherStatus rules).
+String _stamp(DateTime t) => '${t.toUtc().toIso8601String().split('.').first}Z';

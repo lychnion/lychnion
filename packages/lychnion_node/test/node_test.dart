@@ -703,7 +703,9 @@ void main() {
       // A far-future one from a trusted key does not push it out.
       final ahead = await PublisherStatus.sign(
         publisher: 'lychnion',
-        signed: '2027-06-01T00:00:00+09:00',
+        // A year after the real clock (pull uses it).
+        signed:
+            '${DateTime.now().add(const Duration(days: 365)).toUtc().toIso8601String().split('.').first}Z',
         items: const {},
         signer: lychnion,
       );
