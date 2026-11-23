@@ -707,9 +707,13 @@
   "downloadsKey": "Key",
   "downloadsFilterKind": "Kind",
   "webError": "The base could not answer. Please try again.",
+  "webPageUnchecked": "This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base's screen and official alerts. The Lychnion app checks that answers really come from the base.",
+  "@webPageUnchecked": {
+    "description": "Browser page for phones without the app (assets/web/base.html), at the top: the page is plain http and not signed (lychnion/lychnion#116)."
+  },
   "baseWithApp": "With the app",
   "baseInBrowser": "In the browser",
-  "baseBrowserHint": "For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.",
+  "baseBrowserHint": "For phones without the app: opens a page from this computer, with answers to questions. The page is not checked and shows no shelter status or warnings: anyone on this Wi-Fi could change it. Show those on this screen or tell people directly.",
   "shareOnNetwork": "Use this computer as a base",
   "shareOnNetworkHint": "Phones on the same Wi-Fi can ask this computer, and download guides and maps from it.",
   "shareName": "Base name",

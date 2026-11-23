@@ -1803,6 +1803,12 @@ abstract class AppLocalizations {
   /// **'The base could not answer. Please try again.'**
   String get webError;
 
+  /// Browser page for phones without the app (assets/web/base.html), at the top: the page is plain http and not signed (lychnion/lychnion#116).
+  ///
+  /// In en, this message translates to:
+  /// **'This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base\'s screen and official alerts. The Lychnion app checks that answers really come from the base.'**
+  String get webPageUnchecked;
+
   /// No description provided for @baseWithApp.
   ///
   /// In en, this message translates to:
@@ -1818,7 +1824,7 @@ abstract class AppLocalizations {
   /// No description provided for @baseBrowserHint.
   ///
   /// In en, this message translates to:
-  /// **'For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.'**
+  /// **'For phones without the app: opens a page from this computer, with answers to questions. The page is not checked and shows no shelter status or warnings: anyone on this Wi-Fi could change it. Show those on this screen or tell people directly.'**
   String get baseBrowserHint;
 
   /// No description provided for @shareOnNetwork.

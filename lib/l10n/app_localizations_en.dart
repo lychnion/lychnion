@@ -1075,6 +1075,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webError => 'The base could not answer. Please try again.';
 
   @override
+  String get webPageUnchecked =>
+      'This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base\'s screen and official alerts. The Lychnion app checks that answers really come from the base.';
+
+  @override
   String get baseWithApp => 'With the app';
 
   @override
@@ -1082,7 +1086,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get baseBrowserHint =>
-      'For phones without the app: opens a page from this computer. Questions and answers stay on this Wi-Fi.';
+      'For phones without the app: opens a page from this computer, with answers to questions. The page is not checked and shows no shelter status or warnings: anyone on this Wi-Fi could change it. Show those on this screen or tell people directly.';
 
   @override
   String get shareOnNetwork => 'Use this computer as a base';

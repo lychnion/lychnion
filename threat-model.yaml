@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:f184bb0d43ebb10bd57ecf683b1901b8d73c9db766daea0f9c03b9c1d5e048c9
+prose_version: threat-model.md@sha256:3d421e377633e02572446e2bc325b83571c8201b9c8c15c9506d8b8214ab33fc
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -2163,7 +2163,7 @@ properties_disclaimed:
 - id: browser-page-integrity
   components:
   - base-server
-  conditions: Integrity of the browser page for phones without the app. Plain http, unsigned
+  conditions: Integrity of the browser page for phones without the app. Plain http, unsigned. The page shows no current facts (shelter status, warnings) and says that it is not checked; the base's screen says so next to the page's QR code, where the Wi-Fi cannot change it (lychnion/lychnion#116). Encryption waits for #109
   tier: security-critical
   false_friend: false
   provenance:

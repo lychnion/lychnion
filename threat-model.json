@@ -956,7 +956,7 @@
     },
     {
       "property": "browser-page-integrity",
-      "reason": "Integrity of the browser page for phones without the app. Plain http, unsigned",
+      "reason": "Integrity of the browser page for phones without the app. Plain http, unsigned. The page shows no current facts (shelter status, warnings) and says that it is not checked; the base's screen says so next to the page's QR code, where the Wi-Fi cannot change it (lychnion/lychnion#116). Encryption waits for #109",
       "false_friend": false,
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"

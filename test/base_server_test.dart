@@ -186,6 +186,17 @@ void main() {
       },
     );
 
+    // lychnion/lychnion#116: the browser page is not signed, so its data
+    // carries no facts; the app still gets them, signed, from /facts.
+    test('the browser page data has no facts', () async {
+      final (status, j) = await call('GET', '/web.json?lang=en');
+      expect(status, 200);
+      expect(j.containsKey('facts'), isFalse);
+      expect(jsonEncode(j), isNot(contains('full')));
+      expect((j['texts'] as Map)['pageUnchecked'], contains('not checked'));
+      expect(((await call('GET', '/facts')).$2['facts'] as List), hasLength(1));
+    });
+
     test('compact facts are signed, and tampering shows', () async {
       final (status, j) = await call('GET', '/facts?compact=1');
       expect(status, 200);

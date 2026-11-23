@@ -58,7 +58,6 @@ mixin _BaseSharing on _AskPageBase {
       // models), so phones can update here without internet.
       library: BaseLibrary(await DownloadStore.instance()),
       page: await rootBundle.loadString('assets/web/base.html'),
-      placeName: (id) => widget.map?.sites?.byUid(id)?.name,
     );
     try {
       await server.start();

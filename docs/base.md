@@ -51,6 +51,13 @@ Phones do not answer each other's questions: phones are too slow for that.
 - The browser page uses plain http on a local address. Chrome shows "not
   secure" in the address bar, but no warning page (checked on a Pixel
   5a).
+- The browser page is not signed, so anyone on the Wi-Fi can change it on
+  the way. It therefore answers questions but shows no current facts
+  (shelter status, warnings), and says at the top that it is not checked.
+  Under its QR code the base's screen says the same, where nobody on the
+  Wi-Fi can change it: show shelter status and warnings on that screen or
+  tell people directly. Phones with the app get facts signed and checked
+  (lychnion/lychnion#116; encryption: #109).
 - Opening the page by itself when a phone joins the Wi-Fi is planned
   ([#3](https://github.com/lychnion/lychnion/issues/3)).
 

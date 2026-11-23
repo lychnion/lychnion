@@ -352,7 +352,7 @@ covered only where they show input.
 | base `POST /ask` | `nonce` | yes | data | none — `base-answer-signature` | *(documented, docs/shelter-results.md "How it works")* |
 | base `POST /ask`, `GET /info`, `/facts` | `Host`, `Origin`, `Content-Type` | yes, also from a web page | data | keep bases offline (§1.12 `cross-site-requests`) | *(maintainer, 2026-11)* |
 | base `GET /blobs/sha256/<hash>` | path, `Range` | yes | resource-name, size | none — `blob-serving-by-hash` | *(documented, CHANGELOG.md "Security")* |
-| browser page | `/web.json` and `/ask` text | the operator, facts, or a Wi-Fi attacker | data | none — `browser-page-text-only` | *(documented, docs/shelter-results.md "Sharing switch and browser page (2026-11-18)")* |
+| browser page | `/web.json` and `/ask` text | the operator, answers, or a Wi-Fi attacker | data | none — `browser-page-text-only` | *(documented, docs/shelter-results.md "Sharing switch and browser page (2026-11-18)")* |
 | `BaseClient.info`, `.facts`, `.ask` | response status, body, size | yes, any host at the base address | data, size | none — `client-response-limits` | *(documented, CHANGELOG.md "Security")* |
 | `BaseClient.ask` | `x-lychnion-signature`, or its absence | yes, by a man in the middle | data | none — `base-answer-signature` | *(documented, docs/shelter-results.md "How it works")* |
 | `BaseFinder` | mDNS name, addresses, TXT key | yes | data | the user confirms one base | *(documented, docs/distribution.md "Security", row "Fake base announced on the Wi-Fi")* |
@@ -462,7 +462,7 @@ dimension.
 | Base answer and its signature | `base-server`, `base-client` | Signed answers prove which base sent them; a refused answer is noted on the phone's own answer | That a signed answer is true or grounded in the phone's own packages | *(maintainer, 2026-11)* |
 | Catalog `keys` list | `records` | Each statement is signed; the list is not | That the list is complete or current: a carrier can drop statements | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | Key backup file | `publishing` | Encrypted private key, plus a readable revocation | That the file is harmless without the passphrase: anyone with it can revoke the key | *(documented, docs/distribution.md "Backing up and replacing the key")* |
-| Browser page | `base-server` | Plain http, unsigned | Integrity: a device on the Wi-Fi can change it | *(maintainer, 2026-11)* |
+| Browser page | `base-server` | Plain http, unsigned; shows no facts and says it is not checked (lychnion/lychnion#116) | Integrity: a device on the Wi-Fi can change it | *(maintainer, 2026-11)* |
 | `/catalog.json`, blobs from a base, phone or node | `base-server`, `node` | Signed records and hash-named files; the server does not vouch | That the server checked the bytes; readers check signature and hash | *(documented, docs/distribution.md "Security")* |
 | Facts on screen | `facts` | Value, note and source name as received; "unconfirmed" when not verified | That "official" means true, or that the signer is responsible for that shelter | *(maintainer, 2026-11)* |
 | Map suggestion and route | `facts` | Built from current facts | Promised: only verified facts change it (`unverified-facts-not-acted-on`) | *(maintainer, 2026-11)* |
@@ -615,7 +615,7 @@ plus phones that also use the internet when they can.
   (`lib/base/base_client.dart:96`); for a QR code without `s=1`, the first
   answers before the base has signed (`lib/base/base_checks.dart:78`);
   pinning another key (`lib/app/settings.dart:129`); a base without a signer
-  (`lib/base/base_server.dart:617`). *(documented, docs/shelter-results.md
+  (`lib/base/base_server.dart:737`). *(documented, docs/shelter-results.md
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
   verified only with a signature from a trusted key; others count as
@@ -698,7 +698,7 @@ plus phones that also use the internet when they can.
   node folder; no request part becomes a path. *Violation symptom*: info-leak.
   *Tier*: security-critical. *Voided by*: node `serve` on a folder it did not
   pull follows symlinks (§1.6, unsupported). The blob routes match
-  `lib/base/base_server.dart:530` and
+  `lib/base/base_server.dart:650` and
   `packages/lychnion_node/lib/src/server.dart:61`. *(documented,
   CHANGELOG.md "Security")*
 - **`browser-page-text-only`** (`base-server`): the browser page shows all
@@ -828,7 +828,7 @@ proves origin, not truth.
 | `old-key-denial` | Protection against the holder of an old or stolen publisher key who revokes it or names a second successor | Phones that added that key drop it and its successors until the user adds the new link | security-critical | no | *(maintainer, 2026-11)* |
 | `backup-passphrase-and-storage` | Resistance of a key backup to offline guessing of a weak passphrase; protection of the backup file where the operator keeps it | Passphrase of at least 12 characters; the operator chooses where to save | security-critical | no | *(maintainer, 2026-11)* |
 | `lan-confidentiality` | Confidentiality on the Wi-Fi of questions, answers, facts and the list of installed packages | Plain http on the local network; packages are public data | security-critical | no | *(maintainer, 2026-11)* |
-| `browser-page-integrity` | Integrity of the browser page for phones without the app | Plain http, unsigned | security-critical | no | *(maintainer, 2026-11)* |
+| `browser-page-integrity` | Integrity of the browser page for phones without the app | Plain http, unsigned. The page shows no current facts (shelter status, warnings) and says that it is not checked; the base's screen says so next to the page's QR code, where the Wi-Fi cannot change it (lychnion/lychnion#116). Encryption waits for #109 | security-critical | no | *(maintainer, 2026-11)* |
 | `first-signature-strip` | Protection against stripping signatures before a pinned base has signed once | Only for a QR code without `s=1` (older codes), until the first signed answer; the "unsigned" note is the defence | security-critical | no | *(maintainer, 2026-11)* |
 | `cross-site-requests` | Defence against cross-site requests and DNS rebinding from a web page | While bases run without internet; in scope again if bases are meant to have internet | security-critical | no | *(maintainer, 2026-11)* |
 | `lan-availability` | Availability of a base against a device on the Wi-Fi that floods connections or questions | Per-request limits still hold (`base-request-limits`) | security-critical | no | *(maintainer, 2026-11)* |
