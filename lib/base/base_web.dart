@@ -3,7 +3,9 @@ import 'dart:ui' show Locale;
 import '../app/lang.dart' show appLanguages;
 import '../knowledge/grounded_answer.dart';
 import '../l10n/app_localizations.dart';
+import '../knowledge/knowledge_package.dart' show Source;
 import '../ui/answer_text.dart';
+import '../ui/source_label_text.dart';
 
 /// Data for the page the base computer serves to phones without the
 /// app (assets/web/base.html): its texts in the browser's language,
@@ -66,8 +68,9 @@ Map<String, Object?> webInfo({required String lang, required String name}) {
 /// (publisher, title, licence, address).
 Map<String, Object?> webAnswer(GroundedAnswer a) {
   final sources = {
-    for (final al in a.alerts) al.source.id: al.source,
-    for (final h in a.citedHits) h.passage.source.id: h.passage.source,
+    // By signer too: two publishers' packages may use the same source id.
+    for (final al in a.alerts) _key(al.source): al.source,
+    for (final h in a.citedHits) _key(h.passage.source): h.passage.source,
   };
   // Labels in the answer's language, not the browser's: a Japanese
   // question on an English phone gets a Japanese answer card.
@@ -94,7 +97,11 @@ Map<String, Object?> webAnswer(GroundedAnswer a) {
           'title': s.title,
           'licence': s.licence,
           'url': s.url,
+          // Who signed its guide, as this base labels it (#119).
+          'label': ?sourceLabelText(l, s.label, a.lang),
         },
     ],
   };
 }
+
+String _key(Source s) => '${s.label?.name ?? s.signer}/${s.id}';

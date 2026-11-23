@@ -1054,7 +1054,7 @@
     },
     {
       "property": "vouch-means-vetted",
-      "reason": "That a publisher \"Checked by Lychnion\" publishes correct or safe guides, or that one not checked is not official. A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access",
+      "reason": "That a publisher \"Checked by Lychnion\" publishes correct or safe guides, or that one not checked is not official. A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access; in a base's answers the label is the base's word",
       "false_friend": true,
       "provenance": "documented",
       "source": "docs/vouching.md \"What a vouch does, and what it never does\""

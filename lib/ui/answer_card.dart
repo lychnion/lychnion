@@ -15,6 +15,7 @@ import '../map/map_labels.dart';
 import '../map/map_screen.dart' show noSiteWarning;
 import '../map/map_state.dart';
 import 'answer_text.dart';
+import 'source_label_text.dart';
 import 'source_link.dart';
 import '../app/brand.dart';
 import 'breathing_light.dart';
@@ -324,6 +325,24 @@ class AnswerCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (sourceLabelText(
+                  l,
+                  p.source.label,
+                  lang,
+                  fromBase: answer.answeredBy != null,
+                )
+                case final label?)
+              Padding(
+                padding: const EdgeInsets.only(left: 34, top: 4),
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: p.source.label!.isProblem
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             const SizedBox(height: 10),
             // English readers see a translated passage in its original;
             // Japanese readers see our translation, the original one tap away.
@@ -592,9 +611,17 @@ class _SourcesFooter extends StatelessWidget {
     }.toList();
     final more = publishers.length - 1;
     final l = context.l10n;
-    final label = more > 0
+    final first = more > 0
         ? l.answerSourceAndMore(publishers.first, '$more')
         : l.answerSource(publishers.first);
+    // Guides of a publisher Lychnion has not checked (#119): said here
+    // too, not only under each passage.
+    final unchecked = numbers.any(
+      (n) => answer.hits[n - 1].passage.source.label?.isUnchecked ?? false,
+    );
+    final label = unchecked
+        ? '$first\n${l.answerSourcesNotChecked(l.appName)}'
+        : first;
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Semantics(
@@ -613,7 +640,7 @@ class _SourcesFooter extends StatelessWidget {
                 Flexible(
                   child: Text(
                     label,
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(color: color),
                   ),

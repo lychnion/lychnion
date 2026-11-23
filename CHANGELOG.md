@@ -117,7 +117,10 @@ here should be relied on alone in an emergency. Source only; build it as
   Downloads; others are "Added by you · not checked by Lychnion". A link
   whose name looks like a public body or like a checked publisher, or
   that has another key than the checked one, is warned about in red, and
-  Add works only after ticking "I compared the code". Labels only: a
+  Add works only after ticking "I compared the code". Answers say under
+  a passage who signed its guide when that is not Lychnion ("via Aoba
+  Club · not checked by Lychnion"), also for a base's answers (as the
+  base says) and on the base's web page. Labels only: a
   publisher never needs Lychnion's check, and nothing is refused. How
   Lychnion checks: [docs/vouching.md](docs/vouching.md) (#119).
 - The base's browser page (for phones without the app) no longer shows
@@ -279,8 +282,9 @@ they do not accept a replacement key or honour a revocation. They also
 ignore `vouches` (Lychnion's labels for official publishers, #119).
 The app keeps vouches in `downloads/vouches.json` (`format: 1`) and
 passes them on with sticks and a base's catalog; a node keeps those of
-every source it pulls and passes them on. Sources in answers are not
-labelled yet.
+every source it pulls and passes them on. A source in a base's answer
+may carry a `label` (who signed its guide, as the base labels it);
+older phones ignore it.
 
 ### Known gaps
 

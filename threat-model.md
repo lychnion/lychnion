@@ -518,9 +518,9 @@ plus phones that also use the internet when they can.
   and SHA-256 match. A trusted key is a built-in or added key, or a successor
   named by a valid key statement, and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
-  `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:30`,
-  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:185`, and "Open a model
-  file…" at `lib/ask/model_loading.dart:288`. Bundled guides are trusted by
+  `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:61`,
+  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:232`, and "Open a model
+  file…" at `lib/ask/model_loading.dart:335`. Bundled guides are trusted by
   the app signature, not a record (`lib/download/download_store.dart:825`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
@@ -842,7 +842,7 @@ proves origin, not truth.
 | `local-resource-bounds` | Limits on a question typed on the device | Input against the user's own device | correctness-only | no | *(maintainer, 2026-11)* |
 | `base-key-id-collision` | Protection against a 48-bit key-id collision that replaces a trusted base key | Denial of service only; the attacker cannot sign as the base | correctness-only | no | *(maintainer, 2026-11)* |
 | `source-label-destination` | That a source link's label names its destination, or that it uses https | Links from packages or bases | correctness-only | **yes** | *(maintainer, 2026-11)* |
-| `vouch-means-vetted` | That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not checked is not official | A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access | security-critical | **yes** | *(documented, docs/vouching.md "What a vouch does, and what it never does")* |
+| `vouch-means-vetted` | That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not checked is not official | A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access; in a base's answers the label is the base's word | security-critical | **yes** | *(documented, docs/vouching.md "What a vouch does, and what it never does")* |
 | `lookalike-warning-completeness` | A warning for every misleading publisher name | A list of words and some look-alike letters; other names pass, still labelled "not checked by Lychnion"; never refuses. The code the user compares is 48 bits | security-critical | no | *(documented, docs/vouching.md "The warning for names that look official")* |
 
 Well-known attack classes left open: **prompt injection** by a trusted

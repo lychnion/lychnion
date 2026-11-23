@@ -12,6 +12,8 @@ Open the link or QR code the publisher gives you; the app asks before it adds it
 
 Lychnion checked that the publisher's key belongs to it, for example on a city's official website, and signed a note saying so. The app shows the name Lychnion checked. A publisher you added that Lychnion has not checked shows "Added by you · not checked by Lychnion": it still works, Lychnion just does not know it. When Lychnion checks it later, the label changes by itself.
 
+Answers show the same: under a passage from another publisher's guide, a line says whose guide it is and whether Lychnion checked that publisher. Answers from a base show the base's label.
+
 The label never lets a publisher do more: only Lychnion's guides give the official safety line.
 
 ## Why does the app ask me to compare a code?

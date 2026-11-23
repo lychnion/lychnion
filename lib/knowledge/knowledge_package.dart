@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+export 'source_label.dart';
+
 import '../download/download_store.dart';
 import 'language.dart';
+import 'source_label.dart';
 
 class Source {
   Source(
@@ -15,8 +18,25 @@ class Source {
     this.licence,
     this.attribution, {
     this.region = 'JP',
+    this.signer,
+    this.signerKeyId,
+    this.label,
   });
+
+  /// [publisher] is the guide's author as the package names it (内閣府),
+  /// which any publisher can write; [signer] is who signed the package.
   final String id, title, publisher, url, licence, attribution;
+
+  /// The publisher that signed the package (its records' `publisher`), and
+  /// the short id of its key. Null for sources not from an installed
+  /// package (help, a base's answer).
+  final String? signer, signerKeyId;
+
+  /// What Lychnion's vouches say about [signer] (lychnion/lychnion#119):
+  /// set when the package is loaded, and again when the vouches or the
+  /// publishers change ([KnowledgePackage.relabel]). From a base: the
+  /// base's word.
+  SourceLabel? label;
 
   /// Where the source's advice applies, as an ISO 3166 code: 'JP' (Japan),
   /// 'JP-13' (Tokyo), 'GB', 'US'. More local sources rank a little higher;
@@ -389,7 +409,24 @@ class KnowledgePackage {
     return open(await store.copyBundled('packages', name));
   }
 
-  static KnowledgePackage open(String path) {
+  /// Labels every source again with [labelOf] (see [Source.label]).
+  void relabel(SourceLabel? Function(Source) labelOf) {
+    for (final src in {
+      ...sources.values,
+      for (final p in passages) p.source,
+      for (final a in alerts) a.source,
+    }) {
+      src.label = labelOf(src);
+    }
+  }
+
+  /// [signer] and [signerKeyId]: who signed the package (see
+  /// [Source.signer]).
+  static KnowledgePackage open(
+    String path, {
+    String? signer,
+    String? signerKeyId,
+  }) {
     final db = sqlite3.open(path, mode: OpenMode.readOnly);
     try {
       final meta = {
@@ -409,6 +446,8 @@ class KnowledgePackage {
             r['licence'] as String,
             r['attribution'] as String,
             region: (hasRegion ? r['region'] as String? : null) ?? 'JP',
+            signer: signer,
+            signerKeyId: signerKeyId,
           ),
       };
       final passageRows = db.select('SELECT * FROM passages ORDER BY id');

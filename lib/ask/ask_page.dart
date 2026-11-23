@@ -6,6 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:lychnion_format/lychnion_format.dart' show voucherPublisher;
 import 'package:path_provider/path_provider.dart';
 
 import '../app/dev_flags.dart';
@@ -15,6 +16,7 @@ import '../app/region.dart';
 import '../app/settings.dart';
 import '../download/catalog.dart';
 import '../download/download_store.dart';
+import '../download/publisher_label.dart';
 import '../download/publisher_list.dart' show cleanShownText;
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
@@ -267,6 +269,7 @@ class _AskPageState extends _AskPageBase
 
   @override
   void dispose() {
+    _stopLabels();
     widget.downloadChanges?.removeListener(_loadDownloaded);
     _reloadLater?.cancel();
     widget.settings?.removeListener(_baseChanged);

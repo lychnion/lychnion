@@ -17,6 +17,8 @@ Map<String, Object?> sourceToWire(Source s) => {
   'licence': s.licence,
   'attribution': s.attribution,
   'region': s.region,
+  // Who signed the source's package, as this device labels it (#119).
+  if (s.label case final l?) 'label': l.toWire(),
 };
 
 /// A source as a base sent it. Its link is kept only when it is a web
@@ -29,6 +31,8 @@ Source sourceFromWire(Map<String, dynamic> j) => Source(
   j['licence'] as String,
   j['attribution'] as String,
   region: j['region'] as String? ?? 'JP',
+  // The sender's word, checked only for form (see SourceLabel.fromWire).
+  label: SourceLabel.fromWire(j['label']),
 );
 
 String _webUrl(String s) {

@@ -21,6 +21,37 @@ mixin _ModelLoading on _AskPageBase {
   /// left by an earlier run is read only then).
   bool _loadedOnce = false;
 
+  /// The store whose vouches and publishers label the loaded sources.
+  DownloadStore? _labelStore;
+  KnowledgePackage? _labeled;
+
+  /// Labels [pkg]'s sources from Lychnion's vouches (#119), and again
+  /// whenever the vouches or the publishers change: a withdrawal learned
+  /// later shows on answers without loading the packages again.
+  void _labelSources(DownloadStore store, KnowledgePackage pkg) {
+    _labeled = pkg;
+    if (_labelStore != store) {
+      _stopLabels();
+      _labelStore = store
+        ..vouches.addListener(_relabel)
+        ..publishers.addListener(_relabel);
+    }
+    _relabel();
+  }
+
+  void _relabel() {
+    final store = _labelStore;
+    if (store == null) return;
+    _labeled?.relabel((s) => store.sourceLabelOf(s.signer, s.signerKeyId));
+    if (mounted) setState(() {});
+  }
+
+  void _stopLabels() {
+    _labelStore?.vouches.removeListener(_relabel);
+    _labelStore?.publishers.removeListener(_relabel);
+    _labelStore = null;
+  }
+
   /// Loads the model on start: GGUF_MODEL_PATH, a download for AUTO_BENCH
   /// on phones, else the model from Downloads (again whenever it changes).
   void _startModel() {
@@ -143,9 +174,15 @@ mixin _ModelLoading on _AskPageBase {
           String id,
           String path, {
           required bool safetyLines,
+          required String signer,
+          String? signerKeyId,
         }) {
           try {
-            final p = KnowledgePackage.open(path);
+            final p = KnowledgePackage.open(
+              path,
+              signer: signer,
+              signerKeyId: signerKeyId,
+            );
             if (safetyLines || p.alerts.isEmpty) return p;
             _log({
               'event': 'package_alerts_ignored',
@@ -167,7 +204,14 @@ mixin _ModelLoading on _AskPageBase {
           if (src.shadowed case final who?) {
             _log({'event': 'package_shadow_ignored', 'id': id, 'by': who});
           }
-          bundled.addAll([?openOrSkip(id, src.path, safetyLines: true)]);
+          bundled.addAll([
+            ?openOrSkip(
+              id,
+              src.path,
+              safetyLines: true,
+              signer: voucherPublisher,
+            ),
+          ]);
         }
         final pkg = KnowledgePackage.merge([
           ...bundled,
@@ -178,8 +222,11 @@ mixin _ModelLoading on _AskPageBase {
                 i.id,
                 store.path(i, i.fileEnding('.sqlite')!),
                 safetyLines: i.builtInPublisher,
+                signer: i.record.publisher,
+                signerKeyId: i.record.keyId,
               ),
         ]);
+        _labelSources(store, pkg);
         HybridRetriever? hybrid;
         final embedPath = DevFlags.embedPath.isNotEmpty
             ? await resolvePath(DevFlags.embedPath)

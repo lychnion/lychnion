@@ -3296,6 +3296,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I compared the code'**
   String get publishersCompared;
+
+  /// No description provided for @answerSourceChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'via {name} · checked by {app}'**
+  String answerSourceChecked(String app, String name);
+
+  /// No description provided for @answerSourceNotChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'via {name} · not checked by {app}'**
+  String answerSourceNotChecked(String app, String name);
+
+  /// No description provided for @answerSourceWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'via {name} · {app} took back its check'**
+  String answerSourceWithdrawn(String app, String name);
+
+  /// No description provided for @answerSourceOtherKey.
+  ///
+  /// In en, this message translates to:
+  /// **'via {name} · not the key {app} checked'**
+  String answerSourceOtherKey(String app, String name);
+
+  /// No description provided for @answerSourceRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'via {name} · key revoked'**
+  String answerSourceRevoked(String name);
+
+  /// No description provided for @answerSourceBaseSays.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} (as the base says)'**
+  String answerSourceBaseSays(String label);
+
+  /// No description provided for @answerSourcesNotChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Some sources were not checked by {app}'**
+  String answerSourcesNotChecked(String app);
 }
 
 class _AppLocalizationsDelegate
