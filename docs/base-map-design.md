@@ -189,7 +189,7 @@ Other forms exist, but a grid fits terrain best:
 
 **Renderer**
 
-The prototype uses vector_map_tiles 8 with vector_map_tiles_pmtiles,
+The prototype uses vector_map_tiles 8 (with vector_map_tiles_pmtiles),
 which pins flutter_map 7. Its author now calls vector_map_tiles
 "minimally maintained" and works on mapigrade instead. So the renderer
 has to change anyway. Candidates (from their docs, 2026-11-23, not yet
@@ -197,8 +197,8 @@ tested here):
 
 | Plugin | How it draws | Platforms | Terrain | Notes |
 | --- | --- | --- | --- | --- |
-| [flutter_map_vector_tiles](https://pub.dev/packages/flutter_map_vector_tiles) 2.12 | Pure Dart, in flutter_map ≥ 8.2 | Android, iOS, macOS, Windows, Linux, web | Hillshade from Terrarium, Mapbox or custom DEM | PMTiles local and remote (gzip tiles only); MBTiles via a companion package; style glyphs, CJK from the system font; fill-extrusion buildings |
-| [mapigrade](https://github.com/greensopinion/mapigrade) | MapLibre Native into a texture, flutter_map layers on top | Android (API 29+), iOS and macOS on arm64 | Not documented | Pre-1.0; no Windows or Linux |
+| [flutter_map_vector_tiles](https://pub.dev/packages/flutter_map_vector_tiles) 2.12 | Pure Dart, in flutter_map ≥ 8.2 | Android, iOS, macOS, Windows, Linux, web | Hillshade from Terrarium, Mapbox or custom DEM | PMTiles local and remote (gzip tiles only); MBTiles via a companion package; style glyphs, CJK from the system font (web fetches Noto); fill-extrusion buildings |
+| [mapigrade](https://github.com/greensopinion/mapigrade) | MapLibre Native into a texture, flutter_map layers on top | Android (API 29+), iOS and macOS on arm64 | Not documented | Pre-1.0; no Windows, Linux or web |
 | vector_map_tiles 10 beta | Flutter GPU | Needs Flutter's main channel | Hillshade, DEM contours (beta) | Not for production yet |
 | MapLibre Native through a platform view | Native map | Android, iOS | Full, including 3D | Leaves flutter_map |
 
@@ -215,7 +215,7 @@ map phase and update the table above:
 | Project | Activity (2026-11-23) | Contributions with AI |
 | --- | --- | --- |
 | [flutter_map](https://github.com/fleaflet/flutter_map) | Active, about 3,000 stars | [Allowed with conditions](https://github.com/fleaflet/flutter_map/blob/master/CONTRIBUTING.md#ai): say that AI was used, a person checks and answers for every claim and line, follow the fix agreed in the issue. Maintainers review by hand, so keep pull requests small. |
-| [flutter_map_vector_tiles](https://github.com/JonasGrunau/flutter-map-vector-tiles) | Active, one maintainer, few stars yet | No written policy; the repository itself is set up for coding agents (`AGENTS.md`, `CLAUDE.md`). Ask in an issue before a larger change. |
+| [flutter_map_vector_tiles](https://github.com/JonasGrunau/flutter-map-vector-tiles) | Active, one maintainer, few stars yet | No contribution policy on AI; its README says it is built with Claude Code, and the repository is set up for coding agents (`AGENTS.md`, `CLAUDE.md`). Ask in an issue before a larger change. |
 | [mapigrade](https://github.com/greensopinion/mapigrade) | Active, pre-1.0 | No written policy. |
 | [vector_map_tiles](https://github.com/greensopinion/flutter-vector-map-tiles) | Minimally maintained | No written policy. |
 
@@ -358,8 +358,9 @@ Open questions:
 
 - [ ] Renderer: test flutter_map_vector_tiles on the Pixel 5a with an
   OpenMapTiles style, Japanese labels and Terrarium hillshade.
-- [ ] Contours: draw from the DEM on the device, or keep pre-built
-  contour tiles?
+- [ ] Contours: keep pre-built contour tiles, or draw them from the DEM
+  on the device? Of the plugins, only the vector_map_tiles 10 beta does
+  the latter; flutter_map_vector_tiles documents hillshade only.
 - [ ] Are Geolonia's OpenStreetMap tiles updated on a schedule we can
   rely on as an alternative?
 - [ ] Does MapTiler Planet v4 still work with OpenMapTiles 3.x styles?
