@@ -19,6 +19,8 @@ app, see the user help in [help/](../help/README.md).
 - [Distribution design](distribution.md): the full design for publishers,
   catalogs, nodes and sync.
 - [Base](base.md): a computer that serves phones on the same Wi-Fi.
+- [Base map and map data](base-map-design.md): proposal for one base map,
+  offline areas by cell, tile schema, terrain and map data types.
 
 ## Security
 
