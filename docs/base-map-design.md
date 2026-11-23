@@ -51,8 +51,8 @@ The map is a stack of tile sets, each downloaded and updated on its own.
 
 | Layer | Provided by | Online | Offline |
 | --- | --- | --- | --- |
-| Overview, Japan z0–8 | Lychnion | Bundled | Always on the device |
-| Base map, z9–14 (overzoomed beyond) | Lychnion, or an alternative provider | Yes | Lychnion tiles only, by cell |
+| Overview, Japan z0–9 | Lychnion | Bundled | Always on the device |
+| Base map, z10–14 (overzoomed beyond) | Lychnion, or an alternative provider | Yes | Lychnion tiles only, by cell |
 | Terrain (DEM) | Lychnion, Mapterhorn-compatible | Yes | By cell |
 | Outdoor overlay (trails, huts, springs) | Lychnion | Yes | By cell |
 | Map data packages | Their publishers | If the publisher hosts it | By package, or by cell for large ones |
@@ -81,7 +81,7 @@ make deduplication, caching, signing and updates simple.
   down to zoom 14: 1 + 4 + 16 + 64 + 256 = 341 tiles. At Tokyo's
   latitude a cell is about 32 km × 32 km.
 - Vector tiles stop at zoom 14, because a z14 tile already holds the
-  full detail (positions to well under 1 m). The app draws z14 data
+  full detail (positions to about half a metre). The app draws z14 data
   sharply at zoom 18 and beyond (overzoom). So there is no growth to
   z18 as with raster tiles.
 - z8 cells (about 128 km) were considered and rejected: every download
@@ -239,8 +239,9 @@ the value (flood depth in centimetres, for example) gives:
 - `schema` (vector): layer names and fields, or a published schema.
 - `encoding` (grid): channels used, `scale`, `offset`, `nodata`, unit.
 - `classes` (grid with classes): value → label, Japanese and English.
-- `base_map`: the OpenMapTiles version the package's style expects, so
-  a base map update cannot break it silently.
+- `base_map`: the OpenMapTiles version the package expects to draw on
+  (a package may ship its own style layers), so a base map update
+  cannot break it silently.
 - `cells` (optional): the cell grid, when a large package allows partial
   downloads.
 - Attribution, licence, source date, build date.
@@ -248,8 +249,8 @@ the value (flood depth in centimetres, for example) gives:
 **Rules**
 
 - Lossless only. Lossy WebP or JPEG corrupts the values.
-- 8-bit channels limit precision; choose the scale per data set. For
-  flood depth, 1 cm steps across three channels is plenty.
+- 8-bit channels limit precision; choose the scale per data set. Two
+  channels at 1 cm steps cover 655 m, plenty for flood depth.
 - Always define nodata.
 - Publishers decide a package's extent, as today.
 - If a common encoding appears for grids, packages adopt it without
@@ -277,7 +278,7 @@ Candidates: Geolonia Maps, OSM Japan, MapTiler, Stadia, OpenFreeMap.
 
 ## Build and hosting
 
-```
+```text
 OpenStreetMap ──▶ Planetiler (OpenMapTiles profile) ──┐
 OpenStreetMap ──▶ Planetiler (outdoor profile) ───────┤
 Mapterhorn ─────▶ pmtiles extract ────────────────────┼──▶ cells + signed manifest ──▶ CDN ──▶ app
