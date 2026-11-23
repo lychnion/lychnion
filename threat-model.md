@@ -520,7 +520,7 @@ plus phones that also use the internet when they can.
   security-critical. *Voided by*: the dev flags in §1.6 —
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:22`,
   `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:108`, and "Open a model
-  file…" at `lib/ask/model_loading.dart:216`. Bundled guides are trusted by
+  file…" at `lib/ask/model_loading.dart:217`. Bundled guides are trusted by
   the app signature, not a record (`lib/download/download_store.dart:612`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
@@ -578,7 +578,7 @@ plus phones that also use the internet when they can.
   guides" message (`lib/ask/answer_rules.dart:12`). *Violation symptom*:
   x-ungrounded-answer. *Tier*: security-critical. *Voided by*: `BARE`
   skips the packages and lets the model answer alone
-  (`lib/app/dev_flags.dart:41`). *(documented, SECURITY.md "In scope")*
+  (`lib/app/dev_flags.dart:43`). *(documented, SECURITY.md "In scope")*
 - **`safety-line-lychnion-only`** (`answers`): when a hazard question matches,
   the fixed safety line from a Lychnion-signed package is shown word for word
   above the AI text; no other publisher supplies it: a package whose record
@@ -602,8 +602,8 @@ plus phones that also use the internet when they can.
   (`packages/lychnion_format/lib/src/publishers.dart:21`). *Violation
   symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: the
   dev loaders under `signed-install-only`, the `GGUF_MODEL_PATH` and
-  `EMBED_MODEL_PATH` defines (`lib/app/dev_flags.dart:33`,
-  `lib/app/dev_flags.dart:40`), which load any file. *(maintainer, 2026-11)*
+  `EMBED_MODEL_PATH` defines (`lib/app/dev_flags.dart:35`,
+  `lib/app/dev_flags.dart:42`), which load any file. *(maintainer, 2026-11)*
 - **`base-answer-signature`** (`base-client`, `base-server`): with a pinned
   key, the phone accepts a base answer only when its Ed25519 signature covers
   the phone's nonce, a hash of the request and the exact body; once that base
@@ -716,13 +716,13 @@ plus phones that also use the internet when they can.
   older build is checked again when the settings load and before
   connecting. Release builds leave the question, answer, search query,
   matched sources and region out of the log, and errors keep only their
-  type (`lib/app/dev_flags.dart:95`). Known gap: a `.local` name goes
+  type (`lib/app/dev_flags.dart:98`). Known gap: a `.local` name goes
   through the system resolver, so a DNS server on the network could point
   one at an internet host. *Violation symptom*: info-leak. *Tier*:
   security-critical. *Voided by*: the `LOG_ANSWERS`, `ASK` and `AUTO_BENCH`
-  defines log them in a release build too (`lib/app/dev_flags.dart:72`), and
+  defines log them in a release build too (`lib/app/dev_flags.dart:75`), and
   the `BASE_URL` define connects to its address unchecked
-  (`lib/app/dev_flags.dart:62`); all are development builds. *(maintainer,
+  (`lib/app/dev_flags.dart:65`); all are development builds. *(maintainer,
   2026-11)*
 - **`lan-device-same-origin`** (`downloads`): from a base or a nearby phone,
   the app downloads only files on that device, never from other addresses
