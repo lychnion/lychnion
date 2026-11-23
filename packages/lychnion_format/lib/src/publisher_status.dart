@@ -107,7 +107,13 @@ class PublisherStatus {
   /// [version].
   bool hasNewer(String id, String version) {
     final v = items[id];
-    return v != null && compareVersions(v, version) > 0;
+    if (v == null) return false;
+    try {
+      return compareVersions(v, version) > 0;
+    } on FormatException {
+      // An installed version that is not a number (before records).
+      return false;
+    }
   }
 
   /// The status in [json], or null when its shape or signature is wrong, or
@@ -132,9 +138,14 @@ class PublisherStatus {
       // cannot change this status.
       final s = PublisherStatus._(_frozen(j), at);
       var keys = trust.keysOf(s.publisher);
-      if (!keys.contains(s.signer) && s.keys.isNotEmpty) {
+      // A successor key may sign together with the statement that names
+      // it. Only then are inline statements verified, and only those a key
+      // trusted here made (relevantStatements): anyone can sign statements
+      // about keys of their own, and each costs a check.
+      if (!keys.contains(s.signer) &&
+          s.keys.any((k) => k is Map && k['new'] == s.signer)) {
         keys = trust
-            .withStatements(await KeyStatement.checkAll(s.keys))
+            .withStatements(await relevantStatements(trust, s.keys))
             .keysOf(s.publisher);
       }
       if (!keys.contains(s.signer)) return none;
@@ -212,7 +223,12 @@ class PublisherStatus {
       at[i] = t;
       final p = m['publisher'] as String;
       final cur = newestOf[p];
-      if (cur == null || t.isAfter(at[cur]!)) newestOf[p] = i;
+      if (cur == null ||
+          t.isAfter(at[cur]!) ||
+          (t.isAtSameMomentAs(at[cur]!) &&
+              _text(m).compareTo(_text(statuses[cur])) > 0)) {
+        newestOf[p] = i;
+      }
     }
     final deciding = newestOf.values.toSet();
     int rank(int i) {
@@ -227,9 +243,24 @@ class PublisherStatus {
         if (r != 0) return r;
         final ta = at[a], tb = at[b];
         if (ta != null && tb != null && ta != tb) return tb.compareTo(ta);
+        // The same time: by publisher, so the same statuses are kept
+        // whatever their order.
+        final pa = _publisherOf(statuses[a]), pb = _publisherOf(statuses[b]);
+        if (pa != pb) return pa.compareTo(pb);
         return a.compareTo(b);
       });
     return idx;
+  }
+
+  static String _publisherOf(Object? m) =>
+      m is Map && m['publisher'] is String ? m['publisher'] as String : '';
+
+  static String _text(Object? m) {
+    try {
+      return canonicalJson(m);
+    } on Object {
+      return '';
+    }
   }
 
   static const _fields = {
@@ -243,22 +274,23 @@ class PublisherStatus {
     'signature',
   };
 
-  /// Item ids and versions: printable ASCII, short.
-  static final _plain = RegExp(r'^[\x21-\x7e]{1,100}$');
+  /// Item ids and versions as records have them (record.dart).
+  static final _id = RegExp(r'^[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}$');
+  static final _version = RegExp(r'^\d{1,9}(\.\d{1,9}){0,3}$');
 
+  /// A copy all the way down, every map and list unmodifiable: a caller
+  /// changing its map afterwards cannot change this status, nor anyone the
+  /// status (its [id] is computed once). Bounded: [_shape] checked the size.
   static Map<String, Object?> _frozen(Map<String, Object?> j) =>
-      Map.unmodifiable({
-        for (final e in j.entries)
-          e.key: switch (e.value) {
-            final Map<Object?, Object?> m => Map<String, String>.unmodifiable(
-              m.cast<String, String>(),
-            ),
-            final List<Object?> l => List<Object?>.unmodifiable(
-              l.map((x) => jsonDecode(jsonEncode(x))),
-            ),
-            final v => v,
-          },
-      });
+      _freeze(jsonDecode(jsonEncode(j))) as Map<String, Object?>;
+
+  static Object? _freeze(Object? v) => switch (v) {
+    final Map<Object?, Object?> m => Map<String, Object?>.unmodifiable({
+      for (final e in m.entries) e.key! as String: _freeze(e.value),
+    }),
+    final List<Object?> l => List<Object?>.unmodifiable(l.map(_freeze)),
+    final x => x,
+  };
 
   /// When [j] was signed, or null when its shape is wrong.
   static DateTime? _shape(Map<String, Object?> j) {
@@ -274,16 +306,15 @@ class PublisherStatus {
     final items = j['items'];
     if (items is! Map || items.length > maxItems) return null;
     for (final e in items.entries) {
-      if (e.key is! String || !_plain.hasMatch(e.key as String)) return null;
-      if (e.value is! String || !_plain.hasMatch(e.value as String)) {
-        return null;
-      }
+      final id = e.key, v = e.value;
+      if (id is! String || !_id.hasMatch(id) || id.endsWith('.')) return null;
+      if (v is! String || !_version.hasMatch(v)) return null;
     }
     final keys = j['keys'];
     if (keys != null &&
         (keys is! List ||
             keys.length > maxKeys ||
-            keys.any((k) => k is! Map))) {
+            keys.any((k) => k is! Map || k['publisher'] != publisher))) {
       return null;
     }
     final attestations = j['attestations'];
@@ -332,9 +363,16 @@ class PublisherStatus {
         'attestations': [for (final a in attestations) a.json],
       'signer': await publicKeyOf(signer),
     };
-    final text = utf8.encode(canonicalJson(j));
-    j['signature'] = b64((await _ed25519.sign(text, keyPair: signer)).bytes);
-    final at = _shape(j);
+    final DateTime? at;
+    try {
+      final text = utf8.encode(canonicalJson(j));
+      j['signature'] = b64((await _ed25519.sign(text, keyPair: signer)).bytes);
+      at = _shape(j);
+    } on ArgumentError {
+      rethrow;
+    } on Object catch (e) {
+      throw ArgumentError('not a valid status: $publisher ($e)');
+    }
     if (at == null) throw ArgumentError('not a valid status: $publisher');
     return PublisherStatus._(_frozen(j), at);
   }

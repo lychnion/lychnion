@@ -553,10 +553,13 @@ key of its publisher and says what is newest from it:
  "signer": "<key>", "signature": "…"}
 ```
 
-- `items`: the newest version of each of its items (at most 1,000).
-- `keys`: its own key statements (replacements, revocations), in full.
-  A successor key may sign the status together with the statement that
-  names it.
+- `items`: the newest version of each of its items (at most 1,000;
+  ids and versions as records have them).
+- `keys`: its own key statements (replacements, revocations), in full,
+  only about its own keys. A successor key may sign the status together
+  with the statement that names it; only statements a key trusted here
+  made are verified for that (`relevantStatements`), so a status cannot
+  make a reader check hundreds of statements about keys of a stranger.
 - `attestations`: only in Lychnion's status, and only withdrawals, in
   full. A carrier that passes on the newest status passes on these too;
   holding them back means holding back the whole status, which then
@@ -570,13 +573,21 @@ publisher, at most 100), through every carrier like other signed data. A
 catalog too large for 2 MB leaves statuses out last, after attestations
 and key statements; Lychnion's is kept first. Older apps ignore `status`.
 
-What a device does with it (the next steps of #117): keep the newest
+What a device will do with it (the next steps of #117): keep the newest
 status of each publisher it trusts; take in the key statements and
 withdrawals it carries; say when a newer version of an item exists that
 is not on the device; show how old an item's data and the latest news
 are; and, after 30 days without a newer status from Lychnion, say gently
-that its data may be out of date. Lychnion's tools sign a status with
-every catalog; other publishers can sign one with the same format later.
+that its data may be out of date. Lychnion's tools will sign a status
+with every catalog; other publishers can sign one with the same format
+later.
+
+A thief holding a publisher's key can sign a status too, also one dated
+far ahead with old `items` and no revocation. So a device must take in
+the key statements and withdrawals of **every** valid status it sees, not
+only of the newest; check the statuses it keeps again with its current
+keys whenever it reads them (a revoked key's status then lapses); and not
+let a status signed more than a day ahead of its own clock decide.
 
 ### Publishing your own packages
 

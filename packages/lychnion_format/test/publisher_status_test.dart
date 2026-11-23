@@ -186,6 +186,55 @@ void main() {
       await expectLater(status(attestations: [kept]), throwsArgumentError);
     });
 
+    test(
+      'inline statements: only relevant ones, only for its signer',
+      () async {
+        final thief = await _key();
+        final thief2 = await _key();
+        // A statement made by an untrusted key, naming the signer as new:
+        // not taken.
+        final own = await KeyStatement.replace(
+          publisher: attesterPublisher,
+          oldKey: thief.pair,
+          newKey: thief2.pair,
+          signed: '2026-11-24T08:00:00+09:00',
+        );
+        expect(
+          await PublisherStatus.check(
+            (await status(by: thief2.pair, keys: [own])).json,
+            trust,
+          ),
+          isNull,
+        );
+        // Another publisher's statements in the status: refused by shape.
+        final cityNext = await _key();
+        final cityS = await KeyStatement.replace(
+          publisher: 'jp.city.sendai',
+          oldKey: city.pair,
+          newKey: cityNext.pair,
+          signed: '2026-11-24T08:00:00+09:00',
+        );
+        await expectLater(status(keys: [cityS]), throwsArgumentError);
+      },
+    );
+
+    test('items: ids and versions as records have them', () async {
+      for (final items in [
+        {'a': 'latest!'},
+        {'a': 'v1'},
+        {'../x': '1'},
+        {'x.': '1'},
+      ]) {
+        await expectLater(
+          status(items: items),
+          throwsArgumentError,
+          reason: '$items',
+        );
+      }
+      // A version here that is not a number never throws.
+      expect((await status()).hasNewer('jp.bousai.core', 'dev'), isFalse);
+    });
+
     test('a caller cannot change a status afterwards', () async {
       final items = {'a': '1'};
       final s = await status(items: items);
@@ -195,6 +244,24 @@ void main() {
         () => (s.json['items']! as Map)['a'] = '3',
         throwsUnsupportedError,
       );
+      final next = await _key();
+      final st = await status(
+        by: next.pair,
+        keys: [
+          await KeyStatement.replace(
+            publisher: attesterPublisher,
+            oldKey: lychnion.pair,
+            newKey: next.pair,
+            signed: '2026-11-24T08:00:00+09:00',
+          ),
+        ],
+      );
+      final id = st.id;
+      expect(
+        () => (st.keys.first! as Map)['signed'] = 'x',
+        throwsUnsupportedError,
+      );
+      expect(st.id, id);
     });
   });
 
@@ -277,6 +344,65 @@ void main() {
         expect(fitted.attestations.length, lessThan(4000));
       },
     );
+
+    test('byHash: at most 100, Lychnion\'s kept, the same text', () async {
+      final others = [
+        for (var i = 0; i < PublisherStatus.maxPerSource; i++)
+          await status(publisher: 'org.p$i', by: city.pair),
+      ];
+      // The city's key signs them all here; byHash does not check.
+      final mine = await status();
+      final doc = CatalogDocument.byHash(const [], status: [...others, mine]);
+      expect(doc.status, hasLength(PublisherStatus.maxPerSource));
+      expect(doc.status, contains(mine.json));
+      expect(CatalogDocument.statusLeftOut([...others, mine], doc), 1);
+      final again = CatalogDocument.byHash(
+        const [],
+        status: [mine, ...others.reversed],
+      );
+      expect(again.encode(), doc.encode());
+    });
+
+    test('fitted trims statuses last, Lychnion\'s first kept', () async {
+      final padded = [
+        for (var i = 0; i < 6; i++)
+          await status(
+            publisher: 'org.p$i',
+            by: city.pair,
+            items: {for (var k = 0; k < 1000; k++) 'item$k': '2026.11.$k'},
+          ),
+      ];
+      final mine = await status();
+      final pad = 'x' * 320000;
+      final big = CatalogDocument(
+        records: [
+          {'pad': pad},
+          {'pad': pad},
+          {'pad': pad},
+          {'pad': pad},
+          {'pad': pad},
+          {'pad': pad},
+        ],
+        status: [for (final p in padded) p.json, mine.json],
+      );
+      final fitted = big.fitted();
+      expect(fitted.status.length, lessThan(7));
+      expect(fitted.status, contains(mine.json));
+    });
+
+    test('keepOrder: the same tie rule as decidesOver', () async {
+      final a = await status(items: const {'x': '1'});
+      final b = await status(items: const {'x': '2'});
+      final winner = a.decidesOver(b) ? a : b;
+      expect(
+        PublisherStatus.keepOrder([a.json, b.json]).first,
+        winner == a ? 0 : 1,
+      );
+      expect(
+        PublisherStatus.keepOrder([b.json, a.json]).first,
+        winner == b ? 0 : 1,
+      );
+    });
 
     test('keepOrder: Lychnion\'s newest first', () async {
       final c = await status(publisher: 'jp.city.sendai', by: city.pair);

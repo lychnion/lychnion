@@ -151,13 +151,21 @@ class CatalogDocument {
       attestations: [
         for (final v in Attestation.capped({...attestations})) v.json,
       ],
-      status: [
-        for (final s in PublisherStatus.newest(
-          status,
-        ).take(PublisherStatus.maxPerSource))
-          s.json,
-      ],
+      status: _statusFor(status),
     );
+  }
+
+  /// The newest status of each publisher in [given], at most
+  /// [PublisherStatus.maxPerSource], chosen in [PublisherStatus.keepOrder]
+  /// (Lychnion's first, then the newest) and sorted by publisher, so the
+  /// same statuses give the same text.
+  static List<Object?> _statusFor(Iterable<PublisherStatus> given) {
+    final newest = PublisherStatus.newest(given);
+    final order = PublisherStatus.keepOrder([for (final s in newest) s.json]);
+    final kept = [
+      for (final i in order.take(PublisherStatus.maxPerSource)) newest[i],
+    ]..sort((a, b) => a.publisher.compareTo(b.publisher));
+    return [for (final s in kept) s.json];
   }
 
   /// Fields in the order the tools always wrote them; `urls` always
@@ -194,9 +202,7 @@ class CatalogDocument {
   static int statusLeftOut(
     Iterable<PublisherStatus> given,
     CatalogDocument written,
-  ) =>
-      PublisherStatus.newest(given).take(PublisherStatus.maxPerSource).length -
-      written.status.length;
+  ) => PublisherStatus.newest(given).length - written.status.length;
 
   /// The file text (indented, ending in a newline). Records come first: when
   /// the catalog would be over [maxBytes], attestations, then key statements,

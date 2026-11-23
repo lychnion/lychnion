@@ -278,13 +278,6 @@ class Attestation {
 
   static final _day = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
 
-  /// A time with seconds and a zone (`Z` or `+09:00`), so every device
-  /// orders attestations the same way.
-  static final _stamp = RegExp(
-    r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,6})?'
-    r'(Z|[+-](\d{2}):(\d{2}))$',
-  );
-
   /// Printable ASCII only: an address with spaces, line breaks or other
   /// characters could look like another one.
   static final _printable = RegExp(r'^[\x21-\x7e]+$');
@@ -312,18 +305,9 @@ class Attestation {
       d >= 1 &&
       d <= DateTime.utc(y, m + 1, 0).day;
 
-  /// [s] as a time, or null unless it is written as [_stamp] says, is a
-  /// real time (no February 31st) and in [_years].
-  static DateTime? _time(String s) {
-    final m = _stamp.firstMatch(s);
-    if (m == null) return null;
-    int n(int g) => int.parse(m[g]!);
-    if (!_validDay(n(1), n(2), n(3)) || n(4) > 23 || n(5) > 59 || n(6) > 59) {
-      return null;
-    }
-    if (m[8] != 'Z' && (n(9) > 14 || n(10) > 59)) return null;
-    return DateTime.tryParse(s);
-  }
+  /// [s] as a signing time (see signedTime in encoding.dart: seconds and a
+  /// zone, so every device orders attestations the same way, 2020 to 2100).
+  static DateTime? _time(String s) => signedTime(s);
 
   /// [v] is base64url of [length] bytes, written the one way [b64] writes
   /// it (as for key statements: one attestation, one spelling, one [id]).

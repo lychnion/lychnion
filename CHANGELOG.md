@@ -293,7 +293,8 @@ older phones ignore it.
 A publisher status (#117) says what is newest from a publisher: its
 items' newest versions, its key statements and, for Lychnion, the
 attestations it took back. It travels in a catalog's `status` list; the
-format is defined, devices do not use it yet.
+format is defined, devices do not use it yet. Older builds ignore
+`status`.
 
 ### Known gaps
 
