@@ -86,9 +86,9 @@ here should be relied on alone in an emergency. Source only; build it as
   the guide ships vectors for it (`<model>@en`, from
   [lychnion-data](https://github.com/lychnion/lychnion-data)), and across
   languages otherwise, as before (also for a guide without them next to
-  one with them). With them, "water for four people for
-  three days" in English finds its source (#85); the bundled guides get
-  them with the next data release.
+  one with them). The bundled guides have them
+  (data 2026.11.10), so "water for four people for three days" in English
+  now finds its source (#85).
 - A base builds and fits its catalog again only when what is installed
   or the key statements changed, instead of for every phone that asks
   (about 6 ms each time for a catalog near 2 MB). It still reads the
@@ -104,7 +104,7 @@ here should be relied on alone in an emergency. Source only; build it as
   3.9 and newer native build tools.
 - The data tools moved to
   [lychnion-data](https://github.com/lychnion/lychnion-data). Bundled
-  data is from its release 2026.11.5.
+  data is from its release 2026.11.10.
 - The map drags smoothly on slow phones: shapes are drawn once per tile
   as images, only the labels are drawn as vectors. On a Pixel 5a, dragging
   at zoom 15 went from about 12 to 55-58 frames per second. Lines look a
