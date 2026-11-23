@@ -1041,7 +1041,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get webPageUnchecked =>
-      'このページは確認されていません。同じ Wi-Fi の誰でも、表示を書き換えられます。避難所や経路、警報は、スタッフ、ベースの画面、公式の情報に従ってください。リクニオンのアプリは、ベースの回答を確認します。';
+      'このページの内容は確認されていません。同じ Wi-Fi の誰でも、表示を書き換えられます。避難所や経路、警報は、スタッフ、ベースの画面、公式の情報に従ってください。リクニオンのアプリは、回答がそのベースから来たことを確かめます。';
 
   @override
   String get baseWithApp => 'アプリで';

@@ -1076,7 +1076,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webPageUnchecked =>
-      'This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base\'s screen and official alerts. The Lychnion app checks the base\'s answers.';
+      'This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base\'s screen and official alerts. The Lychnion app checks that answers really come from the base.';
 
   @override
   String get baseWithApp => 'With the app';

@@ -1806,7 +1806,7 @@ abstract class AppLocalizations {
   /// Browser page for phones without the app (assets/web/base.html), at the top: the page is plain http and not signed (lychnion/lychnion#116).
   ///
   /// In en, this message translates to:
-  /// **'This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base\'s screen and official alerts. The Lychnion app checks the base\'s answers.'**
+  /// **'This page is not checked: anyone on this Wi-Fi could change what it shows. For shelters, routes and warnings, follow the staff, the base\'s screen and official alerts. The Lychnion app checks that answers really come from the base.'**
   String get webPageUnchecked;
 
   /// No description provided for @baseWithApp.

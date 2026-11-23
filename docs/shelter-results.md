@@ -116,6 +116,9 @@ Notes:
 
 ## Sharing switch and browser page (2026-11-18)
 
+> Since lychnion/lychnion#116 the browser page shows no current facts: it is
+> not signed, so anyone on the Wi-Fi could change them. See docs/base.md.
+
 - **Switch:** Settings → 避難所 on computers (macOS, Windows, Linux):
   「この端末を避難所として公開」 / "Share on the local network", and the
   shelter's name (asked when turning it on). The server starts, stops and
