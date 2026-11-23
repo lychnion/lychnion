@@ -57,6 +57,10 @@ class StickResult {
   /// go before key statements; withdrawals kept first; #119).
   var attestationsLeftOut = 0;
 
+  /// Publisher statuses left out of the stick's catalog (over 100
+  /// publishers, or 2 MB; they go last, Lychnion's kept first; #117).
+  var statusLeftOut = 0;
+
   /// Items whose files were missing, did not match or could not be
   /// written.
   final failed = <String>[];
@@ -72,6 +76,10 @@ class StickResult {
   /// Attestations from the stick could not be saved (labels only: nothing
   /// else changes).
   var attestationsNotSaved = false;
+
+  /// Publisher statuses from the stick could not be saved (the app may
+  /// not say that a newer version exists; nothing else changes).
+  var statusNotSaved = false;
 }
 
 /// A stick whose catalog.json cannot be read (broken, too large, or from a
@@ -121,6 +129,11 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   final attestations = [
     ...store.attestations.attestationsFor(store.trust),
     ...await Attestation.checkAll(old?.attestations, trust),
+  ];
+  // Statuses likewise (#117): the newest of each publisher is written.
+  final status = [
+    ...store.status.statusesFor(store.trust),
+    ...await PublisherStatus.checkAll(old?.status, trust),
   ];
 
   // What the stick has, by id (signatures are kept as they are: the
@@ -201,12 +214,14 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
       records,
       keys: statements,
       attestations: attestations,
+      status: status,
     ).fitted();
     result.keysLeftOut = CatalogDocument.keysLeftOut(statements, doc);
     result.attestationsLeftOut = CatalogDocument.attestationsLeftOut(
       attestations,
       doc,
     );
+    result.statusLeftOut = CatalogDocument.statusLeftOut(status, doc);
     text = doc.encode();
   } on CatalogTooLarge {
     // Larger, and no device would read the stick any more.
@@ -323,8 +338,20 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
   final cat = await _readCatalog(folder);
   if (cat == null) throw const FileSystemException('no catalog');
 
-  // Key statements first: they decide which records are trusted.
-  final statements = await relevantStatements(store.trust, cat.keys);
+  // Key statements first: they decide which records are trusted. Then
+  // statuses (#117), and the statements inside them (only those a trusted
+  // key made): whoever passed on a status passed those on too.
+  final ownStatements = await relevantStatements(store.trust, cat.keys);
+  final withOwn = store.trust.withStatements(ownStatements);
+  final status = await PublisherStatus.checkAll(cat.status, withOwn);
+  final seen = {for (final s in ownStatements) s.id};
+  final statements = [
+    ...ownStatements,
+    for (final s in await relevantStatements(withOwn, [
+      for (final st in status) ...st.keys,
+    ]))
+      if (seen.add(s.id)) s,
+  ];
   try {
     result.keysChanged = await store.publishers.learn(statements);
   } on Object {
@@ -336,10 +363,18 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
   // Attestations (labels only, #119): kept like those from a catalog.
   try {
     await store.learnAttestations(
-      await Attestation.checkAll(cat.attestations, trust),
+      await Attestation.checkAll([
+        ...cat.attestations,
+        for (final st in status) ...st.attestations,
+      ], trust),
     );
   } on Object {
     result.attestationsNotSaved = true;
+  }
+  try {
+    await store.learnStatus(status);
+  } on Object {
+    result.statusNotSaved = true;
   }
   for (final raw in cat.records) {
     final r = await trust.check(raw);

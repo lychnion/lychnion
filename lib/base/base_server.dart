@@ -445,6 +445,15 @@ class BaseServer {
             );
           }
         }
+        if (library!.statusLeftOut != _statusLeftOut) {
+          _statusLeftOut = library!.statusLeftOut;
+          if (_statusLeftOut > 0) {
+            _log(
+              'base_status_left_out',
+              '$_statusLeftOut publisher statuses did not fit in the catalog',
+            );
+          }
+        }
       } else if (req.method == 'GET' &&
           _blob.hasMatch(req.uri.path) &&
           library != null) {
@@ -794,6 +803,7 @@ class BaseServer {
 
   var _keysLeftOut = 0;
   var _attestationsLeftOut = 0;
+  var _statusLeftOut = 0;
 
   /// For whoever runs the base: what went wrong, on this computer only.
   static void _log(String event, Object error, [HttpRequest? req]) {

@@ -19,3 +19,9 @@ At first it downloads only on Wi-Fi. In Downloads, the settings button at the to
 ## How do I get new versions?
 
 A mark on the menu and in Downloads shows when a new version is available. Updates can be "Automatic", "Notify" or "Off"; "Automatic" downloads them only on Wi-Fi.
+
+## What does "a newer version exists, but it is not available here yet" mean?
+
+Lychnion signs a short note saying which version of each of its items is the newest (other publishers may later do the same). When that note names a newer version than the one your USB stick, base or download source offers, the app tells you. The old version keeps working. Get the new one when you can: from the internet, another base, or a newer stick.
+
+Downloads also shows when you last got news from Lychnion. After 30 days without news, it reminds you gently that the data may be out of date.

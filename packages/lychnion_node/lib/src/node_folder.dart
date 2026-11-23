@@ -69,6 +69,16 @@ class NodeFolder {
     return Attestation.checkAll(doc.attestations, t);
   }
 
+  /// The publisher statuses in catalog.json that [trust] counts (signed by
+  /// a key it has for their publisher, after the catalog's key statements);
+  /// empty when there is no catalog yet (lychnion/lychnion#117).
+  Future<List<PublisherStatus>> status(TrustedKeys trust) async {
+    final doc = await _document();
+    if (doc == null) return const [];
+    final t = trust.withStatements(await relevantStatements(trust, doc.keys));
+    return PublisherStatus.checkAll(doc.status, t);
+  }
+
   Future<CatalogDocument?> _document() async {
     if (!await catalogFile.exists()) return null;
     try {
@@ -117,19 +127,22 @@ class NodeFolder {
   /// Writes catalog.json (next to it, then renamed: a cut write leaves
   /// the old one). Every file is listed at its place in this folder.
   /// [keys]: key statements to pass on (replaced and revoked keys);
-  /// [attestations]: Lychnion's attestations to pass on.
+  /// [attestations]: Lychnion's attestations to pass on; [status]:
+  /// publishers' statuses to pass on (the newest of each is written).
   /// Returns how many of each were left out to fit.
-  Future<({int keys, int attestations})> writeCatalog(
+  Future<({int keys, int attestations, int status})> writeCatalog(
     List<PackageRecord> records, {
     List<String> mirrors = const [],
     Iterable<KeyStatement> keys = const [],
     Iterable<Attestation> attestations = const [],
+    Iterable<PublisherStatus> status = const [],
   }) async {
     await dir.create(recursive: true);
     final doc = CatalogDocument.byHash(
       records,
       keys: keys,
       attestations: attestations,
+      status: status,
       mirrors: mirrors,
     ).fitted();
     final text = doc.encode();
@@ -139,6 +152,7 @@ class NodeFolder {
     return (
       keys: CatalogDocument.keysLeftOut(keys, doc),
       attestations: CatalogDocument.attestationsLeftOut(attestations, doc),
+      status: CatalogDocument.statusLeftOut(status, doc),
     );
   }
 }

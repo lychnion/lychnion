@@ -112,6 +112,14 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Held-back updates show (#117). Downloads says when a publisher's
+  signed status names a newer version than the one a stick, base or
+  download source offers ("a newer version exists, but it is not
+  available here yet"), and when the device last heard from Lychnion;
+  after 30 days without news it says gently that the data may be out of
+  date. Key revocations and taken-back attestations travel inside the
+  status, so a carrier that passes it on passes them on too. Never a
+  block: old data keeps working.
 - Publishers Lychnion checked are labelled "Checked by Lychnion", under
   the name Lychnion checked, in the publishers screen, the add dialog and
   Downloads; others are "Added by you · not checked by Lychnion". A link
@@ -292,9 +300,10 @@ may carry a `label` (who signed its guide, as the base labels it);
 older phones ignore it.
 A publisher status (#117) says what is newest from a publisher: its
 items' newest versions, its key statements and, for Lychnion, the
-attestations it took back. It travels in a catalog's `status` list; the
-format is defined, devices do not use it yet. Older builds ignore
-`status`.
+attestations it took back. It travels in a catalog's `status` list. The
+app keeps the newest of each publisher in `downloads/status.json`
+(`format: 1`) and passes them on with sticks and a base's catalog; a
+node keeps those of every source. Older builds ignore `status`.
 
 ### Known gaps
 

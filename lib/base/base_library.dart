@@ -45,6 +45,8 @@ class BaseLibrary {
     // Only those of a key trusted now for Lychnion, also between a
     // revocation and the list's recheck.
     final attestations = store.attestations.attestationsFor(store.trust);
+    // Statuses (#117), likewise only of keys trusted now.
+    final status = store.status.statusesFor(store.trust);
     // Each record by its signature, each statement and attestation as the same
     // object (PublisherList and AttestationList keep them): exact, no hash that
     // could collide.
@@ -52,13 +54,15 @@ class BaseLibrary {
     if (_cached case final c?
         when _same(c.signatures, signatures) &&
             _sameItems(c.keys, keys) &&
-            _sameItems(c.attestations, attestations)) {
+            _sameItems(c.attestations, attestations) &&
+            _sameItems(c.status, status)) {
       return c.json;
     }
     final doc = CatalogDocument.byHash(
       [for (final i in all) i.record],
       keys: keys,
       attestations: attestations,
+      status: status,
       // The order phones show, as before.
       sort: false,
     ).fitted();
@@ -67,11 +71,13 @@ class BaseLibrary {
       attestations,
       doc,
     );
+    statusLeftOut = CatalogDocument.statusLeftOut(status, doc);
     final json = Map<String, Object?>.unmodifiable(doc.toJson());
     _cached = (
       signatures: signatures,
       keys: keys,
       attestations: attestations,
+      status: status,
       json: json,
     );
     return json;
@@ -84,6 +90,10 @@ class BaseLibrary {
   /// Attestations the last [catalog] left out to stay under 2 MB (they go
   /// before key statements; withdrawals kept first).
   var attestationsLeftOut = 0;
+
+  /// Publisher statuses the last [catalog] left out (over 100 publishers,
+  /// or 2 MB; they go last; #117).
+  var statusLeftOut = 0;
 
   /// The installed file with this SHA-256, or null. Only files listed in a
   /// signed install record are served (no paths from the request).
@@ -137,6 +147,7 @@ class BaseLibrary {
     List<String> signatures,
     List<KeyStatement> keys,
     List<Attestation> attestations,
+    List<PublisherStatus> status,
     Map<String, Object?> json,
   })?
   _cached;

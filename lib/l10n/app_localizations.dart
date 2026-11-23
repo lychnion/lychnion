@@ -3338,6 +3338,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Some sources were not checked by {app}'**
   String answerSourcesNotChecked(String app);
+
+  /// No description provided for @downloadsNewerElsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version {version} exists, but it is not available here yet.'**
+  String downloadsNewerElsewhere(String version);
+
+  /// No description provided for @downloadsLastNews.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest news from {app}: {date}'**
+  String downloadsLastNews(String app, String date);
+
+  /// No description provided for @downloadsQuiet.
+  ///
+  /// In en, this message translates to:
+  /// **'{app}\'s data on this device is from {date}. Connect to update when you can.'**
+  String downloadsQuiet(String app, String date);
 }
 
 class _AppLocalizationsDelegate

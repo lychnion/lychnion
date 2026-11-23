@@ -598,12 +598,14 @@ class DownloadManager extends ChangeNotifier {
     Uri from, {
     TrustedKeys? trust,
     Set<String> knownAttestations = const {},
+    Set<String> knownStatus = const {},
   }) => Catalog.parse(
     json,
     fetchedFrom: from,
     trust: trust,
     ownFilesOnly: true,
     knownAttestations: knownAttestations,
+    knownStatus: knownStatus,
   );
 
   /// Keeps the key statements of [c] about publishers this device knows.
@@ -646,16 +648,35 @@ class DownloadManager extends ChangeNotifier {
     });
   }
 
+  /// Keeps the newest status of each publisher in [c] (#117); passed on
+  /// with sticks and the base's catalog. Its key statements and withdrawals
+  /// came in with the catalog's own ([Catalog.parse]).
+  Future<void> _learnStatus(Catalog c, Uri? from) async {
+    if (c.status.isEmpty) return;
+    try {
+      if (!await store.learnStatus(c.status)) return;
+    } on Object catch (e) {
+      _log({'event': 'status_not_saved', 'error': '$e'});
+      return;
+    }
+    _log({
+      'event': 'status_learned',
+      'from': from == null ? null : redactedUrl(from),
+    });
+  }
+
   /// Records with a bad signature are left out of the catalog and logged.
   /// [device]: from a device on the local network ([parseDeviceCatalog]).
   Future<Catalog> _parse(String json, Uri? from, {bool device = false}) async {
     final known = store.attestations.ids;
+    final knownStatus = store.status.ids;
     final c = device
         ? await parseDeviceCatalog(
             json,
             from!,
             trust: store.trust,
             knownAttestations: known,
+            knownStatus: knownStatus,
           )
         : await Catalog.parse(
             json,
@@ -663,9 +684,11 @@ class DownloadManager extends ChangeNotifier {
             baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
             trust: store.trust,
             knownAttestations: known,
+            knownStatus: knownStatus,
           );
     await _learnStatements(c, from);
     await _learnAttestations(c, from);
+    await _learnStatus(c, from);
     // A few lines, not one per record: a catalog may hold thousands of
     // records from publishers not added.
     for (final r in c.rejected.take(10)) {

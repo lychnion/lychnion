@@ -2089,4 +2089,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String answerSourcesNotChecked(String app) {
     return 'Some sources were not checked by $app';
   }
+
+  @override
+  String downloadsNewerElsewhere(String version) {
+    return 'A newer version $version exists, but it is not available here yet.';
+  }
+
+  @override
+  String downloadsLastNews(String app, String date) {
+    return 'Latest news from $app: $date';
+  }
+
+  @override
+  String downloadsQuiet(String app, String date) {
+    return '$app\'s data on this device is from $date. Connect to update when you can.';
+  }
 }
