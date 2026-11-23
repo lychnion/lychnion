@@ -191,6 +191,7 @@ mixin _ModelLoading on _AskPageBase {
             pkg,
             _embedder,
             minCosine: double.parse(DevFlags.minCos),
+            embedTexts: DevFlags.embedTexts,
           );
           await hybrid.index();
           _log({
