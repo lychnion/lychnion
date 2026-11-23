@@ -376,7 +376,15 @@ Future<List<String>> adoptNewKey(
   if (publisher.statements.isNotEmpty) {
     await LocalPublisher.writeKeysFile(publisherDir, publisher.statements);
   }
-  await store.publishers.learn(publisher.statements);
+  // All of them (`any`): they are this computer's own, and before the
+  // first publish its key is not trusted here yet, so a plain learn
+  // would drop them; then a replaced key would not be known as replaced,
+  // and could be replaced a second time (#59). Only those about this
+  // publisher: `any` must not get statements about anyone else.
+  await store.publishers.learn(
+    publisher.statements.where((s) => s.publisher == publisher.name),
+    any: true,
+  );
   switch (store.publishers.problemWith(publisher.link)) {
     case null:
       await store.publishers.add(publisher.link);
