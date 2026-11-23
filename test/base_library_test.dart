@@ -40,6 +40,8 @@ class _OneFile implements BaseLibrary {
 
   @override
   var keysLeftOut = 0;
+  @override
+  var vouchesLeftOut = 0;
   final Map<String, Object?> catalogJson;
 
   @override

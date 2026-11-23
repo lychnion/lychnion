@@ -53,6 +53,10 @@ class StickResult {
   /// (revocations and theft proofs kept first; #59).
   var keysLeftOut = 0;
 
+  /// Vouches left out of the stick's catalog to keep it under 2 MB (they
+  /// go before key statements; withdrawals kept first; #119).
+  var vouchesLeftOut = 0;
+
   /// Items whose files were missing, did not match or could not be
   /// written.
   final failed = <String>[];
@@ -64,6 +68,10 @@ class StickResult {
   /// Key statements from the stick could not be saved: records of a new
   /// key may not be trusted after a restart.
   var keysNotSaved = false;
+
+  /// Vouches from the stick could not be saved (labels only: nothing
+  /// else changes).
+  var vouchesNotSaved = false;
 }
 
 /// A stick whose catalog.json cannot be read (broken, too large, or from a
@@ -108,6 +116,12 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   // Duplicates once, revocations first (CatalogDocument.byHash).
   final statements = [...store.publishers.statements, ...oldStatements];
   final trust = store.trust.withStatements(oldStatements);
+  // Vouches likewise (labels only, #119): this device's first, then the
+  // stick's that a key trusted here for Lychnion signed.
+  final vouches = [
+    ...store.vouches.vouches,
+    ...await Vouch.checkAll(old?.vouches, trust),
+  ];
 
   // What the stick has, by id (signatures are kept as they are: the
   // device reading the stick checks them).
@@ -183,8 +197,13 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   final records = onStick.values.toList();
   final String text;
   try {
-    final doc = CatalogDocument.byHash(records, keys: statements).fitted();
+    final doc = CatalogDocument.byHash(
+      records,
+      keys: statements,
+      vouches: vouches,
+    ).fitted();
     result.keysLeftOut = CatalogDocument.keysLeftOut(statements, doc);
+    result.vouchesLeftOut = CatalogDocument.vouchesLeftOut(vouches, doc);
     text = doc.encode();
   } on CatalogTooLarge {
     // Larger, and no device would read the stick any more.
@@ -311,6 +330,12 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
     result.keysNotSaved = true;
   }
   final trust = store.trust.withStatements(statements);
+  // Vouches (labels only, #119): kept like those from a catalog.
+  try {
+    await store.learnVouches(await Vouch.checkAll(cat.vouches, trust));
+  } on Object {
+    result.vouchesNotSaved = true;
+  }
   for (final raw in cat.records) {
     final r = await trust.check(raw);
     if (r == null) {

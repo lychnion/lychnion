@@ -12,6 +12,7 @@ import 'catalog.dart';
 import 'downloader.dart';
 import 'followed_catalogs.dart';
 import 'publisher_list.dart';
+import 'vouch_list.dart';
 
 import 'package:lychnion_format/lychnion_format.dart';
 
@@ -124,6 +125,7 @@ class DownloadStore {
     TrustedKeys? trust,
     PublisherList? publishers,
     FollowedCatalogs? followed,
+    VouchList? vouches,
   }) // A named parameter cannot be private, so no initializing formal.
     // ignore: prefer_initializing_formals
     : _trust = trust,
@@ -131,7 +133,9 @@ class DownloadStore {
            publishers ??
            PublisherList(File('${root.path}/downloads/publishers.json')),
        followed =
-           followed ?? FollowedCatalogs(Directory('${root.path}/downloads'));
+           followed ?? FollowedCatalogs(Directory('${root.path}/downloads')),
+       vouches =
+           vouches ?? VouchList(File('${root.path}/downloads/vouches.json'));
 
   final Directory root;
 
@@ -143,6 +147,14 @@ class DownloadStore {
 
   /// Catalogs the user follows, next to Lychnion's.
   final FollowedCatalogs followed;
+
+  /// Lychnion's vouches for official publishers (labels only, #119).
+  final VouchList vouches;
+
+  /// Keeps [learned] vouches signed by a key trusted here for Lychnion
+  /// (see [VouchList.learn]).
+  Future<bool> learnVouches(Iterable<Vouch> learned) =>
+      vouches.learn(learned, trust);
 
   /// Publishers whose records are accepted: built in, plus the added ones.
   TrustedKeys get trust => _trust ?? publishers.trust;
@@ -229,6 +241,8 @@ class DownloadStore {
   static Future<DownloadStore> instance() => _instance ??= () async {
     final s = DownloadStore(await appSupportDirectory());
     await s.publishers.load();
+    // After the publishers: their key statements decide Lychnion's keys.
+    await s.vouches.load(s.trust);
     await s.followed.load();
     final files = <String>{};
     s.reserve(await s.lychnionIds(files: files), files: files);
@@ -245,6 +259,8 @@ class DownloadStore {
     _verified
       ..clear()
       ..addAll(fresh);
+    // A revoked Lychnion key's vouches lapse.
+    vouches.recheck(trust);
   }
 
   /// Checks the signatures of all install records (once per app start).

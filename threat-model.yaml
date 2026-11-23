@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:3d421e377633e02572446e2bc325b83571c8201b9c8c15c9506d8b8214ab33fc
+prose_version: threat-model.md@sha256:80834fde65f7d71b7ac4e0c0e281dc43fde92f426b97ea24405b4bb57aa4e9a4
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1700,13 +1700,13 @@ properties_claimed:
   tier: security-critical
   x-known-violations:
   - the headless node reserves nothing; it accepts an added publisher's record for a Lychnion id it has
-    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:181`).
+    not pulled from Lychnion yet, and Lychnion takes the id back only when its source is pulled (`packages/lychnion_node/lib/src/pull.dart:189`).
   conditions: 'an added publisher never replaces Lychnion''s items or files, or another publisher''s ids,
     also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion''s
     ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
     of Lychnion''s) are reserved, also when not installed: an added publisher''s record for one is refused
     from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion''s own
-    replaces it (`lib/download/download_store.dart:187`).'
+    replaces it (`lib/download/download_store.dart:199`).'
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1997,7 +1997,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:352`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:369`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:

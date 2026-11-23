@@ -206,6 +206,12 @@ Future<bool> _pullOnce(
       '(revocations kept first)',
     );
   }
+  if (r.vouchesLeftOut > 0) {
+    stdout.writeln(
+      '${r.vouchesLeftOut} vouches did not fit in catalog.json '
+      '(withdrawals kept first)',
+    );
+  }
   stdout.writeln(
     '${DateTime.now().toUtc().toIso8601String()} '
     '${r.changed.length} new, ${r.notTrusted} not trusted, '
@@ -314,6 +320,12 @@ Future<int> _pull(List<String> args) async {
       stdout.writeln(
         '${r.keysLeftOut} key statements did not fit in catalog.json '
         '(revocations kept first)',
+      );
+    }
+    if (r.vouchesLeftOut > 0) {
+      stdout.writeln(
+        '${r.vouchesLeftOut} vouches did not fit in catalog.json '
+        '(withdrawals kept first)',
       );
     }
     stdout.writeln(

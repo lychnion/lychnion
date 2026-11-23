@@ -59,6 +59,16 @@ class NodeFolder {
     return doc == null ? const [] : relevantStatements(trust, doc.keys);
   }
 
+  /// The vouches in catalog.json that [trust] counts (signed by a key it
+  /// has for Lychnion, after the catalog's key statements); empty when
+  /// there is no catalog yet. Labels only (lychnion/lychnion#119).
+  Future<List<Vouch>> vouches(TrustedKeys trust) async {
+    final doc = await _document();
+    if (doc == null) return const [];
+    final t = trust.withStatements(await relevantStatements(trust, doc.keys));
+    return Vouch.checkAll(doc.vouches, t);
+  }
+
   Future<CatalogDocument?> _document() async {
     if (!await catalogFile.exists()) return null;
     try {
@@ -106,23 +116,29 @@ class NodeFolder {
 
   /// Writes catalog.json (next to it, then renamed: a cut write leaves
   /// the old one). Every file is listed at its place in this folder.
-  /// [keys]: key statements to pass on (replaced and revoked keys).
-  /// Returns how many of [keys] were left out to fit.
-  Future<int> writeCatalog(
+  /// [keys]: key statements to pass on (replaced and revoked keys);
+  /// [vouches]: Lychnion's vouches to pass on.
+  /// Returns how many of each were left out to fit.
+  Future<({int keys, int vouches})> writeCatalog(
     List<PackageRecord> records, {
     List<String> mirrors = const [],
     Iterable<KeyStatement> keys = const [],
+    Iterable<Vouch> vouches = const [],
   }) async {
     await dir.create(recursive: true);
     final doc = CatalogDocument.byHash(
       records,
       keys: keys,
+      vouches: vouches,
       mirrors: mirrors,
     ).fitted();
     final text = doc.encode();
     final tmp = File('${catalogFile.path}.$pid.tmp');
     await tmp.writeAsString(text, flush: true);
     await tmp.rename(catalogFile.path);
-    return CatalogDocument.keysLeftOut(keys, doc);
+    return (
+      keys: CatalogDocument.keysLeftOut(keys, doc),
+      vouches: CatalogDocument.vouchesLeftOut(vouches, doc),
+    );
   }
 }

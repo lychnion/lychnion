@@ -597,8 +597,14 @@ class DownloadManager extends ChangeNotifier {
     String json,
     Uri from, {
     TrustedKeys? trust,
-  }) =>
-      Catalog.parse(json, fetchedFrom: from, trust: trust, ownFilesOnly: true);
+    Set<String> knownVouches = const {},
+  }) => Catalog.parse(
+    json,
+    fetchedFrom: from,
+    trust: trust,
+    ownFilesOnly: true,
+    knownVouches: knownVouches,
+  );
 
   /// Keeps the key statements of [c] about publishers this device knows.
   /// When they change which keys are trusted, install records and every
@@ -624,18 +630,42 @@ class DownloadManager extends ChangeNotifier {
     );
   }
 
+  /// Keeps Lychnion's vouches in [c] (labels only, #119); they are passed
+  /// on with sticks and the base's catalog.
+  Future<void> _learnVouches(Catalog c, Uri? from) async {
+    if (c.vouches.isEmpty) return;
+    try {
+      if (!await store.learnVouches(c.vouches)) return;
+    } on Object catch (e) {
+      _log({'event': 'vouches_not_saved', 'error': '$e'});
+      return;
+    }
+    _log({
+      'event': 'vouches_learned',
+      'from': from == null ? null : redactedUrl(from),
+    });
+  }
+
   /// Records with a bad signature are left out of the catalog and logged.
   /// [device]: from a device on the local network ([parseDeviceCatalog]).
   Future<Catalog> _parse(String json, Uri? from, {bool device = false}) async {
+    final known = store.vouches.ids;
     final c = device
-        ? await parseDeviceCatalog(json, from!, trust: store.trust)
+        ? await parseDeviceCatalog(
+            json,
+            from!,
+            trust: store.trust,
+            knownVouches: known,
+          )
         : await Catalog.parse(
             json,
             fetchedFrom: from,
             baseOverride: _baseUrl.isEmpty ? null : Uri.parse(_baseUrl),
             trust: store.trust,
+            knownVouches: known,
           );
     await _learnStatements(c, from);
+    await _learnVouches(c, from);
     // A few lines, not one per record: a catalog may hold thousands of
     // records from publishers not added.
     for (final r in c.rejected.take(10)) {

@@ -30,6 +30,10 @@ class PullResult {
   /// Key statements left out of catalog.json to keep it under 2 MB
   /// (revocations and theft proofs kept first).
   var keysLeftOut = 0;
+
+  /// Vouches left out of catalog.json to keep it under 2 MB (they go
+  /// before key statements; withdrawals kept first).
+  var vouchesLeftOut = 0;
 }
 
 /// Another pull is working on this folder (cron runs overlapping).
@@ -93,6 +97,9 @@ Future<PullResult> _pull(
   // Key statements kept here and learned from the sources (replaced and
   // revoked publisher keys) count for the records, and are passed on.
   var keys = trust.withStatements(await folder.keys(trust));
+  // Lychnion's vouches kept here and learned from the sources (labels
+  // only, lychnion/lychnion#119): passed on, never used for trust.
+  final vouches = <Vouch>{...await folder.vouches(trust)};
   // Records here: the served catalog, and those set aside earlier because
   // their publisher was not given (kept, with their files, until it is).
   final before = [...await folder.allRecords(), ...await folder.keptRecords()];
@@ -161,6 +168,7 @@ Future<PullResult> _pull(
       result.failed.add('${redactedUrl(source)}: invalid keys');
       continue;
     }
+    vouches.addAll(await Vouch.checkAll(cat.vouches, keys));
     for (final raw in cat.records) {
       final r = await keys.check(raw);
       if (r == null) {
@@ -268,10 +276,19 @@ Future<PullResult> _pull(
     }
   }
   try {
-    result.keysLeftOut = await folder.writeCatalog(
+    // Checked once more with the keys after every source: a source's
+    // key statements may have revoked the key that signed one (a fast
+    // check: the signatures were checked when read).
+    final left = await folder.writeCatalog(
       listed,
       keys: keys.statements,
+      vouches: [
+        for (final v in vouches)
+          if (keys.keysOf(voucherPublisher).contains(v.signer)) v,
+      ],
     );
+    result.keysLeftOut = left.keys;
+    result.vouchesLeftOut = left.vouches;
   } on CatalogTooLarge catch (e) {
     // The catalog served stays as it was, and so do the files it lists.
     result.failed.add('catalog.json: $e');
@@ -553,10 +570,18 @@ Future<String> _sha256(File f) async =>
 /// The parts of a catalog (format 2) a node needs: its records as given,
 /// and where their files are.
 class _Catalog {
-  _Catalog(this.records, this.base, this.urls, this.mirrors, this.keys);
+  _Catalog(
+    this.records,
+    this.base,
+    this.urls,
+    this.mirrors,
+    this.keys,
+    this.vouches,
+  );
 
   final List<Object?> records;
   final List<Object?> keys;
+  final List<Object?> vouches;
   final Uri base;
   final Map<String, String> urls;
   final List<Uri> mirrors;
@@ -574,6 +599,7 @@ class _Catalog {
             if (_web(from.resolveUri(u))) from.resolveUri(u),
       ].take(10).toList(),
       doc.keys,
+      doc.vouches,
     );
   }
 

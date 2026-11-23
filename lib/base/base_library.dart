@@ -24,10 +24,10 @@ class BaseLibrary {
   /// A format-2 catalog: the signed records unchanged, for each file its
   /// address on this base (relative to the catalog's own URL), and the
   /// key statements this computer knows, so phones learn of replaced and
-  /// revoked publisher keys here too.
+  /// revoked publisher keys here too, and Lychnion's vouches (#119).
   ///
-  /// Made again only when the installed records or the key statements
-  /// changed: fitting it to 2 MB encodes the whole catalog, and every
+  /// Made again only when the installed records, the key statements or
+  /// the vouches changed: fitting it to 2 MB encodes the whole catalog, and every
   /// phone asks for it (lychnion/lychnion#59). The same map is returned
   /// until then: callers must not change it or what it holds.
   Map<String, Object?> catalog() {
@@ -35,28 +35,43 @@ class BaseLibrary {
     // Phones ask for the files of the catalog they got: those are known.
     _remember(all);
     final keys = store.publishers.statements;
-    // Each record by its signature, each statement as the same object
-    // (PublisherList keeps them): exact, no hash that could collide.
+    final vouches = store.vouches.vouches;
+    // Each record by its signature, each statement and vouch as the same
+    // object (PublisherList and VouchList keep them): exact, no hash that
+    // could collide.
     final signatures = [for (final i in all) '${i.record.json['signature']}'];
     if (_cached case final c?
-        when _same(c.signatures, signatures) && _sameKeys(c.keys, keys)) {
+        when _same(c.signatures, signatures) &&
+            _sameItems(c.keys, keys) &&
+            _sameItems(c.vouches, vouches)) {
       return c.json;
     }
     final doc = CatalogDocument.byHash(
       [for (final i in all) i.record],
       keys: keys,
+      vouches: vouches,
       // The order phones show, as before.
       sort: false,
     ).fitted();
     keysLeftOut = CatalogDocument.keysLeftOut(keys, doc);
+    vouchesLeftOut = CatalogDocument.vouchesLeftOut(vouches, doc);
     final json = Map<String, Object?>.unmodifiable(doc.toJson());
-    _cached = (signatures: signatures, keys: keys, json: json);
+    _cached = (
+      signatures: signatures,
+      keys: keys,
+      vouches: vouches,
+      json: json,
+    );
     return json;
   }
 
   /// Key statements the last [catalog] left out to stay under 2 MB
   /// (revocations and theft proofs kept first; #59).
   var keysLeftOut = 0;
+
+  /// Vouches the last [catalog] left out to stay under 2 MB (they go
+  /// before key statements; withdrawals kept first).
+  var vouchesLeftOut = 0;
 
   /// The installed file with this SHA-256, or null. Only files listed in a
   /// signed install record are served (no paths from the request).
@@ -109,6 +124,7 @@ class BaseLibrary {
   ({
     List<String> signatures,
     List<KeyStatement> keys,
+    List<Vouch> vouches,
     Map<String, Object?> json,
   })?
   _cached;
@@ -121,7 +137,7 @@ class BaseLibrary {
     return true;
   }
 
-  static bool _sameKeys(List<KeyStatement> a, List<KeyStatement> b) {
+  static bool _sameItems<T>(List<T> a, List<T> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (!identical(a[i], b[i]) && a[i] != b[i]) return false;

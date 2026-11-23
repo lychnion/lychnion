@@ -573,6 +573,47 @@ void main() {
     });
   });
 
+  group('vouches (lychnion/lychnion#119)', () {
+    test(
+      'kept and passed on; a signer not trusted for Lychnion is not',
+      () async {
+        final lychnion = await Ed25519().newKeyPair();
+        final t = trust.plus({
+          'lychnion': [await publicKeyOf(lychnion)],
+        });
+        Future<Vouch> vouch(String name, SimpleKeyPair by) async => Vouch.sign(
+          publisher: name,
+          key: await publicKeyOf(city),
+          checked: '2026-11-23',
+          method: 'official-website',
+          signed: '2026-11-23T10:00:00+09:00',
+          signer: by,
+        );
+        final a = await vouch('jp.city.a', lychnion);
+        final forged = await vouch('jp.city.b', stranger);
+        src.catalog = {
+          'format': 2,
+          'records': <Object>[],
+          'vouches': [a.json, forged.json],
+        };
+        final r = await pull([src.url], folder, t);
+        expect(r.failed, isEmpty);
+        expect(r.vouchesLeftOut, 0);
+        expect(await folder.vouches(t), [a]);
+        // The source drops it; the node keeps passing it on.
+        src.catalog = {'format': 2, 'records': <Object>[]};
+        await pull([src.url], folder, t);
+        final served = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+        expect(served['vouches'], [a.json]);
+        // Without Lychnion's key (here: another one), none are counted.
+        final other = trust.plus({
+          'lychnion': [await publicKeyOf(stranger)],
+        });
+        expect(await folder.vouches(other), isEmpty);
+      },
+    );
+  });
+
   group('serve', () {
     late NodeServer server;
     late HttpClient client;
