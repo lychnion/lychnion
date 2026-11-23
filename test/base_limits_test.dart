@@ -100,6 +100,8 @@ class _OneFile implements BaseLibrary {
   var keysLeftOut = 0;
   @override
   var vouchesLeftOut = 0;
+  @override
+  SourceLabel? labelOf(Source s) => null;
 
   @override
   Map<String, Object?> catalog() => {'format': 2, 'records': <Object>[]};

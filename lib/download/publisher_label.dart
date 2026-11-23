@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:lychnion_format/lychnion_format.dart';
 
+import '../knowledge/source_label.dart';
 import 'download_store.dart';
 
 /// What the app says about a publisher, from Lychnion's vouches
@@ -73,25 +74,58 @@ extension PublisherLabels on DownloadStore {
     }, r.vouch);
   }
 
-  /// The label of the publisher that signed [r]. A record names only the
-  /// short id of its key ([recordKeyIdOf]): the label is for the key
+  /// The label of the publisher that signed [r] (see [labelOfKeyId]).
+  PublisherLabel? labelOfRecord(PackageRecord r) =>
+      labelOfKeyId(r.publisher, r.keyId);
+
+  /// The label of publisher [name] whose key has the short id [keyId]
+  /// ([recordKeyIdOf]: records name only that): the label is for the key
   /// trusted here with that id. Null when no trusted key has it (a key
   /// revoked meanwhile, say).
-  PublisherLabel? labelOfRecord(PackageRecord r) {
-    if (publishers.builtIn.known.contains(r.publisher)) {
+  PublisherLabel? labelOfKeyId(String name, String keyId) {
+    if (publishers.builtIn.known.contains(name)) {
       return const PublisherLabel(PublisherCheck.builtIn);
     }
-    for (final k in trust.keysOf(r.publisher)) {
+    for (final k in trust.keysOf(name)) {
       final List<int> bytes;
       try {
         bytes = base64Url.decode(base64Url.normalize(k));
       } on FormatException {
         continue;
       }
-      if (bytes.length == 32 && recordKeyIdOf(bytes) == r.keyId) {
-        return labelOf(r.publisher, k);
+      if (bytes.length == 32 && recordKeyIdOf(bytes) == keyId) {
+        return labelOf(name, k);
       }
     }
     return null;
+  }
+
+  /// The label a source shows for the package [signer] signed with the key
+  /// [keyId] (see `Source.label`): the name Lychnion checked when vouched,
+  /// else the title the publisher was added with. Null only without a
+  /// signer (the app's help). A key no longer trusted here (revoked, or
+  /// its publisher removed) is [PublisherCheck.revoked]: never no label,
+  /// which would look like Lychnion's own guides.
+  SourceLabel? sourceLabelOf(String? signer, String? keyId) {
+    if (signer == null) return null;
+    if (publishers.builtIn.known.contains(signer)) {
+      return SourceLabel(PublisherCheck.builtIn, name: signer);
+    }
+    final added = publishers.added.where((p) => p.name == signer).firstOrNull;
+    final label = keyId == null ? null : labelOfKeyId(signer, keyId);
+    if (label == null) {
+      return SourceLabel(
+        PublisherCheck.revoked,
+        name: signer,
+        titles: {'und': ?SourceLabel.shownTitle(added?.title)},
+      );
+    }
+    return SourceLabel(
+      label.check,
+      name: signer,
+      titles: label.check == PublisherCheck.vouched
+          ? label.vouch!.title
+          : {'und': ?SourceLabel.shownTitle(added?.title)},
+    );
   }
 }

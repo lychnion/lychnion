@@ -3,7 +3,9 @@ import 'dart:ui' show Locale;
 import '../app/lang.dart' show appLanguages;
 import '../knowledge/grounded_answer.dart';
 import '../l10n/app_localizations.dart';
+import '../knowledge/knowledge_package.dart' show Source, SourceLabel;
 import '../ui/answer_text.dart';
+import '../ui/source_label_text.dart';
 
 /// Data for the page the base computer serves to phones without the
 /// app (assets/web/base.html): its texts in the browser's language,
@@ -64,10 +66,16 @@ Map<String, Object?> webInfo({required String lang, required String name}) {
 /// sentences that repeat a safety line, the safety lines in the question's
 /// language, the card's labels in that language too, and the sources once
 /// (publisher, title, licence, address).
-Map<String, Object?> webAnswer(GroundedAnswer a) {
+/// [labelOf]: how this base labels each source's signer (#119).
+Map<String, Object?> webAnswer(
+  GroundedAnswer a, {
+  SourceLabel? Function(Source)? labelOf,
+}) {
+  SourceLabel? label(Source s) => labelOf?.call(s) ?? s.label;
   final sources = {
-    for (final al in a.alerts) al.source.id: al.source,
-    for (final h in a.citedHits) h.passage.source.id: h.passage.source,
+    // By signer too: two publishers' packages may use the same source id.
+    for (final al in a.alerts) _key(al.source): al.source,
+    for (final h in a.citedHits) _key(h.passage.source): h.passage.source,
   };
   // Labels in the answer's language, not the browser's: a Japanese
   // question on an English phone gets a Japanese answer card.
@@ -79,6 +87,7 @@ Map<String, Object?> webAnswer(GroundedAnswer a) {
       'partly': l.answerPartlyCovered,
       'unchecked': l.answerUnchecked,
       'sources': l.answerSources,
+      'someUnchecked': l.answerSourcesNotChecked(l.appName),
     },
     'shown': a.isGrounded || a.saysNoSource
         ? shownAnswer(a.text, a.alerts)
@@ -87,6 +96,9 @@ Map<String, Object?> webAnswer(GroundedAnswer a) {
     'no_source': a.saysNoSource || a.hits.isEmpty,
     'partly': a.admitsGap,
     'alerts': [for (final al in a.alerts) al.textIn(a.lang)],
+    'some_unchecked': a.citedHits.any(
+      (h) => label(h.passage.source)?.isUnchecked ?? false,
+    ),
     'sources': [
       for (final s in sources.values)
         {
@@ -94,7 +106,11 @@ Map<String, Object?> webAnswer(GroundedAnswer a) {
           'title': s.title,
           'licence': s.licence,
           'url': s.url,
+          // Who signed its guide, as this base labels it (#119).
+          'label': ?sourceLabelText(l, label(s), a.lang),
         },
     ],
   };
 }
+
+String _key(Source s) => '${s.signer ?? s.label?.name}/${s.id}';

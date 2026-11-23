@@ -170,8 +170,11 @@
             link.href = x.url; link.rel = 'noopener'; link.target = '_blank';
             s.append(link);
           } else s.append(name);
+          // Who signed the guide, and whether Lychnion checked it.
+          if (x.label) s.append(' — ' + x.label);
         });
         card.append(s);
+        if (a.some_unchecked) card.append(el('div', 'note', L.someUnchecked));
       }
     } catch (err) {
       card.replaceChildren(el('div', null, T.error));

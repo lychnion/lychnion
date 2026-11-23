@@ -21,6 +21,10 @@ mixin _ModelLoading on _AskPageBase {
   /// left by an earlier run is read only then).
   bool _loadedOnce = false;
 
+  /// The store that labels answer sources by who signed their guide
+  /// (#119), set once Downloads are loaded.
+  DownloadStore? _labels;
+
   /// Loads the model on start: GGUF_MODEL_PATH, a download for AUTO_BENCH
   /// on phones, else the model from Downloads (again whenever it changes).
   void _startModel() {
@@ -50,6 +54,8 @@ mixin _ModelLoading on _AskPageBase {
       return;
     }
     final store = await DownloadStore.instance();
+    // Saved answers are labelled as soon as the store is known (#119).
+    if (_labels == null && mounted) setState(() => _labels = store);
     // A LiteRT-LM load that never ended: it crashed the app last time.
     // Skip that model, or every start would crash again.
     if (store.loadingChat case final crashed? when !_loadedOnce) {
@@ -143,9 +149,15 @@ mixin _ModelLoading on _AskPageBase {
           String id,
           String path, {
           required bool safetyLines,
+          required String signer,
+          String? signerKeyId,
         }) {
           try {
-            final p = KnowledgePackage.open(path);
+            final p = KnowledgePackage.open(
+              path,
+              signer: signer,
+              signerKeyId: signerKeyId,
+            );
             if (safetyLines || p.alerts.isEmpty) return p;
             _log({
               'event': 'package_alerts_ignored',
@@ -167,7 +179,14 @@ mixin _ModelLoading on _AskPageBase {
           if (src.shadowed case final who?) {
             _log({'event': 'package_shadow_ignored', 'id': id, 'by': who});
           }
-          bundled.addAll([?openOrSkip(id, src.path, safetyLines: true)]);
+          bundled.addAll([
+            ?openOrSkip(
+              id,
+              src.path,
+              safetyLines: true,
+              signer: voucherPublisher,
+            ),
+          ]);
         }
         final pkg = KnowledgePackage.merge([
           ...bundled,
@@ -178,8 +197,11 @@ mixin _ModelLoading on _AskPageBase {
                 i.id,
                 store.path(i, i.fileEnding('.sqlite')!),
                 safetyLines: i.builtInPublisher,
+                signer: i.record.publisher,
+                signerKeyId: i.record.keyId,
               ),
         ]);
+        _labels = store;
         HybridRetriever? hybrid;
         final embedPath = DevFlags.embedPath.isNotEmpty
             ? await resolvePath(DevFlags.embedPath)

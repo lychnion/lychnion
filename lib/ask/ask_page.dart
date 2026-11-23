@@ -6,6 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:lychnion_format/lychnion_format.dart' show voucherPublisher;
 import 'package:path_provider/path_provider.dart';
 
 import '../app/dev_flags.dart';
@@ -15,6 +16,7 @@ import '../app/region.dart';
 import '../app/settings.dart';
 import '../download/catalog.dart';
 import '../download/download_store.dart';
+import '../ui/source_label_text.dart';
 import '../download/publisher_list.dart' show cleanShownText;
 import '../facts/compact_codec.dart';
 import '../facts/fact_store.dart';
@@ -633,9 +635,13 @@ class _AskPageState extends _AskPageBase
         listenable: Listenable.merge([
           widget.map ?? ValueNotifier(0),
           ?settings,
+          // Source labels follow the vouches and publishers (#119).
+          ?_labels?.vouches,
+          ?_labels?.publishers,
         ]),
         builder: (_, _) => AnswerCard(
           answer: t.entries[i],
+          labelOf: (s) => sourceLabelFor(t.entries[i], s, _labels),
           // Per answer, not whether guides are loaded now: an old answer
           // keeps its sources and warnings while they reload (#65).
           grounded: t.entries[i].fromGuides,

@@ -1189,5 +1189,19 @@
   "@publishersLooksPublic": {"placeholders": {"app": {"type": "String"}}},
   "publishersCompareCode": "Compare the code {id} with the one on its official website.",
   "@publishersCompareCode": {"placeholders": {"id": {"type": "String"}}},
-  "publishersCompared": "I compared the code"
+  "publishersCompared": "I compared the code",
+  "answerSourceChecked": "via “{name}” · checked by {app}",
+  "@answerSourceChecked": {"placeholders": {"app": {"type": "String"}, "name": {"type": "String"}}},
+  "answerSourceNotChecked": "via “{name}” · not checked by {app}",
+  "@answerSourceNotChecked": {"placeholders": {"app": {"type": "String"}, "name": {"type": "String"}}},
+  "answerSourceWithdrawn": "via “{name}” · {app} took back its check",
+  "@answerSourceWithdrawn": {"placeholders": {"app": {"type": "String"}, "name": {"type": "String"}}},
+  "answerSourceOtherKey": "via “{name}” · not the key {app} checked",
+  "@answerSourceOtherKey": {"placeholders": {"app": {"type": "String"}, "name": {"type": "String"}}},
+  "answerSourceRevoked": "via “{name}” · no longer trusted on this device",
+  "@answerSourceRevoked": {"placeholders": {"name": {"type": "String"}}},
+  "answerSourceBaseSays": "{label} (as the base says)",
+  "@answerSourceBaseSays": {"placeholders": {"label": {"type": "String"}}},
+  "answerSourcesNotChecked": "Some sources were not checked by {app}",
+  "@answerSourcesNotChecked": {"placeholders": {"app": {"type": "String"}}}
 }

@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:f289e08ee15af79eef068158a762b7535c1ab60926701be3b3f54b496040acc1
+prose_version: threat-model.md@sha256:071cfb9b070993bfc082c4777ac70dcf459ceeb6ce9d3dd71d12175d7994b912
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -2306,7 +2306,7 @@ properties_disclaimed:
   - downloads
   conditions: That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not
     checked is not official. A vouch says only that Lychnion checked the key belongs to the named body;
-    labels only, never access
+    labels only, never access; in a base's answers the label is the base's word
   tier: security-critical
   false_friend: true
   provenance:

@@ -42,6 +42,8 @@ class _OneFile implements BaseLibrary {
   var keysLeftOut = 0;
   @override
   var vouchesLeftOut = 0;
+  @override
+  SourceLabel? labelOf(Source s) => null;
   final Map<String, Object?> catalogJson;
 
   @override

@@ -590,7 +590,11 @@ class BaseServer {
     answered++;
     await _sendAnswer(
       res,
-      {...answerToWire(answer), 'web': webAnswer(answer)},
+      {
+        // Who signed each source's guide, as this base labels it (#119).
+        ...answerToWire(answer, labelOf: library?.labelOf),
+        'web': webAnswer(answer, labelOf: library?.labelOf),
+      },
       nonce: isAnswerNonce(nonce) ? nonce as String : null,
       request: request,
     );

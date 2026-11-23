@@ -574,5 +574,12 @@
   "publishersLooksVouched": "この名前は{app}が確認した発行元に似ていますが、別の発行元です。偽物かもしれません。",
   "publishersLooksPublic": "この名前は公的機関のように見えますが、{app}は確認していません。",
   "publishersCompareCode": "コード {id} を、その機関の公式ウェブサイトに載っているコードと見比べてください。",
-  "publishersCompared": "コードを見比べました"
+  "publishersCompared": "コードを見比べました",
+  "answerSourceChecked": "「{name}」が発行 · {app}が確認済み",
+  "answerSourceNotChecked": "「{name}」が発行 · {app}は確認していません",
+  "answerSourceWithdrawn": "「{name}」が発行 · {app}が確認を取り消しました",
+  "answerSourceOtherKey": "「{name}」が発行 · {app}が確認した鍵ではありません",
+  "answerSourceRevoked": "「{name}」が発行 · この端末ではもう信頼されていません",
+  "answerSourceBaseSays": "{label}（ベースの表示）",
+  "answerSourcesNotChecked": "{app}が確認していない出典があります"
 }

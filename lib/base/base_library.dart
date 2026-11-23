@@ -2,6 +2,8 @@ import 'dart:io';
 
 import '../download/catalog.dart';
 import '../download/download_store.dart';
+import '../download/publisher_label.dart';
+import '../knowledge/knowledge_package.dart' show Source, SourceLabel;
 
 import 'package:lychnion_format/lychnion_format.dart';
 
@@ -30,6 +32,11 @@ class BaseLibrary {
   /// the vouches changed: fitting it to 2 MB encodes the whole catalog,
   /// and every phone asks for it (lychnion/lychnion#59). The same map is returned
   /// until then: callers must not change it or what it holds.
+  /// How this base labels the signer of [s]'s guide (#119), sent with
+  /// its answers.
+  SourceLabel? labelOf(Source s) =>
+      store.sourceLabelOf(s.signer, s.signerKeyId);
+
   Map<String, Object?> catalog() {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.

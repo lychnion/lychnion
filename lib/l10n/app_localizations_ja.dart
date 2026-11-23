@@ -1942,4 +1942,39 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get publishersCompared => 'コードを見比べました';
+
+  @override
+  String answerSourceChecked(String app, String name) {
+    return '「$name」が発行 · $appが確認済み';
+  }
+
+  @override
+  String answerSourceNotChecked(String app, String name) {
+    return '「$name」が発行 · $appは確認していません';
+  }
+
+  @override
+  String answerSourceWithdrawn(String app, String name) {
+    return '「$name」が発行 · $appが確認を取り消しました';
+  }
+
+  @override
+  String answerSourceOtherKey(String app, String name) {
+    return '「$name」が発行 · $appが確認した鍵ではありません';
+  }
+
+  @override
+  String answerSourceRevoked(String name) {
+    return '「$name」が発行 · この端末ではもう信頼されていません';
+  }
+
+  @override
+  String answerSourceBaseSays(String label) {
+    return '$label（ベースの表示）';
+  }
+
+  @override
+  String answerSourcesNotChecked(String app) {
+    return '$appが確認していない出典があります';
+  }
 }
