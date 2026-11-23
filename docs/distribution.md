@@ -606,16 +606,26 @@ to `keys`, through every carrier like other signed data:
   publisher's own key statements, are vouched too; a key the publisher
   revoked shows as revoked. A link with the same name but another key is
   told apart ("another key than the vouched one").
-- A device keeps vouches as they came and checks them again with its
-  current keys whenever it reads them.
+- A device keeps vouches as they came, in `downloads/vouches.json`
+  (`format: 1`, at most 500; what decides for each publisher first,
+  withdrawals before others), apart from `publishers.json`. It checks
+  them again with its current keys whenever it reads the file, and stops
+  using those of a Lychnion key that is revoked meanwhile.
+- **Carried like key statements:** the app keeps the vouches of every
+  catalog it reads (Lychnion's, followed ones, a base's, a nearby
+  phone's) and of a stick it loads, and passes them on in the catalog it
+  writes to a stick and the one a base serves. A node keeps those of
+  every source it pulls and passes them on in its own catalog. A
+  carrier passes on only vouches that a key it trusts for Lychnion
+  signed.
 - A catalog too large for 2 MB leaves vouches out before key statements
   (withdrawals last).
 
 **Older apps** ignore `vouches`, and leave them out when they write a
 catalog (a base, a stick, a node), as with `keys`.
 
-Showing the labels, carrying and storing vouches on devices, and how
-Lychnion checks a publisher are the next steps of #119.
+Showing the labels and how Lychnion checks a publisher are the next
+step of #119.
 
 ## Security
 

@@ -137,7 +137,13 @@ class Catalog {
     this.refreshUrl,
     this.mirrors = const [],
     this.statements = const [],
+    this.vouches = const [],
   });
+
+  /// Lychnion's vouches in the catalog's `vouches` (signed by a key the
+  /// device trusts for Lychnion, after the catalog's key statements),
+  /// except those given as known to [parse]; the device keeps them.
+  final List<Vouch> vouches;
 
   /// Key statements in the catalog's `keys` made by keys the device
   /// trusts (see relevantStatements); the device keeps them.
@@ -173,12 +179,16 @@ class Catalog {
   /// file address and mirror must be on the host it came from
   /// ([fetchedFrom]); others are left out, so a device on the Wi-Fi
   /// cannot make the phone contact hosts it picks.
+  ///
+  /// Vouches whose [Vouch.id] is in [knownVouches] (the device keeps
+  /// them) are not checked again, and not in [vouches].
   static Future<Catalog> parse(
     String json, {
     Uri? fetchedFrom,
     Uri? baseOverride,
     TrustedKeys? trust,
     bool ownFilesOnly = false,
+    Set<String> knownVouches = const {},
   }) async {
     final doc = CatalogDocument.parse(json);
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
@@ -200,6 +210,11 @@ class Catalog {
     final given = trust ?? builtInPublishers;
     final statements = await relevantStatements(given, doc.keys);
     final keys = given.withStatements(statements);
+    // Labels only (#119): they never change which records are trusted.
+    final vouches = await Vouch.checkAll([
+      for (final raw in doc.vouches)
+        if (!knownVouches.contains(_idOf(raw))) raw,
+    ], keys);
     final items = <CatalogItem>[];
     final rejected = <String>[];
     final raw = doc.records;
@@ -235,11 +250,21 @@ class Catalog {
       base: base,
       refreshUrl: ownFilesOnly ? null : uri(doc.refresh),
       statements: statements,
+      vouches: vouches,
       mirrors: [
         for (final m in _mirrors(doc.mirrors, fetchedFrom ?? base))
           if (!ownFilesOnly || _sameOrigin(m, fetchedFrom!)) m,
       ],
     )..rejected.addAll(rejected);
+  }
+
+  /// [Vouch.id] of vouch JSON, or null when it cannot be written.
+  static String? _idOf(Object? raw) {
+    try {
+      return canonicalJson(raw);
+    } on Object {
+      return null;
+    }
   }
 
   static bool _sameOrigin(Uri a, Uri b) =>

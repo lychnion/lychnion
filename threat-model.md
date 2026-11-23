@@ -521,7 +521,7 @@ plus phones that also use the internet when they can.
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:30`,
   `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:185`, and "Open a model
   file…" at `lib/ask/model_loading.dart:288`. Bundled guides are trusted by
-  the app signature, not a record (`lib/download/download_store.dart:612`).
+  the app signature, not a record (`lib/download/download_store.dart:825`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
@@ -533,11 +533,11 @@ plus phones that also use the internet when they can.
   catalog of Lychnion's) are reserved, also when not installed: an added
   publisher's record for one is refused from a USB stick, a followed
   catalog or a base, a copy installed before is not used, and Lychnion's
-  own replaces it (`lib/download/download_store.dart:187`). Known gap: the
+  own replaces it (`lib/download/download_store.dart:199`). Known gap: the
   headless node reserves nothing; it accepts an added publisher's record
   for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
   the id back only when its source is pulled
-  (`packages/lychnion_node/lib/src/pull.dart:181`). *Violation symptom*:
+  (`packages/lychnion_node/lib/src/pull.dart:189`). *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: nothing voids
   it in the app; the check runs in `isTaken`, `installed` and
   `recordedVersionOf`, and no flag or dev define turns it off (the
@@ -549,13 +549,13 @@ plus phones that also use the internet when they can.
 - **`no-downgrade-installed`** (`downloads`, `records`, `publishing`, `node`): an
   installed item is never replaced with an older version.
   *Violation symptom*: bad-data-accepted. *Tier*: security-critical. *Voided by*:
-  deleting the item (`lib/download/download_store.dart:459`), removing its
+  deleting the item (`lib/download/download_store.dart:475`), removing its
   publisher (`lib/download/download_manager.dart:540`), reinstalling the app,
   or a fresh node folder. After that an older signed version is accepted
   again (§1.12 `freshness`). After a revocation a node lists the version it
   listed before, never one below it. A record no version of which is
   complete is not listed but set aside in `.kept.json`, where its version
-  still counts (`packages/lychnion_node/lib/src/pull.dart:238`).
+  still counts (`packages/lychnion_node/lib/src/pull.dart:246`).
   *(documented, docs/distribution.md "Principles")*
 - **`key-consent`** (`downloads`, `base-client`): a publisher key or base key
   becomes trusted only after the user says yes, and a base key gets fact
@@ -615,7 +615,7 @@ plus phones that also use the internet when they can.
   (`lib/base/base_client.dart:96`); for a QR code without `s=1`, the first
   answers before the base has signed (`lib/base/base_checks.dart:78`);
   pinning another key (`lib/app/settings.dart:129`); a base without a signer
-  (`lib/base/base_server.dart:737`). *(documented, docs/shelter-results.md
+  (`lib/base/base_server.dart:746`). *(documented, docs/shelter-results.md
   "How it works")*
 - **`fact-verification`** (`facts`): an official or sensor fact shows as
   verified only with a signature from a trusted key; others count as
@@ -698,7 +698,7 @@ plus phones that also use the internet when they can.
   node folder; no request part becomes a path. *Violation symptom*: info-leak.
   *Tier*: security-critical. *Voided by*: node `serve` on a folder it did not
   pull follows symlinks (§1.6, unsupported). The blob routes match
-  `lib/base/base_server.dart:650` and
+  `lib/base/base_server.dart:659` and
   `packages/lychnion_node/lib/src/server.dart:61`. *(documented,
   CHANGELOG.md "Security")*
 - **`browser-page-text-only`** (`base-server`): the browser page shows all
@@ -760,10 +760,10 @@ plus phones that also use the internet when they can.
   is on such a network; an internet catalog's own redirects are checked the
   same way. Private or local means any address that is not plain public
   unicast, including `::`, multicast, special ranges and IPv4 carried in
-  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:352`). DNS rebinding is
+  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:369`). DNS rebinding is
   not caught. *Violation symptom*: x-request-forgery. *Tier*:
   correctness-only. *Voided by*: a catalog on a private network or a folder
-  (`packages/lychnion_node/lib/src/pull.dart:130`). *(documented,
+  (`packages/lychnion_node/lib/src/pull.dart:137`). *(documented,
   packages/lychnion_node/README.md "Operating")*
 
 - **`key-statement-verification`** (`records`, `downloads`, `node`): a
