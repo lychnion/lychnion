@@ -18,6 +18,8 @@ app, see the user help in [help/](../help/README.md).
   signing works, publishers and catalogs.
 - [Distribution design](distribution.md): the full design for publishers,
   catalogs, nodes and sync.
+- [Vouching for publishers](vouching.md): who Lychnion vouches for, how
+  it checks a publisher's key, and how a vouch is taken back.
 - [Base](base.md): a computer that serves phones on the same Wi-Fi.
 - [Base map and map data](base-map-design.md): proposal for one base map,
   offline areas by cell, tile schema, terrain and map data types.

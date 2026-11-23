@@ -6,7 +6,7 @@
   "scope_subpath": null,
   "description": "Lychnion is an offline safety assistant for Japan. A phone or computer runs a small language model over installed, signed knowledge packages and shows sources and fixed official safety lines. Packages, maps and models come from signed catalogs over the internet, a base computer on the local Wi-Fi, a nearby phone, a USB stick or a headless node. A base also shares signed current facts such as shelter status.",
   "confidence": {
-    "documented": 270,
+    "documented": 275,
     "inferred": 0
   },
   "components": [
@@ -1051,6 +1051,20 @@
       "false_friend": true,
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
+    },
+    {
+      "property": "vouch-means-vetted",
+      "reason": "That a publisher \"Checked by Lychnion\" publishes correct or safe guides, or that one not checked is not official. A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access",
+      "false_friend": true,
+      "provenance": "documented",
+      "source": "docs/vouching.md \"What a vouch does, and what it never does\""
+    },
+    {
+      "property": "lookalike-warning-completeness",
+      "reason": "A warning for every misleading publisher name. A list of words and look-alike letters; other names pass, still labelled \"not checked by Lychnion\"; never refuses",
+      "false_friend": false,
+      "provenance": "documented",
+      "source": "docs/vouching.md \"The warning for names that look official\""
     }
   ],
   "attack_classes": [
@@ -1064,6 +1078,7 @@
   ],
   "downstream_responsibilities": [
     "Add only publishers you know.",
+    "When the app asks, compare the key's code with the one on the body's official website before ticking it.",
     "Follow official warnings first.",
     "Run the base on a Wi-Fi you control; treat it as readable by everyone on it.",
     "Keep the base offline while serving, or accept cross-site requests.",
@@ -1080,8 +1095,18 @@
     },
     {
       "pattern": "adding a publisher from an unknown link",
-      "why_unsafe": "**Adding a publisher from an unknown link.** The dialog looks routine, but the publisher's guides then appear as answers with its name. Add only publishers you know.",
+      "why_unsafe": "**Adding a publisher from an unknown link.** The dialog says whether Lychnion checked the publisher, but \"not checked\" looks harmless, and the publisher's guides then appear as answers with its name. Add only publishers you know.",
       "instead": "add only publishers you know"
+    },
+    {
+      "pattern": "ticking \"I compared the code\" without comparing",
+      "why_unsafe": "**Ticking \"I compared the code\" without comparing.** For a name that looks official the tick is the last defence. Compare the code with the body's official website, or do not add it.",
+      "instead": "compare the code with the body's official website, or do not add the publisher"
+    },
+    {
+      "pattern": "reading \"Checked by Lychnion\" as \"its guides are right\"",
+      "why_unsafe": "**Reading \"Checked by Lychnion\" as \"its guides are right\".** A vouch says whose key it is, not that the content is checked.",
+      "instead": "read a vouch as whose key it is, not as a check of the content"
     },
     {
       "pattern": "treating signed as official and true",

@@ -2,11 +2,11 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:80834fde65f7d71b7ac4e0c0e281dc43fde92f426b97ea24405b4bb57aa4e9a4
+prose_version: threat-model.md@sha256:2df45ec468ed8d570145692fd505a12443c1e30b15a4f35c491b5ef0dce39a4e
 model_status: accepted
 triage_policy: strict
 confidence:
-  documented: 120
+  documented: 125
   maintainer: 150
   inferred: 0
   assumption: 0
@@ -2301,6 +2301,27 @@ properties_disclaimed:
   provenance:
     kind: maintainer
     date: 2026-11
+- id: vouch-means-vetted
+  components:
+  - downloads
+  conditions: That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not
+    checked is not official. A vouch says only that Lychnion checked the key belongs to the named body;
+    labels only, never access
+  tier: security-critical
+  false_friend: true
+  provenance:
+    kind: documented
+    source: docs/vouching.md "What a vouch does, and what it never does"
+- id: lookalike-warning-completeness
+  components:
+  - downloads
+  conditions: A warning for every misleading publisher name. A list of words and look-alike letters;
+    other names pass, still labelled "not checked by Lychnion"; never refuses
+  tier: security-critical
+  false_friend: false
+  provenance:
+    kind: documented
+    source: docs/vouching.md "The warning for names that look official"
 downstream_responsibilities:
 - id: add-known-publishers-only
   component: downloads
@@ -2310,6 +2331,15 @@ downstream_responsibilities:
   provenance:
     kind: documented
     source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
+- id: compare-code-when-asked
+  component: downloads
+  statement: When the app asks, compare the key's code with the one on the body's official website before
+    ticking it.
+  enforces:
+  - lookalike-warning-completeness
+  provenance:
+    kind: documented
+    source: help/en/07-publishers.md "Why does the app ask me to compare a code?"
 - id: follow-official-warnings
   component: answers
   statement: Follow official warnings first.
@@ -2383,6 +2413,22 @@ known_misuses:
   provenance:
     kind: documented
     source: help/en/07-publishers.md "How do I add a publisher, such as my city?"
+- id: tick-without-comparing
+  components:
+  - downloads
+  pattern: ticking "I compared the code" without comparing
+  safer_alternative: compare the code with the body's official website, or do not add the publisher
+  provenance:
+    kind: documented
+    source: help/en/07-publishers.md "Why does the app ask me to compare a code?"
+- id: vouch-as-content-check
+  components:
+  - downloads
+  pattern: reading "Checked by Lychnion" as "its guides are right"
+  safer_alternative: read a vouch as whose key it is, not as a check of the content
+  provenance:
+    kind: documented
+    source: docs/vouching.md "What a vouch does, and what it never does"
 - id: signed-as-true
   components:
   - facts

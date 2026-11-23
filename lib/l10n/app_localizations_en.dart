@@ -1996,4 +1996,62 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get publishReplaceAlreadyReplaced =>
       'This key was replaced already. If it comes from an older backup, restore your newest backup instead: replacing it again would make phones stop trusting your publisher. If you did not replace it, someone else has the key: use \"Revoke the key\".';
+
+  @override
+  String publishersVouched(String app, String date) {
+    return 'Checked by $app on $date';
+  }
+
+  @override
+  String publishersNotChecked(String app) {
+    return 'Added by you · not checked by $app';
+  }
+
+  @override
+  String publishersWithdrawn(String app) {
+    return '$app took back its check';
+  }
+
+  @override
+  String publishersNotVouchedKey(String app) {
+    return 'Not the key $app checked';
+  }
+
+  @override
+  String publishersVouchedBody(String app, String date, String name) {
+    return '$app checked on $date that this key belongs to $name.';
+  }
+
+  @override
+  String publishersNotCheckedBody(String app) {
+    return '$app has not checked this publisher.';
+  }
+
+  @override
+  String publishersWithdrawnBody(String app) {
+    return '$app took back its check of this publisher. Add it only if you know why.';
+  }
+
+  @override
+  String publishersNotVouchedKeyBody(String app) {
+    return '$app checked a publisher with this name, but with another key. This link may be fake.';
+  }
+
+  @override
+  String publishersLooksVouched(String app) {
+    return 'This name looks like a publisher $app checked, but it is another one. It may be fake.';
+  }
+
+  @override
+  String publishersLooksPublic(String app) {
+    return 'This name looks like a public body, but $app has not checked it.';
+  }
+
+  @override
+  String publishersCompareCode(String id) {
+    return 'Compare the code $id with the one on its official website.';
+  }
+
+  @override
+  String get publishersCompared => 'I compared the code';
 }

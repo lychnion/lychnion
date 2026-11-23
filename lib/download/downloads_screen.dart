@@ -15,6 +15,8 @@ import 'catalog.dart';
 import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
+import 'publisher_label.dart';
+import 'publishers_screen.dart' show publisherLabelText;
 import '../base/share_nearby.dart';
 import 'stick.dart';
 
@@ -687,7 +689,16 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                   for (final line in lines) Text(line, style: small),
                   if (r != null) ...[
                     const SizedBox(height: 8),
-                    _detail(l.downloadsPublisher, r.publisher),
+                    if (m.store.labelOf(r.publisher, r.keyId) case final label)
+                      _detail(
+                        l.downloadsPublisher,
+                        [
+                          label.titleIn(lang, r.publisher),
+                          if (label.check == PublisherCheck.vouched)
+                            r.publisher,
+                          publisherLabelText(context, label),
+                        ].join(' · '),
+                      ),
                     _detail(l.downloadsSignedOn, _date(r.signed)),
                     _detail(l.downloadsKey, r.keyId),
                     for (final f in r.files)
