@@ -1886,7 +1886,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'この鍵はすでに交換されています。古いバックアップの鍵であれば、代わりに最新のバックアップから復元してください（もう一度交換すると、スマートフォンがこの発行元を信頼しなくなります）。交換した覚えがない場合は、他の人が鍵を持っています。「鍵を無効にする」を使ってください。';
 
   @override
-  String publishersVouched(String app, String date) {
+  String publishersAttested(String app, String date) {
     return '$dateに$appが確認済み';
   }
 
@@ -1901,12 +1901,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String publishersNotVouchedKey(String app) {
+  String publishersNotAttestedKey(String app) {
     return '$appが確認した鍵ではありません';
   }
 
   @override
-  String publishersVouchedBody(String app, String date, String name) {
+  String publishersAttestedBody(String app, String date, String name) {
     return 'この鍵が$nameのものであることを、$appが$dateに確認しました。';
   }
 
@@ -1921,12 +1921,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String publishersNotVouchedKeyBody(String app) {
+  String publishersNotAttestedKeyBody(String app) {
     return '$appはこの名前の発行元を確認しましたが、別の鍵でした。このリンクは偽物かもしれません。';
   }
 
   @override
-  String publishersLooksVouched(String app) {
+  String publishersLooksAttested(String app) {
     return 'この名前は$appが確認した発行元に似ていますが、別の発行元です。偽物かもしれません。';
   }
 

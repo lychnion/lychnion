@@ -20,7 +20,7 @@ Map<String, Object?> sourceToWire(Source s, {SourceLabel? label}) => {
   'attribution': s.attribution,
   'region': s.region,
   // Who signed the source's package (#119): kept with saved answers, so
-  // their labels follow the vouches; never looked up for a base's answer.
+  // their labels follow the attestations; never looked up for a base's answer.
   'signer': ?s.signer,
   'signer_key': ?s.signerKeyId,
   'label': ?(label ?? s.label)?.toWire(),

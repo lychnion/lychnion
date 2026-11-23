@@ -63,8 +63,8 @@ void main() {
         title: 'Sendai” · checked by Lychnion',
       ),
     );
-    await store.learnVouches([
-      await Vouch.sign(
+    await store.learnAttestations([
+      await Attestation.sign(
         publisher: 'jp.city.sendai',
         key: sendaiKey,
         title: {'ja': '仙台市', 'en': 'Sendai City'},
@@ -79,10 +79,10 @@ void main() {
   tearDownAll(() => tmp.delete(recursive: true));
 
   group('sourceLabelOf', () {
-    test('Lychnion, vouched, added; never none for a signer', () {
+    test('Lychnion, attested, added; never none for a signer', () {
       expect(store.sourceLabelOf('lychnion', null)?.isBuiltIn, isTrue);
       final v = store.sourceLabelOf('jp.city.sendai', idOf(sendaiKey))!;
-      expect(v.check, PublisherCheck.vouched);
+      expect(v.check, PublisherCheck.attested);
       expect(v.titleIn('ja'), '仙台市');
       expect(v.isUnchecked, isFalse);
       final c = store.sourceLabelOf('club.aoba', idOf(clubKey))!;
@@ -143,7 +143,7 @@ void main() {
       final a = GroundedAnswer('q');
       // A stale label saved with it does not count.
       final s = src(
-        label: const SourceLabel(PublisherCheck.vouched, name: 'club.aoba'),
+        label: const SourceLabel(PublisherCheck.attested, name: 'club.aoba'),
       );
       expect(sourceLabelFor(a, s, store)?.check, PublisherCheck.notChecked);
     });
@@ -151,9 +151,9 @@ void main() {
     test('a base\'s answer: the base\'s word, never looked up', () {
       final a = GroundedAnswer('q')..answeredBy = 'Shelter';
       final s = src(
-        label: const SourceLabel(PublisherCheck.vouched, name: 'club.aoba'),
+        label: const SourceLabel(PublisherCheck.attested, name: 'club.aoba'),
       );
-      expect(sourceLabelFor(a, s, store)?.check, PublisherCheck.vouched);
+      expect(sourceLabelFor(a, s, store)?.check, PublisherCheck.attested);
       expect(sourceLabelFor(a, src(), store), isNull);
     });
 
@@ -206,7 +206,7 @@ void main() {
   group('SourceLabel on the wire', () {
     test('round trip, and only well-formed labels', () {
       const l = SourceLabel(
-        PublisherCheck.vouched,
+        PublisherCheck.attested,
         name: 'jp.city.sendai',
         titles: {'ja': '仙台市', 'en': 'Sendai City'},
       );
@@ -216,12 +216,12 @@ void main() {
       expect(back.titles, l.titles);
       for (final bad in [
         null,
-        'vouched',
+        'attested',
         {'check': 'trusted', 'name': 'a.b'},
-        {'check': 'vouched', 'name': 'Not A Name'},
-        {'check': 'vouched'},
+        {'check': 'attested', 'name': 'Not A Name'},
+        {'check': 'attested'},
         // Only Lychnion's own guides carry its name.
-        {'check': 'vouched', 'name': 'lychnion'},
+        {'check': 'attested', 'name': 'lychnion'},
       ]) {
         expect(SourceLabel.fromWire(bad), isNull, reason: '$bad');
       }

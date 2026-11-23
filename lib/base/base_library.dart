@@ -23,20 +23,20 @@ class BaseLibrary {
     for (final k in ItemKind.values) ...store.allInstalled(k),
   ];
 
-  /// A format-2 catalog: the signed records unchanged, for each file its
-  /// address on this base (relative to the catalog's own URL), and the
-  /// key statements this computer knows, so phones learn of replaced and
-  /// revoked publisher keys here too, and Lychnion's vouches (#119).
-  ///
-  /// Made again only when the installed records, the key statements or
-  /// the vouches changed: fitting it to 2 MB encodes the whole catalog,
-  /// and every phone asks for it (lychnion/lychnion#59). The same map is returned
-  /// until then: callers must not change it or what it holds.
   /// How this base labels the signer of [s]'s guide (#119), sent with
   /// its answers.
   SourceLabel? labelOf(Source s) =>
       store.sourceLabelOf(s.signer, s.signerKeyId);
 
+  /// A format-2 catalog: the signed records unchanged, for each file its
+  /// address on this base (relative to the catalog's own URL), and the
+  /// key statements this computer knows, so phones learn of replaced and
+  /// revoked publisher keys here too, and Lychnion's attestations (#119).
+  ///
+  /// Made again only when the installed records, the key statements or the
+  /// attestations changed: fitting it to 2 MB encodes the whole catalog, and
+  /// every phone asks for it (lychnion/lychnion#59). The same map is
+  /// returned until then: callers must not change it or what it holds.
   Map<String, Object?> catalog() {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.
@@ -44,31 +44,34 @@ class BaseLibrary {
     final keys = store.publishers.statements;
     // Only those of a key trusted now for Lychnion, also between a
     // revocation and the list's recheck.
-    final vouches = store.vouches.vouchesFor(store.trust);
-    // Each record by its signature, each statement and vouch as the same
-    // object (PublisherList and VouchList keep them): exact, no hash that
+    final attestations = store.attestations.attestationsFor(store.trust);
+    // Each record by its signature, each statement and attestation as the same
+    // object (PublisherList and AttestationList keep them): exact, no hash that
     // could collide.
     final signatures = [for (final i in all) '${i.record.json['signature']}'];
     if (_cached case final c?
         when _same(c.signatures, signatures) &&
             _sameItems(c.keys, keys) &&
-            _sameItems(c.vouches, vouches)) {
+            _sameItems(c.attestations, attestations)) {
       return c.json;
     }
     final doc = CatalogDocument.byHash(
       [for (final i in all) i.record],
       keys: keys,
-      vouches: vouches,
+      attestations: attestations,
       // The order phones show, as before.
       sort: false,
     ).fitted();
     keysLeftOut = CatalogDocument.keysLeftOut(keys, doc);
-    vouchesLeftOut = CatalogDocument.vouchesLeftOut(vouches, doc);
+    attestationsLeftOut = CatalogDocument.attestationsLeftOut(
+      attestations,
+      doc,
+    );
     final json = Map<String, Object?>.unmodifiable(doc.toJson());
     _cached = (
       signatures: signatures,
       keys: keys,
-      vouches: vouches,
+      attestations: attestations,
       json: json,
     );
     return json;
@@ -78,9 +81,9 @@ class BaseLibrary {
   /// (revocations and theft proofs kept first; #59).
   var keysLeftOut = 0;
 
-  /// Vouches the last [catalog] left out to stay under 2 MB (they go
+  /// Attestations the last [catalog] left out to stay under 2 MB (they go
   /// before key statements; withdrawals kept first).
-  var vouchesLeftOut = 0;
+  var attestationsLeftOut = 0;
 
   /// The installed file with this SHA-256, or null. Only files listed in a
   /// signed install record are served (no paths from the request).
@@ -133,7 +136,7 @@ class BaseLibrary {
   ({
     List<String> signatures,
     List<KeyStatement> keys,
-    List<Vouch> vouches,
+    List<Attestation> attestations,
     Map<String, Object?> json,
   })?
   _cached;

@@ -6,7 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:lychnion_format/lychnion_format.dart' show voucherPublisher;
+import 'package:lychnion_format/lychnion_format.dart' show attesterPublisher;
 import 'package:path_provider/path_provider.dart';
 
 import '../app/dev_flags.dart';
@@ -635,8 +635,8 @@ class _AskPageState extends _AskPageBase
         listenable: Listenable.merge([
           widget.map ?? ValueNotifier(0),
           ?settings,
-          // Source labels follow the vouches and publishers (#119).
-          ?_labels?.vouches,
+          // Source labels follow the attestations and publishers (#119).
+          ?_labels?.attestations,
           ?_labels?.publishers,
         ]),
         builder: (_, _) => AnswerCard(

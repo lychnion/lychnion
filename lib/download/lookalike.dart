@@ -1,32 +1,36 @@
 import 'package:lychnion_format/lychnion_format.dart';
 
-/// Why a publisher link that Lychnion has not vouched for deserves a
+/// Why a publisher link that Lychnion has not attested deserves a
 /// second look before it is added (lychnion/lychnion#119): anyone can make
 /// a link with any name, and a fake QR code at a shelter only needs one
 /// tap. Never a reason to refuse: an official body that Lychnion has not
 /// checked must still be addable offline.
 enum Lookalike {
-  /// Its name or title is like that of a publisher Lychnion vouches for.
-  vouched,
+  /// Its name or title is like that of a publisher Lychnion attests.
+  attested,
 
   /// Its name or title is like that of a public body (市, 県, 庁, 消防,
   /// jp.go.*, jp.lg.*, City, Ministry…).
   publicBody,
 }
 
-/// Whether publisher [name] with [title] looks like one in [vouches]
-/// (another name: a vouch for the same name decides by itself) or like a
+/// Whether publisher [name] with [title] looks like one in [attestations]
+/// (another name: an attestation for the same name decides by itself) or like a
 /// public body. Null when neither.
-Lookalike? lookalikeOf(String name, String? title, Iterable<Vouch> vouches) {
+Lookalike? lookalikeOf(
+  String name,
+  String? title,
+  Iterable<Attestation> attestations,
+) {
   final n = nameSkeleton(name);
   final t = title == null ? '' : foldTitle(title);
-  for (final v in vouches) {
+  for (final v in attestations) {
     if (v.publisher == name) continue;
-    if (nameSkeleton(v.publisher) == n) return Lookalike.vouched;
+    if (nameSkeleton(v.publisher) == n) return Lookalike.attested;
     for (final vt in v.title.values) {
       final f = foldTitle(vt);
       if (f.length < 2 || t.length < 2) continue;
-      if (t.contains(f) || f.contains(t)) return Lookalike.vouched;
+      if (t.contains(f) || f.contains(t)) return Lookalike.attested;
     }
   }
   if (_publicName(name) ||

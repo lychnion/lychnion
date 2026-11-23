@@ -5,40 +5,40 @@ import 'package:lychnion_format/lychnion_format.dart';
 import '../knowledge/source_label.dart';
 import 'download_store.dart';
 
-/// What the app says about a publisher, from Lychnion's vouches
-/// (lychnion/lychnion#119, docs/vouching.md). Labels only: nothing here
+/// What the app says about a publisher, from Lychnion's attestations
+/// (lychnion/lychnion#119, docs/attestations.md). Labels only: nothing here
 /// adds a publisher or changes which keys are trusted.
 enum PublisherCheck {
   /// Built into the app (Lychnion).
   builtIn,
 
-  /// Lychnion vouches for this key under this name.
-  vouched,
+  /// Lychnion attests this key under this name.
+  attested,
 
-  /// No vouch for the name: added by the user, not checked by Lychnion.
+  /// No attestation for the name: added by the user, not checked by Lychnion.
   notChecked,
 
-  /// Lychnion took its vouch for the name back.
+  /// Lychnion took its attestation for the name back.
   withdrawn,
 
-  /// The name has a vouch, but for another key.
+  /// The name has an attestation, but for another key.
   otherKey,
 
   /// The publisher revoked this key itself.
   revoked,
 }
 
-/// A publisher's [check], and the vouch that decided it.
+/// A publisher's [check], and the attestation that decided it.
 class PublisherLabel {
-  const PublisherLabel(this.check, [this.vouch]);
+  const PublisherLabel(this.check, [this.attestation]);
 
   final PublisherCheck check;
 
-  /// The deciding vouch (null for [PublisherCheck.builtIn] and
+  /// The deciding attestation (null for [PublisherCheck.builtIn] and
   /// [PublisherCheck.notChecked]).
-  final Vouch? vouch;
+  final Attestation? attestation;
 
-  /// Shown in red: the name has a vouch that this key does not have.
+  /// Shown in red: the name has an attestation that this key does not have.
   bool get isProblem => switch (check) {
     PublisherCheck.withdrawn ||
     PublisherCheck.otherKey ||
@@ -46,32 +46,32 @@ class PublisherLabel {
     _ => false,
   };
 
-  /// The name to show: the one Lychnion checked (the vouch's title in
-  /// [lang], else in the other language) when vouched, else [fallback]
+  /// The name to show: the one Lychnion checked (the attestation's title in
+  /// [lang], else in the other language) when attested, else [fallback]
   /// (the link's own title or name).
   String titleIn(String lang, String fallback) {
-    final v = vouch;
-    if (check != PublisherCheck.vouched || v == null) return fallback;
+    final v = attestation;
+    if (check != PublisherCheck.attested || v == null) return fallback;
     final t = v.title;
     return t[lang] ?? t['ja'] ?? t['en'] ?? fallback;
   }
 }
 
 extension PublisherLabels on DownloadStore {
-  /// Where publisher [name] with [key] stands with the vouches this device
+  /// Where publisher [name] with [key] stands with the attestations this device
   /// keeps, after the key statements it keeps.
   PublisherLabel labelOf(String name, String key) {
     if (publishers.builtIn.known.contains(name)) {
       return const PublisherLabel(PublisherCheck.builtIn);
     }
-    final r = vouches.statusOf(name, key, publishers.statements, trust);
+    final r = attestations.statusOf(name, key, publishers.statements, trust);
     return PublisherLabel(switch (r.status) {
-      VouchStatus.vouched => PublisherCheck.vouched,
-      VouchStatus.withdrawn => PublisherCheck.withdrawn,
-      VouchStatus.otherKey => PublisherCheck.otherKey,
-      VouchStatus.revoked => PublisherCheck.revoked,
-      VouchStatus.none => PublisherCheck.notChecked,
-    }, r.vouch);
+      AttestationStatus.attested => PublisherCheck.attested,
+      AttestationStatus.withdrawn => PublisherCheck.withdrawn,
+      AttestationStatus.otherKey => PublisherCheck.otherKey,
+      AttestationStatus.revoked => PublisherCheck.revoked,
+      AttestationStatus.none => PublisherCheck.notChecked,
+    }, r.attestation);
   }
 
   /// The label of the publisher that signed [r] (see [labelOfKeyId]).
@@ -101,7 +101,7 @@ extension PublisherLabels on DownloadStore {
   }
 
   /// The label a source shows for the package [signer] signed with the key
-  /// [keyId] (see `Source.label`): the name Lychnion checked when vouched,
+  /// [keyId] (see `Source.label`): the name Lychnion checked when attested,
   /// else the title the publisher was added with. Null only without a
   /// signer (the app's help). A key no longer trusted here (revoked, or
   /// its publisher removed) is [PublisherCheck.revoked]: never no label,
@@ -123,8 +123,8 @@ extension PublisherLabels on DownloadStore {
     return SourceLabel(
       label.check,
       name: signer,
-      titles: label.check == PublisherCheck.vouched
-          ? label.vouch!.title
+      titles: label.check == PublisherCheck.attested
+          ? label.attestation!.title
           : {'und': ?SourceLabel.shownTitle(added?.title)},
     );
   }

@@ -3225,11 +3225,11 @@ abstract class AppLocalizations {
   /// **'This key was replaced already. If it comes from an older backup, restore your newest backup instead: replacing it again would make phones stop trusting your publisher. If you did not replace it, someone else has the key: use \"Revoke the key\".'**
   String get publishReplaceAlreadyReplaced;
 
-  /// No description provided for @publishersVouched.
+  /// No description provided for @publishersAttested.
   ///
   /// In en, this message translates to:
   /// **'Checked by {app} on {date}'**
-  String publishersVouched(String app, String date);
+  String publishersAttested(String app, String date);
 
   /// No description provided for @publishersNotChecked.
   ///
@@ -3243,17 +3243,17 @@ abstract class AppLocalizations {
   /// **'{app} took back its check'**
   String publishersWithdrawn(String app);
 
-  /// No description provided for @publishersNotVouchedKey.
+  /// No description provided for @publishersNotAttestedKey.
   ///
   /// In en, this message translates to:
   /// **'Not the key {app} checked'**
-  String publishersNotVouchedKey(String app);
+  String publishersNotAttestedKey(String app);
 
-  /// No description provided for @publishersVouchedBody.
+  /// No description provided for @publishersAttestedBody.
   ///
   /// In en, this message translates to:
   /// **'{app} checked on {date} that this key belongs to {name}.'**
-  String publishersVouchedBody(String app, String date, String name);
+  String publishersAttestedBody(String app, String date, String name);
 
   /// No description provided for @publishersNotCheckedBody.
   ///
@@ -3267,17 +3267,17 @@ abstract class AppLocalizations {
   /// **'{app} took back its check of this publisher. Add it only if you know why.'**
   String publishersWithdrawnBody(String app);
 
-  /// No description provided for @publishersNotVouchedKeyBody.
+  /// No description provided for @publishersNotAttestedKeyBody.
   ///
   /// In en, this message translates to:
   /// **'{app} checked a publisher with this name, but with another key. This link may be fake.'**
-  String publishersNotVouchedKeyBody(String app);
+  String publishersNotAttestedKeyBody(String app);
 
-  /// No description provided for @publishersLooksVouched.
+  /// No description provided for @publishersLooksAttested.
   ///
   /// In en, this message translates to:
   /// **'This name looks like a publisher {app} checked, but it is another one. It may be fake.'**
-  String publishersLooksVouched(String app);
+  String publishersLooksAttested(String app);
 
   /// No description provided for @publishersLooksPublic.
   ///

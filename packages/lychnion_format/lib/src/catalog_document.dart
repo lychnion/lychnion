@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'key_statement.dart';
 import 'record.dart';
-import 'vouch.dart';
+import 'attestation.dart';
 
 // A catalog (catalog.json, format 2), as written by the app (base, USB
 // stick), the headless node and lychnion-data's tools, and read by all of
@@ -17,13 +17,13 @@ import 'vouch.dart';
 ///  "urls": {"<sha256>": "<address, relative to the catalog>"},
 ///  "mirrors": ["https://node.example.org/"],
 ///  "keys": [<key statement>, …],
-///  "vouches": [<vouch>, …],
+///  "attestations": [<attestation>, …],
 ///  "base": "https://…/", "refresh": "https://…/catalog.json"}
 /// ```
 ///
 /// `records` is required; the rest is optional. Older apps read only
 /// `records`, `urls` (one address per file), `base` and `refresh`, and
-/// ignore the rest. Apps before `vouches` (lychnion/lychnion#119) ignore
+/// ignore the rest. Apps before `attestations` (lychnion/lychnion#119) ignore
 /// them, and leave them out when they write a catalog (a base, a stick).
 class CatalogDocument {
   CatalogDocument({
@@ -31,14 +31,14 @@ class CatalogDocument {
     Map<String, String> urls = const {},
     List<String> mirrors = const [],
     List<Object?> keys = const [],
-    List<Object?> vouches = const [],
+    List<Object?> attestations = const [],
     this.base,
     this.refresh,
   }) : records = List.unmodifiable(records),
        urls = Map.unmodifiable(urls),
        mirrors = List.unmodifiable(mirrors),
        keys = List.unmodifiable(keys),
-       vouches = List.unmodifiable(vouches);
+       attestations = List.unmodifiable(attestations);
 
   static const format = 2;
 
@@ -57,14 +57,14 @@ class CatalogDocument {
   /// Key statements as given (see relevantStatements).
   final List<Object?> keys;
 
-  /// Vouches as given (see Vouch.checkAll).
-  final List<Object?> vouches;
+  /// Attestations as given (see Attestation.checkAll).
+  final List<Object?> attestations;
 
   final String? base, refresh;
 
   /// Reads [text]. Throws [CatalogFormatException] when it is not JSON,
   /// not a format 2 catalog, or `urls` is not an object (its addresses
-  /// matter). Optional fields only advise (`mirrors`, `keys`, `vouches`,
+  /// matter). Optional fields only advise (`mirrors`, `keys`, `attestations`,
   /// `base`, `refresh`): of the wrong type they are ignored, as older
   /// readers did.
   /// Entries of `urls` and `mirrors` that are not strings are left out.
@@ -100,22 +100,23 @@ class CatalogDocument {
           if (m is String && m.isNotEmpty) m,
       ],
       keys: opt<List<Object?>>('keys') ?? const [],
-      vouches: opt<List<Object?>>('vouches') ?? const [],
+      attestations: opt<List<Object?>>('attestations') ?? const [],
       base: opt<String>('base'),
       refresh: opt<String>('refresh'),
     );
   }
 
   /// A catalog of [records] whose files are served by hash next to it
-  /// (`blobs/sha256/<hash>`), as a base, a USB stick and a node lay them
-  /// out. Sorted by id ([sort]), so the same records give the same text;
-  /// a base keeps the order it shows. At most [KeyStatement.maxPerSource]
-  /// of [keys], revocations first ([KeyStatement.capped]), and at most
-  /// [Vouch.maxPerSource] of [vouches], withdrawals first ([Vouch.capped]).
+  /// (`blobs/sha256/<hash>`), as a base, a USB stick and a node lay them out.
+  /// Sorted by id ([sort]), so the same records give the same text; a base
+  /// keeps the order it shows. At most [KeyStatement.maxPerSource] of [keys],
+  /// revocations first ([KeyStatement.capped]), and at most
+  /// [Attestation.maxPerSource] of [attestations], withdrawals first
+  /// ([Attestation.capped]).
   factory CatalogDocument.byHash(
     Iterable<PackageRecord> records, {
     Iterable<KeyStatement> keys = const [],
-    Iterable<Vouch> vouches = const [],
+    Iterable<Attestation> attestations = const [],
     List<String> mirrors = const [],
     bool sort = true,
   }) {
@@ -136,8 +137,8 @@ class CatalogDocument {
         ]))
           s.json,
       ],
-      vouches: [
-        for (final v in Vouch.capped({...vouches})) v.json,
+      attestations: [
+        for (final v in Attestation.capped({...attestations})) v.json,
       ],
     );
   }
@@ -152,7 +153,7 @@ class CatalogDocument {
     'urls': urls,
     if (mirrors.isNotEmpty) 'mirrors': mirrors,
     if (keys.isNotEmpty) 'keys': keys,
-    if (vouches.isNotEmpty) 'vouches': vouches,
+    if (attestations.isNotEmpty) 'attestations': attestations,
   };
 
   /// How many of [given] (each once) [written] leaves out to fit
@@ -164,14 +165,16 @@ class CatalogDocument {
   ) => {for (final s in given) s.id}.length - written.keys.length;
 
   /// How many of [given] (each once) [written] leaves out to fit, as
-  /// [keysLeftOut] for vouches.
-  static int vouchesLeftOut(Iterable<Vouch> given, CatalogDocument written) =>
-      {for (final v in given) v.id}.length - written.vouches.length;
+  /// [keysLeftOut] for attestations.
+  static int attestationsLeftOut(
+    Iterable<Attestation> given,
+    CatalogDocument written,
+  ) => {for (final v in given) v.id}.length - written.attestations.length;
 
-  /// The file text (indented, ending in a newline). Records come first:
-  /// when the catalog would be over [maxBytes], vouches and then key
-  /// statements are left out ([fitted]). Throws [CatalogTooLarge] when the records alone are
-  /// over it: no reader would take it.
+  /// The file text (indented, ending in a newline). Records come first: when
+  /// the catalog would be over [maxBytes], attestations and then key statements
+  /// are left out ([fitted]). Throws [CatalogTooLarge] when the records alone
+  /// are over it: no reader would take it.
   String encode() => _text(fitted());
 
   static String _text(CatalogDocument c) =>
@@ -179,18 +182,18 @@ class CatalogDocument {
 
   static int _size(CatalogDocument c) => utf8.encode(_text(c)).length;
 
-  /// This catalog, with vouches and then key statements left out until it
-  /// fits in [maxBytes]. Vouches go first (they only change labels), chosen
-  /// as [Vouch.capped] chooses them (withdrawals last). Key statements
-  /// go only when all vouches are out, chosen as [KeyStatement.capped]
-  /// chooses them ([KeyStatement.keepOrder]: revocations and theft proofs
-  /// last, chains cut from their newest end). Their order is otherwise
-  /// kept. Throws [CatalogTooLarge] when even without both it does not
-  /// fit.
+  /// This catalog, with attestations and then key statements left out until it
+  /// fits in [maxBytes]. Attestations go first (they only change labels),
+  /// chosen as [Attestation.capped] chooses them (withdrawals last). Key
+  /// statements go only when all attestations are out, chosen as
+  /// [KeyStatement.capped] chooses them ([KeyStatement.keepOrder]: revocations
+  /// and theft proofs last, chains cut from their newest end). Their order is
+  /// otherwise kept. Throws [CatalogTooLarge] when even without both it does
+  /// not fit.
   CatalogDocument fitted() {
     if (_size(this) <= maxBytes) return this;
     final keyOrder = KeyStatement.keepOrder(keys);
-    final vouchOrder = Vouch.keepOrder(vouches);
+    final attestationOrder = Attestation.keepOrder(attestations);
     List<Object?> firstOf(List<Object?> all, List<int> order, int n) {
       final keep = order.take(n).toSet();
       return [
@@ -199,12 +202,12 @@ class CatalogDocument {
       ];
     }
 
-    CatalogDocument keeping(int nKeys, int nVouches) => CatalogDocument(
+    CatalogDocument keeping(int nKeys, int nAttestations) => CatalogDocument(
       records: records,
       urls: urls,
       mirrors: mirrors,
       keys: firstOf(keys, keyOrder, nKeys),
-      vouches: firstOf(vouches, vouchOrder, nVouches),
+      attestations: firstOf(attestations, attestationOrder, nAttestations),
       base: base,
       refresh: refresh,
     );
@@ -229,7 +232,7 @@ class CatalogDocument {
     if (fits(keeping(keys.length, 0))) {
       return keeping(
         keys.length,
-        most(vouches.length, (n) => fits(keeping(keys.length, n))),
+        most(attestations.length, (n) => fits(keeping(keys.length, n))),
       );
     }
     return keeping(most(keys.length, (n) => fits(keeping(n, 0))), 0);

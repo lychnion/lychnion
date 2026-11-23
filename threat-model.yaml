@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:071cfb9b070993bfc082c4777ac70dcf459ceeb6ce9d3dd71d12175d7994b912
+prose_version: threat-model.md@sha256:76476df67f46e333c051ceb1ffb26ddb8c3021dc0b138122d556b0aaa49e839e
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1706,7 +1706,7 @@ properties_claimed:
     ids and file names (the bundled packages, the bundled catalog and Lychnion''s items in every checked catalog
     of Lychnion''s) are reserved, also when not installed: an added publisher''s record for one is refused
     from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion''s own
-    replaces it (`lib/download/download_store.dart:199`).'
+    replaces it (`lib/download/download_store.dart:200`).'
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -2301,17 +2301,17 @@ properties_disclaimed:
   provenance:
     kind: maintainer
     date: 2026-11
-- id: vouch-means-vetted
+- id: attestation-means-vetted
   components:
   - downloads
   conditions: That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not
-    checked is not official. A vouch says only that Lychnion checked the key belongs to the named body;
+    checked is not official. An attestation says only that Lychnion checked the key belongs to the named body;
     labels only, never access; in a base's answers the label is the base's word
   tier: security-critical
   false_friend: true
   provenance:
     kind: documented
-    source: docs/vouching.md "What a vouch does, and what it never does"
+    source: docs/attestations.md "What an attestation does, and what it never does"
 - id: lookalike-warning-completeness
   components:
   - downloads
@@ -2322,7 +2322,7 @@ properties_disclaimed:
   false_friend: false
   provenance:
     kind: documented
-    source: docs/vouching.md "The warning for names that look official"
+    source: docs/attestations.md "The warning for names that look official"
 downstream_responsibilities:
 - id: add-known-publishers-only
   component: downloads
@@ -2422,20 +2422,20 @@ known_misuses:
   provenance:
     kind: documented
     source: help/en/07-publishers.md "Why does the app ask me to compare a code?"
-- id: vouch-as-content-check
+- id: attestation-as-content-check
   components:
   - downloads
   pattern: reading "Checked by Lychnion" as "its guides are right"
-  safer_alternative: read a vouch as whose key it is, not as a check of the content
+  safer_alternative: read an attestation as whose key it is, not as a check of the content
   provenance:
     kind: documented
-    source: docs/vouching.md "What a vouch does, and what it never does"
+    source: docs/attestations.md "What an attestation does, and what it never does"
 - id: signed-as-true
   components:
   - facts
   - records
   pattern: treating signed as official and true
-  safer_alternative: read a signature as who vouches, not as correctness
+  safer_alternative: read a signature as who stands behind it, not as correctness
   provenance:
     kind: documented
     source: docs/facts-results.md "Signed facts (2026-11-05)"

@@ -144,7 +144,7 @@ class LocalPublisher {
 
   /// Revokes this key (stolen or given away) and makes a new one. Phones
   /// stop trusting the old key and everything it signed, and must add the
-  /// new link: nothing signed by the old key can vouch for the new one.
+  /// new link: nothing signed by the old key can speak for the new one.
   Future<LocalPublisher> revokeAndRenew(Directory dir) async {
     final s = await KeyStatement.revoke(
       publisher: name,

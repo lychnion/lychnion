@@ -31,9 +31,9 @@ class PullResult {
   /// (revocations and theft proofs kept first).
   var keysLeftOut = 0;
 
-  /// Vouches left out of catalog.json to keep it under 2 MB (they go
+  /// Attestations left out of catalog.json to keep it under 2 MB (they go
   /// before key statements; withdrawals kept first).
-  var vouchesLeftOut = 0;
+  var attestationsLeftOut = 0;
 }
 
 /// Another pull is working on this folder (cron runs overlapping).
@@ -97,9 +97,9 @@ Future<PullResult> _pull(
   // Key statements kept here and learned from the sources (replaced and
   // revoked publisher keys) count for the records, and are passed on.
   var keys = trust.withStatements(await folder.keys(trust));
-  // Lychnion's vouches kept here and learned from the sources (labels
+  // Lychnion's attestations kept here and learned from the sources (labels
   // only, lychnion/lychnion#119): passed on, never used for trust.
-  final vouches = <Vouch>{...await folder.vouches(trust)};
+  final attestations = <Attestation>{...await folder.attestations(trust)};
   // Records here: the served catalog, and those set aside earlier because
   // their publisher was not given (kept, with their files, until it is).
   final before = [...await folder.allRecords(), ...await folder.keptRecords()];
@@ -168,7 +168,7 @@ Future<PullResult> _pull(
       result.failed.add('${redactedUrl(source)}: invalid keys');
       continue;
     }
-    vouches.addAll(await Vouch.checkAll(cat.vouches, keys));
+    attestations.addAll(await Attestation.checkAll(cat.attestations, keys));
     for (final raw in cat.records) {
       final r = await keys.check(raw);
       if (r == null) {
@@ -282,13 +282,13 @@ Future<PullResult> _pull(
     final left = await folder.writeCatalog(
       listed,
       keys: keys.statements,
-      vouches: [
-        for (final v in vouches)
-          if (keys.keysOf(voucherPublisher).contains(v.signer)) v,
+      attestations: [
+        for (final v in attestations)
+          if (keys.keysOf(attesterPublisher).contains(v.signer)) v,
       ],
     );
     result.keysLeftOut = left.keys;
-    result.vouchesLeftOut = left.vouches;
+    result.attestationsLeftOut = left.attestations;
   } on CatalogTooLarge catch (e) {
     // The catalog served stays as it was, and so do the files it lists.
     result.failed.add('catalog.json: $e');
@@ -576,12 +576,12 @@ class _Catalog {
     this.urls,
     this.mirrors,
     this.keys,
-    this.vouches,
+    this.attestations,
   );
 
   final List<Object?> records;
   final List<Object?> keys;
-  final List<Object?> vouches;
+  final List<Object?> attestations;
   final Uri base;
   final Map<String, String> urls;
   final List<Uri> mirrors;
@@ -599,7 +599,7 @@ class _Catalog {
             if (_web(from.resolveUri(u))) from.resolveUri(u),
       ].take(10).toList(),
       doc.keys,
-      doc.vouches,
+      doc.attestations,
     );
   }
 

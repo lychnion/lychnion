@@ -444,8 +444,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ],
     ),
     body: ListenableBuilder(
-      // Publisher labels follow the vouches the device learns (#119).
-      listenable: Listenable.merge([m, m.store.vouches]),
+      // Publisher labels follow the attestations the device learns (#119).
+      listenable: Listenable.merge([m, m.store.attestations]),
       builder: (context, _) {
         // Phones leave out models made for another platform; computers
         // show them, since a base keeps models for the phones around it.
@@ -696,7 +696,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                       null => r.publisher,
                       final label => [
                         label.titleIn(lang, r.publisher),
-                        if (label.check == PublisherCheck.vouched) r.publisher,
+                        if (label.check == PublisherCheck.attested) r.publisher,
                         publisherLabelText(context, label),
                       ].join(' · '),
                     }),

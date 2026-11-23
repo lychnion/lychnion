@@ -174,7 +174,7 @@ void main() {
       final again = PublisherList(p.file);
       await again.load();
       expect(again.problemWith(me.link), PublisherProblem.revoked);
-      // Nothing signed by the revoked key vouches for the new one: the
+      // Nothing signed by the revoked key speaks for the new one: the
       // new link is added by the user.
       expect(again.trust.publishers, isNot(contains(_name)));
       expect(again.problemWith(next.link), isNull);

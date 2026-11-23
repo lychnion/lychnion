@@ -1,7 +1,7 @@
 import '../download/publisher_label.dart' show PublisherCheck;
 import '../download/publisher_list.dart' show PublisherLink;
 
-/// What Lychnion's vouches say about the publisher that signed a source's
+/// What Lychnion's attestations say about the publisher that signed a source's
 /// package (lychnion/lychnion#119), as an answer shows it: "via 仙台市 ·
 /// checked by Lychnion", "via Aoba Club · not checked by Lychnion".
 /// Labels only: it changes nothing about which packages are used.
@@ -13,18 +13,18 @@ class SourceLabel {
   /// The publisher's name (`jp.city.sendai`).
   final String name;
 
-  /// Its name for people: the vouch's title (`ja`, `en`) when vouched,
+  /// Its name for people: the attestation's title (`ja`, `en`) when attested,
   /// else the title it was added with (under `und`). May be empty.
   final Map<String, String> titles;
 
   /// Shown without a label: Lychnion's own guides.
   bool get isBuiltIn => check == PublisherCheck.builtIn;
 
-  /// Not Lychnion's, and not vouched for: the answer says so.
+  /// Not Lychnion's, and not attested: the answer says so.
   bool get isUnchecked =>
-      check != PublisherCheck.builtIn && check != PublisherCheck.vouched;
+      check != PublisherCheck.builtIn && check != PublisherCheck.attested;
 
-  /// Shown in red: the name has a vouch that this key does not have.
+  /// Shown in red: the name has an attestation that this key does not have.
   bool get isProblem => switch (check) {
     PublisherCheck.withdrawn ||
     PublisherCheck.otherKey ||

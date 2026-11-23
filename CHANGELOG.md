@@ -123,7 +123,7 @@ here should be relied on alone in an emergency. Source only; build it as
   trusted), also for a base's answers (as the base says) and on the
   base's web page. Labels only: a
   publisher never needs Lychnion's check, and nothing is refused. How
-  Lychnion checks: [docs/vouching.md](docs/vouching.md) (#119).
+  Lychnion checks: [docs/attestations.md](docs/attestations.md) (#119).
 - The base's browser page (for phones without the app) no longer shows
   current facts such as shelter status or warnings: it is plain http and
   not signed, so anyone on the Wi-Fi could change them on the way. It now
@@ -279,12 +279,12 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Formats
 
-Catalog `format: 2` (with optional `keys` and `vouches` lists), signed
-record `format: 1`, key statement `format: 1`, vouch `format: 1`, key
+Catalog `format: 2` (with optional `keys` and `attestations` lists), signed
+record `format: 1`, key statement `format: 1`, attestation `format: 1`, key
 backup `format: 1`, base protocol `v: 1`. Older builds ignore `keys`:
 they do not accept a replacement key or honour a revocation. They also
-ignore `vouches` (Lychnion's labels for official publishers, #119).
-The app keeps vouches in `downloads/vouches.json` (`format: 1`) and
+ignore `attestations` (Lychnion's labels for official publishers, #119).
+The app keeps attestations in `downloads/attestations.json` (`format: 1`) and
 passes them on with sticks and a base's catalog; a node keeps those of
 every source it pulls and passes them on. A source in a base's answer
 may carry a `label` (who signed its guide, as the base labels it);
