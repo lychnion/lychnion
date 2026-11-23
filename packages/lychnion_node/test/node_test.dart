@@ -656,6 +656,70 @@ void main() {
     );
   });
 
+  group('publisher status (lychnion/lychnion#117)', () {
+    test('kept and passed on, with the withdrawals inside', () async {
+      final lychnion = await Ed25519().newKeyPair();
+      final t = trust.plus({
+        'lychnion': [await publicKeyOf(lychnion)],
+      });
+      final gone = await Attestation.sign(
+        publisher: 'jp.city.a',
+        key: await publicKeyOf(city),
+        checked: '2026-11-23',
+        method: 'official-website',
+        signed: '2026-11-24T08:00:00+09:00',
+        signer: lychnion,
+        withdrawn: true,
+      );
+      final status = await PublisherStatus.sign(
+        publisher: 'lychnion',
+        signed: '2026-11-24T09:00:00+09:00',
+        items: const {'jp.a': '2026.11.10'},
+        signer: lychnion,
+        attestations: [gone],
+      );
+      final forged = await PublisherStatus.sign(
+        publisher: 'lychnion',
+        signed: '2026-11-25T09:00:00+09:00',
+        items: const {},
+        signer: stranger,
+      );
+      src.catalog = {
+        'format': 2,
+        'records': <Object>[],
+        'status': [status.json, forged.json],
+      };
+      final r = await pull([src.url], folder, t);
+      expect(r.failed, isEmpty);
+      expect(r.statusLeftOut, 0);
+      expect(await folder.status(t), [status]);
+      // The withdrawal inside it is passed on as an attestation too.
+      expect(await folder.attestations(t), [gone]);
+      // The source drops it; the node keeps passing it on.
+      src.catalog = {'format': 2, 'records': <Object>[]};
+      await pull([src.url], folder, t);
+      final served = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+      expect(served['status'], [status.json]);
+      // A far-future one from a trusted key does not push it out.
+      final ahead = await PublisherStatus.sign(
+        publisher: 'lychnion',
+        // A year after the real clock (pull uses it).
+        signed:
+            '${DateTime.now().add(const Duration(days: 365)).toUtc().toIso8601String().split('.').first}Z',
+        items: const {},
+        signer: lychnion,
+      );
+      src.catalog = {
+        'format': 2,
+        'records': <Object>[],
+        'status': [ahead.json],
+      };
+      await pull([src.url], folder, t);
+      final again = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+      expect(again['status'], [status.json]);
+    });
+  });
+
   group('serve', () {
     late NodeServer server;
     late HttpClient client;

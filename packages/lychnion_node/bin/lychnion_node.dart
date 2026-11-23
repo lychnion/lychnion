@@ -212,6 +212,12 @@ Future<bool> _pullOnce(
       '(withdrawals kept first)',
     );
   }
+  if (r.statusLeftOut > 0) {
+    stdout.writeln(
+      '${r.statusLeftOut} publisher statuses did not fit in catalog.json '
+      "(Lychnion's kept first)",
+    );
+  }
   stdout.writeln(
     '${DateTime.now().toUtc().toIso8601String()} '
     '${r.changed.length} new, ${r.notTrusted} not trusted, '
@@ -326,6 +332,12 @@ Future<int> _pull(List<String> args) async {
       stdout.writeln(
         '${r.attestationsLeftOut} attestations did not fit in catalog.json '
         '(withdrawals kept first)',
+      );
+    }
+    if (r.statusLeftOut > 0) {
+      stdout.writeln(
+        '${r.statusLeftOut} publisher statuses did not fit in catalog.json '
+        "(Lychnion's kept first)",
       );
     }
     stdout.writeln(

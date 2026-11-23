@@ -13,6 +13,7 @@ import 'downloader.dart';
 import 'followed_catalogs.dart';
 import 'publisher_list.dart';
 import 'attestation_list.dart';
+import 'status_list.dart';
 
 import 'package:lychnion_format/lychnion_format.dart';
 
@@ -126,6 +127,7 @@ class DownloadStore {
     PublisherList? publishers,
     FollowedCatalogs? followed,
     AttestationList? attestations,
+    StatusList? status,
   }) // A named parameter cannot be private, so no initializing formal.
     // ignore: prefer_initializing_formals
     : _trust = trust,
@@ -136,7 +138,9 @@ class DownloadStore {
            followed ?? FollowedCatalogs(Directory('${root.path}/downloads')),
        attestations =
            attestations ??
-           AttestationList(File('${root.path}/downloads/attestations.json'));
+           AttestationList(File('${root.path}/downloads/attestations.json')),
+       status =
+           status ?? StatusList(File('${root.path}/downloads/status.json'));
 
   final Directory root;
 
@@ -151,6 +155,13 @@ class DownloadStore {
 
   /// Lychnion's attestations for official publishers (labels only, #119).
   final AttestationList attestations;
+
+  /// Publishers' statuses: what is newest from each (#117).
+  final StatusList status;
+
+  /// Keeps the newest of [learned] for each publisher (see StatusList).
+  Future<bool> learnStatus(Iterable<PublisherStatus> learned) =>
+      status.learn(learned, () => trust);
 
   /// Keeps [learned] attestations signed by a key trusted here for Lychnion
   /// (see [AttestationList.learn]).
@@ -244,6 +255,7 @@ class DownloadStore {
     await s.publishers.load();
     // After the publishers: their key statements decide Lychnion's keys.
     await s.attestations.load(s.trust);
+    await s.status.load(s.trust);
     await s.followed.load();
     final files = <String>{};
     s.reserve(await s.lychnionIds(files: files), files: files);
@@ -262,6 +274,7 @@ class DownloadStore {
       ..addAll(fresh);
     // A revoked Lychnion key's attestations lapse.
     attestations.recheck(trust);
+    status.recheck(trust);
   }
 
   /// Checks the signatures of all install records (once per app start).

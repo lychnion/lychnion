@@ -575,14 +575,35 @@ publisher, at most 100), through every carrier like other signed data. A
 catalog too large for 2 MB leaves statuses out last, after attestations
 and key statements; Lychnion's is kept first. Older apps ignore `status`.
 
-What a device will do with it (the next steps of #117): keep the newest
-status of each publisher it trusts; take in the key statements and
-withdrawals it carries; say when a newer version of an item exists that
-is not on the device; show how old an item's data and the latest news
-are; and, after 30 days without a newer status from Lychnion, say gently
-that its data may be out of date. Lychnion's tools will sign a status
-with every catalog; other publishers can sign one with the same format
-later.
+What a device does with it (`lib/download/status_list.dart`):
+
+- It keeps the newest status of each publisher whose key it trusts, in
+  `downloads/status.json` (`format: 1`), checks them again with its
+  current keys whenever it reads the file, and stops using one whose key
+  was revoked meanwhile.
+- The key statements and withdrawals inside **every** status it reads
+  (not only the newest; within the scan limits of `relevantStatements`)
+  join the catalog's own (`Catalog.parse`, and likewise for a stick and a
+  node), so they count for that catalog's records at once and are kept
+  and passed on. A status the device already keeps is read again when it
+  lost some of what it carried (a reset file, a save that failed).
+- Statuses are checked in one pass: one signed by a successor key whose
+  statement only another status of the same catalog carries is taken
+  with the next catalog (or at once, when the catalog's `keys` carry it).
+- A status signed more than a day after the reader's clock never decides
+  (`PublisherStatus.deciding`), on a device, a stick, a base or a node:
+  a stolen key's status dated far ahead cannot push the real one out.
+- It passes statuses on in the catalog it writes to a stick and the one a
+  base serves; a node keeps those of every source and passes them on.
+- Downloads says when a publisher's status names a newer version of an
+  item than the one offered and the one installed ("a newer version
+  2026.11.10 exists, but it is not available here yet"). It shows when
+  the device last heard from Lychnion, and after 30 days without a newer
+  status from Lychnion it says gently that the data may be out of date.
+  Before any status arrived it says nothing. It never blocks anything.
+
+Lychnion's tools will sign a status with every catalog (the last step of
+#117); other publishers can sign one with the same format later.
 
 A thief holding a publisher's key can sign a status too, also one dated
 far ahead with old `items` and no revocation. So a device must take in

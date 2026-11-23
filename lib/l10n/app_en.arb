@@ -1203,5 +1203,11 @@
   "answerSourceBaseSays": "{label} (as the base says)",
   "@answerSourceBaseSays": {"placeholders": {"label": {"type": "String"}}},
   "answerSourcesNotChecked": "Some sources were not checked by {app}",
-  "@answerSourcesNotChecked": {"placeholders": {"app": {"type": "String"}}}
+  "@answerSourcesNotChecked": {"placeholders": {"app": {"type": "String"}}},
+  "downloadsNewerElsewhere": "A newer version {version} exists, but it is not available here yet.",
+  "@downloadsNewerElsewhere": {"placeholders": {"version": {"type": "String"}}},
+  "downloadsLastNews": "Latest news from {app}: {date}",
+  "@downloadsLastNews": {"placeholders": {"app": {"type": "String"}, "date": {"type": "String"}}},
+  "downloadsQuiet": "The latest news from {app} on this device is from {date}. Connect to check for updates when you can.",
+  "@downloadsQuiet": {"placeholders": {"app": {"type": "String"}, "date": {"type": "String"}}}
 }

@@ -693,7 +693,7 @@
       "property": "publisher-namespace",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion's ids and file names (the bundled packages, the bundled catalog and Lychnion's items in every checked catalog of Lychnion's) are reserved, also when not installed: an added publisher's record for one is refused from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion's own replaces it (`lib/download/download_store.dart:200`).",
+      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion's ids and file names (the bundled packages, the bundled catalog and Lychnion's items in every checked catalog of Lychnion's) are reserved, also when not installed: an added publisher's record for one is refused from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion's own replaces it (`lib/download/download_store.dart:211`).",
       "provenance": "documented",
       "source": "docs/distribution.md \"Publishers and keys\""
     },
@@ -853,7 +853,7 @@
       "property": "node-private-address-filter",
       "violation_symptom": "x-request-forgery",
       "severity_tier": "correctness",
-      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network; an internet catalog's own redirects are checked the same way. Private or local means any address that is not plain public unicast, including `::`, multicast, special ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:369`). DNS rebinding is not caught.",
+      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network; an internet catalog's own redirects are checked the same way. Private or local means any address that is not plain public unicast, including `::`, multicast, special ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:393`). DNS rebinding is not caught.",
       "provenance": "documented",
       "source": "packages/lychnion_node/README.md \"Operating\""
     },
@@ -921,7 +921,7 @@
     },
     {
       "property": "freshness",
-      "reason": "Protection against being kept on old data. No expiry on records or key statements; catalogs unsigned; a carrier can withhold a revocation; older apps ignore statements; also after delete, publisher removal, reinstall or on a fresh node",
+      "reason": "Protection against being kept on old data. No expiry on records or key statements; catalogs unsigned; a carrier can withhold anything, a publisher status too (then only the age of the newest status seen shows); where a status is passed on, held-back versions show and its revocations and withdrawals apply; older apps ignore statements and statuses; also after delete, publisher removal, reinstall or on a fresh node",
       "false_friend": false,
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"

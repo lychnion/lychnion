@@ -138,7 +138,14 @@ class Catalog {
     this.mirrors = const [],
     this.statements = const [],
     this.attestations = const [],
+    this.status = const [],
   });
+
+  /// Publishers' statuses in the catalog's `status` (signed by a key the
+  /// device trusts for their publisher, after the catalog's key
+  /// statements), except those given as known to [parse]; the device keeps
+  /// the newest (lychnion/lychnion#117).
+  final List<PublisherStatus> status;
 
   /// Lychnion's attestations in the catalog's `attestations` (signed by a key
   /// the device trusts for Lychnion, after the catalog's key statements),
@@ -181,7 +188,13 @@ class Catalog {
   /// cannot make the phone contact hosts it picks.
   ///
   /// Attestations whose [Attestation.id] is in [knownAttestations] (the device
-  /// keeps them) are not checked again, and not in [attestations].
+  /// keeps them) are not checked again, and not in [attestations]; the same
+  /// for statuses and [knownStatus].
+  ///
+  /// The key statements and withdrawn attestations inside each status join
+  /// the catalog's own (#117): whoever passes on a status passes them on
+  /// too, so a carrier cannot hold back a revocation it passes the status
+  /// of. They count for this catalog's records at once.
   static Future<Catalog> parse(
     String json, {
     Uri? fetchedFrom,
@@ -189,6 +202,7 @@ class Catalog {
     TrustedKeys? trust,
     bool ownFilesOnly = false,
     Set<String> knownAttestations = const {},
+    Set<String> knownStatus = const {},
   }) async {
     final doc = CatalogDocument.parse(json);
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
@@ -208,11 +222,29 @@ class Catalog {
     // Key statements first: records signed by a successor key the
     // catalog announces are accepted at once. Older apps ignore `keys`.
     final given = trust ?? builtInPublishers;
-    final statements = await relevantStatements(given, doc.keys);
+    final ownStatements = await relevantStatements(given, doc.keys);
+    // Statuses (#117), after the catalog's statements; then the
+    // statements inside them, again only those a trusted key made.
+    final status = await PublisherStatus.checkAll([
+      for (final raw in doc.status)
+        if (!knownStatus.contains(_idOf(raw))) raw,
+    ], given.withStatements(ownStatements));
+    final seen = {for (final s in ownStatements) s.id};
+    final statements = [
+      ...ownStatements,
+      for (final s in await relevantStatements(
+        given.withStatements(ownStatements),
+        [for (final st in status) ...st.keys],
+      ))
+        if (seen.add(s.id)) s,
+    ];
     final keys = given.withStatements(statements);
     // Labels only (#119): they never change which records are trusted.
     final attestations = await Attestation.checkAll([
-      for (final raw in doc.attestations)
+      for (final raw in [
+        ...doc.attestations,
+        for (final st in status) ...st.attestations,
+      ])
         if (!knownAttestations.contains(_idOf(raw))) raw,
     ], keys);
     final items = <CatalogItem>[];
@@ -251,6 +283,7 @@ class Catalog {
       refreshUrl: ownFilesOnly ? null : uri(doc.refresh),
       statements: statements,
       attestations: attestations,
+      status: status,
       mirrors: [
         for (final m in _mirrors(doc.mirrors, fetchedFrom ?? base))
           if (!ownFilesOnly || _sameOrigin(m, fetchedFrom!)) m,

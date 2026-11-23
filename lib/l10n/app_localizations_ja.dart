@@ -1977,4 +1977,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String answerSourcesNotChecked(String app) {
     return '$appが確認していない出典があります';
   }
+
+  @override
+  String downloadsNewerElsewhere(String version) {
+    return '新しい版 $version がありますが、ここではまだ入手できません。';
+  }
+
+  @override
+  String downloadsLastNews(String app, String date) {
+    return '$appからの最新の情報: $date';
+  }
+
+  @override
+  String downloadsQuiet(String app, String date) {
+    return 'この端末にある$appからの最新の情報は$dateのものです。接続できるときに更新を確認してください。';
+  }
 }

@@ -444,8 +444,9 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ],
     ),
     body: ListenableBuilder(
-      // Publisher labels follow the attestations the device learns (#119).
-      listenable: Listenable.merge([m, m.store.attestations]),
+      // Publisher labels follow the attestations the device learns (#119),
+      // newer versions and news the statuses it learns (#117).
+      listenable: Listenable.merge([m, m.store.attestations, m.store.status]),
       builder: (context, _) {
         // Phones leave out models made for another platform; computers
         // show them, since a base keeps models for the phones around it.
@@ -498,6 +499,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
               ),
             ),
             if (m.refreshing) const LinearProgressIndicator(),
+            ?_news(context),
             for (final kind in ItemKind.values)
               if ([
                     for (final i in items)
@@ -685,6 +687,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ],
+                if (_newerElsewhere(item, s) case final v?) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    l.downloadsNewerElsewhere(v),
+                    style: small?.copyWith(color: theme.colorScheme.primary),
+                  ),
+                ],
                 if (open) ...[
                   const SizedBox(height: 8),
                   for (final line in lines) Text(line, style: small),
@@ -766,6 +775,71 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   /// Items shown expanded (tap a card to open or close it).
   final _open = <String>{};
+
+  /// A newer version of [item] that its publisher's status names (#117),
+  /// newer than the one offered here and the one installed: someone along
+  /// the way has not passed it on yet. Null when there is none.
+  String? _newerElsewhere(CatalogItem item, ItemState s) {
+    final r = item.record;
+    if (r == null) return null;
+    final status = m.store.status.statusFor(r.publisher, m.store.trust);
+    if (status == null || !status.hasNewer(item.id, item.version)) {
+      return null;
+    }
+    final installed = s.installedVersion;
+    if (installed != null && !status.hasNewer(item.id, installed)) {
+      return null;
+    }
+    return status.items[item.id];
+  }
+
+  /// When this device last heard from Lychnion (its newest status), and a
+  /// gentle hint after 30 days without news (#117). Nothing before any
+  /// status arrived: never a block, never an alarm about nothing.
+  Widget? _news(BuildContext context) {
+    final l = context.l10n;
+    final status = m.store.status;
+    final last = status.lastNews(m.store.trust);
+    if (last == null) return null;
+    final date = MaterialLocalizations.of(context)
+        .formatMediumDate(last.toLocal());
+    final theme = Theme.of(context);
+    if (!status.isQuiet(m.store.trust)) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Text(
+          l.downloadsLastNews(l.appName, date),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            ExcludeSemantics(
+              child: Icon(
+                Icons.update_rounded,
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l.downloadsQuiet(l.appName, date),
+                style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _detail(String label, String value) {
     final small = Theme.of(context).textTheme.bodySmall;

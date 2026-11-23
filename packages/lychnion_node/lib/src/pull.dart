@@ -34,6 +34,10 @@ class PullResult {
   /// Attestations left out of catalog.json to keep it under 2 MB (they go
   /// before key statements; withdrawals kept first).
   var attestationsLeftOut = 0;
+
+  /// Publisher statuses left out of catalog.json (over 100 publishers, or
+  /// 2 MB; they go last, Lychnion's kept first; #117).
+  var statusLeftOut = 0;
 }
 
 /// Another pull is working on this folder (cron runs overlapping).
@@ -100,6 +104,10 @@ Future<PullResult> _pull(
   // Lychnion's attestations kept here and learned from the sources (labels
   // only, lychnion/lychnion#119): passed on, never used for trust.
   final attestations = <Attestation>{...await folder.attestations(trust)};
+  // Publishers' statuses (#117): kept here and learned from the sources,
+  // the newest of each passed on. The key statements and withdrawals inside
+  // each are taken in like the source's own.
+  final status = <PublisherStatus>{...await folder.status(trust)};
   // Records here: the served catalog, and those set aside earlier because
   // their publisher was not given (kept, with their files, until it is).
   final before = [...await folder.allRecords(), ...await folder.keptRecords()];
@@ -161,6 +169,16 @@ Future<PullResult> _pull(
     }
     try {
       keys = keys.withStatements(await relevantStatements(keys, cat.keys));
+      final learned = await PublisherStatus.checkAll(cat.status, keys);
+      status.addAll(learned);
+      keys = keys.withStatements(
+        await relevantStatements(keys, [for (final s in learned) ...s.keys]),
+      );
+      attestations.addAll(
+        await Attestation.checkAll([
+          for (final s in learned) ...s.attestations,
+        ], keys),
+      );
     } on Object {
       // Not expected (relevantStatements skips what it cannot read), but
       // one catalog's keys must never end the pull for every source
@@ -286,9 +304,15 @@ Future<PullResult> _pull(
         for (final v in attestations)
           if (keys.keysOf(attesterPublisher).contains(v.signer)) v,
       ],
+      // A far-future one (a stolen key's) never displaces the real one.
+      status: PublisherStatus.deciding([
+        for (final s in status)
+          if (keys.keysOf(s.publisher).contains(s.signer)) s,
+      ], DateTime.now()),
     );
     result.keysLeftOut = left.keys;
     result.attestationsLeftOut = left.attestations;
+    result.statusLeftOut = left.status;
   } on CatalogTooLarge catch (e) {
     // The catalog served stays as it was, and so do the files it lists.
     result.failed.add('catalog.json: $e');
@@ -577,11 +601,13 @@ class _Catalog {
     this.mirrors,
     this.keys,
     this.attestations,
+    this.status,
   );
 
   final List<Object?> records;
   final List<Object?> keys;
   final List<Object?> attestations;
+  final List<Object?> status;
   final Uri base;
   final Map<String, String> urls;
   final List<Uri> mirrors;
@@ -600,6 +626,7 @@ class _Catalog {
       ].take(10).toList(),
       doc.keys,
       doc.attestations,
+      doc.status,
     );
   }
 
