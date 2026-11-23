@@ -84,5 +84,5 @@ Versions up to commit `064f50a` were published under Apache 2.0.
 ## Links
 
 - Data packages and maps: [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data)
-- Website: [lychnion/lychnion.github.io](https://github.com/lychnion/lychnion.github.io)
+- Website source: [lychnion/lychnion.github.io](https://github.com/lychnion/lychnion.github.io)
 - Issues: [lychnion/lychnion/issues](https://github.com/lychnion/lychnion/issues)
