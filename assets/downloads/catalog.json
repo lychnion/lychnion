@@ -1,6 +1,6 @@
 {
   "format": 2,
-  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.9/",
+  "base": "https://github.com/lychnion/lychnion-data/releases/download/2026.11.10/",
   "refresh": "https://github.com/lychnion/lychnion-data/releases/latest/download/catalog.json",
   "records": [
     {
@@ -119,7 +119,7 @@
       "format": 1,
       "id": "jp.bousai.core",
       "kind": "package",
-      "version": "2026.11.4",
+      "version": "2026.11.10",
       "publisher": "lychnion",
       "title": {
         "ja": "防災（基本）",
@@ -144,13 +144,13 @@
       "files": [
         {
           "name": "jp.bousai.core.sqlite",
-          "size": 1011712,
-          "sha256": "a5efd3562214728dd7964101cd313dd3a23425a8d1ab6e0a42147333cdc2e55a"
+          "size": 1519616,
+          "sha256": "0d24d6c6cd80e70a5548db9a0e1fb657bff788ada4993915942bfaab9bf8f85d"
         }
       ],
-      "signed": "2026-11-18T17:58:07+09:00",
+      "signed": "2026-11-23T13:14:38+09:00",
       "key": "vRIbo4Gi",
-      "signature": "XtAK9u6eqG5PyM93IuSFXp803C65bDNElpDf5pa5mHj7lYKo11H3q7DuRY9tVMnhP48f1jlYDwui8ZD0iEmXCQ"
+      "signature": "7MnNAJe62PbFaPY_qV5hNxOelZVcrji_KFX6vZRHlWSut8-S3FH_Ncc8zZ33h12l_ARjBbECVQvsVvrCqcCfCA"
     },
     {
       "format": 1,
@@ -231,7 +231,7 @@
       "format": 1,
       "id": "jp.outdoor.hiking",
       "kind": "package",
-      "version": "2026.11.3",
+      "version": "2026.11.10",
       "publisher": "lychnion",
       "title": {
         "ja": "登山（基本）",
@@ -258,19 +258,19 @@
       "files": [
         {
           "name": "jp.outdoor.hiking.sqlite",
-          "size": 442368,
-          "sha256": "e4df3f4c8e6a8a4bdb8e494f5fb5a37571353c3cc369202b0a63cab9b0d0cbf9"
+          "size": 638976,
+          "sha256": "6f3eebcfabe836e1a78b5cad7369038780f646d680ead0e75afaecad43e33654"
         }
       ],
-      "signed": "2026-11-18T17:58:07+09:00",
+      "signed": "2026-11-23T13:14:38+09:00",
       "key": "vRIbo4Gi",
-      "signature": "DzXiUGiBU8bbmkhOJ5RMQLEmraeQFyeDEyTfbQIqSuOsvYwlrtWNBV6SB19CinI1Axel8gECWiDnhkkbqa3zAg"
+      "signature": "tCvLwD9-wI0gD7k5cGvUrpe_IxiNOIRBHL2AnS9XWhlFd7RL72N9YQNseEdpYB9vEiLa6wtHxDGKDVjzJWVLCg"
     },
     {
       "format": 1,
       "id": "intl.firstaid.basics",
       "kind": "package",
-      "version": "2026.11.1",
+      "version": "2026.11.10",
       "publisher": "lychnion",
       "title": {
         "ja": "応急手当（海外の資料）",
@@ -294,13 +294,13 @@
       "files": [
         {
           "name": "intl.firstaid.basics.sqlite",
-          "size": 638976,
-          "sha256": "f4e073df3e6092734b487b26577cfb9d8b712e863789f4e77f4c2564fbe92f67"
+          "size": 1019904,
+          "sha256": "6eadd9846009e2da7a12bc90d24212eaccc5080eca3bd27201f79f900a1d1872"
         }
       ],
-      "signed": "2026-11-18T12:20:47+09:00",
+      "signed": "2026-11-23T13:14:38+09:00",
       "key": "vRIbo4Gi",
-      "signature": "59-71Tq5wHgEvu5WT3Qt1ANlr_kRPSPCBNFq4vy70M8A8M-l3Z5Q3tFL9T9jiIpcwM8rkAQKsIMlr4Wk6eWTCg"
+      "signature": "Ijj7Qyazjz0ePhoxNSnyO2fglis4tPNIyVP9j7lGyWBobn9HlKH6XO-MxsJe184-p0Z7P9e_o1ZkwItLgkk1CA"
     },
     {
       "format": 1,
