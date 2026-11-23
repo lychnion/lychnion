@@ -107,11 +107,12 @@ class CatalogDocument {
   }
 
   /// A catalog of [records] whose files are served by hash next to it
-  /// (`blobs/sha256/<hash>`), as a base, a USB stick and a node lay them
-  /// out. Sorted by id ([sort]), so the same records give the same text;
-  /// a base keeps the order it shows. At most [KeyStatement.maxPerSource]
-  /// of [keys], revocations first ([KeyStatement.capped]), and at most
-  /// [Attestation.maxPerSource] of [attestations], withdrawals first ([Attestation.capped]).
+  /// (`blobs/sha256/<hash>`), as a base, a USB stick and a node lay them out.
+  /// Sorted by id ([sort]), so the same records give the same text; a base
+  /// keeps the order it shows. At most [KeyStatement.maxPerSource] of [keys],
+  /// revocations first ([KeyStatement.capped]), and at most
+  /// [Attestation.maxPerSource] of [attestations], withdrawals first
+  /// ([Attestation.capped]).
   factory CatalogDocument.byHash(
     Iterable<PackageRecord> records, {
     Iterable<KeyStatement> keys = const [],
@@ -170,10 +171,10 @@ class CatalogDocument {
     CatalogDocument written,
   ) => {for (final v in given) v.id}.length - written.attestations.length;
 
-  /// The file text (indented, ending in a newline). Records come first:
-  /// when the catalog would be over [maxBytes], attestations and then key
-  /// statements are left out ([fitted]). Throws [CatalogTooLarge] when the records alone are
-  /// over it: no reader would take it.
+  /// The file text (indented, ending in a newline). Records come first: when
+  /// the catalog would be over [maxBytes], attestations and then key statements
+  /// are left out ([fitted]). Throws [CatalogTooLarge] when the records alone
+  /// are over it: no reader would take it.
   String encode() => _text(fitted());
 
   static String _text(CatalogDocument c) =>
@@ -182,13 +183,13 @@ class CatalogDocument {
   static int _size(CatalogDocument c) => utf8.encode(_text(c)).length;
 
   /// This catalog, with attestations and then key statements left out until it
-  /// fits in [maxBytes]. Attestations go first (they only change labels), chosen
-  /// as [Attestation.capped] chooses them (withdrawals last). Key statements
-  /// go only when all attestations are out, chosen as [KeyStatement.capped]
-  /// chooses them ([KeyStatement.keepOrder]: revocations and theft proofs
-  /// last, chains cut from their newest end). Their order is otherwise
-  /// kept. Throws [CatalogTooLarge] when even without both it does not
-  /// fit.
+  /// fits in [maxBytes]. Attestations go first (they only change labels),
+  /// chosen as [Attestation.capped] chooses them (withdrawals last). Key
+  /// statements go only when all attestations are out, chosen as
+  /// [KeyStatement.capped] chooses them ([KeyStatement.keepOrder]: revocations
+  /// and theft proofs last, chains cut from their newest end). Their order is
+  /// otherwise kept. Throws [CatalogTooLarge] when even without both it does
+  /// not fit.
   CatalogDocument fitted() {
     if (_size(this) <= maxBytes) return this;
     final keyOrder = KeyStatement.keepOrder(keys);

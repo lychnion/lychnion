@@ -183,7 +183,7 @@ void main() {
   group('lookalikeOf', () {
     List<Attestation> vs() => [attested, gone];
 
-    test('a name or title like a attested publisher', () {
+    test('a name or title like an attested publisher', () {
       expect(lookalikeOf('jp.clty.sendai', null, vs()), Lookalike.attested);
       expect(lookalikeOf('jp.city-sendai', null, vs()), Lookalike.attested);
       expect(lookalikeOf('org.help', '仙台市 防災', vs()), Lookalike.attested);

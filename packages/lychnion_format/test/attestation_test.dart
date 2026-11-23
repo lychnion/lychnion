@@ -243,7 +243,7 @@ void main() {
         attestationFor('jp.city.sendai', city.pub, [v], []).status,
         AttestationStatus.attested,
       );
-      // The same name with another key: not the attested-for publisher.
+      // The same name with another key: not the publisher that was attested.
       expect(
         attestationFor('jp.city.sendai', other.pub, [v], []).status,
         AttestationStatus.otherKey,
@@ -380,7 +380,8 @@ void main() {
       );
       final kept = Attestation.capped([...many, back], 2);
       expect(kept, [many[2], back]);
-      // A withdrawal a newer attestation replaced changes nothing: it goes first.
+      // A withdrawal a newer attestation replaced changes nothing: it goes
+      // first.
       final oldBack = await attestation(
         publisher: 'jp.city.c1',
         signed: '2026-11-01T00:00:00Z',

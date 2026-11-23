@@ -23,20 +23,20 @@ class BaseLibrary {
     for (final k in ItemKind.values) ...store.allInstalled(k),
   ];
 
-  /// A format-2 catalog: the signed records unchanged, for each file its
-  /// address on this base (relative to the catalog's own URL), and the
-  /// key statements this computer knows, so phones learn of replaced and
-  /// revoked publisher keys here too, and Lychnion's attestations (#119).
-  ///
-  /// Made again only when the installed records, the key statements or
-  /// the attestations changed: fitting it to 2 MB encodes the whole catalog,
-  /// and every phone asks for it (lychnion/lychnion#59). The same map is returned
-  /// until then: callers must not change it or what it holds.
   /// How this base labels the signer of [s]'s guide (#119), sent with
   /// its answers.
   SourceLabel? labelOf(Source s) =>
       store.sourceLabelOf(s.signer, s.signerKeyId);
 
+  /// A format-2 catalog: the signed records unchanged, for each file its
+  /// address on this base (relative to the catalog's own URL), and the
+  /// key statements this computer knows, so phones learn of replaced and
+  /// revoked publisher keys here too, and Lychnion's attestations (#119).
+  ///
+  /// Made again only when the installed records, the key statements or the
+  /// attestations changed: fitting it to 2 MB encodes the whole catalog, and
+  /// every phone asks for it (lychnion/lychnion#59). The same map is
+  /// returned until then: callers must not change it or what it holds.
   Map<String, Object?> catalog() {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.

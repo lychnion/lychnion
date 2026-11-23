@@ -62,8 +62,8 @@ class AttestationList extends ChangeNotifier {
     TrustedKeys trust,
   ) => attestationFor(publisher, key, attestationsFor(trust), statements);
 
-  /// Reads attestations.json and checks every attestation again with [trust]: a file
-  /// changed by hand proves nothing. Unreadable or newer: a copy is kept
+  /// Reads attestations.json and checks every attestation again with [trust]: a
+  /// file changed by hand proves nothing. Unreadable or newer: a copy is kept
   /// (versioned_file.dart) and the list is empty.
   Future<void> load(TrustedKeys trust) async {
     final json = await readVersioned(file, format, (json, _) => json! as Map);
@@ -74,7 +74,7 @@ class AttestationList extends ChangeNotifier {
   /// Keeps those of [learned] whose signer the device trusts for
   /// Lychnion ([trust], asked again after the save: a revocation may land
   /// meanwhile), and saves the list. Their signatures were checked when
-  /// they were read (a [Attestation] is only made by a check). At most [max]
+  /// they were read (an [Attestation] is only made by a check). At most [max]
   /// are kept, chosen as [Attestation.capped] chooses them. Returns true when
   /// the list changed. Throws the save's error (then nothing changed).
   Future<bool> learn(

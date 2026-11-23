@@ -92,13 +92,14 @@ class Attestation {
   @override
   int get hashCode => id.hashCode;
 
-  /// The attestation in [json], or null when its shape or signature is wrong, or
-  /// when its signer is not a key [trust] has for [attesterPublisher] (after
+  /// The attestation in [json], or null when its shape or signature is wrong,
+  /// or when its signer is not a key [trust] has for [attesterPublisher] (after
   /// key statements). Never throws.
   ///
-  /// A [Attestation] does not remember the keys it was checked with: attestations a
-  /// device keeps are checked again with its current keys whenever they
-  /// are read, so a revoked Lychnion key's attestations lapse there too.
+  /// An [Attestation] does not remember the keys it was checked with:
+  /// attestations a device keeps are checked again with its current keys
+  /// whenever they are read, so a revoked Lychnion key's attestations lapse
+  /// there too.
   static Future<Attestation?> check(Object? json, TrustedKeys trust) async =>
       (await _checked(json, trust)).attestation;
 
@@ -180,10 +181,10 @@ class Attestation {
     return out;
   }
 
-  /// True when attestation JSON [a] (signed at [ta]) decides over [b] (signed at
-  /// [tb]) for the same publisher: the newer one; on the same time a
-  /// withdrawal; then the one whose text sorts last, so every device picks
-  /// the same one whatever the order of its list.
+  /// True when attestation JSON [a] (signed at [ta]) decides over [b] (signed
+  /// at [tb]) for the same publisher: the newer one; on the same time a
+  /// withdrawal; then the one whose text sorts last, so every device picks the
+  /// same one whatever the order of its list.
   static bool _decides(
     Map<Object?, Object?> a,
     DateTime ta,
@@ -211,12 +212,13 @@ class Attestation {
     ];
   }
 
-  /// The indexes of [attestations] (attestation JSON) in the order they are kept when
-  /// not all fit. First the attestation that decides for each publisher (as
-  /// [attestationFor] picks it): withdrawals before the others (losing one would
-  /// show a publisher as attested again), then the newest. Then the
-  /// attestations a newer one replaced, which change nothing; entries that are
-  /// not attestations last. Used by [capped] and `CatalogDocument.fitted`.
+  /// The indexes of [attestations] (attestation JSON) in the order they are
+  /// kept when not all fit. First the attestation that decides for each
+  /// publisher (as [attestationFor] picks it): withdrawals before the others
+  /// (losing one would show a publisher as attested again), then the newest.
+  /// Then the attestations a newer one replaced, which change nothing; entries
+  /// that are not attestations last. Used by [capped] and
+  /// `CatalogDocument.fitted`.
   static List<int> keepOrder(List<Object?> attestations) {
     final at = <int, DateTime>{};
     final newest = <String, int>{};
@@ -258,8 +260,8 @@ class Attestation {
     return idx;
   }
 
-  /// The fields an attestation may have; others would let an attestation grow without
-  /// bound.
+  /// The fields an attestation may have; others would let an attestation grow
+  /// without bound.
   static const _fields = {
     'format',
     'publisher',
@@ -439,7 +441,7 @@ enum AttestationStatus {
   withdrawn,
 
   /// Its name has an attestation, but for another key: a link with this key is
-  /// not the attested-for publisher (or a key it has not announced).
+  /// not the publisher that was attested (or a key it has not announced).
   otherKey,
 
   /// This key was revoked by the publisher's own key statement (stolen or
@@ -450,7 +452,8 @@ enum AttestationStatus {
   none,
 }
 
-/// The status, and the attestation that decided it (null for `AttestationStatus.none`).
+/// The status, and the attestation that decided it (null for
+/// `AttestationStatus.none`).
 typedef AttestationResult = ({
   AttestationStatus status,
   Attestation? attestation,

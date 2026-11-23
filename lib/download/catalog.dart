@@ -140,8 +140,8 @@ class Catalog {
     this.attestations = const [],
   });
 
-  /// Lychnion's attestations in the catalog's `attestations` (signed by a key the
-  /// device trusts for Lychnion, after the catalog's key statements),
+  /// Lychnion's attestations in the catalog's `attestations` (signed by a key
+  /// the device trusts for Lychnion, after the catalog's key statements),
   /// except those given as known to [parse]; the device keeps them.
   final List<Attestation> attestations;
 
@@ -180,8 +180,8 @@ class Catalog {
   /// ([fetchedFrom]); others are left out, so a device on the Wi-Fi
   /// cannot make the phone contact hosts it picks.
   ///
-  /// Attestations whose [Attestation.id] is in [knownAttestations] (the device keeps
-  /// them) are not checked again, and not in [attestations].
+  /// Attestations whose [Attestation.id] is in [knownAttestations] (the device
+  /// keeps them) are not checked again, and not in [attestations].
   static Future<Catalog> parse(
     String json, {
     Uri? fetchedFrom,
