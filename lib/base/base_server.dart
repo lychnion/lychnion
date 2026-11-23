@@ -21,7 +21,8 @@ import 'watched_socket.dart';
 /// Answers questions from phones on the base's local network.
 ///
 /// GET /       → a page for phones without the app (assets/web/base.html)
-/// GET /web.json?lang=ja → that page's texts and the current facts
+/// GET /web.json?lang=ja → that page's texts (no facts: it is not signed,
+///                         lychnion/lychnion#116)
 /// GET /info  → {name, model, package, version, key, signs_answers}
 /// GET /facts → current facts (JSON, or ?compact=1 for radio-sized messages)
 /// POST /ask  {"question": "…", "nonce": "…"} → an answer
@@ -55,7 +56,6 @@ class BaseServer {
     this.codec,
     this.library,
     this.page,
-    this.placeName,
     this.maxConnections = 100,
     this.maxConnectionsPerPhone = 24,
     this.idleTimeout = const Duration(seconds: 30),
@@ -66,10 +66,6 @@ class BaseServer {
     this.maxWait = const Duration(seconds: 100),
     this.sendStall = const Duration(seconds: 30),
   });
-
-  /// A shelter's name from its ID (the map's evacuation sites), for the
-  /// browser page. Null when there is no map.
-  final String? Function(String id)? placeName;
 
   /// The page for phones without the app (HTML), or null for none.
   final String? page;
@@ -391,17 +387,7 @@ class BaseServer {
         await _close(res);
       } else if (req.method == 'GET' && req.uri.path == '/web.json') {
         final lang = req.uri.queryParameters['lang'] ?? 'en';
-        _send(
-          res,
-          200,
-          webInfo(
-            lang: appTextLang(lang),
-            name: name,
-            facts: facts?.current ?? const [],
-            now: facts?.now ?? DateTime.now(),
-            placeName: placeName,
-          ),
-        );
+        _send(res, 200, webInfo(lang: appTextLang(lang), name: name));
       } else if (req.method == 'GET' && req.uri.path == '/info') {
         final a = answerer;
         _send(res, 200, {

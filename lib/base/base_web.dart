@@ -1,16 +1,21 @@
 import 'dart:ui' show Locale;
 
 import '../app/lang.dart' show appLanguages;
-import '../facts/fact.dart';
-import '../facts/fact_view.dart';
 import '../knowledge/grounded_answer.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/answer_text.dart';
 
 /// Data for the page the base computer serves to phones without the
 /// app (assets/web/base.html): its texts in the browser's language,
-/// taken from the app's ARB files (one place to translate), the current
-/// facts as display lines, and answers ready to show.
+/// taken from the app's ARB files (one place to translate), and answers
+/// ready to show.
+///
+/// The page is plain http and not signed, so anyone on the Wi-Fi can
+/// change it on the way (lychnion/lychnion#116). It therefore shows no
+/// current facts (shelter status, warnings): those are on the base's
+/// screen, with the staff, and in the app, which checks them. It says
+/// that it is not checked, and the base's screen says so next to the
+/// page's QR code, where nobody on the Wi-Fi can change it.
 AppLocalizations webTexts(String lang) => lookupAppLocalizations(
   Locale(
     AppLocalizations.supportedLocales.any((l) => l.languageCode == lang)
@@ -19,20 +24,8 @@ AppLocalizations webTexts(String lang) => lookupAppLocalizations(
   ),
 );
 
-Map<String, Object?> webInfo({
-  required String lang,
-  required String name,
-  required List<Fact> facts,
-  required DateTime now,
-  String? Function(String id)? placeName,
-}) {
+Map<String, Object?> webInfo({required String lang, required String name}) {
   final l = webTexts(lang);
-  // What a fact is about, for people: a shelter by its name, a warning's
-  // area as it is. IDs and coordinates are not shown.
-  String? about(Fact f) => switch (f.kind) {
-    FactKind.warning => f.subject,
-    _ => placeName?.call(f.subject),
-  };
   return {
     'lang': l.localeName,
     'name': name,
@@ -52,7 +45,7 @@ Map<String, Object?> webInfo({
       'partly': l.answerPartlyCovered,
       'unchecked': l.answerUnchecked,
       'sources': l.answerSources,
-      'factsTitle': l.factsBoxTitle,
+      'pageUnchecked': l.webPageUnchecked,
       'beforeYouStart': l.beforeYouStart,
       'notice': [
         l.noticeAi,
@@ -64,17 +57,6 @@ Map<String, Object?> webInfo({
       'base': l.answerBaseComputer(name),
       'error': l.webError,
     },
-    'facts': [
-      for (final f in facts)
-        {
-          'kind': f.kind.name,
-          'subject': about(f),
-          'line': factLine(l, f, now),
-          // Shown in red, as in the app: warnings, full or closed shelters.
-          'avoid':
-              f.kind == FactKind.warning || (f.shelterStatus?.avoid ?? false),
-        },
-    ],
   };
 }
 

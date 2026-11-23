@@ -9,6 +9,9 @@
   to phones on its Wi-Fi that do not have the app. Self-contained: no
   internet, no files from elsewhere. Texts come from the app's ARB files
   (GET /web.json?lang=..), answers from POST /ask (field "web").
+  Plain http and not signed, so anyone on the Wi-Fi can change it: it
+  shows no current facts and says that it is not checked
+  (lychnion/lychnion#116).
 -->
 <style>
   :root {
@@ -37,8 +40,8 @@
   .muted { color: var(--muted); font-size: 14px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
           padding: 14px 16px; margin: 14px 0; }
-  .facts h2, .card h2 { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
-  .fact { padding: 4px 0; } .fact.avoid { color: var(--warn); font-weight: 600; }
+  .card h2 { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+  .unchecked { border-left: 4px solid var(--glow); font-size: 14px; }
   details.notice summary { cursor: pointer; font-weight: 600; }
   details.notice li { margin: 6px 0; font-size: 14px; }
   .q { margin: 16px 0 6px; text-align: right; }
@@ -77,8 +80,8 @@
 <main>
   <p class="base" id="base"></p>
   <h1 id="intro"></h1>
+  <p class="card unchecked" id="unchecked"></p>
   <details class="notice card"><summary id="before"></summary><ul id="notice"></ul></details>
-  <div class="card facts" id="facts" hidden><h2 id="factsTitle"></h2></div>
   <div id="thread"></div>
 </main>
 <form id="ask">
@@ -86,7 +89,7 @@
   <button id="send"></button>
 </form>
 <script>
-  // Everything is shown with textContent: answers and facts are never HTML.
+  // Everything is shown with textContent: answers are never HTML.
   // The language: the one picked in the menu (kept on this phone), else
   // the phone's. The server falls back to English for others.
   const stored = () => { try { return localStorage.getItem('lang'); } catch (_) { return null; } };
@@ -123,13 +126,7 @@
     $('q').placeholder = T.hint;
     $('send').textContent = T.send;
     $('notice').replaceChildren(...T.notice.map((n) => el('li', null, n)));
-    $('factsTitle').textContent = T.factsTitle;
-    const box = $('facts');
-    box.querySelectorAll('.fact').forEach((f) => f.remove());
-    for (const f of d.facts) {
-      box.append(el('div', 'fact' + (f.avoid ? ' avoid' : ''), (f.subject ? f.subject + ' — ' : '') + f.line));
-    }
-    box.hidden = d.facts.length === 0;
+    $('unchecked').textContent = T.pageUnchecked;
   }
 
   $('ask').addEventListener('submit', async (e) => {
@@ -190,8 +187,6 @@
   });
 
   load().catch(() => {});
-  // Current facts change: refresh them every minute.
-  setInterval(() => load().catch(() => {}), 60000);
 </script>
 </body>
 </html>

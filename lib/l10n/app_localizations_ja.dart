@@ -1040,6 +1040,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get webError => 'ベースが回答できませんでした。もう一度お試しください。';
 
   @override
+  String get webPageUnchecked =>
+      'このページは確認されていません。同じ Wi-Fi の誰でも、表示を書き換えられます。避難所や経路、警報は、スタッフ、ベースの画面、公式の情報に従ってください。リクニオンのアプリは、ベースの回答を確認します。';
+
+  @override
   String get baseWithApp => 'アプリで';
 
   @override
@@ -1047,7 +1051,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get baseBrowserHint =>
-      'アプリがないスマートフォン用：このコンピューターのページが開きます。質問と回答は同じ Wi-Fi の中だけでやりとりします。';
+      'アプリがないスマートフォン用：このコンピューターのページが開き、質問に回答します。このページは確認されておらず、避難所の状況や警報は表示しません（同じ Wi-Fi の誰でも書き換えられるため）。それらはこの画面で示すか、直接伝えてください。';
 
   @override
   String get shareOnNetwork => 'この端末をベースにする';

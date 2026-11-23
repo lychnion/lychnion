@@ -112,6 +112,12 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- The base's browser page (for phones without the app) no longer shows
+  current facts such as shelter status or warnings: it is plain http and
+  not signed, so anyone on the Wi-Fi could change them on the way. It now
+  says at the top that it is not checked, and the base's screen says so
+  next to the page's QR code. Facts stay on the base's screen and in the
+  app, which checks them (#116).
 - One device on the base Wi-Fi can no longer take all of the base's
   connections: at most 24 come from one address (#36).
 - Publishing your own: the app no longer tells you to keep a copy of the

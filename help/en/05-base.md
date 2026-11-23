@@ -6,7 +6,7 @@ A computer with Lychnion that helps the phones on the same Wi-Fi, for example in
 
 ## How does a phone connect to a base?
 
-Scan the base's QR code with the normal camera. The "In the browser" code works without the app; the "With the app" code opens Lychnion and connects it. The phone and the computer must be on the same Wi-Fi.
+Scan the base's QR code with the normal camera. The "In the browser" code works without the app: its page answers questions, but it is not checked, and anyone on the same Wi-Fi could change it, so it shows no shelter status or warnings (check those on the base's screen and with the staff); the "With the app" code opens Lychnion and connects it. The phone and the computer must be on the same Wi-Fi.
 
 ## Why compare a code?
 

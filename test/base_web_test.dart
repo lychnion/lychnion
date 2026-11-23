@@ -1,5 +1,6 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lychnion/facts/fact.dart';
 import 'package:lychnion/knowledge/grounded_answer.dart';
 import 'package:lychnion/knowledge/knowledge_package.dart';
 import 'package:lychnion/knowledge/retriever.dart';
@@ -34,33 +35,25 @@ void main() {
     expect((w['texts'] as Map)['sources'], 'Sources');
   });
 
-  test('facts on the page name bases, not their IDs', () {
-    final now = DateTime(2026, 11, 18, 15);
-    Fact f(FactKind kind, String subject, String value) => Fact(
-      kind: kind,
-      subject: subject,
-      value: value,
-      observedAt: now.subtract(const Duration(minutes: 20)),
-      expiresAt: now.add(const Duration(hours: 2)),
-      sourceType: SourceType.official,
-      sourceName: '西宮市',
+  // lychnion/lychnion#116: the page is not signed, so it shows no facts
+  // and says that it is not checked.
+  test('the page data has no facts and says the page is not checked', () {
+    for (final lang in ['ja', 'en']) {
+      final info = webInfo(lang: lang, name: 'Test');
+      expect(info.containsKey('facts'), isFalse);
+      final texts = info['texts'] as Map;
+      expect(texts.containsKey('factsTitle'), isFalse);
+      expect(texts['pageUnchecked'], isNotEmpty);
+    }
+    expect(
+      (webInfo(lang: 'en', name: 'Test')['texts'] as Map)['pageUnchecked'],
+      contains('not checked'),
     );
-    final info = webInfo(
-      lang: 'ja',
-      name: 'Test',
-      now: now,
-      placeName: (id) => id == 'E1' ? '市役所' : null,
-      facts: [
-        f(FactKind.shelterStatus, 'E1', 'full'),
-        f(FactKind.roadBlocked, '34.73,135.34', ''),
-        f(FactKind.warning, '西宮市', '津波警報'),
-      ],
-    );
-    final facts = (info['facts'] as List).cast<Map<String, Object?>>();
-    expect(facts[0]['subject'], '市役所');
-    expect(facts[0]['avoid'], isTrue);
-    expect(facts[1]['subject'], isNull);
-    expect(facts[2]['subject'], '西宮市');
-    expect(facts[2]['avoid'], isTrue);
+  });
+
+  test('the page shows the notice and no facts box', () {
+    final page = File('assets/web/base.html').readAsStringSync();
+    expect(page, contains('T.pageUnchecked'));
+    expect(page, isNot(contains('d.facts')));
   });
 }
