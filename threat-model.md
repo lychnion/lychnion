@@ -519,8 +519,8 @@ plus phones that also use the internet when they can.
   named by a valid key statement, and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:34`,
-  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:205`, and "Open a model
-  file…" at `lib/ask/model_loading.dart:308`. Bundled guides are trusted by
+  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:207`, and "Open a model
+  file…" at `lib/ask/model_loading.dart:310`. Bundled guides are trusted by
   the app signature, not a record (`lib/download/download_store.dart:825`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added

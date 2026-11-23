@@ -54,6 +54,8 @@ mixin _ModelLoading on _AskPageBase {
       return;
     }
     final store = await DownloadStore.instance();
+    // Saved answers are labelled as soon as the store is known (#119).
+    if (_labels == null && mounted) setState(() => _labels = store);
     // A LiteRT-LM load that never ended: it crashed the app last time.
     // Skip that model, or every start would crash again.
     if (store.loadingChat case final crashed? when !_loadedOnce) {

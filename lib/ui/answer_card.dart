@@ -631,9 +631,11 @@ class _SourcesFooter extends StatelessWidget {
     final unchecked = numbers.any(
       (n) => labelOf(answer.hits[n - 1].passage.source)?.isUnchecked ?? false,
     );
-    final label = unchecked
-        ? '$first\n${l.answerSourcesNotChecked(l.appName)}'
-        : first;
+    final note = l.answerSourcesNotChecked(l.appName);
+    final label = !unchecked
+        ? first
+        // From a base, the base's word like the lines under the passages.
+        : '$first\n${answer.answeredBy != null ? l.answerSourceBaseSays(note) : note}';
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Semantics(

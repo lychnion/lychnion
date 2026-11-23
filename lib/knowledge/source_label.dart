@@ -66,19 +66,29 @@ class SourceLabel {
       for (final e in t.entries.take(4)) {
         final k = e.key, v = e.value;
         if (k is! String || !_lang.hasMatch(k) || v is! String) continue;
-        final clean = PublisherLink.cleanTitle(v);
-        // Nor words that read as part of the label line around it.
-        if (clean == null ||
-            clean.contains('·') ||
-            clean.toLowerCase().contains(_lychnion) ||
-            clean.contains('リクニオン')) {
-          continue;
-        }
-        titles[k] = clean;
+        if (shownTitle(v) case final clean?) titles[k] = clean;
       }
     }
     return SourceLabel(check, name: name, titles: titles);
   }
+
+  /// [t] as an answer's label line may show it, or null: cleaned as a
+  /// publisher link's title, and without what would read as part of the
+  /// line around it (the app's name, the separator, quotes). Only ASCII
+  /// and Japanese spellings of the name are caught; look-alike letters are
+  /// not (see the lookalike warning when a publisher is added).
+  static String? shownTitle(String? t) {
+    final clean = PublisherLink.cleanTitle(t);
+    if (clean == null ||
+        clean.toLowerCase().contains(_lychnion) ||
+        clean.contains('リクニオン') ||
+        _lineMarks.any(clean.contains)) {
+      return null;
+    }
+    return clean;
+  }
+
+  static const _lineMarks = ['·', '・', '“', '”', '"', '「', '」'];
 
   static final _name = RegExp(r'^[a-z0-9][a-z0-9._-]{0,63}$');
   static final _lang = RegExp(r'^[a-z]{2,3}$');

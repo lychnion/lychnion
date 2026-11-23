@@ -117,7 +117,7 @@ extension PublisherLabels on DownloadStore {
       return SourceLabel(
         PublisherCheck.revoked,
         name: signer,
-        titles: {'und': ?added?.title},
+        titles: {'und': ?SourceLabel.shownTitle(added?.title)},
       );
     }
     return SourceLabel(
@@ -125,7 +125,7 @@ extension PublisherLabels on DownloadStore {
       name: signer,
       titles: label.check == PublisherCheck.vouched
           ? label.vouch!.title
-          : {'und': ?added?.title},
+          : {'und': ?SourceLabel.shownTitle(added?.title)},
     );
   }
 }

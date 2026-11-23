@@ -1,3 +1,5 @@
+import 'package:lychnion_format/lychnion_format.dart' show voucherPublisher;
+
 import '../download/download_store.dart';
 import '../download/publisher_label.dart';
 import '../knowledge/grounded_answer.dart';
@@ -35,6 +37,13 @@ SourceLabel? sourceLabelFor(
   GroundedAnswer answer,
   Source s,
   DownloadStore? store,
-) => answer.answeredBy != null || store == null
-    ? s.label
-    : store.sourceLabelOf(s.signer, s.signerKeyId) ?? s.label;
+) {
+  if (answer.answeredBy != null) return s.label;
+  if (store != null) return store.sourceLabelOf(s.signer, s.signerKeyId);
+  // Before Downloads are loaded: another publisher's guide is never shown
+  // as if it were Lychnion's.
+  final signer = s.signer;
+  return signer == null || signer == voucherPublisher
+      ? null
+      : SourceLabel(PublisherCheck.notChecked, name: signer);
+}

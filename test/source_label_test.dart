@@ -24,7 +24,7 @@ import 'package:material_ui/material_ui.dart';
 
 void main() {
   late SimpleKeyPair lychnion, sendai, club;
-  late String sendaiKey, clubKey;
+  late String sendaiKey, clubKey, evilKey;
   late TrustedKeys builtIn;
   late Directory tmp;
   late DownloadStore store;
@@ -38,6 +38,7 @@ void main() {
     club = await Ed25519().newKeyPair();
     sendaiKey = await publicKeyOf(sendai);
     clubKey = await publicKeyOf(club);
+    evilKey = await publicKeyOf(await Ed25519().newKeyPair());
     builtIn = TrustedKeys({
       'lychnion': [await publicKeyOf(lychnion)],
     });
@@ -54,6 +55,13 @@ void main() {
     );
     await store.publishers.add(
       PublisherLink(name: 'club.aoba', key: clubKey, title: 'Aoba Club'),
+    );
+    await store.publishers.add(
+      PublisherLink(
+        name: 'club.evil',
+        key: evilKey,
+        title: 'Sendai” · checked by Lychnion',
+      ),
     );
     await store.learnVouches([
       await Vouch.sign(
@@ -99,6 +107,23 @@ void main() {
       // The app's help has no signer.
       expect(store.sourceLabelOf(null, null), isNull);
     });
+
+    test('a title that reads as part of the label line is not shown', () {
+      final l = store.sourceLabelOf('club.evil', idOf(evilKey))!;
+      expect(l.check, PublisherCheck.notChecked);
+      expect(l.titles, isEmpty);
+      expect(l.titleIn('en'), 'club.evil');
+      for (final t in [
+        'Lychnion Official',
+        'リクニオン公式',
+        '「仙台市」',
+        'A · B',
+        'Say "hi"',
+      ]) {
+        expect(SourceLabel.shownTitle(t), isNull, reason: t);
+      }
+      expect(SourceLabel.shownTitle('仙台市'), '仙台市');
+    });
   });
 
   group('sourceLabelFor', () {
@@ -130,6 +155,40 @@ void main() {
       );
       expect(sourceLabelFor(a, s, store)?.check, PublisherCheck.vouched);
       expect(sourceLabelFor(a, src(), store), isNull);
+    });
+
+    test('before Downloads are loaded: not checked, never as Lychnion', () {
+      final a = GroundedAnswer('q');
+      expect(sourceLabelFor(a, src(), null)?.check, PublisherCheck.notChecked);
+      final mine = Source('s', 't', 'p', '', '', '', signer: 'lychnion');
+      expect(sourceLabelFor(a, mine, null), isNull);
+    });
+
+    test('an answer saved before signers were kept has no label', () {
+      final a = GroundedAnswer('q');
+      final old = Source('s', 't', 'p', '', '', '');
+      expect(sourceLabelFor(a, old, store), isNull);
+    });
+
+    test('a hostile signer or key id from the wire is dropped', () {
+      for (final (signer, key) in [
+        ('Club.Aoba', 'AAAAAAAAAAAA'),
+        ('club aoba', 'short'),
+        ('x' * 70, r'a$b%c^d&'),
+      ]) {
+        final s = sourceFromWire({
+          'id': 's',
+          'title': 't',
+          'publisher': 'p',
+          'url': '',
+          'licence': '',
+          'attribution': '',
+          'signer': signer,
+          'signer_key': key,
+        });
+        expect(s.signer, isNull, reason: signer);
+        expect(s.signerKeyId, isNull, reason: key);
+      }
     });
 
     test('a saved answer keeps its signer, so its label follows', () {
@@ -295,6 +354,61 @@ void main() {
     expect(
       (page['texts']! as Map)['someUnchecked'],
       'Some sources were not checked by Lychnion',
+    );
+  });
+
+  Future<void> pumpCard(WidgetTester t, GroundedAnswer a) => t.pumpWidget(
+    MaterialApp(
+      locale: const Locale('en'),
+      localizationsDelegates: appTextDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: ListView(
+          children: [
+            AnswerCard(
+              answer: a,
+              grounded: true,
+              done: true,
+              labelOf: (s) => sourceLabelFor(a, s, store),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  testWidgets('from a base, the note is the base\'s word', (t) async {
+    final a = GroundedAnswer('q', lang: 'en')
+      ..answeredBy = 'Shelter'
+      ..hits = [
+        Hit(
+          Passage(
+            1,
+            Source(
+              's',
+              'Guide',
+              'Aoba Club',
+              '',
+              '',
+              '',
+              label: const SourceLabel(
+                PublisherCheck.notChecked,
+                name: 'club.aoba',
+              ),
+            ),
+            'h',
+            't',
+          ),
+          1,
+        ),
+      ]
+      ..text = 'An answer [1].';
+    await pumpCard(t, a);
+    expect(
+      find.textContaining(
+        'Some sources were not checked by Lychnion (as the base says)',
+      ),
+      findsOneWidget,
     );
   });
 

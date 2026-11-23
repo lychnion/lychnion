@@ -36,16 +36,18 @@ Source sourceFromWire(Map<String, dynamic> j) => Source(
   j['licence'] as String,
   j['attribution'] as String,
   region: j['region'] as String? ?? 'JP',
-  signer: _plain(j['signer'], 64),
-  signerKeyId: _plain(j['signer_key'], 16),
+  signer: _plain(j['signer'], _signer),
+  signerKeyId: _plain(j['signer_key'], _keyId),
   // The sender's word, checked only for form (see SourceLabel.fromWire).
   label: SourceLabel.fromWire(j['label']),
 );
 
-String? _plain(Object? v, int max) =>
-    v is String && v.length <= max && RegExp(r'^[A-Za-z0-9._-]+$').hasMatch(v)
-    ? v
-    : null;
+String? _plain(Object? v, RegExp form) =>
+    v is String && form.hasMatch(v) ? v : null;
+
+/// A publisher name, and a key's short id (6 bytes, base64url).
+final _signer = RegExp(r'^[a-z0-9][a-z0-9._-]{0,63}$');
+final _keyId = RegExp(r'^[A-Za-z0-9_-]{8}$');
 
 String _webUrl(String s) {
   final u = Uri.tryParse(s.trim());
