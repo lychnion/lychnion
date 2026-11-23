@@ -207,6 +207,23 @@ Windows and Linux computers a base may run on, and draws hillshade from
 the Terrarium tiles this note proposes. mapigrade is worth watching but
 does not run on Windows or Linux yet.
 
+**Watching the plugins**
+
+Flutter vector maps change fast, so we check these projects before each
+map phase and update the table above:
+
+| Project | Activity (2026-11-23) | Contributions with AI |
+| --- | --- | --- |
+| [flutter_map](https://github.com/fleaflet/flutter_map) | Active, about 3,000 stars | [Allowed with conditions](https://github.com/fleaflet/flutter_map/blob/master/CONTRIBUTING.md#ai): say that AI was used, a person checks and answers for every claim and line, follow the fix agreed in the issue. Maintainers review by hand, so keep pull requests small. |
+| [flutter_map_vector_tiles](https://github.com/JonasGrunau/flutter-map-vector-tiles) | Active, one maintainer, few stars yet | No written policy; the repository itself is set up for coding agents (`AGENTS.md`, `CLAUDE.md`). Ask in an issue before a larger change. |
+| [mapigrade](https://github.com/greensopinion/mapigrade) | Active, pre-1.0 | No written policy. |
+| [vector_map_tiles](https://github.com/greensopinion/flutter-vector-map-tiles) | Minimally maintained | No written policy. |
+
+If we contribute: open an issue first, keep each pull request to one
+change, test it on our devices, say that AI helped, and have a person
+review it before sending. A single-maintainer project is also a risk
+for us; contributing reduces it.
+
 **Point clouds**
 
 [Point Cloud PNG](https://gbank.gsj.jp/seamless/pcpng/1.0.1/) (点群PNG),
