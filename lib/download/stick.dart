@@ -119,7 +119,7 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   // Vouches likewise (labels only, #119): this device's first, then the
   // stick's that a key trusted here for Lychnion signed.
   final vouches = [
-    ...store.vouches.vouches,
+    ...store.vouches.vouchesFor(store.trust),
     ...await Vouch.checkAll(old?.vouches, trust),
   ];
 

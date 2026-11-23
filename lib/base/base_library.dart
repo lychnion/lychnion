@@ -27,15 +27,17 @@ class BaseLibrary {
   /// revoked publisher keys here too, and Lychnion's vouches (#119).
   ///
   /// Made again only when the installed records, the key statements or
-  /// the vouches changed: fitting it to 2 MB encodes the whole catalog, and every
-  /// phone asks for it (lychnion/lychnion#59). The same map is returned
+  /// the vouches changed: fitting it to 2 MB encodes the whole catalog,
+  /// and every phone asks for it (lychnion/lychnion#59). The same map is returned
   /// until then: callers must not change it or what it holds.
   Map<String, Object?> catalog() {
     final all = items;
     // Phones ask for the files of the catalog they got: those are known.
     _remember(all);
     final keys = store.publishers.statements;
-    final vouches = store.vouches.vouches;
+    // Only those of a key trusted now for Lychnion, also between a
+    // revocation and the list's recheck.
+    final vouches = store.vouches.vouchesFor(store.trust);
     // Each record by its signature, each statement and vouch as the same
     // object (PublisherList and VouchList keep them): exact, no hash that
     // could collide.

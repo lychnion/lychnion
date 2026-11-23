@@ -270,8 +270,8 @@ backup `format: 1`, base protocol `v: 1`. Older builds ignore `keys`:
 they do not accept a replacement key or honour a revocation. They also
 ignore `vouches` (Lychnion's labels for official publishers, #119).
 The app keeps vouches in `downloads/vouches.json` (`format: 1`) and
-passes them on with sticks and a base's catalog, as a node does with its
-own; nothing shows them yet.
+passes them on with sticks and a base's catalog; a node keeps those of
+every source it pulls and passes them on. Nothing shows them yet.
 
 ### Known gaps
 

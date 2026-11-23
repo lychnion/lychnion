@@ -55,8 +55,8 @@ void main() {
     test('learn saves; load reads back and checks again', () async {
       final a = await vouch('jp.city.a');
       final list = VouchList(file());
-      expect(await list.learn([a], trust), isTrue);
-      expect(await list.learn([a], trust), isFalse, reason: 'known');
+      expect(await list.learn([a], () => trust), isTrue);
+      expect(await list.learn([a], () => trust), isFalse, reason: 'known');
       expect(list.vouches, [a]);
       expect(list.ids, {a.id});
 
@@ -83,7 +83,7 @@ void main() {
     test('a signer not trusted here for Lychnion is not kept', () async {
       final list = VouchList(file());
       final byOther = await vouch('jp.city.a', by: other);
-      expect(await list.learn([byOther], trust), isFalse);
+      expect(await list.learn([byOther], () => trust), isFalse);
       expect(list.vouches, isEmpty);
       expect(file().existsSync(), isFalse);
     });
@@ -91,7 +91,7 @@ void main() {
     test('recheck leaves out vouches of a revoked Lychnion key', () async {
       final list = VouchList(file());
       final a = await vouch('jp.city.a');
-      await list.learn([a], trust);
+      await list.learn([a], () => trust);
       var told = 0;
       list.addListener(() => told++);
       list.recheck(trust);
@@ -107,17 +107,23 @@ void main() {
 
     test('status by vouchFor', () async {
       final list = VouchList(file());
-      await list.learn([await vouch('jp.city.a')], trust);
+      await list.learn([await vouch('jp.city.a')], () => trust);
       expect(
-        list.statusOf('jp.city.a', await publicKeyOf(city), const []).status,
+        list
+            .statusOf('jp.city.a', await publicKeyOf(city), const [], trust)
+            .status,
         VouchStatus.vouched,
       );
       expect(
-        list.statusOf('jp.city.a', await publicKeyOf(other), const []).status,
+        list
+            .statusOf('jp.city.a', await publicKeyOf(other), const [], trust)
+            .status,
         VouchStatus.otherKey,
       );
       expect(
-        list.statusOf('jp.city.b', await publicKeyOf(city), const []).status,
+        list
+            .statusOf('jp.city.b', await publicKeyOf(city), const [], trust)
+            .status,
         VouchStatus.none,
       );
     });
@@ -131,14 +137,80 @@ void main() {
         withdrawn: true,
       );
       final b = await vouch('jp.city.b');
-      expect(await list.learn([old, gone, b], trust), isTrue);
+      expect(await list.learn([old, gone, b], () => trust), isTrue);
       expect(list.vouches.toSet(), {gone, b});
       // Only a replaced one more: nothing changes.
-      expect(await list.learn([old], trust), isFalse);
+      expect(await list.learn([old], () => trust), isFalse);
+    });
+
+    test('a revocation during the save: the vouch stays out of use', () async {
+      final list = VouchList(file());
+      final revoked = TrustedKeys({
+        'lychnion': [await publicKeyOf(other)],
+      });
+      var asked = 0;
+      // Trusted when learned, revoked by the time the save is done.
+      final changed = await list.learn([
+        await vouch('jp.city.a'),
+      ], () => asked++ == 0 ? trust : revoked);
+      expect(changed, isTrue);
+      expect(list.vouches, isEmpty);
+      expect(list.vouchesFor(trust), isEmpty);
+    });
+
+    test('vouchesFor leaves out a lapsed signer before recheck', () async {
+      final list = VouchList(file());
+      final a = await vouch('jp.city.a');
+      await list.learn([a], () => trust);
+      final revoked = TrustedKeys({
+        'lychnion': [await publicKeyOf(other)],
+      });
+      expect(list.vouchesFor(trust), [a]);
+      expect(list.vouchesFor(revoked), isEmpty);
+      expect(
+        list
+            .statusOf('jp.city.a', await publicKeyOf(city), const [], revoked)
+            .status,
+        VouchStatus.none,
+      );
+    });
+
+    test('a failed save changes nothing', () async {
+      // A folder where the file should be: the rename fails.
+      Directory(file().path).createSync();
+      final list = VouchList(file());
+      await expectLater(
+        list.learn([await vouch('jp.city.a')], () => trust),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(list.vouches, isEmpty);
+      expect(list.ids, isEmpty);
+    });
+
+    test('one over the cap is not kept, and not checked again', () async {
+      final list = VouchList(file(), max: 1);
+      final newer = await vouch('jp.city.a', signed: '2026-11-23T00:00:00Z');
+      final older = await vouch('jp.city.b', signed: '2026-11-01T00:00:00Z');
+      expect(await list.learn([newer], () => trust), isTrue);
+      expect(await list.learn([older], () => trust), isFalse);
+      expect(list.vouches, [newer]);
+      expect(list.ids, {newer.id, older.id});
+      final c = await Catalog.parse(
+        jsonEncode({
+          'format': 2,
+          'records': <Object>[],
+          'vouches': [older.json],
+        }),
+        trust: trust,
+        knownVouches: list.ids,
+      );
+      expect(c.vouches, isEmpty);
     });
 
     test('a newer file is set aside, not read', () async {
-      file().writeAsStringSync(jsonEncode({'format': 99, 'vouches': []}));
+      file().writeAsStringSync(
+        jsonEncode({'format': 99, 'vouches': <Object?>[]}),
+      );
       final list = VouchList(file());
       await list.load(trust);
       expect(list.vouches, isEmpty);

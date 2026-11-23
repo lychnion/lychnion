@@ -34,10 +34,24 @@ class VouchList extends ChangeNotifier {
   /// The ids of [_vouches] ([Vouch.id]).
   final _ids = <String>{};
 
+  /// Ids of valid vouches [learn] did not keep (over [max]): catalogs
+  /// that carry them need not check them again in this run. At most
+  /// [_maxDropped], then started anew.
+  final _dropped = <String>{};
+  static const _maxDropped = 4 * Vouch.maxPerSource;
+
   List<Vouch> get vouches => List.unmodifiable(_vouches);
 
-  /// The [Vouch.id]s of [vouches]: a catalog need not check those again.
-  Set<String> get ids => Set.unmodifiable(_ids);
+  /// [vouches] whose signer [trust] has for Lychnion: what is passed on
+  /// and shown, also between a revocation and the next [recheck].
+  List<Vouch> vouchesFor(TrustedKeys trust) => [
+    for (final v in _vouches)
+      if (_signedFor(v, trust)) v,
+  ];
+
+  /// [Vouch.id]s a catalog need not check again: those kept here, and
+  /// valid ones [learn] did not keep.
+  Set<String> get ids => Set.unmodifiable({..._ids, ..._dropped});
 
   /// Where [publisher]'s [key] stands (see [vouchFor]); [statements]: the
   /// key statements the device keeps.
@@ -45,7 +59,8 @@ class VouchList extends ChangeNotifier {
     String publisher,
     String key,
     Iterable<KeyStatement> statements,
-  ) => vouchFor(publisher, key, _vouches, statements);
+    TrustedKeys trust,
+  ) => vouchFor(publisher, key, vouchesFor(trust), statements);
 
   /// Reads vouches.json and checks every vouch again with [trust]: a file
   /// changed by hand proves nothing. Unreadable or newer: a copy is kept
@@ -56,32 +71,47 @@ class VouchList extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Keeps those of [learned] whose signer [trust] has for Lychnion, and
-  /// saves the list. Their signatures were checked when they were read
-  /// (a [Vouch] is only made by a check). At most [max] are kept, chosen
-  /// as [Vouch.capped] chooses them. Returns true when the list changed.
-  /// Throws the save's error (then nothing changed).
-  Future<bool> learn(Iterable<Vouch> learned, TrustedKeys trust) =>
+  /// Keeps those of [learned] whose signer the device trusts for
+  /// Lychnion ([trust], asked again after the save: a revocation may land
+  /// meanwhile), and saves the list. Their signatures were checked when
+  /// they were read (a [Vouch] is only made by a check). At most [max]
+  /// are kept, chosen as [Vouch.capped] chooses them. Returns true when
+  /// the list changed. Throws the save's error (then nothing changed).
+  Future<bool> learn(Iterable<Vouch> learned, TrustedKeys Function() trust) =>
       _serial(() async {
+        final now = trust();
         final seen = {..._ids};
         final fresh = [
           for (final v in learned)
-            if (_signedFor(v, trust) && seen.add(v.id)) v,
+            if (_signedFor(v, now) && seen.add(v.id)) v,
         ];
         if (fresh.isEmpty) return false;
         final next = Vouch.capped([..._vouches, ...fresh], max);
+        final kept = next.toSet();
+        if (_dropped.length > _maxDropped) _dropped.clear();
+        _dropped.addAll([
+          for (final v in fresh)
+            if (!kept.contains(v)) v.id,
+        ]);
         if (next.length == _vouches.length && next.every(_vouches.contains)) {
           return false;
         }
         await _save(next);
-        _set(next);
+        // Those a revocation made lapse during the save stay out of use (the
+        // file is checked again when read).
+        final after = trust();
+        _set([
+          for (final v in next)
+            if (_signedFor(v, after)) v,
+        ]);
         notifyListeners();
         return true;
       });
 
   /// Leaves out the vouches whose signer [trust] no longer has for
   /// Lychnion (a revoked key: its vouches lapse). Not saved: the file is
-  /// checked again when it is read.
+  /// checked again when it is read, and the next [learn] writes the list
+  /// without them.
   void recheck(TrustedKeys trust) {
     final kept = [
       for (final v in _vouches)

@@ -154,7 +154,7 @@ class DownloadStore {
   /// Keeps [learned] vouches signed by a key trusted here for Lychnion
   /// (see [VouchList.learn]).
   Future<bool> learnVouches(Iterable<Vouch> learned) =>
-      vouches.learn(learned, trust);
+      vouches.learn(learned, () => trust);
 
   /// Publishers whose records are accepted: built in, plus the added ones.
   TrustedKeys get trust => _trust ?? publishers.trust;

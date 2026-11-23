@@ -612,6 +612,47 @@ void main() {
         expect(await folder.vouches(other), isEmpty);
       },
     );
+
+    test(
+      'a later source revoking Lychnion\'s key: its vouches lapse',
+      () async {
+        final lychnion = await Ed25519().newKeyPair();
+        final t = trust.plus({
+          'lychnion': [await publicKeyOf(lychnion)],
+        });
+        final a = await Vouch.sign(
+          publisher: 'jp.city.a',
+          key: await publicKeyOf(city),
+          checked: '2026-11-23',
+          method: 'official-website',
+          signed: '2026-11-23T10:00:00+09:00',
+          signer: lychnion,
+        );
+        src.catalog = {
+          'format': 2,
+          'records': <Object>[],
+          'vouches': [a.json],
+        };
+        final revoke = await KeyStatement.revoke(
+          publisher: 'lychnion',
+          key: lychnion,
+          signed: '2026-11-23T11:00:00+09:00',
+        );
+        final stick = Directory('${tmp.path}/stick/lychnion')
+          ..createSync(recursive: true);
+        File('${stick.path}/catalog.json').writeAsStringSync(
+          jsonEncode({
+            'format': 2,
+            'records': <Object>[],
+            'keys': [revoke.json],
+          }),
+        );
+        await pull([src.url, Directory('${tmp.path}/stick').uri], folder, t);
+        final served = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+        expect(served['vouches'], isNull);
+        expect(served['keys'], [revoke.json]);
+      },
+    );
   });
 
   group('serve', () {
