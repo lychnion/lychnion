@@ -45,7 +45,7 @@
   records and files; the headless node is `packages/lychnion_node`. A *record*
   is the small signed JSON that names a package version and its files by
   SHA-256. *Pinning* a key means the phone remembers it as the base's key.
-- **Draft confidence**: 120 documented / 150 maintainer / 0 inferred / 0 assumption.
+- **Draft confidence**: 125 documented / 150 maintainer / 0 inferred / 0 assumption.
 - **Backtest note**: routed a 41-item corpus in 15 clusters across all 9
   component families and all 8 contract dimensions. 15 items carry a real
   historical outcome: 13 security fixes in the git history and 2 acknowledged
@@ -842,6 +842,8 @@ proves origin, not truth.
 | `local-resource-bounds` | Limits on a question typed on the device | Input against the user's own device | correctness-only | no | *(maintainer, 2026-11)* |
 | `base-key-id-collision` | Protection against a 48-bit key-id collision that replaces a trusted base key | Denial of service only; the attacker cannot sign as the base | correctness-only | no | *(maintainer, 2026-11)* |
 | `source-label-destination` | That a source link's label names its destination, or that it uses https | Links from packages or bases | correctness-only | **yes** | *(maintainer, 2026-11)* |
+| `vouch-means-vetted` | That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not checked is not official | A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access | security-critical | **yes** | *(documented, docs/vouching.md "What a vouch does, and what it never does")* |
+| `lookalike-warning-completeness` | A warning for every misleading publisher name | A list of words and some look-alike letters; other names pass, still labelled "not checked by Lychnion"; never refuses. The code the user compares is 48 bits | security-critical | no | *(documented, docs/vouching.md "The warning for names that look official")* |
 
 Well-known attack classes left open: **prompt injection** by a trusted
 publisher's text (`publisher-content`); **freeze and replay** of old signed
@@ -853,6 +855,9 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
 
 - **Users**: add only publishers you know *(documented,
   help/en/07-publishers.md "How do I add a publisher, such as my city?")*.
+  When the app asks, compare the key's code with the one on the body's
+  official website before ticking it *(documented, help/en/07-publishers.md
+  "Why does the app ask me to compare a code?")*.
   Follow official warnings first *(documented, help/en/02-asking.md "Are
   there things it cannot answer?")*.
 - **Base operators**: run the base on a Wi-Fi you control, such as the
@@ -879,10 +884,18 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
   Others on it can read and change traffic, and client isolation often blocks
   phones anyway. Use a hotspot the shelter controls *(documented,
   docs/base.md "Network")*.
-- **Adding a publisher from an unknown link.** The dialog looks routine, but
-  the publisher's guides then appear as answers with its name. Add only
+- **Adding a publisher from an unknown link.** The dialog says whether
+  Lychnion checked the publisher, but "not checked" looks harmless, and the
+  publisher's guides then appear as answers with its name. Add only
   publishers you know *(documented, help/en/07-publishers.md "How do I add a
   publisher, such as my city?")*.
+- **Ticking "I compared the code" without comparing.** For a name that looks
+  official the tick is the last defence. Compare the code with the body's
+  official website, or do not add it *(documented, help/en/07-publishers.md
+  "Why does the app ask me to compare a code?")*.
+- **Reading "Checked by Lychnion" as "its guides are right".** A vouch says
+  whose key it is, not that the content is checked *(documented,
+  docs/vouching.md "What a vouch does, and what it never does")*.
 - **Treating "signed" as "official and true".** A signature says who vouches,
   not that it is right *(documented, docs/facts-results.md "Signed facts
   (2026-11-05)")*.

@@ -3224,6 +3224,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This key was replaced already. If it comes from an older backup, restore your newest backup instead: replacing it again would make phones stop trusting your publisher. If you did not replace it, someone else has the key: use \"Revoke the key\".'**
   String get publishReplaceAlreadyReplaced;
+
+  /// No description provided for @publishersVouched.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked by {app} on {date}'**
+  String publishersVouched(String app, String date);
+
+  /// No description provided for @publishersNotChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Added by you · not checked by {app}'**
+  String publishersNotChecked(String app);
+
+  /// No description provided for @publishersWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'{app} took back its check'**
+  String publishersWithdrawn(String app);
+
+  /// No description provided for @publishersNotVouchedKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Not the key {app} checked'**
+  String publishersNotVouchedKey(String app);
+
+  /// No description provided for @publishersVouchedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{app} checked on {date} that this key belongs to {name}.'**
+  String publishersVouchedBody(String app, String date, String name);
+
+  /// No description provided for @publishersNotCheckedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{app} has not checked this publisher.'**
+  String publishersNotCheckedBody(String app);
+
+  /// No description provided for @publishersWithdrawnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{app} took back its check of this publisher. Add it only if you know why.'**
+  String publishersWithdrawnBody(String app);
+
+  /// No description provided for @publishersNotVouchedKeyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{app} checked a publisher with this name, but with another key. This link may be fake.'**
+  String publishersNotVouchedKeyBody(String app);
+
+  /// No description provided for @publishersLooksVouched.
+  ///
+  /// In en, this message translates to:
+  /// **'This name looks like a publisher {app} checked, but it is another one. It may be fake.'**
+  String publishersLooksVouched(String app);
+
+  /// No description provided for @publishersLooksPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'This name looks like a public body, but {app} has not checked it.'**
+  String publishersLooksPublic(String app);
+
+  /// No description provided for @publishersCompareCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare the code {id} with the one on its official website.'**
+  String publishersCompareCode(String id);
+
+  /// No description provided for @publishersCompared.
+  ///
+  /// In en, this message translates to:
+  /// **'I compared the code'**
+  String get publishersCompared;
 }
 
 class _AppLocalizationsDelegate

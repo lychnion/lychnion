@@ -1884,4 +1884,62 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get publishReplaceAlreadyReplaced =>
       'この鍵はすでに交換されています。古いバックアップの鍵であれば、代わりに最新のバックアップから復元してください（もう一度交換すると、スマートフォンがこの発行元を信頼しなくなります）。交換した覚えがない場合は、他の人が鍵を持っています。「鍵を無効にする」を使ってください。';
+
+  @override
+  String publishersVouched(String app, String date) {
+    return '$dateに$appが確認済み';
+  }
+
+  @override
+  String publishersNotChecked(String app) {
+    return 'あなたが追加 · $appは確認していません';
+  }
+
+  @override
+  String publishersWithdrawn(String app) {
+    return '$appが確認を取り消しました';
+  }
+
+  @override
+  String publishersNotVouchedKey(String app) {
+    return '$appが確認した鍵ではありません';
+  }
+
+  @override
+  String publishersVouchedBody(String app, String date, String name) {
+    return 'この鍵が$nameのものであることを、$appが$dateに確認しました。';
+  }
+
+  @override
+  String publishersNotCheckedBody(String app) {
+    return '$appはこの発行元を確認していません。';
+  }
+
+  @override
+  String publishersWithdrawnBody(String app) {
+    return '$appはこの発行元の確認を取り消しました。理由を知っている場合だけ追加してください。';
+  }
+
+  @override
+  String publishersNotVouchedKeyBody(String app) {
+    return '$appはこの名前の発行元を確認しましたが、別の鍵でした。このリンクは偽物かもしれません。';
+  }
+
+  @override
+  String publishersLooksVouched(String app) {
+    return 'この名前は$appが確認した発行元に似ていますが、別の発行元です。偽物かもしれません。';
+  }
+
+  @override
+  String publishersLooksPublic(String app) {
+    return 'この名前は公的機関のように見えますが、$appは確認していません。';
+  }
+
+  @override
+  String publishersCompareCode(String id) {
+    return 'コード $id を、その機関の公式ウェブサイトに載っているコードと見比べてください。';
+  }
+
+  @override
+  String get publishersCompared => 'コードを見比べました';
 }

@@ -15,6 +15,8 @@ import 'catalog.dart';
 import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
 import 'downloader.dart';
+import 'publisher_label.dart';
+import 'publishers_screen.dart' show publisherLabelText;
 import '../base/share_nearby.dart';
 import 'stick.dart';
 
@@ -442,7 +444,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ],
     ),
     body: ListenableBuilder(
-      listenable: m,
+      // Publisher labels follow the vouches the device learns (#119).
+      listenable: Listenable.merge([m, m.store.vouches]),
       builder: (context, _) {
         // Phones leave out models made for another platform; computers
         // show them, since a base keeps models for the phones around it.
@@ -687,7 +690,16 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                   for (final line in lines) Text(line, style: small),
                   if (r != null) ...[
                     const SizedBox(height: 8),
-                    _detail(l.downloadsPublisher, r.publisher),
+                    _detail(l.downloadsPublisher, switch (m.store.labelOfRecord(
+                      r,
+                    )) {
+                      null => r.publisher,
+                      final label => [
+                        label.titleIn(lang, r.publisher),
+                        if (label.check == PublisherCheck.vouched) r.publisher,
+                        publisherLabelText(context, label),
+                      ].join(' · '),
+                    }),
                     _detail(l.downloadsSignedOn, _date(r.signed)),
                     _detail(l.downloadsKey, r.keyId),
                     for (final f in r.files)

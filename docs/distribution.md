@@ -624,7 +624,13 @@ to `keys`, through every carrier like other signed data:
 **Older apps** ignore `vouches`, and leave them out when they write a
 catalog (a base, a stick, a node), as with `keys`.
 
-Showing the labels and how Lychnion checks a publisher are the next
+**Shown** as "Checked by Lychnion" (with the name Lychnion checked),
+"Added by you · not checked by Lychnion", or in red when the name's
+vouch is withdrawn or for another key, in the publishers screen, the add
+dialog and Downloads (`lib/download/publisher_label.dart`). Names that
+look official get a warning and a tick before Add. Who can be vouched
+for, how Lychnion checks, and taking a vouch back:
+[vouching.md](vouching.md). Labels on sources in answers are the next
 step of #119.
 
 ## Security
