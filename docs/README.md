@@ -20,7 +20,8 @@ app, see the user help in [help/](../help/README.md).
   catalogs, nodes and sync.
 - [Checked publishers (attestations)](attestations.md): which publishers
   Lychnion checks, how it checks a publisher's key, and how an
-  attestation is taken back.
+  attestation is taken back. In plain words, with diagrams:
+  ["Checked by Lychnion", in plain words](checked-publishers-explained.md).
 - [Base](base.md): a computer that serves phones on the same Wi-Fi.
 - [Base map and map data](base-map-design.md): proposal for one base map,
   offline areas by cell, tile schema, terrain and map data types.

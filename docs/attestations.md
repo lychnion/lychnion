@@ -7,6 +7,10 @@ attestation, how Lychnion checks, and how an attestation is taken back.
 The format and how attestations travel are in
 [distribution.md](distribution.md#whom-to-trust-attestations).
 
+**New to this?** [checked-publishers-explained.md](checked-publishers-explained.md)
+explains the same in plain words, with diagrams, for people who are not
+familiar with keys and signatures.
+
 ## What an attestation does, and what it never does
 
 An attestation is a statement signed by Lychnion's key: "this key
@@ -52,12 +56,13 @@ lychnion/lychnion#121.
    sentence saying it is the body's Lychnion key.
 3. It applies with the issue form "Ask Lychnion to check your publisher
    key" in
-   [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data)
-   (added there with the attestation tools, the next step of #119),
-   giving the publisher name, its name in Japanese and English, the code
-   and the page's address. The form is public: no personal names, phone
-   numbers or e-mail addresses in it. If Lychnion needs to ask the body
-   something, it uses the contact details on the body's official
+   [lychnion/lychnion-data](https://github.com/lychnion/lychnion-data/issues/new/choose)
+   (it opens with the attestation tools, lychnion/lychnion-data#38),
+   giving the publisher name, its name in Japanese and English, the
+   publisher link, the code and the page's address. The form needs a
+   GitHub account and is public: no personal names, phone numbers or
+   e-mail addresses in it. If Lychnion needs to ask the body something,
+   it uses the contact details on the body's official
    website.
 
 ## How Lychnion checks
