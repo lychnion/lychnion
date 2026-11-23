@@ -565,4 +565,75 @@ void main() {
       );
     });
   });
+
+  // lychnion/lychnion#59: a full list must not make this computer forget
+  // that its old key was replaced.
+  group('own statements, full list', () {
+    /// A store whose list keeps [max] statements (4 times that in all).
+    Future<DownloadStore> smallDesk(int max) async {
+      final list = PublisherList(
+        File('${tmp.path}/small/publishers.json'),
+        maxStatements: max,
+      );
+      await list.load();
+      return DownloadStore(Directory('${tmp.path}/small'), publishers: list);
+    }
+
+    /// [n] replacements of other publishers, kept as the user's own would
+    /// be (any): they fill the list.
+    Future<void> fill(PublisherList l, int n) async {
+      for (var i = 0; i < n; i++) {
+        await l.learn([
+          await KeyStatement.replace(
+            publisher: 'jp.other.p$i',
+            oldKey: await Ed25519().newKeyPair(),
+            newKey: await Ed25519().newKeyPair(),
+            signed: nowStamp(),
+          ),
+        ], any: true);
+      }
+    }
+
+    Future<PublisherList> reload() async {
+      final l = PublisherList(
+        File('${tmp.path}/small/publishers.json'),
+        maxStatements: 2,
+      );
+      await l.load();
+      return l;
+    }
+
+    for (final published in [false, true]) {
+      test('a replacement is kept and read back '
+          '(${published ? 'after' : 'before'} the first publish)', () async {
+        final s = await smallDesk(2);
+        if (published) await s.publishers.add(me.link);
+        await fill(s.publishers, 2);
+        final next = await me.replaceKey(pubDir);
+        await adoptNewKey(s, pubDir, next);
+        final replace = next.statements.single;
+        expect(s.publishers.statements, contains(replace));
+        expect(s.publishers.trust.keysOf(_name), contains(next.publicKey));
+
+        final again = await reload();
+        expect(again.statements, contains(replace));
+        expect(again.trust.keysOf(_name), contains(next.publicKey));
+        // The others past the limit are not kept on reading back.
+        expect(again.statements, hasLength(3));
+      });
+    }
+
+    test('when even the hard limit is full, the key change says so', () async {
+      final s = await smallDesk(1);
+      await fill(s.publishers, 4);
+      expect(s.publishers.statements, hasLength(4));
+      final next = await me.replaceKey(pubDir);
+      await expectLater(
+        adoptNewKey(s, pubDir, next),
+        throwsA(isA<PublishError>().having((e) => e.code, 'code', 'key')),
+      );
+      // Said after the rest was done: the new key is trusted here.
+      expect(s.publishers.trust.keysOf(_name), contains(next.publicKey));
+    });
+  });
 }

@@ -232,20 +232,6 @@ class PublisherList extends ChangeNotifier {
     // file), and no publishers are added.
     final json = await readVersioned(file, format, (json, _) => json! as Map);
     final raw = json?['publishers'];
-    // Each one checked again: a file edited by hand proves nothing. All
-    // that learn kept are read back: revocations and theft proofs may be
-    // past maxStatements (lychnion/lychnion#59).
-    // A signature stored before #59 may be spelled another way (padding,
-    // the other alphabet): written the one way first, then verified.
-    final stored = json?['statements'];
-    _statements.addAll(
-      _keptOf(
-        await KeyStatement.checkAll(
-          stored is List ? stored.map(KeyStatement.respelled).toList() : null,
-          max: maxStatements * _readBack,
-        ),
-      ),
-    );
     // Each entry on its own: one bad entry does not drop the others. A
     // file edited by hand is checked like a link.
     for (final e in raw is List ? raw : const []) {
@@ -269,6 +255,21 @@ class PublisherList extends ChangeNotifier {
         continue;
       }
     }
+    // Each one checked again: a file edited by hand proves nothing. All
+    // that learn kept are read back: revocations and theft proofs may be
+    // past maxStatements (lychnion/lychnion#59), and so may the replacements
+    // through an added key (after the links: see _onAddedChains).
+    // A signature stored before #59 may be spelled another way (padding,
+    // the other alphabet): written the one way first, then verified.
+    final stored = json?['statements'];
+    _statements.addAll(
+      _keptOf(
+        await KeyStatement.checkAll(
+          stored is List ? stored.map(KeyStatement.respelled).toList() : null,
+          max: maxStatements * _readBack,
+        ),
+      ),
+    );
     _changed();
   }
 
@@ -344,7 +345,9 @@ class PublisherList extends ChangeNotifier {
         var hard = maxStatements * _readBack - _statements.length;
         final fresh = [
           for (final s in candidates)
-            if (((_protects(s, _statements) || inBatchProof(s)) &&
+            // The user's own statements ([any]) too: past the limit this
+            // computer would forget that its old key was replaced (#59).
+            if (((any || _protects(s, _statements) || inBatchProof(s)) &&
                     hard-- > 0) ||
                 left-- > 0)
               s,
@@ -371,10 +374,64 @@ class PublisherList extends ChangeNotifier {
   /// while the list is shorter than that).
   List<KeyStatement> _keptOf(List<KeyStatement> read) {
     var left = maxStatements;
+    // Not counted in maxStatements: at most 50 per added publisher, which
+    // leaves learn that much less room past the limit.
+    final chains = _onAddedChains(_added.values, read);
     return [
       for (final s in read)
-        if (_protects(s, read) || left-- > 0) s,
+        if (_protects(s, read) || chains.contains(s.id) || left-- > 0) s,
     ];
+  }
+
+  /// The replacements through each added key: back to the first key, and
+  /// on while each key has one successor, at most
+  /// [KeyStatement.maxReplacesPerPublisher] per publisher. They include
+  /// what [learn] kept past the limit for the user's own key (`any`):
+  /// after a key change, the new key or the first one is added
+  /// (adoptNewKey). Only the holder of a chain's keys can make one, and a
+  /// thief's second successor ends it (#59).
+  static Set<String> _onAddedChains(
+    Iterable<Publisher> added,
+    List<KeyStatement> all,
+  ) {
+    String canon(String k) => TrustedKeys.canonicalKey(k);
+    final into = <String, List<KeyStatement>>{};
+    final from = <String, List<KeyStatement>>{};
+    for (final s in all) {
+      if (s.type != KeyStatementType.replace || s.newKey == null) continue;
+      into.putIfAbsent('${s.publisher} ${canon(s.newKey!)}', () => []).add(s);
+      from.putIfAbsent('${s.publisher} ${canon(s.oldKey)}', () => []).add(s);
+    }
+    final out = <String>{};
+    for (final p in added) {
+      var left = KeyStatement.maxReplacesPerPublisher;
+      final start = canon(p.key);
+      // Back: every predecessor (each needs this chain's newer key).
+      final todo = [start];
+      final seen = <String>{};
+      while (todo.isNotEmpty && left > 0) {
+        final k = todo.removeLast();
+        if (!seen.add(k)) continue;
+        for (final s in into['${p.name} $k'] ?? const <KeyStatement>[]) {
+          if (left > 0 && out.add(s.id)) {
+            left--;
+            todo.add(canon(s.oldKey));
+          }
+        }
+      }
+      // On: while there is one successor.
+      var k = start;
+      final ahead = <String>{k};
+      while (left > 0) {
+        final next = from['${p.name} $k'] ?? const <KeyStatement>[];
+        if (next.length != 1) break;
+        final s = next.single;
+        k = canon(s.newKey!);
+        if (!ahead.add(k) || !out.add(s.id)) break;
+        left--;
+      }
+    }
+    return out;
   }
 
   String _keySummary() {
