@@ -127,9 +127,11 @@ here should be relied on alone in an emergency. Source only; build it as
   open). Restoring a backup asks first, with the key id and the date the
   backup was made, and Replace is refused for a key that was replaced
   already, which would make phones drop the publisher; this works also
-  before your first publish. The app warns before the 50th replacement,
-  the most phones take. A stick, a base or a node now says when key
-  statements did not fit in its catalog (#59).
+  before your first publish and when the list of key statements is full
+  (if even its reserve is used up, the key change says so). The app
+  warns before the 50th replacement, the most phones take. A stick, a
+  base or a node now says when key statements did not fit in its
+  catalog (#59).
 - A key statement whose key or signature is written another way
   (base64 padding, the other alphabet) is refused, so one statement can
   no longer count many times against the limits. When not all

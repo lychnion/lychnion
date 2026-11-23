@@ -235,9 +235,15 @@ after a few bad signatures in one list the rest of that list is not
 verified (another catalog still counts). At most 50 replacements are
 kept per publisher, so a thief cannot fill the list with a chain of keys
 of its own, and revocations and theft proofs (a second successor of one
-key) are kept even when the list is full. Keys and signatures in a
-statement must be written one way (base64url without padding), so one
-statement cannot count many times. When a catalog, stick or base has
+key) are kept even when the list is full. So are a publishing
+computer's own statements, and, when the list is read back, the
+replacements through each key the user added (back to the first key,
+and on while each key has one successor; at most 50 per publisher): a
+full list must not make a computer forget that its old key was replaced.
+If even that room is used up, the key change says so. Keys and
+signatures in a statement must be written one way (base64url without
+padding), so one statement cannot count many times. When a catalog,
+stick or base has
 more statements than fit, revocations and theft proofs are kept first,
 then each chain of replacements from its first key, so what is kept
 still connects to a key phones know. It checks a catalog's records

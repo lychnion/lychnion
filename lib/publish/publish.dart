@@ -381,10 +381,34 @@ Future<List<String>> adoptNewKey(
   // would drop them; then a replaced key would not be known as replaced,
   // and could be replaced a second time (#59). Only those about this
   // publisher: `any` must not get statements about anyone else.
-  await store.publishers.learn(
-    publisher.statements.where((s) => s.publisher == publisher.name),
-    any: true,
-  );
+  final own = [
+    for (final s in publisher.statements)
+      if (s.publisher == publisher.name) s,
+  ];
+  await store.publishers.learn(own, any: true);
+  // Kept past the limit too (learn), up to its hard limit: if even that
+  // is full, the user must know, since the refusals in key_actions.dart
+  // rely on them. Said at the end: the new key is still trusted and the
+  // records signed again.
+  final kept = {for (final s in store.publishers.statements) s.id};
+  final notKept = !own.every((s) => kept.contains(s.id));
+  final out = await _adoptLink(store, publisherDir, publisher);
+  if (notKept) {
+    throw PublishError(
+      'key',
+      'statements not kept: the publisher list is full',
+    );
+  }
+  return out;
+}
+
+/// The rest of [adoptNewKey]: trusts [publisher]'s link and signs its
+/// records again; the ids re-signed.
+Future<List<String>> _adoptLink(
+  DownloadStore store,
+  Directory publisherDir,
+  LocalPublisher publisher,
+) async {
   switch (store.publishers.problemWith(publisher.link)) {
     case null:
       await store.publishers.add(publisher.link);
