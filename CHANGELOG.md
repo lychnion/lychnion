@@ -119,7 +119,8 @@ here should be relied on alone in an emergency. Source only; build it as
   after 30 days without news it says gently that the data may be out of
   date. Key revocations and taken-back attestations travel inside the
   status, so a carrier that passes it on passes them on too. Never a
-  block: old data keeps working.
+  block: old data keeps working. Shown once Lychnion's data releases
+  carry a status.
 - Publishers Lychnion checked are labelled "Checked by Lychnion", under
   the name Lychnion checked, in the publishers screen, the add dialog and
   Downloads; others are "Added by you · not checked by Lychnion". A link

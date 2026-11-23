@@ -2102,6 +2102,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String downloadsQuiet(String app, String date) {
-    return '$app\'s data on this device is from $date. Connect to update when you can.';
+    return 'The latest news from $app on this device is from $date. Connect to check for updates when you can.';
   }
 }

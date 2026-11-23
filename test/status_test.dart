@@ -119,6 +119,53 @@ void main() {
       },
     );
 
+    test('after a revocation, an earlier replacement is kept', () async {
+      final next = await Ed25519().newKeyPair();
+      final l = list();
+      // The thief's status, signed later with the old key.
+      final thief = await status(signed: '2026-11-24T11:00:00+09:00');
+      await l.learn([thief], () => trust);
+      final revoked = TrustedKeys({
+        'lychnion': [await publicKeyOf(next)],
+        'org.club': [clubKey],
+      });
+      final real = await status(by: next, signed: '2026-11-24T10:00:00+09:00');
+      expect(await l.learn([real], () => revoked), isTrue);
+      expect(l.statusFor('lychnion', revoked), real);
+    });
+
+    test('a far-future status in the file never decides', () async {
+      final s = await status();
+      final ahead = await status(signed: '2027-01-01T00:00:00+09:00');
+      File('${tmp.path}/status.json').writeAsStringSync(
+        jsonEncode({
+          'format': 1,
+          'status': [ahead.json, s.json],
+        }),
+      );
+      final l = list();
+      await l.load(trust);
+      expect(l.statusFor('lychnion', trust), s);
+    });
+
+    test('known: only when what it carried is still here', () async {
+      final l = list();
+      final revoke = await KeyStatement.revoke(
+        publisher: 'org.club',
+        key: club,
+        signed: '2026-11-24T08:00:00+09:00',
+      );
+      final c = await status(
+        publisher: 'org.club',
+        by: club,
+        items: const {},
+        keys: [revoke],
+      );
+      await l.learn([c], () => trust);
+      expect(l.knownIds(statements: {}, attestations: {}), isEmpty);
+      expect(l.knownIds(statements: {revoke.id}, attestations: {}), {c.id});
+    });
+
     test('newer version, last news, and the 30-day hint', () async {
       final l = list();
       expect(l.isQuiet(trust), isFalse, reason: 'no status yet');
@@ -239,6 +286,31 @@ void main() {
     // attestations list was empty.
     expect(there.attestations.attestations, [gone]);
   });
+
+  test(
+    'a far-future status on a stick does not push the real one out',
+    () async {
+      final here = store('here');
+      await install(here, 'jp.a');
+      final stick = Directory('${tmp.path}/stick')..createSync();
+      final ahead = await status(signed: '2027-06-01T00:00:00+09:00');
+      // An older stick that carried a stolen key's status dated far ahead.
+      File('${stick.path}/catalog.json').writeAsStringSync(
+        jsonEncode({
+          'format': 2,
+          'records': <Object>[],
+          'status': [ahead.json],
+        }),
+      );
+      final s = await status();
+      await here.learnStatus([s]);
+      await copyToStick(here, stick);
+      final written = jsonDecode(
+        File('${stick.path}/catalog.json').readAsStringSync(),
+      ) as Map;
+      expect(written['status'], [s.json]);
+    },
+  );
 
   test('the base passes statuses on; its catalog follows changes', () async {
     final s = store('base');

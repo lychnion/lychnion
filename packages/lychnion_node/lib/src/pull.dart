@@ -304,10 +304,11 @@ Future<PullResult> _pull(
         for (final v in attestations)
           if (keys.keysOf(attesterPublisher).contains(v.signer)) v,
       ],
-      status: [
+      // A far-future one (a stolen key's) never displaces the real one.
+      status: PublisherStatus.deciding([
         for (final s in status)
           if (keys.keysOf(s.publisher).contains(s.signer)) s,
-      ],
+      ], DateTime.now()),
     );
     result.keysLeftOut = left.keys;
     result.attestationsLeftOut = left.attestations;

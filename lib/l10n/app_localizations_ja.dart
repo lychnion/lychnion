@@ -1990,6 +1990,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String downloadsQuiet(String app, String date) {
-    return 'この端末の$appのデータは$dateのものです。接続できるときに更新してください。';
+    return 'この端末にある$appからの最新の情報は$dateのものです。接続できるときに更新を確認してください。';
   }
 }

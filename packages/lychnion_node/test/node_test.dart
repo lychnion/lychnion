@@ -700,6 +700,21 @@ void main() {
       await pull([src.url], folder, t);
       final served = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
       expect(served['status'], [status.json]);
+      // A far-future one from a trusted key does not push it out.
+      final ahead = await PublisherStatus.sign(
+        publisher: 'lychnion',
+        signed: '2027-06-01T00:00:00+09:00',
+        items: const {},
+        signer: lychnion,
+      );
+      src.catalog = {
+        'format': 2,
+        'records': <Object>[],
+        'status': [ahead.json],
+      };
+      await pull([src.url], folder, t);
+      final again = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+      expect(again['status'], [status.json]);
     });
   });
 

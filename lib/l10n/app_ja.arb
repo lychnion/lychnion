@@ -584,5 +584,5 @@
   "answerSourcesNotChecked": "{app}が確認していない出典があります",
   "downloadsNewerElsewhere": "新しい版 {version} がありますが、ここではまだ入手できません。",
   "downloadsLastNews": "{app}からの最新の情報: {date}",
-  "downloadsQuiet": "この端末の{app}のデータは{date}のものです。接続できるときに更新してください。"
+  "downloadsQuiet": "この端末にある{app}からの最新の情報は{date}のものです。接続できるときに更新を確認してください。"
 }

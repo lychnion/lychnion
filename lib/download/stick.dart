@@ -131,10 +131,12 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
     ...await Attestation.checkAll(old?.attestations, trust),
   ];
   // Statuses likewise (#117): the newest of each publisher is written.
-  final status = [
+  // A far-future one on the stick (a stolen key's) never displaces the
+  // real one.
+  final status = PublisherStatus.deciding([
     ...store.status.statusesFor(store.trust),
     ...await PublisherStatus.checkAll(old?.status, trust),
-  ];
+  ], DateTime.now());
 
   // What the stick has, by id (signatures are kept as they are: the
   // device reading the stick checks them).

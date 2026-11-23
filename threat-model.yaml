@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:be9a7bc040d89464bc46984e0992b2b7deb47e4e0760c569130c4cfc4ccdb93f
+prose_version: threat-model.md@sha256:dd10b6ead9c50239da2d2c2acba44f8303f1cc8f64bb7086c00f61bbea76b8e2
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1997,7 +1997,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:392`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:393`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:

@@ -822,9 +822,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(
-              Icons.update_rounded,
-              color: theme.colorScheme.onSecondaryContainer,
+            ExcludeSemantics(
+              child: Icon(
+                Icons.update_rounded,
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

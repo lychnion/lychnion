@@ -1208,6 +1208,6 @@
   "@downloadsNewerElsewhere": {"placeholders": {"version": {"type": "String"}}},
   "downloadsLastNews": "Latest news from {app}: {date}",
   "@downloadsLastNews": {"placeholders": {"app": {"type": "String"}, "date": {"type": "String"}}},
-  "downloadsQuiet": "{app}'s data on this device is from {date}. Connect to update when you can.",
+  "downloadsQuiet": "The latest news from {app} on this device is from {date}. Connect to check for updates when you can.",
   "@downloadsQuiet": {"placeholders": {"app": {"type": "String"}, "date": {"type": "String"}}}
 }

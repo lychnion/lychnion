@@ -3354,7 +3354,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloadsQuiet.
   ///
   /// In en, this message translates to:
-  /// **'{app}\'s data on this device is from {date}. Connect to update when you can.'**
+  /// **'The latest news from {app} on this device is from {date}. Connect to check for updates when you can.'**
   String downloadsQuiet(String app, String date);
 }
 

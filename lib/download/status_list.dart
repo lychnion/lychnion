@@ -31,8 +31,8 @@ class StatusList extends ChangeNotifier {
   static const format = 1;
 
   /// How far a status may be signed after the device's clock and still
-  /// decide.
-  static const maxAhead = Duration(days: 1);
+  /// decide (PublisherStatus.maxAhead).
+  static const maxAhead = PublisherStatus.maxAhead;
 
   /// After this long without a newer status from Lychnion, the app says
   /// gently that its data may be out of date.
@@ -56,8 +56,29 @@ class StatusList extends ChangeNotifier {
     return s != null && _trusted(s, trust) ? s : null;
   }
 
-  /// [PublisherStatus.id]s a catalog need not check again.
-  Set<String> get ids => {for (final s in _status.values) s.id};
+  /// [PublisherStatus.id]s a catalog need not check again: the kept
+  /// statuses whose inline key statements and withdrawals are all in
+  /// [statements] and [attestations] (the ids the device keeps). One whose
+  /// contents the device lost (a reset file, a save that failed) is read
+  /// again, so they are taken in again.
+  Set<String> knownIds({
+    required Set<String> statements,
+    required Set<String> attestations,
+  }) {
+    bool covered(List<Object?> raw, Set<String> have) => raw.every((x) {
+      try {
+        return have.contains(canonicalJson(x));
+      } on Object {
+        return true;
+      }
+    });
+    return {
+      for (final s in _status.values)
+        if (covered(s.keys, statements) &&
+            covered(s.attestations, attestations))
+          s.id,
+    };
+  }
 
   /// The version of item [id] from [publisher] that its status names when
   /// it is newer than [version], else null.
@@ -114,7 +135,9 @@ class StatusList extends ChangeNotifier {
     for (final s in _deciding(learned)) {
       if (!_trusted(s, now)) continue;
       final cur = next[s.publisher];
-      if (cur == null || s.decidesOver(cur)) {
+      // One whose key was revoked meanwhile no longer counts: a replacement
+      // signed earlier (a thief's status dated later) must still be kept.
+      if (cur == null || !_trusted(cur, now) || s.decidesOver(cur)) {
         next[s.publisher] = s;
         changed = true;
       }
@@ -146,13 +169,8 @@ class StatusList extends ChangeNotifier {
 
   /// The newest of each publisher in [statuses], among those not signed
   /// more than [maxAhead] after the device's clock.
-  List<PublisherStatus> _deciding(Iterable<PublisherStatus> statuses) {
-    final limit = _now().add(maxAhead);
-    return PublisherStatus.newest([
-      for (final s in statuses)
-        if (!s.signedAt.isAfter(limit)) s,
-    ]);
-  }
+  List<PublisherStatus> _deciding(Iterable<PublisherStatus> statuses) =>
+      PublisherStatus.newest(PublisherStatus.deciding(statuses, _now()));
 
   static bool _trusted(PublisherStatus s, TrustedKeys trust) =>
       trust.keysOf(s.publisher).contains(s.signer);

@@ -669,7 +669,10 @@ class DownloadManager extends ChangeNotifier {
   /// [device]: from a device on the local network ([parseDeviceCatalog]).
   Future<Catalog> _parse(String json, Uri? from, {bool device = false}) async {
     final known = store.attestations.ids;
-    final knownStatus = store.status.ids;
+    final knownStatus = store.status.knownIds(
+      statements: {for (final s in store.publishers.statements) s.id},
+      attestations: store.attestations.ids,
+    );
     final c = device
         ? await parseDeviceCatalog(
             json,

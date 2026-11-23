@@ -219,6 +219,25 @@ class PublisherStatus {
     return out;
   }
 
+  /// How far a status may be signed after a reader's clock and still
+  /// decide ([deciding]).
+  static const maxAhead = Duration(days: 1);
+
+  /// [statuses] without those signed more than [maxAhead] after [now]: a
+  /// thief holding a key could otherwise pin "newest" far ahead and push
+  /// the real status out. Every reader and carrier filters with it before
+  /// [newest] (devices, sticks, bases, nodes).
+  static List<PublisherStatus> deciding(
+    Iterable<PublisherStatus> statuses,
+    DateTime now,
+  ) {
+    final limit = now.add(maxAhead);
+    return [
+      for (final s in statuses)
+        if (!s.signedAt.isAfter(limit)) s,
+    ];
+  }
+
   /// The newest status of each publisher in [statuses] ([decidesOver]), in
   /// the order of their first appearance.
   static List<PublisherStatus> newest(Iterable<PublisherStatus> statuses) {
