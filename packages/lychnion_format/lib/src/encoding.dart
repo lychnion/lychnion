@@ -19,6 +19,9 @@ final _stamp = RegExp(
   r'(Z|[+-](\d{2}):(\d{2}))$',
 );
 
+/// Years a signed statement may name (see [signedTime]).
+const signedYears = (first: 2020, last: 2100);
+
 /// [s] as a signing time, or null unless it is written as [_stamp] says, is
 /// a real time (no February 31st) and between 2020 and 2100: a time far in
 /// the future would decide over everything signed later.
@@ -27,8 +30,8 @@ DateTime? signedTime(String s) {
   if (m == null) return null;
   int n(int g) => int.parse(m[g]!);
   final y = n(1), mo = n(2), d = n(3);
-  if (y < 2020 ||
-      y > 2100 ||
+  if (y < signedYears.first ||
+      y > signedYears.last ||
       mo < 1 ||
       mo > 12 ||
       d < 1 ||

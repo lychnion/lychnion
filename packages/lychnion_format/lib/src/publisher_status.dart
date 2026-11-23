@@ -123,13 +123,21 @@ class PublisherStatus {
   static Future<PublisherStatus?> check(
     Object? json,
     TrustedKeys trust,
-  ) async => (await _checked(json, trust)).status;
+  ) async => (await _checked(json, trust, inline: true)).status;
 
-  static Future<({PublisherStatus? status, bool badSignature})> _checked(
-    Object? json,
-    TrustedKeys trust,
-  ) async {
-    const none = (status: null, badSignature: false);
+  /// At most this many statuses of one source may have their inline key
+  /// statements verified ([checkAll]). Only a status signed by a new
+  /// successor key needs it, before devices know the replacement: rare.
+  /// Each try costs up to about 32 signature checks.
+  static const maxInlineChecks = 8;
+
+  /// The status in [json]. [inline]: whether its inline key statements may
+  /// be verified for its signer. `inlineTried`: they were (to count).
+  static Future<
+    ({PublisherStatus? status, bool badSignature, bool inlineTried})
+  >
+  _checked(Object? json, TrustedKeys trust, {required bool inline}) async {
+    const none = (status: null, badSignature: false, inlineTried: false);
     try {
       final j = (json! as Map).cast<String, Object?>();
       final at = _shape(j);
@@ -142,13 +150,20 @@ class PublisherStatus {
       // it. Only then are inline statements verified, and only those a key
       // trusted here made (relevantStatements): anyone can sign statements
       // about keys of their own, and each costs a check.
-      if (!keys.contains(s.signer) &&
+      var tried = false;
+      if (inline &&
+          !keys.contains(s.signer) &&
           s.keys.any((k) => k is Map && k['new'] == s.signer)) {
+        tried = true;
         keys = trust
             .withStatements(await relevantStatements(trust, s.keys))
             .keysOf(s.publisher);
       }
-      if (!keys.contains(s.signer)) return none;
+      if (!keys.contains(s.signer)) {
+        // Inline statements that did not make the signer trusted count as
+        // a bad signature: they cost checks.
+        return (status: null, badSignature: tried, inlineTried: tried);
+      }
       final ok = await _ed25519.verify(
         utf8.encode(s.signedText),
         signature: Signature(
@@ -160,8 +175,8 @@ class PublisherStatus {
         ),
       );
       return ok
-          ? (status: s, badSignature: false)
-          : (status: null, badSignature: true);
+          ? (status: s, badSignature: false, inlineTried: tried)
+          : (status: null, badSignature: true, inlineTried: tried);
     } on Object {
       return none;
     }
@@ -169,7 +184,11 @@ class PublisherStatus {
 
   /// The valid statuses in [list] (each once), at most [max]; anything else
   /// is left out. At most `4 * max` entries are read, and none after
-  /// [maxBadSignatures] wrong signatures.
+  /// [maxBadSignatures] wrong signatures. Inline key statements are verified
+  /// for at most [maxInlineChecks] statuses; a status whose signer only they
+  /// could make trusted is left out after that (the reader may know the
+  /// statement from the catalog's `keys` anyway), and one they did not make
+  /// trusted counts as a wrong signature.
   static Future<List<PublisherStatus>> checkAll(
     Object? list,
     TrustedKeys trust, {
@@ -178,7 +197,7 @@ class PublisherStatus {
     if (list is! List) return const [];
     final out = <PublisherStatus>[];
     final seen = <String>{};
-    var bad = 0;
+    var bad = 0, inlineChecks = 0;
     for (final raw in list.take(max * 4)) {
       if (out.length >= max || bad >= maxBadSignatures) break;
       final String text;
@@ -188,7 +207,12 @@ class PublisherStatus {
         continue;
       }
       if (!seen.add(text)) continue;
-      final r = await _checked(raw, trust);
+      final r = await _checked(
+        raw,
+        trust,
+        inline: inlineChecks < maxInlineChecks,
+      );
+      if (r.inlineTried) inlineChecks++;
       if (r.badSignature) bad++;
       if (r.status case final s?) out.add(s);
     }
@@ -209,7 +233,9 @@ class PublisherStatus {
   /// The indexes of [statuses] (status JSON) in the order they are kept when
   /// not all fit in a catalog: Lychnion's newest first, then the newest of
   /// each other publisher, newest first; then older ones; entries that are
-  /// not statuses last. Used by `CatalogDocument.fitted`.
+  /// not statuses last. Used by `CatalogDocument.fitted`. It reads the
+  /// entries as given: callers verify them first ([checkAll]), or an entry
+  /// dated far ahead would be kept over a real one.
   static List<int> keepOrder(List<Object?> statuses) {
     final at = <int, DateTime>{};
     final newestOf = <String, int>{};
@@ -276,6 +302,10 @@ class PublisherStatus {
 
   /// Item ids and versions as records have them (record.dart).
   static final _id = RegExp(r'^[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}$');
+  static final _windowsDevice = RegExp(
+    r'^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\.|$)',
+    caseSensitive: false,
+  );
   static final _version = RegExp(r'^\d{1,9}(\.\d{1,9}){0,3}$');
 
   /// A copy all the way down, every map and list unmodifiable: a caller
@@ -307,7 +337,12 @@ class PublisherStatus {
     if (items is! Map || items.length > maxItems) return null;
     for (final e in items.entries) {
       final id = e.key, v = e.value;
-      if (id is! String || !_id.hasMatch(id) || id.endsWith('.')) return null;
+      if (id is! String ||
+          !_id.hasMatch(id) ||
+          id.endsWith('.') ||
+          _windowsDevice.hasMatch(id)) {
+        return null;
+      }
       if (v is! String || !_version.hasMatch(v)) return null;
     }
     final keys = j['keys'];

@@ -295,7 +295,7 @@ class Attestation {
 
   /// Years an attestation may name: a time far in the future would decide over
   /// every later attestation, a withdrawal too (and never pass).
-  static const _years = (first: 2020, last: 2100);
+  static const _years = signedYears;
 
   static bool _validDay(int y, int m, int d) =>
       y >= _years.first &&

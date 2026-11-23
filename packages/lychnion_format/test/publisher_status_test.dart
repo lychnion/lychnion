@@ -218,12 +218,70 @@ void main() {
       },
     );
 
+    test('inline statements are tried for at most a few statuses', () async {
+      final next = await _key();
+      final genuine = await status(
+        by: next.pair,
+        keys: [
+          await KeyStatement.replace(
+            publisher: attesterPublisher,
+            oldKey: lychnion.pair,
+            newKey: next.pair,
+            signed: '2026-11-24T08:00:00+09:00',
+          ),
+        ],
+      );
+      // Strangers' statuses whose inline statement names their signer.
+      final junk = <Map<String, Object?>>[];
+      for (var i = 0; i < PublisherStatus.maxInlineChecks; i++) {
+        final a = await _key(), b = await _key();
+        junk.add(
+          (await status(
+            by: b.pair,
+            keys: [
+              await KeyStatement.replace(
+                publisher: attesterPublisher,
+                oldKey: a.pair,
+                newKey: b.pair,
+                signed: '2026-11-24T08:00:00+09:00',
+              ),
+            ],
+          )).json,
+        );
+      }
+      // First: taken. After the strangers used up the tries: left out (a
+      // reader learns the replacement from the catalog's keys anyway).
+      expect(await PublisherStatus.checkAll([genuine.json, ...junk], trust), [
+        genuine,
+      ]);
+      expect(
+        await PublisherStatus.checkAll([...junk, genuine.json], trust),
+        isEmpty,
+      );
+      // Known from elsewhere, the new key needs no inline check.
+      final s = await KeyStatement.replace(
+        publisher: attesterPublisher,
+        oldKey: lychnion.pair,
+        newKey: next.pair,
+        signed: '2026-11-24T08:00:00+09:00',
+      );
+      expect(
+        await PublisherStatus.checkAll([
+          ...junk,
+          genuine.json,
+        ], trust.withStatements([s])),
+        [genuine],
+      );
+    });
+
     test('items: ids and versions as records have them', () async {
       for (final items in [
         {'a': 'latest!'},
         {'a': 'v1'},
         {'../x': '1'},
         {'x.': '1'},
+        {'NUL': '1'},
+        {'com1.sqlite': '1'},
       ]) {
         await expectLater(
           status(items: items),

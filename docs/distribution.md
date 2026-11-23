@@ -558,8 +558,10 @@ key of its publisher and says what is newest from it:
 - `keys`: its own key statements (replacements, revocations), in full,
   only about its own keys. A successor key may sign the status together
   with the statement that names it; only statements a key trusted here
-  made are verified for that (`relevantStatements`), so a status cannot
-  make a reader check hundreds of statements about keys of a stranger.
+  made are verified for that (`relevantStatements`), and for at most 8
+  statuses of one catalog, so statuses cannot make a reader check
+  hundreds of statements about keys of a stranger. A reader that knows
+  the replacement from the catalog's `keys` needs no inline check.
 - `attestations`: only in Lychnion's status, and only withdrawals, in
   full. A carrier that passes on the newest status passes on these too;
   holding them back means holding back the whole status, which then
