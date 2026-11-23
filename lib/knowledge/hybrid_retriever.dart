@@ -107,8 +107,11 @@ class HybridRetriever {
         },
       );
       if (all == null) continue;
+      // An empty vector: none for this passage (a merged package that did
+      // not ship them, see KnowledgePackage.merge).
       _textVectors[lang] = [
-        for (var i = 0; i < passages.length; i++) has[i] ? all[i] : null,
+        for (var i = 0; i < passages.length; i++)
+          has[i] && all[i].isNotEmpty ? all[i] : null,
       ];
     }
   }
@@ -159,6 +162,11 @@ class HybridRetriever {
     _vectors = main;
     _textVectors = byLang;
   }
+
+  /// Position of each passage id in [KnowledgePackage.passages].
+  late final _position = {
+    for (var i = 0; i < package.passages.length; i++) package.passages[i].id: i,
+  };
 
   static String _docText(Passage p, String? lang) {
     final heading = lang == null ? p.heading : p.headingIn(lang);
@@ -256,16 +264,12 @@ class HybridRetriever {
         .take(limit)
         .toList();
     if (hits.isEmpty || hits.length >= limit) return hits;
-    final index = {
-      for (var i = 0; i < package.passages.length; i++)
-        package.passages[i].id: i,
-    };
     final taken = {for (final h in hits) h.passage.id};
     final section = <int>{};
     for (final h in hits) {
       for (final step in const [-1, 1]) {
         for (
-          var i = index[h.passage.id]! + step;
+          var i = _position[h.passage.id]! + step;
           i >= 0 &&
               i < package.passages.length &&
               _sameSection(package.passages[i], h.passage);

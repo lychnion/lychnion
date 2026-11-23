@@ -13,7 +13,8 @@ import 'settings.dart';
 ///   --dart-define=EMBED_MODEL_PATH=/path/in/app/storage.gguf  vector search (spike 3)
 ///   --dart-define=MIN_COS=0.5                                relevance cut-off for vector search (default 0.70)
 ///   --dart-define=EMBED_TEXTS=true                           embed the passages' texts in other languages
-///                                                            when not shipped (slow: for lychnion-data)
+///                                                            when not shipped (slow: for lychnion-data);
+///                                                            later runs keep using that cache
 ///   --dart-define=CATALOG_URL=https://…/catalog.json         download catalog (Downloads tab)
 ///   --dart-define=DOWNLOAD_BASE_URL=http://host:port/        base for relative catalog URLs
 ///   --dart-define=MAP_PMTILES_PATH=/path/area.pmtiles        offline base map

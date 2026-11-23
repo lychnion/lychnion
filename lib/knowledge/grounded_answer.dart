@@ -259,7 +259,7 @@ class GroundedAnswerer {
               search,
               limit: topK,
               original: q,
-              lang: search == q ? lang : 'ja',
+              lang: lang,
             )
           : Retriever(h).search(search, limit: topK);
       if (hits.isNotEmpty) {
@@ -275,12 +275,7 @@ class GroundedAnswerer {
     answer.hits = sameAnimal(
       [q, search],
       hybrid != null
-          ? await hybrid!.search(
-              search,
-              limit: topK,
-              original: q,
-              lang: search == q ? lang : 'ja',
-            )
+          ? await hybrid!.search(search, limit: topK, original: q, lang: lang)
           : retriever.search(search, limit: topK),
     );
     onUpdate();
