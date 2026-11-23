@@ -55,7 +55,7 @@ Then follow the first steps on Home. They download the answer model
   The same texts are the app's built-in help.
 - **Developing:** [docs/](docs/README.md): dev flags, release builds,
   data packages, the base, and research notes.
-- **Website:** [lychnion.github.io](https://lychnion.github.io)
+- **Website:** [lychnion.com](https://lychnion.com)
 
 ## Licence
 
