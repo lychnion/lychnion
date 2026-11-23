@@ -184,7 +184,7 @@ mixin _ModelLoading on _AskPageBase {
               id,
               src.path,
               safetyLines: true,
-              signer: voucherPublisher,
+              signer: attesterPublisher,
             ),
           ]);
         }

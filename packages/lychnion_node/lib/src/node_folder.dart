@@ -59,14 +59,14 @@ class NodeFolder {
     return doc == null ? const [] : relevantStatements(trust, doc.keys);
   }
 
-  /// The vouches in catalog.json that [trust] counts (signed by a key it
+  /// The attestations in catalog.json that [trust] counts (signed by a key it
   /// has for Lychnion, after the catalog's key statements); empty when
   /// there is no catalog yet. Labels only (lychnion/lychnion#119).
-  Future<List<Vouch>> vouches(TrustedKeys trust) async {
+  Future<List<Attestation>> attestations(TrustedKeys trust) async {
     final doc = await _document();
     if (doc == null) return const [];
     final t = trust.withStatements(await relevantStatements(trust, doc.keys));
-    return Vouch.checkAll(doc.vouches, t);
+    return Attestation.checkAll(doc.attestations, t);
   }
 
   Future<CatalogDocument?> _document() async {
@@ -117,19 +117,19 @@ class NodeFolder {
   /// Writes catalog.json (next to it, then renamed: a cut write leaves
   /// the old one). Every file is listed at its place in this folder.
   /// [keys]: key statements to pass on (replaced and revoked keys);
-  /// [vouches]: Lychnion's vouches to pass on.
+  /// [attestations]: Lychnion's attestations to pass on.
   /// Returns how many of each were left out to fit.
-  Future<({int keys, int vouches})> writeCatalog(
+  Future<({int keys, int attestations})> writeCatalog(
     List<PackageRecord> records, {
     List<String> mirrors = const [],
     Iterable<KeyStatement> keys = const [],
-    Iterable<Vouch> vouches = const [],
+    Iterable<Attestation> attestations = const [],
   }) async {
     await dir.create(recursive: true);
     final doc = CatalogDocument.byHash(
       records,
       keys: keys,
-      vouches: vouches,
+      attestations: attestations,
       mirrors: mirrors,
     ).fitted();
     final text = doc.encode();
@@ -138,7 +138,7 @@ class NodeFolder {
     await tmp.rename(catalogFile.path);
     return (
       keys: CatalogDocument.keysLeftOut(keys, doc),
-      vouches: CatalogDocument.vouchesLeftOut(vouches, doc),
+      attestations: CatalogDocument.attestationsLeftOut(attestations, doc),
     );
   }
 }

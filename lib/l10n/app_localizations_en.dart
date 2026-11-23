@@ -1998,7 +1998,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This key was replaced already. If it comes from an older backup, restore your newest backup instead: replacing it again would make phones stop trusting your publisher. If you did not replace it, someone else has the key: use \"Revoke the key\".';
 
   @override
-  String publishersVouched(String app, String date) {
+  String publishersAttested(String app, String date) {
     return 'Checked by $app on $date';
   }
 
@@ -2013,12 +2013,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String publishersNotVouchedKey(String app) {
+  String publishersNotAttestedKey(String app) {
     return 'Not the key $app checked';
   }
 
   @override
-  String publishersVouchedBody(String app, String date, String name) {
+  String publishersAttestedBody(String app, String date, String name) {
     return '$app checked on $date that this key belongs to $name.';
   }
 
@@ -2033,12 +2033,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String publishersNotVouchedKeyBody(String app) {
+  String publishersNotAttestedKeyBody(String app) {
     return '$app checked a publisher with this name, but with another key. This link may be fake.';
   }
 
   @override
-  String publishersLooksVouched(String app) {
+  String publishersLooksAttested(String app) {
     return 'This name looks like a publisher $app checked, but it is another one. It may be fake.';
   }
 

@@ -1,4 +1,4 @@
-import 'package:lychnion_format/lychnion_format.dart' show voucherPublisher;
+import 'package:lychnion_format/lychnion_format.dart' show attesterPublisher;
 
 import '../download/download_store.dart';
 import '../download/publisher_label.dart';
@@ -20,7 +20,7 @@ String? sourceLabelText(
   final app = l.appName, name = label.titleIn(lang);
   final text = switch (label.check) {
     PublisherCheck.builtIn => null,
-    PublisherCheck.vouched => l.answerSourceChecked(app, name),
+    PublisherCheck.attested => l.answerSourceChecked(app, name),
     PublisherCheck.notChecked => l.answerSourceNotChecked(app, name),
     PublisherCheck.withdrawn => l.answerSourceWithdrawn(app, name),
     PublisherCheck.otherKey => l.answerSourceOtherKey(app, name),
@@ -32,7 +32,7 @@ String? sourceLabelText(
 
 /// The label of [s] in [answer]: for a base's answer the base's word
 /// ([Source.label]); for this device's own, looked up from who signed the
-/// guide with [store], so it follows the vouches and publishers now.
+/// guide with [store], so it follows the attestations and publishers now.
 SourceLabel? sourceLabelFor(
   GroundedAnswer answer,
   Source s,
@@ -43,7 +43,7 @@ SourceLabel? sourceLabelFor(
   // Before Downloads are loaded: another publisher's guide is never shown
   // as if it were Lychnion's.
   final signer = s.signer;
-  return signer == null || signer == voucherPublisher
+  return signer == null || signer == attesterPublisher
       ? null
       : SourceLabel(PublisherCheck.notChecked, name: signer);
 }

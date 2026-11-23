@@ -1,4 +1,4 @@
-// Lychnion's vouches on a device: kept, checked again, carried
+// Lychnion's attestations on a device: kept, checked again, carried
 // (lychnion/lychnion#119, part 2). Labels only: nothing here changes
 // which keys are trusted.
 import 'dart:convert';
@@ -11,7 +11,7 @@ import 'package:lychnion/base/base_library.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_store.dart';
 import 'package:lychnion/download/stick.dart';
-import 'package:lychnion/download/vouch_list.dart';
+import 'package:lychnion/download/attestation_list.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
 void main() {
@@ -28,16 +28,16 @@ void main() {
     });
   });
   setUp(() async {
-    tmp = await Directory.systemTemp.createTemp('lychnion-vouches');
+    tmp = await Directory.systemTemp.createTemp('lychnion-attestations');
   });
   tearDown(() => tmp.delete(recursive: true));
 
-  Future<Vouch> vouch(
+  Future<Attestation> attestation(
     String publisher, {
     SimpleKeyPair? by,
     String signed = '2026-11-23T10:00:00+09:00',
     bool withdrawn = false,
-  }) async => Vouch.sign(
+  }) async => Attestation.sign(
     publisher: publisher,
     key: await publicKeyOf(city),
     title: {'en': publisher},
@@ -49,48 +49,48 @@ void main() {
     withdrawn: withdrawn,
   );
 
-  File file() => File('${tmp.path}/vouches.json');
+  File file() => File('${tmp.path}/attestations.json');
 
-  group('VouchList', () {
+  group('AttestationList', () {
     test('learn saves; load reads back and checks again', () async {
-      final a = await vouch('jp.city.a');
-      final list = VouchList(file());
+      final a = await attestation('jp.city.a');
+      final list = AttestationList(file());
       expect(await list.learn([a], () => trust), isTrue);
       expect(await list.learn([a], () => trust), isFalse, reason: 'known');
-      expect(list.vouches, [a]);
+      expect(list.attestations, [a]);
       expect(list.ids, {a.id});
 
       // A forged copy in the file is left out when read.
       final j = jsonDecode(file().readAsStringSync()) as Map;
       final forged = Map<String, Object?>.of(a.json)
         ..['publisher'] = 'jp.city.b';
-      j['vouches'] = [...j['vouches'] as List, forged];
+      j['attestations'] = [...j['attestations'] as List, forged];
       file().writeAsStringSync(jsonEncode(j));
-      final again = VouchList(file());
+      final again = AttestationList(file());
       await again.load(trust);
-      expect(again.vouches, [a]);
+      expect(again.attestations, [a]);
 
       // Read with keys that no longer trust that signer: nothing.
-      final none = VouchList(file());
+      final none = AttestationList(file());
       await none.load(
         TrustedKeys({
           'lychnion': [await publicKeyOf(other)],
         }),
       );
-      expect(none.vouches, isEmpty);
+      expect(none.attestations, isEmpty);
     });
 
     test('a signer not trusted here for Lychnion is not kept', () async {
-      final list = VouchList(file());
-      final byOther = await vouch('jp.city.a', by: other);
+      final list = AttestationList(file());
+      final byOther = await attestation('jp.city.a', by: other);
       expect(await list.learn([byOther], () => trust), isFalse);
-      expect(list.vouches, isEmpty);
+      expect(list.attestations, isEmpty);
       expect(file().existsSync(), isFalse);
     });
 
-    test('recheck leaves out vouches of a revoked Lychnion key', () async {
-      final list = VouchList(file());
-      final a = await vouch('jp.city.a');
+    test('recheck leaves out attestations of a revoked Lychnion key', () async {
+      final list = AttestationList(file());
+      final a = await attestation('jp.city.a');
       await list.learn([a], () => trust);
       var told = 0;
       list.addListener(() => told++);
@@ -101,144 +101,156 @@ void main() {
           'lychnion': [await publicKeyOf(other)],
         }),
       );
-      expect(list.vouches, isEmpty);
+      expect(list.attestations, isEmpty);
       expect(told, 1);
     });
 
-    test('status by vouchFor', () async {
-      final list = VouchList(file());
-      await list.learn([await vouch('jp.city.a')], () => trust);
+    test('status by attestationFor', () async {
+      final list = AttestationList(file());
+      await list.learn([await attestation('jp.city.a')], () => trust);
       expect(
         list
             .statusOf('jp.city.a', await publicKeyOf(city), const [], trust)
             .status,
-        VouchStatus.vouched,
+        AttestationStatus.attested,
       );
       expect(
         list
             .statusOf('jp.city.a', await publicKeyOf(other), const [], trust)
             .status,
-        VouchStatus.otherKey,
+        AttestationStatus.otherKey,
       );
       expect(
         list
             .statusOf('jp.city.b', await publicKeyOf(city), const [], trust)
             .status,
-        VouchStatus.none,
+        AttestationStatus.none,
       );
     });
 
     test('at most max; what decides kept first', () async {
-      final list = VouchList(file(), max: 2);
-      final old = await vouch('jp.city.a', signed: '2026-11-01T00:00:00Z');
-      final gone = await vouch(
+      final list = AttestationList(file(), max: 2);
+      final old = await attestation(
+        'jp.city.a',
+        signed: '2026-11-01T00:00:00Z',
+      );
+      final gone = await attestation(
         'jp.city.a',
         signed: '2026-11-02T00:00:00Z',
         withdrawn: true,
       );
-      final b = await vouch('jp.city.b');
+      final b = await attestation('jp.city.b');
       expect(await list.learn([old, gone, b], () => trust), isTrue);
-      expect(list.vouches.toSet(), {gone, b});
+      expect(list.attestations.toSet(), {gone, b});
       // Only a replaced one more: nothing changes.
       expect(await list.learn([old], () => trust), isFalse);
     });
 
-    test('a revocation during the save: the vouch stays out of use', () async {
-      final list = VouchList(file());
-      final revoked = TrustedKeys({
-        'lychnion': [await publicKeyOf(other)],
-      });
-      var asked = 0;
-      // Trusted when learned, revoked by the time the save is done.
-      final changed = await list.learn([
-        await vouch('jp.city.a'),
-      ], () => asked++ == 0 ? trust : revoked);
-      expect(changed, isTrue);
-      expect(list.vouches, isEmpty);
-      expect(list.vouchesFor(trust), isEmpty);
-    });
+    test(
+      'a revocation during the save: the attestation stays out of use',
+      () async {
+        final list = AttestationList(file());
+        final revoked = TrustedKeys({
+          'lychnion': [await publicKeyOf(other)],
+        });
+        var asked = 0;
+        // Trusted when learned, revoked by the time the save is done.
+        final changed = await list.learn([
+          await attestation('jp.city.a'),
+        ], () => asked++ == 0 ? trust : revoked);
+        expect(changed, isTrue);
+        expect(list.attestations, isEmpty);
+        expect(list.attestationsFor(trust), isEmpty);
+      },
+    );
 
-    test('vouchesFor leaves out a lapsed signer before recheck', () async {
-      final list = VouchList(file());
-      final a = await vouch('jp.city.a');
+    test('attestationsFor leaves out a lapsed signer before recheck', () async {
+      final list = AttestationList(file());
+      final a = await attestation('jp.city.a');
       await list.learn([a], () => trust);
       final revoked = TrustedKeys({
         'lychnion': [await publicKeyOf(other)],
       });
-      expect(list.vouchesFor(trust), [a]);
-      expect(list.vouchesFor(revoked), isEmpty);
+      expect(list.attestationsFor(trust), [a]);
+      expect(list.attestationsFor(revoked), isEmpty);
       expect(
         list
             .statusOf('jp.city.a', await publicKeyOf(city), const [], revoked)
             .status,
-        VouchStatus.none,
+        AttestationStatus.none,
       );
     });
 
     test('a failed save changes nothing', () async {
       // A folder where the file should be: the rename fails.
       Directory(file().path).createSync();
-      final list = VouchList(file());
+      final list = AttestationList(file());
       await expectLater(
-        list.learn([await vouch('jp.city.a')], () => trust),
+        list.learn([await attestation('jp.city.a')], () => trust),
         throwsA(isA<FileSystemException>()),
       );
-      expect(list.vouches, isEmpty);
+      expect(list.attestations, isEmpty);
       expect(list.ids, isEmpty);
     });
 
     test('one over the cap is not kept, and not checked again', () async {
-      final list = VouchList(file(), max: 1);
-      final newer = await vouch('jp.city.a', signed: '2026-11-23T00:00:00Z');
-      final older = await vouch('jp.city.b', signed: '2026-11-01T00:00:00Z');
+      final list = AttestationList(file(), max: 1);
+      final newer = await attestation(
+        'jp.city.a',
+        signed: '2026-11-23T00:00:00Z',
+      );
+      final older = await attestation(
+        'jp.city.b',
+        signed: '2026-11-01T00:00:00Z',
+      );
       expect(await list.learn([newer], () => trust), isTrue);
       expect(await list.learn([older], () => trust), isFalse);
-      expect(list.vouches, [newer]);
+      expect(list.attestations, [newer]);
       expect(list.ids, {newer.id, older.id});
       final c = await Catalog.parse(
         jsonEncode({
           'format': 2,
           'records': <Object>[],
-          'vouches': [older.json],
+          'attestations': [older.json],
         }),
         trust: trust,
-        knownVouches: list.ids,
+        knownAttestations: list.ids,
       );
-      expect(c.vouches, isEmpty);
+      expect(c.attestations, isEmpty);
     });
 
     test('a newer file is set aside, not read', () async {
       file().writeAsStringSync(
-        jsonEncode({'format': 99, 'vouches': <Object?>[]}),
+        jsonEncode({'format': 99, 'attestations': <Object?>[]}),
       );
-      final list = VouchList(file());
+      final list = AttestationList(file());
       await list.load(trust);
-      expect(list.vouches, isEmpty);
+      expect(list.attestations, isEmpty);
     });
   });
 
   group('Catalog.parse', () {
-    test('keeps vouches signed for Lychnion, skips known ones', () async {
-      final a = await vouch('jp.city.a');
-      final b = await vouch('jp.city.b');
-      final byOther = await vouch('jp.city.c', by: other);
+    test('keeps attestations signed for Lychnion, skips known ones', () async {
+      final a = await attestation('jp.city.a');
+      final b = await attestation('jp.city.b');
+      final byOther = await attestation('jp.city.c', by: other);
       final text = jsonEncode({
         'format': 2,
         'records': <Object>[],
-        'vouches': [a.json, b.json, byOther.json, 'nonsense'],
+        'attestations': [a.json, b.json, byOther.json, 'nonsense'],
       });
       final c = await Catalog.parse(text, trust: trust);
-      expect(c.vouches, [a, b]);
+      expect(c.attestations, [a, b]);
       final known = await Catalog.parse(
         text,
         trust: trust,
-        knownVouches: {a.id},
+        knownAttestations: {a.id},
       );
-      expect(known.vouches, [b]);
+      expect(known.attestations, [b]);
     });
 
     test(
-      'a successor of Lychnion\'s key in the same catalog may vouch',
+      'a successor of Lychnion\'s key in the same catalog may attest',
       () async {
         final s = await KeyStatement.replace(
           publisher: 'lychnion',
@@ -246,17 +258,17 @@ void main() {
           newKey: other,
           signed: '2026-11-20T00:00:00Z',
         );
-        final v = await vouch('jp.city.a', by: other);
+        final v = await attestation('jp.city.a', by: other);
         final c = await Catalog.parse(
           jsonEncode({
             'format': 2,
             'records': <Object>[],
             'keys': [s.json],
-            'vouches': [v.json],
+            'attestations': [v.json],
           }),
           trust: trust,
         );
-        expect(c.vouches, [v]);
+        expect(c.attestations, [v]);
       },
     );
   });
@@ -289,41 +301,44 @@ void main() {
     return r;
   }
 
-  test('a stick carries vouches; another device keeps them', () async {
+  test('a stick carries attestations; another device keeps them', () async {
     final here = store('here');
     await install(here, 'jp.a');
-    final a = await vouch('jp.city.a');
-    await here.learnVouches([a]);
+    final a = await attestation('jp.city.a');
+    await here.learnAttestations([a]);
     final stick = Directory('${tmp.path}/stick')..createSync();
     await copyToStick(here, stick);
 
     // A second device adds its own; the stick's stay.
     final second = store('second');
-    final b = await vouch('jp.city.b');
-    await second.learnVouches([b]);
+    final b = await attestation('jp.city.b');
+    await second.learnAttestations([b]);
     final c2 = await copyToStick(second, stick);
-    expect(c2.vouchesLeftOut, 0);
+    expect(c2.attestationsLeftOut, 0);
 
     final there = store('there');
     final r = await loadFromStick(there, stick);
-    expect(r.vouchesNotSaved, isFalse);
-    expect(there.vouches.vouches.toSet(), {a, b});
+    expect(r.attestationsNotSaved, isFalse);
+    expect(there.attestations.attestations.toSet(), {a, b});
   });
 
-  test('the base passes vouches on; its catalog follows changes', () async {
-    final s = store('base');
-    await install(s, 'jp.a');
-    final lib = BaseLibrary(s);
-    final first = lib.catalog();
-    expect(first.containsKey('vouches'), isFalse);
-    expect(identical(lib.catalog(), first), isTrue, reason: 'cached');
-    final a = await vouch('jp.city.a');
-    await s.learnVouches([a]);
-    final next = lib.catalog();
-    expect(next['vouches'], [a.json]);
-    expect(lib.vouchesLeftOut, 0);
-    // A phone reading it keeps the vouch.
-    final c = await Catalog.parse(jsonEncode(next), trust: trust);
-    expect(c.vouches, [a]);
-  });
+  test(
+    'the base passes attestations on; its catalog follows changes',
+    () async {
+      final s = store('base');
+      await install(s, 'jp.a');
+      final lib = BaseLibrary(s);
+      final first = lib.catalog();
+      expect(first.containsKey('attestations'), isFalse);
+      expect(identical(lib.catalog(), first), isTrue, reason: 'cached');
+      final a = await attestation('jp.city.a');
+      await s.learnAttestations([a]);
+      final next = lib.catalog();
+      expect(next['attestations'], [a.json]);
+      expect(lib.attestationsLeftOut, 0);
+      // A phone reading it keeps the attestation.
+      final c = await Catalog.parse(jsonEncode(next), trust: trust);
+      expect(c.attestations, [a]);
+    },
+  );
 }

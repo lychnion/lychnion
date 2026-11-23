@@ -1,4 +1,4 @@
-// Labels from Lychnion's vouches, and the second look a link gets when its
+// Labels from Lychnion's attestations, and the second look a link gets when its
 // name looks official (lychnion/lychnion#119, part 3). Labels only:
 // nothing here changes which keys are trusted.
 import 'dart:io';
@@ -22,15 +22,15 @@ void main() {
   late TrustedKeys trust;
   late Directory tmp;
   late DownloadStore store;
-  late Vouch vouched, gone;
+  late Attestation attested, gone;
 
-  Future<Vouch> vouch(
+  Future<Attestation> attestation(
     String publisher,
     String key, {
     Map<String, String>? title,
     String signed = '2026-11-23T10:00:00+09:00',
     bool withdrawn = false,
-  }) => Vouch.sign(
+  }) => Attestation.sign(
     publisher: publisher,
     key: key,
     title: title ?? {'ja': '仙台市', 'en': 'Sendai City'},
@@ -53,35 +53,35 @@ void main() {
     });
     tmp = await Directory.systemTemp.createTemp('lychnion-labels');
     store = DownloadStore(Directory(tmp.path), trust: trust);
-    vouched = await vouch('jp.city.sendai', sendaiKey);
-    final old = await vouch(
+    attested = await attestation('jp.city.sendai', sendaiKey);
+    final old = await attestation(
       'jp.town.gone',
       sendaiKey,
       title: {'ja': '旧町', 'en': 'Old Town'},
       signed: '2026-11-01T00:00:00Z',
     );
-    gone = await vouch(
+    gone = await attestation(
       'jp.town.gone',
       sendaiKey,
       title: {'ja': '旧町', 'en': 'Old Town'},
       withdrawn: true,
     );
-    await store.learnVouches([vouched, old, gone]);
+    await store.learnAttestations([attested, old, gone]);
   });
   tearDownAll(() => tmp.delete(recursive: true));
 
   group('labelOf', () {
-    test('built in, vouched, not checked, other key, withdrawn', () {
+    test('built in, attested, not checked, other key, withdrawn', () {
       expect(store.labelOf('lychnion', 'x').check, PublisherCheck.builtIn);
       final v = store.labelOf('jp.city.sendai', sendaiKey);
-      expect(v.check, PublisherCheck.vouched);
+      expect(v.check, PublisherCheck.attested);
       expect(v.titleIn('ja', 'link title'), '仙台市');
       expect(v.titleIn('en', 'link title'), 'Sendai City');
       expect(v.isProblem, isFalse);
       final other = store.labelOf('jp.city.sendai', fakeKey);
       expect(other.check, PublisherCheck.otherKey);
       expect(other.isProblem, isTrue);
-      // Not vouched: the link's own title, never the vouch's.
+      // Not attested: the link's own title, never the attestation's.
       expect(other.titleIn('ja', 'Fake'), 'Fake');
       expect(
         store.labelOf('jp.town.gone', sendaiKey).check,
@@ -89,11 +89,11 @@ void main() {
       );
       final none = store.labelOf('club.example', fakeKey);
       expect(none.check, PublisherCheck.notChecked);
-      expect(none.vouch, isNull);
+      expect(none.attestation, isNull);
     });
 
     test(
-      'a vouch whose signer the device no longer trusts: not checked',
+      'an attestation whose signer the device no longer trusts: not checked',
       () async {
         final other = DownloadStore(
           Directory('${tmp.path}/other'),
@@ -101,7 +101,7 @@ void main() {
             'lychnion': [fakeKey],
           }),
         );
-        await other.learnVouches([vouched]);
+        await other.learnAttestations([attested]);
         expect(
           other.labelOf('jp.city.sendai', sendaiKey).check,
           PublisherCheck.notChecked,
@@ -110,7 +110,7 @@ void main() {
     );
   });
 
-  group('a store where the vouched publisher was added', () {
+  group('a store where the attested publisher was added', () {
     late DownloadStore added;
     setUp(() async {
       final dir = Directory(
@@ -125,7 +125,7 @@ void main() {
           builtIn: trust,
         ),
       );
-      await added.learnVouches([vouched]);
+      await added.learnAttestations([attested]);
       await added.publishers.add(
         PublisherLink(name: 'jp.city.sendai', key: sendaiKey),
       );
@@ -146,12 +146,12 @@ void main() {
 
     test('a record names a short key id: labelled by the full key', () async {
       final label = added.labelOfRecord(await record(sendai));
-      expect(label?.check, PublisherCheck.vouched);
+      expect(label?.check, PublisherCheck.attested);
       // A key not trusted here: no label rather than a wrong one.
       expect(added.labelOfRecord(await record(fake)), isNull);
     });
 
-    test('a key the publisher replaced stays vouched', () async {
+    test('a key the publisher replaced stays attested', () async {
       final next = await Ed25519().newKeyPair();
       final s = await KeyStatement.replace(
         publisher: 'jp.city.sendai',
@@ -162,7 +162,7 @@ void main() {
       expect(await added.publishers.learn([s]), isTrue);
       expect(
         added.labelOf('jp.city.sendai', await publicKeyOf(next)).check,
-        PublisherCheck.vouched,
+        PublisherCheck.attested,
       );
     });
 
@@ -181,20 +181,20 @@ void main() {
   });
 
   group('lookalikeOf', () {
-    List<Vouch> vs() => [vouched, gone];
+    List<Attestation> vs() => [attested, gone];
 
-    test('a name or title like a vouched publisher', () {
-      expect(lookalikeOf('jp.clty.sendai', null, vs()), Lookalike.vouched);
-      expect(lookalikeOf('jp.city-sendai', null, vs()), Lookalike.vouched);
-      expect(lookalikeOf('org.help', '仙台市 防災', vs()), Lookalike.vouched);
-      expect(lookalikeOf('org.help', 'ＳＥＮＤＡＩ　ＣＩＴＹ', vs()), Lookalike.vouched);
-      expect(lookalikeOf('org.help', 'Old Town', vs()), Lookalike.vouched);
+    test('a name or title like a attested publisher', () {
+      expect(lookalikeOf('jp.clty.sendai', null, vs()), Lookalike.attested);
+      expect(lookalikeOf('jp.city-sendai', null, vs()), Lookalike.attested);
+      expect(lookalikeOf('org.help', '仙台市 防災', vs()), Lookalike.attested);
+      expect(lookalikeOf('org.help', 'ＳＥＮＤＡＩ　ＣＩＴＹ', vs()), Lookalike.attested);
+      expect(lookalikeOf('org.help', 'Old Town', vs()), Lookalike.attested);
       // Cyrillic letters drawn like Latin ones.
-      expect(lookalikeOf('org.help', 'Ѕеndаі Сіtу', vs()), Lookalike.vouched);
-      // The vouched name itself is decided by its vouch, not here.
+      expect(lookalikeOf('org.help', 'Ѕеndаі Сіtу', vs()), Lookalike.attested);
+      // The attested name itself is decided by its attestation, not here.
       expect(
         lookalikeOf('jp.city.sendai', 'Sendai', vs()),
-        isNot(Lookalike.vouched),
+        isNot(Lookalike.attested),
       );
     });
 
@@ -255,7 +255,7 @@ void main() {
     FilledButton add(WidgetTester t) =>
         t.widget<FilledButton>(find.widgetWithText(FilledButton, 'Add'));
 
-    testWidgets('vouched: the checked name, no tick', (t) async {
+    testWidgets('attested: the checked name, no tick', (t) async {
       await open(t, PublisherLink(name: 'jp.city.sendai', key: sendaiKey));
       expect(find.text('Sendai City'), findsOneWidget);
       expect(find.textContaining('Lychnion checked on'), findsOneWidget);
@@ -288,13 +288,13 @@ void main() {
       expect(add(t).onPressed, isNotNull);
     });
 
-    testWidgets('a withdrawn vouch: warned, tick', (t) async {
+    testWidgets('a withdrawn attestation: warned, tick', (t) async {
       await open(t, PublisherLink(name: 'jp.town.gone', key: sendaiKey));
       expect(find.textContaining('took back its check'), findsOneWidget);
       expect(add(t).onPressed, isNull);
     });
 
-    testWidgets('the vouched name with another key: warned, tick', (t) async {
+    testWidgets('the attested name with another key: warned, tick', (t) async {
       await open(
         t,
         PublisherLink(name: 'jp.city.sendai', key: fakeKey, title: '仙台市'),

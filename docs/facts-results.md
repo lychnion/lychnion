@@ -124,7 +124,7 @@ resident reports stayed resident reports; with a wrong key in the QR link
 the phone refused to connect.
 
 Open:
-- The signature says which device vouches for a fact, not who wrote it. The
+- The signature says which device stands behind a fact, not who wrote it. The
   demo fact 「気象庁（テスト）」 is signed by the shelter computer. A real
   feed would be signed by the city or JMA key itself.
 - Keys cannot be revoked yet, and a typed address is trusted on first use.

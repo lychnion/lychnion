@@ -137,13 +137,13 @@ class Catalog {
     this.refreshUrl,
     this.mirrors = const [],
     this.statements = const [],
-    this.vouches = const [],
+    this.attestations = const [],
   });
 
-  /// Lychnion's vouches in the catalog's `vouches` (signed by a key the
+  /// Lychnion's attestations in the catalog's `attestations` (signed by a key the
   /// device trusts for Lychnion, after the catalog's key statements),
   /// except those given as known to [parse]; the device keeps them.
-  final List<Vouch> vouches;
+  final List<Attestation> attestations;
 
   /// Key statements in the catalog's `keys` made by keys the device
   /// trusts (see relevantStatements); the device keeps them.
@@ -180,15 +180,15 @@ class Catalog {
   /// ([fetchedFrom]); others are left out, so a device on the Wi-Fi
   /// cannot make the phone contact hosts it picks.
   ///
-  /// Vouches whose [Vouch.id] is in [knownVouches] (the device keeps
-  /// them) are not checked again, and not in [vouches].
+  /// Attestations whose [Attestation.id] is in [knownAttestations] (the device keeps
+  /// them) are not checked again, and not in [attestations].
   static Future<Catalog> parse(
     String json, {
     Uri? fetchedFrom,
     Uri? baseOverride,
     TrustedKeys? trust,
     bool ownFilesOnly = false,
-    Set<String> knownVouches = const {},
+    Set<String> knownAttestations = const {},
   }) async {
     final doc = CatalogDocument.parse(json);
     Uri? uri(Object? s) => s is String && s.isNotEmpty ? Uri.parse(s) : null;
@@ -211,9 +211,9 @@ class Catalog {
     final statements = await relevantStatements(given, doc.keys);
     final keys = given.withStatements(statements);
     // Labels only (#119): they never change which records are trusted.
-    final vouches = await Vouch.checkAll([
-      for (final raw in doc.vouches)
-        if (!knownVouches.contains(_idOf(raw))) raw,
+    final attestations = await Attestation.checkAll([
+      for (final raw in doc.attestations)
+        if (!knownAttestations.contains(_idOf(raw))) raw,
     ], keys);
     final items = <CatalogItem>[];
     final rejected = <String>[];
@@ -250,7 +250,7 @@ class Catalog {
       base: base,
       refreshUrl: ownFilesOnly ? null : uri(doc.refresh),
       statements: statements,
-      vouches: vouches,
+      attestations: attestations,
       mirrors: [
         for (final m in _mirrors(doc.mirrors, fetchedFrom ?? base))
           if (!ownFilesOnly || _sameOrigin(m, fetchedFrom!)) m,
@@ -258,7 +258,7 @@ class Catalog {
     )..rejected.addAll(rejected);
   }
 
-  /// [Vouch.id] of vouch JSON, or null when it cannot be written.
+  /// [Attestation.id] of attestation JSON, or null when it cannot be written.
   static String? _idOf(Object? raw) {
     try {
       return canonicalJson(raw);

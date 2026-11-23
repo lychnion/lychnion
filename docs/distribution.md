@@ -201,7 +201,7 @@ do (canonical JSON).
   when a publisher is removed), and remember it: its old link stays
   refused, also after the publisher was removed. The publisher stays
   listed as revoked until the user adds its new link (QR). Nothing signed
-  by a revoked key can vouch for a new key, so a phone cannot tell owner
+  by a revoked key can speak for a new key, so a phone cannot tell owner
   and thief apart; the user decides by adding the new link.
 - **Theft shows as a conflict:** a key that names two different
   successors is treated as revoked, and so is every key reached only
@@ -566,20 +566,20 @@ What cities and others need, as planned:
   (`lychnion-data/tool/build_package.py`, `lychnion-data/tool/add_translations.py`,
   `lychnion-data/tool/pdf_sections.py`).
 
-### Whom to trust: vouches
+### Whom to trust: attestations
 
 The app has Lychnion's key built in; other keys are added by QR code at a
-shelter. Lychnion also vouches for official publishers
+shelter. Lychnion also checks official publishers and signs attestations for them
 (lychnion/lychnion#119), so people do not have to judge a key alone. The
 list gives labels, not access: a publisher never needs to be on it to
-publish, a vouch never adds a publisher by itself, and it never lets one
+publish, an attestation never adds a publisher by itself, and it never lets one
 publish more (models and safety lines stay Lychnion's).
 
-A **vouch** (`format: 1`, `packages/lychnion_format/lib/src/vouch.dart`)
+An **attestation** (`format: 1`, `packages/lychnion_format/lib/src/attestation.dart`)
 is signed by a key of the `lychnion` publisher and names a publisher's
 key, its name for people (`title`, `ja`/`en`), the day the key was
 checked, how (`method`, for example `official-website`) and where
-(`url`, https). It travels in a catalog's optional `vouches` list, next
+(`url`, https). It travels in a catalog's optional `attestations` list, next
 to `keys`, through every carrier like other signed data:
 
 ```json
@@ -598,45 +598,44 @@ to `keys`, through every carrier like other signed data:
   control, format (zero-width, direction) or separator characters and at
   most 60 characters; the address is plain https, without `user@` or a
   port. `signed` is a time with seconds and a zone (`Z` or `+09:00`)
-  between 2020 and 2100, so every device orders vouches the same way and
-  no vouch can be dated beyond any later withdrawal.
+  between 2020 and 2100, so every device orders attestations the same way and
+  no attestation can be dated beyond any later withdrawal.
 - It counts only when its `signer` is a key the device trusts for
   `lychnion`, after key statements: a successor of Lychnion's key may
-  vouch, a revoked key's vouches lapse.
-- **The newest vouch for a publisher name decides** (on the same time, a
-  withdrawal wins, then the same one on every device). Lychnion takes a vouch back with a newer one marked
-  `"withdrawn": true`; it re-vouches with a newer one again. A
+  attest, a revoked key's attestations lapse.
+- **The newest attestation for a publisher name decides** (on the same time, a
+  withdrawal wins, then the same one on every device). Lychnion takes an attestation back with a newer one marked
+  `"withdrawn": true`; it attests again with a newer one. A
   withdrawal can be held back by a carrier until freshness exists
   (lychnion/lychnion#117).
-- A vouched key's successors, and the keys it replaced, by the
-  publisher's own key statements, are vouched too; a key the publisher
+- An attested key's successors, and the keys it replaced, by the
+  publisher's own key statements, are attested too; a key the publisher
   revoked shows as revoked. A link with the same name but another key is
-  told apart ("another key than the vouched one").
-- A device keeps vouches as they came, in `downloads/vouches.json`
+  told apart ("another key than the attested one").
+- A device keeps attestations as they came, in `downloads/attestations.json`
   (`format: 1`, at most 500; what decides for each publisher first,
   withdrawals before others), apart from `publishers.json`. It checks
   them again with its current keys whenever it reads the file, and stops
   using those of a Lychnion key that is revoked meanwhile.
-- **Carried like key statements:** the app keeps the vouches of every
+- **Carried like key statements:** the app keeps the attestations of every
   catalog it reads (Lychnion's, followed ones, a base's, a nearby
   phone's) and of a stick it loads, and passes them on in the catalog it
   writes to a stick and the one a base serves. A node keeps those of
   every source it pulls and passes them on in its own catalog. A
-  carrier passes on only vouches that a key it trusts for Lychnion
+  carrier passes on only attestations that a key it trusts for Lychnion
   signed.
-- A catalog too large for 2 MB leaves vouches out before key statements
+- A catalog too large for 2 MB leaves attestations out before key statements
   (withdrawals last).
 
-**Older apps** ignore `vouches`, and leave them out when they write a
+**Older apps** ignore `attestations`, and leave them out when they write a
 catalog (a base, a stick, a node), as with `keys`.
 
 **Shown** as "Checked by Lychnion" (with the name Lychnion checked),
 "Added by you · not checked by Lychnion", or in red when the name's
-vouch is withdrawn or for another key, in the publishers screen, the add
+attestation is withdrawn or for another key, in the publishers screen, the add
 dialog and Downloads (`lib/download/publisher_label.dart`). Names that
-look official get a warning and a tick before Add. Who can be vouched
-for, how Lychnion checks, and taking a vouch back:
-[vouching.md](vouching.md).
+look official get a warning and a tick before Add. Who can get an attestation, how Lychnion checks, and taking an attestation back:
+[attestations.md](attestations.md).
 
 **In answers**, each source keeps who signed its package; a guide of a
 publisher Lychnion has not checked says so under the passage ("via
@@ -644,7 +643,7 @@ publisher Lychnion has not checked says so under the passage ("via
 the answer adds "Some sources were not checked by Lychnion". A guide
 whose key is no longer trusted on the device says so in red, never
 without a label. The label is looked up when the answer is shown, so it
-follows the vouches and publishers the device knows; saved answers keep
+follows the attestations and publishers the device knows; saved answers keep
 the signer (`signer`, `signer_key`) for that; answers saved before this
 have no signer and no label. A base sends its labels
 with its answers (an optional `label` in each source: `check`, `name`,

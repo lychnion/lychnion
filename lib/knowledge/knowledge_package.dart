@@ -32,10 +32,10 @@ class Source {
   /// package (help, a base's answer).
   final String? signer, signerKeyId;
 
-  /// What Lychnion's vouches say about the signer, as a base labelled it
+  /// What Lychnion's attestations say about the signer, as a base labelled it
   /// (lychnion/lychnion#119): the base's word. For sources of this
   /// device's own packages the label is looked up from [signer] when an
-  /// answer is shown, so it follows the vouches the device knows.
+  /// answer is shown, so it follows the attestations the device knows.
   final SourceLabel? label;
 
   /// Where the source's advice applies, as an ISO 3166 code: 'JP' (Japan),

@@ -463,7 +463,7 @@ dimension.
 | Catalog `keys` list | `records` | Each statement is signed; the list is not | That the list is complete or current: a carrier can drop statements | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | Key backup file | `publishing` | Encrypted private key, plus a readable revocation | That the file is harmless without the passphrase: anyone with it can revoke the key | *(documented, docs/distribution.md "Backing up and replacing the key")* |
 | Browser page | `base-server` | Plain http, unsigned; shows no facts and says it is not checked (lychnion/lychnion#116) | Integrity: a device on the Wi-Fi can change it | *(maintainer, 2026-11)* |
-| `/catalog.json`, blobs from a base, phone or node | `base-server`, `node` | Signed records and hash-named files; the server does not vouch | That the server checked the bytes; readers check signature and hash | *(documented, docs/distribution.md "Security")* |
+| `/catalog.json`, blobs from a base, phone or node | `base-server`, `node` | Signed records and hash-named files; the server makes no promise | That the server checked the bytes; readers check signature and hash | *(documented, docs/distribution.md "Security")* |
 | Facts on screen | `facts` | Value, note and source name as received; "unconfirmed" when not verified | That "official" means true, or that the signer is responsible for that shelter | *(maintainer, 2026-11)* |
 | Map suggestion and route | `facts` | Built from current facts | Promised: only verified facts change it (`unverified-facts-not-acted-on`) | *(maintainer, 2026-11)* |
 | System log | `device-data`, `base-server` | The app writes JSON lines; the base logs client addresses | Promised: release builds do not log questions, answers or position (`device-egress`) | *(maintainer, 2026-11)* |
@@ -521,7 +521,7 @@ plus phones that also use the internet when they can.
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:34`,
   `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:207`, and "Open a model
   file…" at `lib/ask/model_loading.dart:310`. Bundled guides are trusted by
-  the app signature, not a record (`lib/download/download_store.dart:825`).
+  the app signature, not a record (`lib/download/download_store.dart:826`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
@@ -533,7 +533,7 @@ plus phones that also use the internet when they can.
   catalog of Lychnion's) are reserved, also when not installed: an added
   publisher's record for one is refused from a USB stick, a followed
   catalog or a base, a copy installed before is not used, and Lychnion's
-  own replaces it (`lib/download/download_store.dart:199`). Known gap: the
+  own replaces it (`lib/download/download_store.dart:200`). Known gap: the
   headless node reserves nothing; it accepts an added publisher's record
   for a Lychnion id it has not pulled from Lychnion yet, and Lychnion takes
   the id back only when its source is pulled
@@ -549,7 +549,7 @@ plus phones that also use the internet when they can.
 - **`no-downgrade-installed`** (`downloads`, `records`, `publishing`, `node`): an
   installed item is never replaced with an older version.
   *Violation symptom*: bad-data-accepted. *Tier*: security-critical. *Voided by*:
-  deleting the item (`lib/download/download_store.dart:475`), removing its
+  deleting the item (`lib/download/download_store.dart:476`), removing its
   publisher (`lib/download/download_manager.dart:540`), reinstalling the app,
   or a fresh node folder. After that an older signed version is accepted
   again (§1.12 `freshness`). After a revocation a node lists the version it
@@ -842,8 +842,8 @@ proves origin, not truth.
 | `local-resource-bounds` | Limits on a question typed on the device | Input against the user's own device | correctness-only | no | *(maintainer, 2026-11)* |
 | `base-key-id-collision` | Protection against a 48-bit key-id collision that replaces a trusted base key | Denial of service only; the attacker cannot sign as the base | correctness-only | no | *(maintainer, 2026-11)* |
 | `source-label-destination` | That a source link's label names its destination, or that it uses https | Links from packages or bases | correctness-only | **yes** | *(maintainer, 2026-11)* |
-| `vouch-means-vetted` | That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not checked is not official | A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access; in a base's answers the label is the base's word | security-critical | **yes** | *(documented, docs/vouching.md "What a vouch does, and what it never does")* |
-| `lookalike-warning-completeness` | A warning for every misleading publisher name | A list of words and some look-alike letters; other names pass, still labelled "not checked by Lychnion"; never refuses. The code the user compares is 48 bits | security-critical | no | *(documented, docs/vouching.md "The warning for names that look official")* |
+| `attestation-means-vetted` | That a publisher "Checked by Lychnion" publishes correct or safe guides, or that one not checked is not official | An attestation says only that Lychnion checked the key belongs to the named body; labels only, never access; in a base's answers the label is the base's word | security-critical | **yes** | *(documented, docs/attestations.md "What an attestation does, and what it never does")* |
+| `lookalike-warning-completeness` | A warning for every misleading publisher name | A list of words and some look-alike letters; other names pass, still labelled "not checked by Lychnion"; never refuses. The code the user compares is 48 bits | security-critical | no | *(documented, docs/attestations.md "The warning for names that look official")* |
 
 Well-known attack classes left open: **prompt injection** by a trusted
 publisher's text (`publisher-content`); **freeze and replay** of old signed
@@ -893,11 +893,10 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
   official the tick is the last defence. Compare the code with the body's
   official website, or do not add it *(documented, help/en/07-publishers.md
   "Why does the app ask me to compare a code?")*.
-- **Reading "Checked by Lychnion" as "its guides are right".** A vouch says
+- **Reading "Checked by Lychnion" as "its guides are right".** An attestation says
   whose key it is, not that the content is checked *(documented,
-  docs/vouching.md "What a vouch does, and what it never does")*.
-- **Treating "signed" as "official and true".** A signature says who vouches,
-  not that it is right *(documented, docs/facts-results.md "Signed facts
+  docs/attestations.md "What an attestation does, and what it never does")*.
+- **Treating "signed" as "official and true".** A signature says who stands behind it, not that it is right *(documented, docs/facts-results.md "Signed facts
   (2026-11-05)")*.
 - **Shipping a build with dev flags**, for example `DEV_MENU=true` to users:
   it loads unchecked models *(maintainer, 2026-11)*.

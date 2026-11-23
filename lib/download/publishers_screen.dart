@@ -1,4 +1,4 @@
-import 'package:lychnion_format/lychnion_format.dart' show Vouch;
+import 'package:lychnion_format/lychnion_format.dart' show Attestation;
 import 'package:material_ui/material_ui.dart';
 
 import '../app/lang.dart';
@@ -100,8 +100,8 @@ class _PublishersScreenState extends State<PublishersScreen> {
         label: Text(l.publishersFromLink),
       ),
       body: ListenableBuilder(
-        // Labels follow the vouches the device learns (#119).
-        listenable: Listenable.merge([_list, store.vouches]),
+        // Labels follow the attestations the device learns (#119).
+        listenable: Listenable.merge([_list, store.attestations]),
         builder: (context, _) {
           final added = _list.added;
           return ListView(
@@ -134,7 +134,7 @@ class _PublishersScreenState extends State<PublishersScreen> {
                         if (label.check != PublisherCheck.revoked)
                           publisherLabelText(context, label),
                         if (p.title != null ||
-                            label.check == PublisherCheck.vouched)
+                            label.check == PublisherCheck.attested)
                           p.name,
                         switch (_list.keyStateOf(p.name)) {
                           PublisherKeyState.added => l.publishersKey(p.keyId),
@@ -184,19 +184,19 @@ String publisherLabelText(BuildContext context, PublisherLabel label) {
   final app = l.appName;
   return switch (label.check) {
     PublisherCheck.builtIn => l.publishersBuiltIn,
-    PublisherCheck.vouched => l.publishersVouched(
+    PublisherCheck.attested => l.publishersAttested(
       app,
-      _checkedOn(context, label.vouch!),
+      _checkedOn(context, label.attestation!),
     ),
     PublisherCheck.notChecked => l.publishersNotChecked(app),
     PublisherCheck.withdrawn => l.publishersWithdrawn(app),
-    PublisherCheck.otherKey => l.publishersNotVouchedKey(app),
+    PublisherCheck.otherKey => l.publishersNotAttestedKey(app),
     PublisherCheck.revoked => l.publishersKeyRevoked,
   };
 }
 
 IconData publisherLabelIcon(PublisherLabel label) => switch (label.check) {
-  PublisherCheck.builtIn || PublisherCheck.vouched => Icons.verified_rounded,
+  PublisherCheck.builtIn || PublisherCheck.attested => Icons.verified_rounded,
   PublisherCheck.notChecked => Icons.badge_outlined,
   PublisherCheck.revoked => Icons.gpp_bad_outlined,
   PublisherCheck.withdrawn ||
@@ -204,7 +204,7 @@ IconData publisherLabelIcon(PublisherLabel label) => switch (label.check) {
 };
 
 /// The day Lychnion checked [v]'s key, in the user's date format.
-String _checkedOn(BuildContext context, Vouch v) {
+String _checkedOn(BuildContext context, Attestation v) {
   final d = DateTime.tryParse(v.checked);
   return d == null
       ? v.checked
@@ -240,7 +240,7 @@ Future<bool> addPublisher(
           ? lookalikeOf(
               link.name,
               link.title,
-              store.vouches.vouchesFor(store.trust),
+              store.attestations.attestationsFor(store.trust),
             )
           : null,
       replacing: replacing,
@@ -262,7 +262,7 @@ Future<bool> addPublisher(
   return true;
 }
 
-/// Asks whether to add [link]'s publisher, with what Lychnion's vouches
+/// Asks whether to add [link]'s publisher, with what Lychnion's attestations
 /// say about it (#119). A name with a problem or one that looks official
 /// needs a tick first: the user compared the key's code.
 class _AddDialog extends StatefulWidget {
@@ -299,10 +299,10 @@ class _AddDialogState extends State<_AddDialog> {
     final replacing = widget.replacing;
     final warning = switch ((label.check, widget.lookalike)) {
       (PublisherCheck.withdrawn, _) => l.publishersWithdrawnBody(app),
-      (PublisherCheck.otherKey, _) => l.publishersNotVouchedKeyBody(app),
+      (PublisherCheck.otherKey, _) => l.publishersNotAttestedKeyBody(app),
       // Refused before the dialog (problemWith); said all the same.
       (PublisherCheck.revoked, _) => l.publishersKeyRevoked,
-      (_, Lookalike.vouched) => l.publishersLooksVouched(app),
+      (_, Lookalike.attested) => l.publishersLooksAttested(app),
       (_, Lookalike.publicBody) => l.publishersLooksPublic(app),
       _ => null,
     };
@@ -325,11 +325,11 @@ class _AddDialogState extends State<_AddDialog> {
               ].join(' · '),
             ),
             const SizedBox(height: 12),
-            if (label.check == PublisherCheck.vouched)
+            if (label.check == PublisherCheck.attested)
               Text(
-                l.publishersVouchedBody(
+                l.publishersAttestedBody(
                   app,
-                  _checkedOn(context, label.vouch!),
+                  _checkedOn(context, label.attestation!),
                   shown,
                 ),
               )

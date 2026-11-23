@@ -693,7 +693,7 @@
       "property": "publisher-namespace",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion's ids and file names (the bundled packages, the bundled catalog and Lychnion's items in every checked catalog of Lychnion's) are reserved, also when not installed: an added publisher's record for one is refused from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion's own replaces it (`lib/download/download_store.dart:199`).",
+      "conditions": "an added publisher never replaces Lychnion's items or files, or another publisher's ids, also not by upper or lower case or by a name Windows changes (a trailing dot) or opens as a device (`NUL`), which a record may not have (`packages/lychnion_format/lib/src/record.dart:140`), and its key statements count only for its own name. In the app, Lychnion's ids and file names (the bundled packages, the bundled catalog and Lychnion's items in every checked catalog of Lychnion's) are reserved, also when not installed: an added publisher's record for one is refused from a USB stick, a followed catalog or a base, a copy installed before is not used, and Lychnion's own replaces it (`lib/download/download_store.dart:200`).",
       "provenance": "documented",
       "source": "docs/distribution.md \"Publishers and keys\""
     },
@@ -1053,18 +1053,18 @@
       "source": "maintainer ruling, 2026-11"
     },
     {
-      "property": "vouch-means-vetted",
-      "reason": "That a publisher \"Checked by Lychnion\" publishes correct or safe guides, or that one not checked is not official. A vouch says only that Lychnion checked the key belongs to the named body; labels only, never access; in a base's answers the label is the base's word",
+      "property": "attestation-means-vetted",
+      "reason": "That a publisher \"Checked by Lychnion\" publishes correct or safe guides, or that one not checked is not official. An attestation says only that Lychnion checked the key belongs to the named body; labels only, never access; in a base's answers the label is the base's word",
       "false_friend": true,
       "provenance": "documented",
-      "source": "docs/vouching.md \"What a vouch does, and what it never does\""
+      "source": "docs/attestations.md \"What an attestation does, and what it never does\""
     },
     {
       "property": "lookalike-warning-completeness",
       "reason": "A warning for every misleading publisher name. A list of words and some look-alike letters; other names pass, still labelled \"not checked by Lychnion\"; never refuses. The code the user compares is 48 bits",
       "false_friend": false,
       "provenance": "documented",
-      "source": "docs/vouching.md \"The warning for names that look official\""
+      "source": "docs/attestations.md \"The warning for names that look official\""
     }
   ],
   "attack_classes": [
@@ -1105,13 +1105,13 @@
     },
     {
       "pattern": "reading \"Checked by Lychnion\" as \"its guides are right\"",
-      "why_unsafe": "**Reading \"Checked by Lychnion\" as \"its guides are right\".** A vouch says whose key it is, not that the content is checked.",
-      "instead": "read a vouch as whose key it is, not as a check of the content"
+      "why_unsafe": "**Reading \"Checked by Lychnion\" as \"its guides are right\".** An attestation says whose key it is, not that the content is checked.",
+      "instead": "read an attestation as whose key it is, not as a check of the content"
     },
     {
       "pattern": "treating signed as official and true",
-      "why_unsafe": "**Treating \"signed\" as \"official and true\".** A signature says who vouches, not that it is right \")*.",
-      "instead": "read a signature as who vouches, not as correctness"
+      "why_unsafe": "**Treating \"signed\" as \"official and true\".** A signature says who stands behind it, not that it is right \")*.",
+      "instead": "read a signature as who stands behind it, not as correctness"
     },
     {
       "pattern": "shipping a build with dev flags such as DEV_MENU=true",

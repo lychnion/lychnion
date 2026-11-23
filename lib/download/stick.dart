@@ -53,9 +53,9 @@ class StickResult {
   /// (revocations and theft proofs kept first; #59).
   var keysLeftOut = 0;
 
-  /// Vouches left out of the stick's catalog to keep it under 2 MB (they
+  /// Attestations left out of the stick's catalog to keep it under 2 MB (they
   /// go before key statements; withdrawals kept first; #119).
-  var vouchesLeftOut = 0;
+  var attestationsLeftOut = 0;
 
   /// Items whose files were missing, did not match or could not be
   /// written.
@@ -69,9 +69,9 @@ class StickResult {
   /// key may not be trusted after a restart.
   var keysNotSaved = false;
 
-  /// Vouches from the stick could not be saved (labels only: nothing
+  /// Attestations from the stick could not be saved (labels only: nothing
   /// else changes).
-  var vouchesNotSaved = false;
+  var attestationsNotSaved = false;
 }
 
 /// A stick whose catalog.json cannot be read (broken, too large, or from a
@@ -116,11 +116,11 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   // Duplicates once, revocations first (CatalogDocument.byHash).
   final statements = [...store.publishers.statements, ...oldStatements];
   final trust = store.trust.withStatements(oldStatements);
-  // Vouches likewise (labels only, #119): this device's first, then the
+  // Attestations likewise (labels only, #119): this device's first, then the
   // stick's that a key trusted here for Lychnion signed.
-  final vouches = [
-    ...store.vouches.vouchesFor(store.trust),
-    ...await Vouch.checkAll(old?.vouches, trust),
+  final attestations = [
+    ...store.attestations.attestationsFor(store.trust),
+    ...await Attestation.checkAll(old?.attestations, trust),
   ];
 
   // What the stick has, by id (signatures are kept as they are: the
@@ -200,10 +200,13 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
     final doc = CatalogDocument.byHash(
       records,
       keys: statements,
-      vouches: vouches,
+      attestations: attestations,
     ).fitted();
     result.keysLeftOut = CatalogDocument.keysLeftOut(statements, doc);
-    result.vouchesLeftOut = CatalogDocument.vouchesLeftOut(vouches, doc);
+    result.attestationsLeftOut = CatalogDocument.attestationsLeftOut(
+      attestations,
+      doc,
+    );
     text = doc.encode();
   } on CatalogTooLarge {
     // Larger, and no device would read the stick any more.
@@ -330,11 +333,13 @@ Future<StickResult> loadFromStick(DownloadStore store, Directory stick) async {
     result.keysNotSaved = true;
   }
   final trust = store.trust.withStatements(statements);
-  // Vouches (labels only, #119): kept like those from a catalog.
+  // Attestations (labels only, #119): kept like those from a catalog.
   try {
-    await store.learnVouches(await Vouch.checkAll(cat.vouches, trust));
+    await store.learnAttestations(
+      await Attestation.checkAll(cat.attestations, trust),
+    );
   } on Object {
-    result.vouchesNotSaved = true;
+    result.attestationsNotSaved = true;
   }
   for (final raw in cat.records) {
     final r = await trust.check(raw);

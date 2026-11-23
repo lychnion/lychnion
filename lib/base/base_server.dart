@@ -436,12 +436,12 @@ class BaseServer {
             );
           }
         }
-        if (library!.vouchesLeftOut != _vouchesLeftOut) {
-          _vouchesLeftOut = library!.vouchesLeftOut;
-          if (_vouchesLeftOut > 0) {
+        if (library!.attestationsLeftOut != _attestationsLeftOut) {
+          _attestationsLeftOut = library!.attestationsLeftOut;
+          if (_attestationsLeftOut > 0) {
             _log(
-              'base_vouches_left_out',
-              '$_vouchesLeftOut vouches did not fit in the catalog',
+              'base_attestations_left_out',
+              '$_attestationsLeftOut attestations did not fit in the catalog',
             );
           }
         }
@@ -793,7 +793,7 @@ class BaseServer {
   }
 
   var _keysLeftOut = 0;
-  var _vouchesLeftOut = 0;
+  var _attestationsLeftOut = 0;
 
   /// For whoever runs the base: what went wrong, on this computer only.
   static void _log(String event, Object error, [HttpRequest? req]) {
