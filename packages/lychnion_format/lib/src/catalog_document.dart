@@ -199,7 +199,7 @@ class CatalogDocument {
       ];
     }
 
-    CatalogDocument with_(int nKeys, int nVouches) => CatalogDocument(
+    CatalogDocument keeping(int nKeys, int nVouches) => CatalogDocument(
       records: records,
       urls: urls,
       mirrors: mirrors,
@@ -225,14 +225,14 @@ class CatalogDocument {
     }
 
     bool fits(CatalogDocument c) => _size(c) <= maxBytes;
-    if (!fits(with_(0, 0))) throw const CatalogTooLarge();
-    if (fits(with_(keys.length, 0))) {
-      return with_(
+    if (!fits(keeping(0, 0))) throw const CatalogTooLarge();
+    if (fits(keeping(keys.length, 0))) {
+      return keeping(
         keys.length,
-        most(vouches.length, (n) => fits(with_(keys.length, n))),
+        most(vouches.length, (n) => fits(keeping(keys.length, n))),
       );
     }
-    return with_(most(keys.length, (n) => fits(with_(n, 0))), 0);
+    return keeping(most(keys.length, (n) => fits(keeping(n, 0))), 0);
   }
 }
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:cryptography/cryptography.dart' show SimpleKeyPair;
+import 'package:cryptography/cryptography.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 import 'package:test/test.dart';
 
@@ -10,6 +10,22 @@ import 'package:test/test.dart';
 Future<({String pub, SimpleKeyPair pair})> _key() async {
   final k = await newKeyPair();
   return (pub: k.publicKey, pair: await keyPairFromSeed(k.seed));
+}
+
+String _b64(List<int> b) => base64Url.encode(b).replaceAll('=', '');
+
+/// [j] signed again with [pair] as it is: a shape rule must refuse it,
+/// not the signature.
+Future<Map<String, Object?>> _resigned(
+  Map<String, Object?> j,
+  SimpleKeyPair pair,
+) async {
+  final out = Map<String, Object?>.of(j)..remove('signature');
+  final sig = await Ed25519().sign(
+    utf8.encode(canonicalJson(out)),
+    keyPair: pair,
+  );
+  return out..['signature'] = _b64(sig.bytes);
 }
 
 void main() {
@@ -45,7 +61,8 @@ void main() {
   );
 
   // Through JSON, as from a catalog.
-  Object? wire(Vouch v) => jsonDecode(jsonEncode(v.json));
+  Map<String, Object?> wire(Vouch v) =>
+      (jsonDecode(jsonEncode(v.json)) as Map).cast<String, Object?>();
 
   group('check', () {
     test('a vouch signed by Lychnion is valid', () async {
@@ -68,7 +85,7 @@ void main() {
     });
 
     test('a changed field breaks the signature', () async {
-      final j = (wire(await vouch()) as Map)..['publisher'] = 'jp.city.kobe';
+      final j = wire(await vouch())..['publisher'] = 'jp.city.kobe';
       expect(await Vouch.check(j, trust), isNull);
     });
 
@@ -96,40 +113,77 @@ void main() {
       expect(await Vouch.check(old, trust.withStatements([revoke])), isNull);
     });
 
-    test('refuses shapes that could grow or be spelled many ways', () async {
-      Future<Object?> bad(void Function(Map<String, Object?>) change) async {
-        final j = Map<String, Object?>.of((wire(await vouch()) as Map).cast());
+    test('shape rules refuse even a correctly signed vouch', () async {
+      final good = wire(await vouch());
+      Future<Vouch?> signedAs(
+        void Function(Map<String, Object?>) change,
+      ) async {
+        final j = Map<String, Object?>.of(good);
         change(j);
-        return Vouch.check(j, trust);
+        return Vouch.check(await _resigned(j, lychnion.pair), trust);
       }
 
-      expect(await bad((j) => j['extra'] = 'x'), isNull);
-      expect(await bad((j) => j['format'] = 2), isNull);
-      expect(await bad((j) => j['key'] = '${j['key']}='), isNull);
-      expect(await bad((j) => j['checked'] = '23 Nov 2026'), isNull);
-      expect(await bad((j) => j['method'] = 'Official Website'), isNull);
-      expect(await bad((j) => j['url'] = 'http://example.org/'), isNull);
-      expect(await bad((j) => j['withdrawn'] = false), isNull);
-      expect(await bad((j) => j['publisher'] = voucherPublisher), isNull);
-      expect(await bad((j) => j['title'] = {'ja': '仙台\u202e市'}), isNull);
-      expect(await bad((j) => j['title'] = {'ja': 'あ' * 61}), isNull);
-      expect(await bad((j) => j['title'] = {'japanese': '仙台市'}), isNull);
-      expect(await bad((j) => j['signed'] = 'yesterday'), isNull);
+      // The helper itself: unchanged, it passes.
+      expect(await signedAs((_) {}), isNotNull);
+      final refused = <String, void Function(Map<String, Object?>)>{
+        'an unknown field': (j) => j['extra'] = 'x',
+        'another format': (j) => j['format'] = 2,
+        'a key spelled with padding': (j) => j['key'] = '${j['key']}=',
+        'a signer spelled with padding': (j) => j['signer'] = '${j['signer']}=',
+        'a day in another form': (j) => j['checked'] = '23 Nov 2026',
+        'a day that does not exist': (j) => j['checked'] = '2026-02-31',
+        'a method with capitals': (j) => j['method'] = 'Official Website',
+        'an http address': (j) => j['url'] = 'http://www.city.sendai.jp/',
+        'a user before the host': (j) =>
+            j['url'] = 'https://city.sendai.jp@evil.example/',
+        'a port': (j) => j['url'] = 'https://www.city.sendai.jp:8443/',
+        'a space in the address': (j) =>
+            j['url'] = 'https://www.city.sendai.jp/a b',
+        'withdrawn: false': (j) => j['withdrawn'] = false,
+        "Lychnion's own name": (j) => j['publisher'] = voucherPublisher,
+        'a direction mark in the title': (j) =>
+            j['title'] = {'ja': '仙台\u202e市'},
+        'a word joiner in the title': (j) => j['title'] = {'ja': '仙台\u2060市'},
+        'a Hangul filler in the title': (j) => j['title'] = {'ja': '\u3164仙台市'},
+        'a long title': (j) => j['title'] = {'ja': 'あ' * 61},
+        'a blank title': (j) => j['title'] = {'ja': '  '},
+        'a language that is not a code': (j) =>
+            j['title'] = {'japanese': '仙台市'},
+        'five languages': (j) => j['title'] = {
+          for (final l in ['ja', 'en', 'fr', 'de', 'es']) l: '仙台市',
+        },
+        'a time in words': (j) => j['signed'] = 'yesterday',
+        'a time without a zone': (j) => j['signed'] = '2026-11-23T14:00:00',
+        'a date without a time': (j) => j['signed'] = '2026-11-23',
+        'a time far in the future': (j) => j['signed'] = '9999-12-31T23:59:59Z',
+        'a month that does not exist': (j) =>
+            j['signed'] = '2026-13-45T00:00:00Z',
+      };
+      for (final e in refused.entries) {
+        expect(await signedAs(e.value), isNull, reason: e.key);
+      }
+      // Japanese spaces are ordinary text.
+      expect(
+        await signedAs((j) => j['title'] = {'ja': '仙台市　危機管理局'}),
+        isNotNull,
+      );
     });
 
     test('sign refuses what check would refuse', () async {
       expect(
-        () => Vouch.sign(
-          publisher: 'jp.city.sendai',
-          key: city.pub,
-          checked: '2026-11-23',
-          method: 'official-website',
-          signed: '2026-11-23T14:00:00+09:00',
-          signer: lychnion.pair,
-          url: 'http://www.city.sendai.jp/',
-        ),
+        () => vouch(url: 'http://www.city.sendai.jp/'),
         throwsArgumentError,
       );
+      expect(() => vouch(signed: '9999-12-31T23:59:59Z'), throwsArgumentError);
+    });
+
+    test('a checked vouch does not change with the map it came from', () async {
+      final j = wire(await vouch());
+      final v = (await Vouch.check(j, trust))!;
+      final id = v.id;
+      (j['title']! as Map)['ja'] = '別の市';
+      expect(v.id, id);
+      expect(v.title['ja'], '仙台市');
     });
 
     test('checkAll keeps each valid vouch once, at most max', () async {
@@ -146,6 +200,24 @@ void main() {
       expect(got, [a, b]);
       expect(await Vouch.checkAll([wire(a), wire(b)], trust, max: 1), [a]);
       expect(await Vouch.checkAll({'not': 'a list'}, trust), isEmpty);
+    });
+
+    test('checkAll stops after maxBadSignatures wrong signatures', () async {
+      final good = await vouch();
+      // Lychnion's key named, but signatures that do not match: each costs
+      // a check. Each one different, so none is skipped as a repeat.
+      final flood = [
+        for (var i = 0; i < Vouch.maxBadSignatures; i++)
+          wire(await vouch(publisher: 'jp.city.c$i'))
+            ..['signature'] = _b64(List.filled(64, i)),
+      ];
+      expect(await Vouch.checkAll([...flood, wire(good)], trust), isEmpty);
+      expect(await Vouch.checkAll([...flood.skip(1), wire(good)], trust), [
+        good,
+      ]);
+      // The same bad entry many times counts once.
+      final same = List.filled(100, flood.first);
+      expect(await Vouch.checkAll([...same, wire(good)], trust), [good]);
     });
   });
 
@@ -176,8 +248,15 @@ void main() {
         newKey: next.pair,
         signed: '2026-11-24',
       );
+      // The vouched key's successor.
       expect(
         vouchFor('jp.city.sendai', next.pub, [v], [replace]).status,
+        VouchStatus.vouched,
+      );
+      // A key the vouched key replaced: Lychnion vouched for its successor.
+      final onNext = await vouch(key: next.pub);
+      expect(
+        vouchFor('jp.city.sendai', city.pub, [onNext], [replace]).status,
         VouchStatus.vouched,
       );
       final revoke = await KeyStatement.revoke(
@@ -187,7 +266,7 @@ void main() {
       );
       expect(
         vouchFor('jp.city.sendai', city.pub, [v], [revoke]).status,
-        isNot(VouchStatus.vouched),
+        VouchStatus.revoked,
       );
     });
 
@@ -217,6 +296,21 @@ void main() {
         vouchFor('jp.city.sendai', city.pub, [first, sameTime], []).status,
         VouchStatus.withdrawn,
       );
+      // A time in another zone is the same moment.
+      final utc = await vouch(signed: '2026-11-23T05:00:00Z', withdrawn: true);
+      expect(
+        vouchFor('jp.city.sendai', city.pub, [utc, first], []).status,
+        VouchStatus.withdrawn,
+      );
+    });
+
+    test('two vouches at the same time decide the same in any order', () async {
+      final a = await vouch();
+      final b = await vouch(key: other.pub);
+      final ab = vouchFor('jp.city.sendai', city.pub, [a, b], []);
+      final ba = vouchFor('jp.city.sendai', city.pub, [b, a], []);
+      expect(ab.status, ba.status);
+      expect(ab.vouch, ba.vouch);
     });
   });
 
@@ -243,7 +337,7 @@ void main() {
       );
     });
 
-    test('byHash keeps at most maxPerSource, withdrawals first', () async {
+    test('capped keeps what decides: withdrawals, then the newest', () async {
       final many = [
         for (var i = 0; i < 3; i++)
           await vouch(
@@ -253,14 +347,19 @@ void main() {
       ];
       final back = await vouch(
         publisher: 'jp.city.c0',
-        signed: '2026-11-19T00:00:00Z',
+        signed: '2026-11-25T00:00:00Z',
         withdrawn: true,
       );
       final kept = Vouch.capped([...many, back], 2);
-      expect(kept, hasLength(2));
-      expect(kept, contains(back));
-      // Then the newest.
-      expect(kept, contains(many[2]));
+      expect(kept, [many[2], back]);
+      // A withdrawal a newer vouch replaced changes nothing: it goes first.
+      final oldBack = await vouch(
+        publisher: 'jp.city.c1',
+        signed: '2026-11-01T00:00:00Z',
+        withdrawn: true,
+      );
+      expect(Vouch.capped([oldBack, many[1], many[2]], 2), [many[1], many[2]]);
+      // byHash: each once.
       final c = CatalogDocument.byHash(const [], vouches: [...many, many[0]]);
       expect(c.vouches, hasLength(3));
     });
@@ -273,24 +372,40 @@ void main() {
         key: city.pair,
         signed: '2026-11-24',
       );
-      // Filler records, so the catalog is just over the limit with one
-      // vouch too many.
+      int size(CatalogDocument c) => utf8.encode(c.encode()).length;
+      String filler(int bytes) => 'x' * bytes;
+      // Just over the limit with one vouch too many.
       final base = CatalogDocument(records: const [], keys: [revoke.json]);
-      final room = CatalogDocument.maxBytes - utf8.encode(base.encode()).length;
       final vouchBytes = utf8.encode(jsonEncode(v.json)).length;
-      final filler = 'x' * (room - vouchBytes - 200);
-      final c = CatalogDocument(
-        records: [filler],
+      var c = CatalogDocument(
+        records: [
+          filler(CatalogDocument.maxBytes - size(base) - vouchBytes - 200),
+        ],
         keys: [revoke.json],
         vouches: [v.json, keep.json],
       );
-      final f = c.fitted();
+      var f = c.fitted();
       expect(f.keys, [revoke.json]);
       expect(f.vouches, [keep.json]);
       expect(CatalogDocument.vouchesLeftOut([v, keep], f), 1);
+      expect(size(f), lessThanOrEqualTo(CatalogDocument.maxBytes));
+      // So full that key statements must go too: then no vouch is left.
+      final bare = CatalogDocument(records: const []);
+      c = CatalogDocument(
+        records: [filler(CatalogDocument.maxBytes - size(bare) - 20)],
+        keys: [revoke.json],
+        vouches: [v.json, keep.json],
+      );
+      f = c.fitted();
+      expect(f.vouches, isEmpty);
+      expect(f.keys, isEmpty);
+      // Records alone too large: no reader would take it.
       expect(
-        utf8.encode(f.encode()).length,
-        lessThanOrEqualTo(CatalogDocument.maxBytes),
+        () => CatalogDocument(
+          records: [filler(CatalogDocument.maxBytes)],
+          vouches: [v.json],
+        ).fitted(),
+        throwsA(isA<CatalogTooLarge>()),
       );
     });
   });

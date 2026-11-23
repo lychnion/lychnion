@@ -95,13 +95,38 @@ class Vouch {
   /// The vouch in [json], or null when its shape or signature is wrong, or
   /// when its signer is not a key [trust] has for [voucherPublisher] (after
   /// key statements). Never throws.
-  static Future<Vouch?> check(Object? json, TrustedKeys trust) async {
+  ///
+  /// A [Vouch] does not remember the keys it was checked with: vouches a
+  /// device keeps are checked again with its current keys whenever they
+  /// are read, so a revoked Lychnion key's vouches lapse there too.
+  static Future<Vouch?> check(Object? json, TrustedKeys trust) async =>
+      (await _checked(json, trust)).vouch;
+
+  /// The vouch in [json], and whether a signature check failed (a valid
+  /// shape and a trusted signer, but a wrong signature).
+  static Future<({Vouch? vouch, bool badSignature})> _checked(
+    Object? json,
+    TrustedKeys trust,
+  ) async {
+    const none = (vouch: null, badSignature: false);
     try {
       final j = (json! as Map).cast<String, Object?>();
       final at = _shape(j);
-      if (at == null) return null;
-      final v = Vouch._(Map.unmodifiable(j), at);
-      if (!trust.keysOf(voucherPublisher).contains(v.signer)) return null;
+      if (at == null) return none;
+      // A copy all the way down: a caller changing its map afterwards
+      // cannot change this vouch.
+      final v = Vouch._(
+        Map.unmodifiable({
+          for (final e in j.entries)
+            e.key: e.value is Map
+                ? Map<String, String>.unmodifiable(
+                    (e.value! as Map).cast<String, String>(),
+                  )
+                : e.value,
+        }),
+        at,
+      );
+      if (!trust.keysOf(voucherPublisher).contains(v.signer)) return none;
       final ok = await _ed25519.verify(
         utf8.encode(v.signedText),
         signature: Signature(
@@ -112,14 +137,23 @@ class Vouch {
           ),
         ),
       );
-      return ok ? v : null;
+      return ok
+          ? (vouch: v, badSignature: false)
+          : (vouch: null, badSignature: true);
     } on Object {
-      return null;
+      return none;
     }
   }
 
+  /// After this many wrong signatures from one source, the rest of it is
+  /// not checked: anyone can name Lychnion's (public) key, and each try
+  /// costs a signature check, slow on old phones (as for key statements).
+  static const maxBadSignatures = 32;
+
   /// The valid vouches in [list] (each once), at most [max]; anything
-  /// else is left out.
+  /// else is left out. At most `4 * max` entries are read, each written
+  /// the same way only once, and none after [maxBadSignatures] wrong
+  /// signatures.
   static Future<List<Vouch>> checkAll(
     Object? list,
     TrustedKeys trust, {
@@ -128,19 +162,41 @@ class Vouch {
     if (list is! List) return const [];
     final out = <Vouch>[];
     final seen = <String>{};
-    // Each one is a signature check: a list far longer than could be kept
-    // is not read to its end.
+    var bad = 0;
     for (final raw in list.take(max * 4)) {
-      if (out.length >= max) break;
-      if (await check(raw, trust) case final v? when seen.add(v.id)) {
-        out.add(v);
+      if (out.length >= max || bad >= maxBadSignatures) break;
+      // The same entry twice costs one check.
+      final String text;
+      try {
+        text = canonicalJson(raw);
+      } on Object {
+        continue;
       }
+      if (!seen.add(text)) continue;
+      final r = await _checked(raw, trust);
+      if (r.badSignature) bad++;
+      if (r.vouch case final v?) out.add(v);
     }
     return out;
   }
 
-  /// At most [max] of [vouches] to pass on: withdrawals first (losing one
-  /// would show a publisher as vouched for again), then the newest; their
+  /// True when vouch JSON [a] (signed at [ta]) decides over [b] (signed at
+  /// [tb]) for the same publisher: the newer one; on the same time a
+  /// withdrawal; then the one whose text sorts last, so every device picks
+  /// the same one whatever the order of its list.
+  static bool _decides(
+    Map<Object?, Object?> a,
+    DateTime ta,
+    Map<Object?, Object?> b,
+    DateTime tb,
+  ) {
+    if (!ta.isAtSameMomentAs(tb)) return ta.isAfter(tb);
+    final wa = a['withdrawn'] == true, wb = b['withdrawn'] == true;
+    if (wa != wb) return wa;
+    return canonicalJson(a).compareTo(canonicalJson(b)) > 0;
+  }
+
+  /// At most [max] of [vouches] to pass on, chosen in [keepOrder]; their
   /// order otherwise kept.
   static List<Vouch> capped(Iterable<Vouch> vouches, [int max = maxPerSource]) {
     final all = vouches.toList();
@@ -153,22 +209,41 @@ class Vouch {
   }
 
   /// The indexes of [vouches] (vouch JSON) in the order they are kept when
-  /// not all fit: withdrawals first, then newest first; entries that are
+  /// not all fit. First the vouch that decides for each publisher (as
+  /// [vouchFor] picks it): withdrawals before the others (losing one would
+  /// show a publisher as vouched for again), then the newest. Then the
+  /// vouches a newer one replaced, which change nothing; entries that are
   /// not vouches last. Used by [capped] and `CatalogDocument.fitted`.
   static List<int> keepOrder(List<Object?> vouches) {
-    DateTime? at(Object? m) =>
-        m is Map && m['signed'] is String ? _time(m['signed'] as String) : null;
-    final idx = List<int>.generate(vouches.length, (i) => i);
-    int rank(int i) {
+    final at = <int, DateTime>{};
+    final newest = <String, int>{};
+    for (var i = 0; i < vouches.length; i++) {
       final m = vouches[i];
-      if (m is! Map || at(m) == null) return 2;
-      return m['withdrawn'] == true ? 0 : 1;
+      if (m is! Map || m['signed'] is! String || m['publisher'] is! String) {
+        continue;
+      }
+      final t = _time(m['signed'] as String);
+      if (t == null) continue;
+      at[i] = t;
+      final name = m['publisher'] as String;
+      final cur = newest[name];
+      if (cur == null ||
+          _decides(m, t, vouches[cur]! as Map<Object?, Object?>, at[cur]!)) {
+        newest[name] = i;
+      }
+    }
+    final deciding = newest.values.toSet();
+    int rank(int i) {
+      if (!at.containsKey(i)) return 3;
+      if (!deciding.contains(i)) return 2;
+      return (vouches[i]! as Map)['withdrawn'] == true ? 0 : 1;
     }
 
+    final idx = List<int>.generate(vouches.length, (i) => i);
     idx.sort((a, b) {
       final r = rank(a).compareTo(rank(b));
       if (r != 0) return r;
-      final ta = at(vouches[a]), tb = at(vouches[b]);
+      final ta = at[a], tb = at[b];
       if (ta != null && tb != null && ta != tb) return tb.compareTo(ta);
       return a.compareTo(b);
     });
@@ -191,18 +266,54 @@ class Vouch {
     'signature',
   };
 
-  static final _day = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+  static final _day = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
+
+  /// A time with seconds and a zone (`Z` or `+09:00`), so every device
+  /// orders vouches the same way.
+  static final _stamp = RegExp(
+    r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,6})?'
+    r'(Z|[+-](\d{2}):(\d{2}))$',
+  );
+
+  /// Printable ASCII only: an address with spaces, line breaks or other
+  /// characters could look like another one.
+  static final _printable = RegExp(r'^[\x21-\x7e]+$');
   static final _method = RegExp(r'^[a-z][a-z0-9-]{0,39}$');
   static final _lang = RegExp(r'^[a-z]{2}$');
 
-  /// Characters that could make one name look like another (controls,
-  /// zero-width, direction changes); a title with one is refused.
+  /// Characters that could make one name look like another or hide part
+  /// of it (controls, format characters such as zero-width and direction
+  /// marks, line and paragraph separators, private and unassigned code
+  /// points, Hangul fillers); a title with one is refused.
   static final _hidden = RegExp(
-    '[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]',
+    r'[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cn}\u115f\u1160\u3164\uffa0]',
+    unicode: true,
   );
 
-  static DateTime? _time(String s) =>
-      s.length > 64 ? null : DateTime.tryParse(s);
+  /// Years a vouch may name: a time far in the future would decide over
+  /// every later vouch, a withdrawal too (and never pass).
+  static const _years = (first: 2020, last: 2100);
+
+  static bool _validDay(int y, int m, int d) =>
+      y >= _years.first &&
+      y <= _years.last &&
+      m >= 1 &&
+      m <= 12 &&
+      d >= 1 &&
+      d <= DateTime.utc(y, m + 1, 0).day;
+
+  /// [s] as a time, or null unless it is written as [_stamp] says, is a
+  /// real time (no February 31st) and in [_years].
+  static DateTime? _time(String s) {
+    final m = _stamp.firstMatch(s);
+    if (m == null) return null;
+    int n(int g) => int.parse(m[g]!);
+    if (!_validDay(n(1), n(2), n(3)) || n(4) > 23 || n(5) > 59 || n(6) > 59) {
+      return null;
+    }
+    if (m[8] != 'Z' && (n(9) > 14 || n(10) > 59)) return null;
+    return DateTime.tryParse(s);
+  }
 
   /// [v] is base64url of [length] bytes, written the one way [b64] writes
   /// it (as for key statements: one vouch, one spelling, one [id]).
@@ -232,9 +343,13 @@ class Vouch {
       return null;
     }
     final checked = j['checked'];
-    if (checked is! String ||
-        !_day.hasMatch(checked) ||
-        DateTime.tryParse(checked) == null) {
+    final day = checked is String ? _day.firstMatch(checked) : null;
+    if (day == null ||
+        !_validDay(
+          int.parse(day[1]!),
+          int.parse(day[2]!),
+          int.parse(day[3]!),
+        )) {
       return null;
     }
     final method = j['method'];
@@ -254,8 +369,18 @@ class Vouch {
     final url = j['url'];
     if (url != null) {
       if (url is! String || url.length > 300) return null;
+      if (!_printable.hasMatch(url)) return null;
       final u = Uri.tryParse(url);
-      if (u == null || u.scheme != 'https' || u.host.isEmpty) return null;
+      // No `user@` before the host (it makes another host look like the
+      // one shown), no port, and written as the address reads back.
+      if (u == null ||
+          u.scheme != 'https' ||
+          u.host.isEmpty ||
+          u.userInfo.isNotEmpty ||
+          u.hasPort ||
+          u.toString() != url) {
+        return null;
+      }
     }
     if (j.containsKey('withdrawn') && j['withdrawn'] != true) return null;
     final signed = j['signed'];
@@ -309,6 +434,10 @@ enum VouchStatus {
   /// not the vouched-for publisher (or a key it has not announced).
   otherKey,
 
+  /// This key was revoked by the publisher's own key statement (stolen or
+  /// lost): nothing of it counts, vouched for or not.
+  revoked,
+
   /// No vouch for its name: added by the user, not checked by Lychnion.
   none,
 }
@@ -317,9 +446,12 @@ enum VouchStatus {
 typedef VouchResult = ({VouchStatus status, Vouch? vouch});
 
 /// What [vouches] (already checked, see [Vouch.check]) say about
-/// [publisher]'s [key]: the newest vouch for that name decides (on the
-/// same time, a withdrawal wins). A vouched key's successors, by the
-/// publisher's own key [statements], are vouched too; a revoked one is not.
+/// [publisher]'s [key]. The newest vouch for that name decides (on the
+/// same time a withdrawal, then the same one on every device; a
+/// withdrawal counts for the name, whichever key it names). Key
+/// statements of the publisher itself apply: a key the vouched key
+/// replaced, or one that replaced it, is vouched too; a revoked key is
+/// [VouchStatus.revoked].
 VouchResult vouchFor(
   String publisher,
   String key,
@@ -330,9 +462,7 @@ VouchResult vouchFor(
   for (final v in vouches) {
     if (v.publisher != publisher) continue;
     final n = newest;
-    if (n == null ||
-        v.signedAt.isAfter(n.signedAt) ||
-        (v.signedAt.isAtSameMomentAs(n.signedAt) && v.withdrawn)) {
+    if (n == null || Vouch._decides(v.json, v.signedAt, n.json, n.signedAt)) {
       newest = v;
     }
   }
@@ -344,11 +474,13 @@ VouchResult vouchFor(
   } on FormatException {
     return (status: VouchStatus.otherKey, vouch: newest);
   }
-  final keys = resolveKeys(publisher, [newest.key], statements).keys;
+  final mine = resolveKeys(publisher, [canonical], statements).keys;
+  if (mine.isEmpty) return (status: VouchStatus.revoked, vouch: newest);
+  final vouched = resolveKeys(publisher, [newest.key], statements).keys;
+  final same =
+      vouched.contains(canonical) || mine.intersection(vouched).isNotEmpty;
   return (
-    status: keys.contains(canonical)
-        ? VouchStatus.vouched
-        : VouchStatus.otherKey,
+    status: same ? VouchStatus.vouched : VouchStatus.otherKey,
     vouch: newest,
   );
 }
