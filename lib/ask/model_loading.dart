@@ -183,7 +183,7 @@ mixin _ModelLoading on _AskPageBase {
             ?openOrSkip(
               id,
               src.path,
-              safetyLines: true,
+              safetyLines: src.safetyLines,
               signer: attesterPublisher,
             ),
           ]);
@@ -196,7 +196,7 @@ mixin _ModelLoading on _AskPageBase {
               ?openOrSkip(
                 i.id,
                 store.path(i, i.fileEnding('.sqlite')!),
-                safetyLines: i.builtInPublisher,
+                safetyLines: store.givesSafetyLines(i),
                 signer: i.record.publisher,
                 signerKeyId: i.record.keyId,
               ),

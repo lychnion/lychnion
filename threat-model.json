@@ -685,7 +685,7 @@
       "property": "signed-install-only",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a file from any source is installed or served onward only when its record verifies against a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in or added key, or a successor named by a valid key statement, and not revoked.",
+      "conditions": "a file from any source is installed or served onward only when its record verifies against enough trusted keys for that publisher name holding the scope its kind needs (`models` for a model, else `data`; one key for now) and the file's size and SHA-256 match. A trusted key is a built-in or added key (every scope), a successor named by a valid key statement (the scopes of the key it replaces) or a key granted by one holding `keys` (the granted scopes), and not revoked.",
       "provenance": "documented",
       "source": "docs/data-packages.md \"Signing and trust\""
     },
@@ -853,7 +853,7 @@
       "property": "node-private-address-filter",
       "violation_symptom": "x-request-forgery",
       "severity_tier": "correctness",
-      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network; an internet catalog's own redirects are checked the same way. Private or local means any address that is not plain public unicast, including `::`, multicast, special ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:393`). DNS rebinding is not caught.",
+      "conditions": "a node skips file addresses on private or local networks, also after a redirect, unless the catalog itself is on such a network; an internet catalog's own redirects are checked the same way. Private or local means any address that is not plain public unicast, including `::`, multicast, special ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:396`). DNS rebinding is not caught.",
       "provenance": "documented",
       "source": "packages/lychnion_node/README.md \"Operating\""
     },
@@ -861,7 +861,7 @@
       "property": "key-statement-verification",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a replacement counts only when the old key signed it and the new key countersigned it; a revocation only when the revoked key signed it; and only when the old key is trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached only through them is not trusted. This holds for the `lychnion` key too.",
+      "conditions": "a replacement or a grant counts only when the old key signed it and the new key countersigned it, a grant only when the old key holds `keys`; a revocation only when the revoked key signed it, or a key of the same publisher holding `keys` (`by`); and only when the key that made it is trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached only through them is not trusted. This holds for the `lychnion` key too.",
       "provenance": "documented",
       "source": "docs/distribution.md \"Backing up and replacing the key\""
     },

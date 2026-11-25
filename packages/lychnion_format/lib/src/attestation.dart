@@ -93,8 +93,9 @@ class Attestation {
   int get hashCode => id.hashCode;
 
   /// The attestation in [json], or null when its shape or signature is wrong,
-  /// or when its signer is not a key [trust] has for [attesterPublisher] (after
-  /// key statements). Never throws.
+  /// or when its signer is not a key [trust] has for [attesterPublisher]
+  /// (after key statements) that may sign attestations
+  /// (KeyScope.attestations, lychnion/lychnion#125). Never throws.
   ///
   /// An [Attestation] does not remember the keys it was checked with:
   /// attestations a device keeps are checked again with its current keys
@@ -127,7 +128,11 @@ class Attestation {
         }),
         at,
       );
-      if (!trust.keysOf(attesterPublisher).contains(v.signer)) return none;
+      if (!trust
+          .keysFor(attesterPublisher, KeyScope.attestations)
+          .contains(v.signer)) {
+        return none;
+      }
       final ok = await _ed25519.verify(
         utf8.encode(v.signedText),
         signature: Signature(

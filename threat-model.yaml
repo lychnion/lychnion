@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:9e2b0cc37012e01e7fb3a700fc0611956a097a2cf0418c706093e853f7013607
+prose_version: threat-model.md@sha256:c46b380eed70ff716eed724348c3b0ba9869150c225756014d1447ed1fcc01f5
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1684,8 +1684,10 @@ properties_claimed:
   - base-client
   tier: security-critical
   conditions: a file from any source is installed or served onward only when its record verifies against
-    a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in
-    or added key, or a successor named by a valid key statement, and not revoked.
+    enough trusted keys for that publisher name holding the scope its kind needs (`models` for a model, else
+    `data`; one key for now) and the file's size and SHA-256 match. A trusted key is a built-in or added key
+    (every scope), a successor named by a valid key statement (the scopes of the key it replaces) or a key
+    granted by one holding `keys` (the granted scopes), and not revoked.
   violation_symptoms:
   - integrity-bypass
   provenance:
@@ -1997,7 +1999,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:393`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:396`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:
@@ -2010,10 +2012,11 @@ properties_claimed:
   - downloads
   - node
   tier: security-critical
-  conditions: a replacement counts only when the old key signed it and the new key countersigned it; a
-    revocation only when the revoked key signed it; and only when the old key is trusted for that publisher
-    at that moment. A revoked key, a key with two successors, and any key reached only through them is
-    not trusted. This holds for the `lychnion` key too.
+  conditions: a replacement or a grant counts only when the old key signed it and the new key
+    countersigned it, a grant only when the old key holds `keys`; a revocation only when the revoked key
+    signed it, or a key of the same publisher holding `keys` (`by`); and only when the key that made it is
+    trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached
+    only through them is not trusted. This holds for the `lychnion` key too.
   violation_symptoms:
   - integrity-bypass
   provenance:

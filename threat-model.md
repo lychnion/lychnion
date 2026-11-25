@@ -515,14 +515,17 @@ plus phones that also use the internet when they can.
 
 - **`signed-install-only`** (`downloads`, `records`, `node`, `base-client`):
   a file from any source is installed or served onward only when its record
-  verifies against a trusted key for that publisher name and the file's size
-  and SHA-256 match. A trusted key is a built-in or added key, or a successor
-  named by a valid key statement, and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
+  verifies against enough trusted keys for that publisher name holding the
+  scope its kind needs (`models` for a model, else `data`; one key for now)
+  and the file's size and SHA-256 match. A trusted key is a built-in or
+  added key (every scope), a successor named by a valid key statement (the
+  scopes of the key it replaces) or a key granted by one holding `keys` (the
+  granted scopes), and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:34`,
   `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:207`, and "Open a model
   file…" at `lib/ask/model_loading.dart:310`. Bundled guides are trusted by
-  the app signature, not a record (`lib/download/download_store.dart:839`).
+  the app signature, not a record (`lib/download/download_store.dart:842`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
@@ -679,7 +682,7 @@ plus phones that also use the internet when they can.
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
   — no setting or dev flag sets them. A `keys` entry that is not a flat
   object of a statement's own fields is skipped before anything walks it
-  (`packages/lychnion_format/lib/src/key_statement.dart:436`), and on a
+  (`packages/lychnion_format/lib/src/key_statement.dart:636`), and on a
   node one catalog's keys never end the pull for the other sources.
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
@@ -761,22 +764,23 @@ plus phones that also use the internet when they can.
   is on such a network; an internet catalog's own redirects are checked the
   same way. Private or local means any address that is not plain public
   unicast, including `::`, multicast, special ranges and IPv4 carried in
-  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:393`). DNS rebinding is
+  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:396`). DNS rebinding is
   not caught. *Violation symptom*: x-request-forgery. *Tier*:
   correctness-only. *Voided by*: a catalog on a private network or a folder
   (`packages/lychnion_node/lib/src/pull.dart:145`). *(documented,
   packages/lychnion_node/README.md "Operating")*
 
-- **`key-statement-verification`** (`records`, `downloads`, `node`): a
-  replacement counts only when the old key signed it and the new key
-  countersigned it; a revocation only when the revoked key signed it; and
-  only when the old key is trusted for that publisher at that moment. A
-  revoked key, a key with two successors, and any key reached only through
-  them is not trusted. This holds for the `lychnion` key too. *Violation
+- **`key-statement-verification`** (`records`, `downloads`, `node`): a replacement or a grant counts only when the old key signed it and the
+  new key countersigned it, a grant only when the old key holds `keys`; a
+  revocation only when the revoked key signed it, or a key of the same
+  publisher holding `keys` (`by`); and only when the key that made it is
+  trusted for that publisher at that moment. A revoked key, a key with two
+  successors, and any key reached only through them is not trusted. This
+  holds for the `lychnion` key too. *Violation
   symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: no
   switch; only `KeyStatement.check` admits a statement, at
-  `packages/lychnion_format/lib/src/key_statement.dart:172` and
-  `packages/lychnion_format/lib/src/key_statement.dart:175`.
+  `packages/lychnion_format/lib/src/key_statement.dart:245` and
+  `packages/lychnion_format/lib/src/key_statement.dart:248`.
   *(documented, docs/distribution.md "Backing up and replacing the key")*
 - **`revocation-unloads`** (`downloads`): once a revocation is learned,
   items whose record the revoked key signed are no longer used. Their files
@@ -922,6 +926,9 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
   folded in.
 - Rotation or revocation of base keys (changes `key-revocation`).
 - Publishers allowed to ship models or safety lines.
+- Lychnion's built-in key limited to `keys`, or more than one signature
+  required for a scope (changes `signed-install-only` and
+  `key-statement-verification`; lychnion/lychnion#125).
 - A release built in CI, or app store and desktop signing written down.
 - Telemetry or issue reports from the app (issue 18).
 - Any §1.6 default that changes, and any new `lychnion://` link kind.

@@ -12,12 +12,61 @@ import 'record.dart';
 
 final _ed25519 = Ed25519();
 
+/// What a publisher's key may sign (lychnion/lychnion#125). A record, an
+/// attestation or a status signed by a key outside the scope it needs is
+/// refused like a bad signature. Keys a device trusts on its own (built in,
+/// or added by a link) hold every scope; a key named by a [grant] holds
+/// the scopes the grant lists; a successor by [replace] holds those of the
+/// key it replaces.
+///
+/// [grant]: KeyStatementType.grant
+/// [replace]: KeyStatementType.replace
+abstract final class KeyScope {
+  /// Guides, maps, contour lines and other items that are not models, and
+  /// a publisher's status.
+  static const data = 'data';
+
+  /// Records of kind `model`.
+  static const models = 'models';
+
+  /// The official safety lines (alerts) in a package: they count only when
+  /// the package's signer holds this scope.
+  static const safetyLines = 'safety-lines';
+
+  /// Lychnion's attestations for official publishers.
+  static const attestations = 'attestations';
+
+  /// Grants, and revocations of the publisher's other keys.
+  static const keys = 'keys';
+
+  static const all = {data, models, safetyLines, attestations, keys};
+
+  /// Valid signatures from distinct keys holding the scope that a record
+  /// needs (see PackageRecord's `signatures`). One for every scope for
+  /// now; it can be raised for `models`, `safety-lines` and `keys` later.
+  static const required = {
+    data: 1,
+    models: 1,
+    safetyLines: 1,
+    attestations: 1,
+    keys: 1,
+  };
+
+  /// The scope a record of [kind] needs.
+  static String forKind(String kind) => kind == 'model' ? models : data;
+}
+
 enum KeyStatementType {
   /// The old key names its successor; signed by both keys.
   replace,
 
-  /// The key is not to be trusted any more; signed by that key.
+  /// The key is not to be trusted any more; signed by that key, or by
+  /// another key of the publisher holding [KeyScope.keys] (`by`).
   revoke,
+
+  /// A key holding [KeyScope.keys] (`old`) names another key of the
+  /// publisher (`new`) with a scope; signed by both keys.
+  grant,
 }
 
 /// A signed key statement. Only made by [check] (signatures verified) or
@@ -53,7 +102,8 @@ class KeyStatement {
   /// The indexes of [statements] (statement JSON) in the order they are
   /// kept when not all fit (lychnion/lychnion#59): revocations first, then
   /// replacements that prove a theft (losing either would trust a stolen
-  /// key again), then the other replacements chain by chain from the
+  /// key again), then grants (#125), then the other replacements chain by
+  /// chain from the
   /// first key, nearest first, so what is kept still connects to a key a
   /// device knows. Ties keep the list order. Used by [capped] and
   /// `CatalogDocument.fitted`.
@@ -66,7 +116,7 @@ class KeyStatement {
       }
     }
 
-    final revokes = <int>[], thefts = <int>[];
+    final revokes = <int>[], thefts = <int>[], grants = <int>[];
     // Replacements: (publisher, old, new) by index.
     final replaces = <int, (String, String, String)>{};
     for (var i = 0; i < statements.length; i++) {
@@ -75,6 +125,8 @@ class KeyStatement {
       final p = m['publisher'], old = key(m['old']), next = key(m['new']);
       if (m['type'] == 'revoke') {
         revokes.add(i);
+      } else if (m['type'] == 'grant') {
+        grants.add(i);
       } else if (m['type'] == 'replace' &&
           p is String &&
           old != null &&
@@ -118,7 +170,7 @@ class KeyStatement {
       final c = d(a).compareTo(d(b));
       return c != 0 ? c : a.compareTo(b);
     });
-    final ordered = [...revokes, ...thefts, ...rest];
+    final ordered = [...revokes, ...thefts, ...grants, ...rest];
     final done = ordered.toSet();
     return [
       ...ordered,
@@ -138,9 +190,23 @@ class KeyStatement {
   /// The key replaced or revoked (Ed25519, base64url).
   String get oldKey => json['old']! as String;
 
-  /// The successor ([KeyStatementType.replace] only).
+  /// The successor ([KeyStatementType.replace]) or the key granted
+  /// ([KeyStatementType.grant]).
   String? get newKey => json['new'] as String?;
   String get signed => json['signed']! as String;
+
+  /// What a [KeyStatementType.grant] lets its new key sign ([KeyScope]).
+  List<String> get scope => [
+    for (final x in (json['scope'] as List?) ?? const []) x as String,
+  ];
+
+  /// The key that revokes [oldKey] for the publisher, when it is not
+  /// [oldKey] itself ([KeyStatementType.revoke] only); it counts when it
+  /// holds [KeyScope.keys].
+  String? get by => json['by'] as String?;
+
+  /// The key that made the statement: [by] when given, else [oldKey].
+  String get maker => by ?? oldKey;
 
   String get oldKeyId => recordKeyIdOf(unb64(oldKey));
   String? get newKeyId => newKey == null ? null : recordKeyIdOf(unb64(newKey!));
@@ -167,12 +233,19 @@ class KeyStatement {
     try {
       final j = (json! as Map).cast<String, Object?>();
       if (!_shapeOk(j)) return null;
-      final s = KeyStatement._(Map.unmodifiable(j));
+      final s = KeyStatement._(
+        Map.unmodifiable({
+          for (final e in j.entries)
+            e.key: e.value is List
+                ? List<String>.unmodifiable((e.value! as List).cast<String>())
+                : e.value,
+        }),
+      );
       final text = utf8.encode(s.signedText);
-      if (!await _verify(text, j['signature']! as String, s.oldKey)) {
+      if (!await _verify(text, j['signature']! as String, s.maker)) {
         return null;
       }
-      if (s.type == KeyStatementType.replace &&
+      if (s.type != KeyStatementType.revoke &&
           !await _verify(text, j['new_signature']! as String, s.newKey!)) {
         return null;
       }
@@ -226,6 +299,8 @@ class KeyStatement {
     'publisher',
     'old',
     'new',
+    'scope',
+    'by',
     'signed',
     'signature',
     'new_signature',
@@ -261,15 +336,44 @@ class KeyStatement {
     if (!_canonical(j['old'], 32)) return false;
     switch (type) {
       case 'replace':
+        if (j.containsKey('scope') || j.containsKey('by')) return false;
+        if (!_canonical(j['new'], 32) || !_canonical(j['new_signature'], 64)) {
+          return false;
+        }
+        return j['old'] != j['new'];
+      case 'grant':
+        if (j.containsKey('by') || !_scopeOk(j['scope'])) return false;
         if (!_canonical(j['new'], 32) || !_canonical(j['new_signature'], 64)) {
           return false;
         }
         return j['old'] != j['new'];
       case 'revoke':
-        return !j.containsKey('new') && !j.containsKey('new_signature');
+        if (j.containsKey('new') ||
+            j.containsKey('new_signature') ||
+            j.containsKey('scope')) {
+          return false;
+        }
+        if (j.containsKey('by')) {
+          return _canonical(j['by'], 32) && j['by'] != j['old'];
+        }
+        return true;
       default:
         return false;
     }
+  }
+
+  /// A non-empty list of [KeyScope]s, sorted and each once: one way to
+  /// write each grant.
+  static bool _scopeOk(Object? v) {
+    if (v is! List || v.isEmpty || v.length > KeyScope.all.length) {
+      return false;
+    }
+    for (var i = 0; i < v.length; i++) {
+      final x = v[i];
+      if (x is! String || !KeyScope.all.contains(x)) return false;
+      if (i > 0 && (v[i - 1] as String).compareTo(x) >= 0) return false;
+    }
+    return true;
   }
 
   static Future<bool> _verify(List<int> text, String sig, String key) =>
@@ -305,36 +409,88 @@ class KeyStatement {
   }
 
   /// [key] is revoked: records and statements it signed are not trusted.
+  /// With [by] (another key of the publisher holding [KeyScope.keys]),
+  /// [key] is named by its public key [revoked] and [by] signs: the root
+  /// cuts off a stolen everyday key it does not hold.
   static Future<KeyStatement> revoke({
     required String publisher,
-    required SimpleKeyPair key,
+    SimpleKeyPair? key,
+    String? revoked,
+    SimpleKeyPair? by,
     required String signed,
   }) async {
+    if ((key == null) == (revoked == null)) {
+      throw ArgumentError('give key or revoked');
+    }
+    if (revoked != null && by == null) throw ArgumentError('revoked needs by');
     final j = <String, Object?>{
       'format': format,
       'type': KeyStatementType.revoke.name,
       'publisher': publisher,
-      'old': await publicKeyOf(key),
+      'old': revoked != null
+          ? TrustedKeys.canonicalKey(revoked)
+          : await publicKeyOf(key!),
+      'by': ?(by == null ? null : await publicKeyOf(by)),
       'signed': signed,
     };
     final text = utf8.encode(canonicalJson(j));
-    j['signature'] = b64((await _ed25519.sign(text, keyPair: key)).bytes);
-    return (await check(j))!;
+    j['signature'] = b64(
+      (await _ed25519.sign(text, keyPair: by ?? key!)).bytes,
+    );
+    return (await check(j)) ?? (throw ArgumentError('not a valid revocation'));
+  }
+
+  /// [granter] (a key of [publisher] holding [KeyScope.keys]) names
+  /// [newKey] as a key of [publisher] that may sign [scope]; signed by
+  /// both.
+  static Future<KeyStatement> grant({
+    required String publisher,
+    required SimpleKeyPair granter,
+    required SimpleKeyPair newKey,
+    required Iterable<String> scope,
+    required String signed,
+  }) async {
+    final j = <String, Object?>{
+      'format': format,
+      'type': KeyStatementType.grant.name,
+      'publisher': publisher,
+      'old': await publicKeyOf(granter),
+      'new': await publicKeyOf(newKey),
+      'scope': ({...scope}.toList()..sort()),
+      'signed': signed,
+    };
+    final text = utf8.encode(canonicalJson(j));
+    j['signature'] = b64((await _ed25519.sign(text, keyPair: granter)).bytes);
+    j['new_signature'] = b64(
+      (await _ed25519.sign(text, keyPair: newKey)).bytes,
+    );
+    return (await check(j)) ?? (throw ArgumentError('not a valid grant'));
   }
 }
 
 /// What [statements] say about [publisher], starting from the keys a
-/// device trusts on its own ([roots]: built in, or added by a link).
+/// device trusts on its own ([roots]: built in, or added by a link; they
+/// hold every [KeyScope]).
 ///
-/// - A revoked key is not trusted.
+/// - A revoked key is not trusted. A revocation by the key itself always
+///   counts; one made `by` another key counts when that key holds
+///   [KeyScope.keys], judged with the keys trusted before any such
+///   revocation (so two keys revoking each other are both revoked).
 /// - A key that names two different successors is treated as revoked:
-///   only a thief and the owner both holding it would do that.
-/// - A successor is trusted when the key that names it is trusted and
-///   not revoked, so a key reached only through a revoked key is dropped.
+///   only a thief and the owner both holding it would do that. A key may
+///   grant many keys.
+/// - A successor is trusted, with the scopes of the key that names it,
+///   when that key is trusted and not revoked; a granted key is trusted,
+///   with the scopes its grant lists, when its granter is trusted, holds
+///   [KeyScope.keys] and is not revoked. So a key reached only through a
+///   revoked key is dropped: revoking the root also drops the keys it
+///   granted, as it drops its successors. Scopes reached more than one
+///   way add up.
 ///
-/// Returns the trusted keys (base64url, unpadded) and the ids of the
-/// revoked ones.
-({Set<String> keys, Set<String> revokedIds}) resolveKeys(
+/// Returns the trusted keys (base64url, unpadded), the scopes of each, and
+/// the ids of the revoked ones.
+({Set<String> keys, Map<String, Set<String>> scopes, Set<String> revokedIds})
+resolveKeys(
   String publisher,
   Iterable<String> roots,
   Iterable<KeyStatement> statements,
@@ -344,33 +500,72 @@ class KeyStatement {
     for (final s in statements)
       if (s.publisher == publisher) s,
   ];
-  final revoked = <String>{
+  final selfRevoked = <String>{
     for (final s in mine)
-      if (s.type == KeyStatementType.revoke) norm(s.oldKey),
+      if (s.type == KeyStatementType.revoke && s.by == null) norm(s.oldKey),
   };
   final successors = <String, Set<String>>{};
+  final grants = <String, List<(String, List<String>)>>{};
   for (final s in mine) {
-    if (s.type != KeyStatementType.replace) continue;
-    successors.putIfAbsent(norm(s.oldKey), () => {}).add(norm(s.newKey!));
-  }
-  for (final e in successors.entries) {
-    if (e.value.length > 1) revoked.add(e.key);
-  }
-  final trusted = {
-    for (final k in roots)
-      if (!revoked.contains(norm(k))) norm(k),
-  };
-  var grew = true;
-  while (grew) {
-    grew = false;
-    for (final k in [...trusted]) {
-      for (final next in successors[k] ?? const <String>{}) {
-        if (!revoked.contains(next) && trusted.add(next)) grew = true;
-      }
+    switch (s.type) {
+      case KeyStatementType.replace:
+        successors.putIfAbsent(norm(s.oldKey), () => {}).add(norm(s.newKey!));
+      case KeyStatementType.grant:
+        grants.putIfAbsent(norm(s.oldKey), () => []).add((
+          norm(s.newKey!),
+          s.scope,
+        ));
+      case KeyStatementType.revoke:
+        break;
     }
   }
+  for (final e in successors.entries) {
+    if (e.value.length > 1) selfRevoked.add(e.key);
+  }
+  Map<String, Set<String>> trustedWith(Set<String> revoked) {
+    final t = <String, Set<String>>{
+      for (final k in roots)
+        if (!revoked.contains(norm(k))) norm(k): {...KeyScope.all},
+    };
+    bool add(String k, Iterable<String> scope) {
+      final have = t.putIfAbsent(k, () => {});
+      final before = have.length;
+      have.addAll(scope);
+      return have.length != before;
+    }
+
+    var grew = true;
+    while (grew) {
+      grew = false;
+      for (final e in [...t.entries]) {
+        for (final next in successors[e.key] ?? const <String>{}) {
+          if (!revoked.contains(next) && add(next, e.value)) grew = true;
+        }
+        if (!e.value.contains(KeyScope.keys)) continue;
+        for (final (next, scope)
+            in grants[e.key] ?? const <(String, List<String>)>[]) {
+          if (!revoked.contains(next) && add(next, scope)) grew = true;
+        }
+      }
+    }
+    return t;
+  }
+
+  final before = trustedWith(selfRevoked);
+  final revoked = {
+    ...selfRevoked,
+    for (final s in mine)
+      if (s.type == KeyStatementType.revoke &&
+          s.by != null &&
+          (before[norm(s.by!)]?.contains(KeyScope.keys) ?? false))
+        norm(s.oldKey),
+  };
+  final trusted = revoked.length == selfRevoked.length
+      ? before
+      : trustedWith(revoked);
   return (
-    keys: trusted,
+    keys: trusted.keys.toSet(),
+    scopes: trusted,
     revokedIds: {for (final k in revoked) recordKeyIdOf(unb64(k))},
   );
 }
@@ -392,7 +587,12 @@ bool _flat(Object? e) =>
       (f) =>
           f.key is String &&
           KeyStatement._fields.contains(f.key) &&
-          (f.value is String || f.value is num),
+          (f.value is String ||
+              f.value is num ||
+              (f.key == 'scope' &&
+                  f.value is List &&
+                  (f.value as List).length <= KeyScope.all.length &&
+                  (f.value as List).every((x) => x is String))),
     );
 
 /// The statements in [list] (raw JSON, as in a catalog's `keys`, or
@@ -440,9 +640,10 @@ Future<List<KeyStatement>> relevantStatements(
       // A number JSON cannot write (1e999 decodes to Infinity).
       continue;
     }
+    // Made by `by` when given (a revocation by another key), else by `old`.
     final (publisher, old) = switch (e) {
-      KeyStatement s => (s.publisher, norm(s.oldKey)),
-      Map<Object?, Object?> m => (m['publisher'], norm(m['old'])),
+      KeyStatement s => (s.publisher, norm(s.maker)),
+      Map<Object?, Object?> m => (m['publisher'], norm(m['by'] ?? m['old'])),
       _ => (null, null),
     };
     if (publisher is String && old != null && known.contains(publisher)) {

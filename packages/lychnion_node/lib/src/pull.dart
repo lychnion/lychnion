@@ -302,12 +302,15 @@ Future<PullResult> _pull(
       keys: keys.statements,
       attestations: [
         for (final v in attestations)
-          if (keys.keysOf(attesterPublisher).contains(v.signer)) v,
+          if (keys
+              .keysFor(attesterPublisher, KeyScope.attestations)
+              .contains(v.signer))
+            v,
       ],
       // A far-future one (a stolen key's) never displaces the real one.
       status: PublisherStatus.deciding([
         for (final s in status)
-          if (keys.keysOf(s.publisher).contains(s.signer)) s,
+          if (keys.keysFor(s.publisher, KeyScope.data).contains(s.signer)) s,
       ], DateTime.now()),
     );
     result.keysLeftOut = left.keys;

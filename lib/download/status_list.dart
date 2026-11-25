@@ -181,7 +181,7 @@ class StatusList extends ChangeNotifier {
       PublisherStatus.newest(PublisherStatus.deciding(statuses, _now()));
 
   static bool _trusted(PublisherStatus s, TrustedKeys trust) =>
-      trust.keysOf(s.publisher).contains(s.signer);
+      trust.keysFor(s.publisher, KeyScope.data).contains(s.signer);
 
   void _set(List<PublisherStatus> list) {
     _status

@@ -117,7 +117,8 @@ class PublisherStatus {
   }
 
   /// The status in [json], or null when its shape or signature is wrong, or
-  /// when its signer is not a key [trust] has for its publisher (after key
+  /// when its signer is not a key [trust] has for its publisher that may
+  /// sign data (KeyScope.data, lychnion/lychnion#125) (after key
   /// statements, also those in the status itself: a successor key may sign
   /// it together with the statement that names it). Never throws.
   static Future<PublisherStatus?> check(
@@ -145,7 +146,7 @@ class PublisherStatus {
       // A copy all the way down: a caller changing its map afterwards
       // cannot change this status.
       final s = PublisherStatus._(_frozen(j), at);
-      var keys = trust.keysOf(s.publisher);
+      var keys = trust.keysFor(s.publisher, KeyScope.data);
       // A successor key may sign together with the statement that names
       // it. Only then are inline statements verified, and only those a key
       // trusted here made (relevantStatements): anyone can sign statements
@@ -157,7 +158,7 @@ class PublisherStatus {
         tried = true;
         keys = trust
             .withStatements(await relevantStatements(trust, s.keys))
-            .keysOf(s.publisher);
+            .keysFor(s.publisher, KeyScope.data);
       }
       if (!keys.contains(s.signer)) {
         // Inline statements that did not make the signer trusted count as

@@ -112,6 +112,11 @@ here should be relied on alone in an emergency. Source only; build it as
 
 ### Security
 
+- Key scopes (#125): a key may sign only what its scope allows (`data`,
+  `models`, `safety-lines`, `attestations`, `keys`); a key granted only
+  `data` cannot ship a model, official safety lines or attestations. The
+  root key can revoke any of its publisher's keys, and revoking it drops
+  the keys it granted. Built-in keys keep every scope for now.
 - Held-back updates show (#117). Downloads says when a publisher's
   signed status names a newer version than the one a stick, base or
   download source offers ("a newer version exists, but it is not
@@ -305,6 +310,9 @@ attestations it took back. It travels in a catalog's `status` list. The
 app keeps the newest of each publisher in `downloads/status.json`
 (`format: 1`) and passes them on with sticks and a base's catalog; a
 node keeps those of every source. Older builds ignore `status`.
+Key statements may be `grant`s, and a `revoke` may carry `by`; records
+may carry a `signatures` list (#125). Older builds ignore grants and
+revocations `by` another key, and check only `key` and `signature`.
 
 ### Known gaps
 

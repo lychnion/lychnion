@@ -210,6 +210,61 @@ do (canonical JSON).
   not encrypted. "Revoke a lost key from a backup" uses it without the
   passphrase.
 
+**Key scopes** (lychnion/lychnion#125, part of the key plan in #118). So
+that one stolen everyday key cannot sign everything, a key may sign only
+what its **scope** allows. A record, attestation or status signed by a
+key outside the scope it needs is refused like a bad signature.
+
+| Scope | Lets a key sign |
+| --- | --- |
+| `data` | guides, maps, contour lines and other items that are not models; a publisher status |
+| `models` | records of kind `model` |
+| `safety-lines` | the official safety lines in a package: they count only when the package's signer holds this scope (and is Lychnion's, #66) |
+| `attestations` | Lychnion's attestations ("Checked by Lychnion") |
+| `keys` | grants, and revocations of the publisher's other keys |
+
+- Keys a device trusts on its own (built in, or added by a link) hold
+  every scope, so nothing signed today stops counting. After a data
+  release that re-signs the records with scoped keys, an app update will
+  limit Lychnion's built-in key (the root) to `keys`; it then stays
+  offline (lychnion/lychnion#118).
+- A **grant** names a key with a scope; the granting key must hold
+  `keys`, and both keys sign, as for a replacement:
+
+  ```json
+  {"format": 1, "type": "grant", "publisher": "lychnion",
+   "old": "<granting key>", "new": "<granted key>",
+   "scope": ["data"], "signed": "…",
+   "signature": "<by old>", "new_signature": "<by new>"}
+  ```
+
+  `scope` is a non-empty list of the scopes above, sorted, each once. A
+  key may grant many keys (no theft conflict, unlike a key naming two
+  successors). Grants to one key add up. A successor by `replace` holds
+  the scopes of the key it replaces.
+- **Revoked by the root:** a `revoke` may carry `"by": "<key>"`, signed
+  by that key instead of the revoked one. It counts when `by` holds
+  `keys` for the same publisher, judged with the keys trusted before any
+  such revocation: so the root can cut off a stolen everyday key it does
+  not hold, and two keys revoking each other are both revoked. A
+  revocation by the key itself counts as before.
+- **A revoked key's grants lapse:** a granted key is trusted only through
+  a trusted, not revoked granter, as a successor is. Revoking the root
+  also drops the keys it granted.
+- **More than one signature:** a record may carry `signatures: [{"key":
+  "<key id>", "signature": "…"}]` (at most 8) next to `key` and
+  `signature`. Each entry signs the record without `signature` and
+  `signatures`; `signature` signs the record without `signature` only, so
+  it covers the list too and is made last. Older apps check only `key`
+  and `signature` and keep reading such records (with the weaker check
+  until they update). A record is valid when enough distinct keys of its
+  publisher holding the needed scope signed it: one for every scope for
+  now (`KeyScope.required`), to be raised (for example 2 of 3 for
+  `models`, `safety-lines` and `keys`) once there are more key holders.
+  A key named twice counts once.
+- Added publishers can use grants and scopes too; nothing else changes
+  for them.
+
 After a replacement or revocation (and again each time Publish your own
 opens, in case a step failed) the desktop app re-signs the newest
 record of each item it published with the new key, so what is installed

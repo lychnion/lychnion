@@ -836,19 +836,34 @@ class DownloadStore {
   /// replace Lychnion's guide and its safety lines (#66, #68). Decided
   /// from one look at what is installed. `shadowed` names that copy's
   /// publisher, for the log.
-  Future<({String path, String? shadowed})> bundledPackageSource(
-    String id,
-    String asset,
-  ) async {
+  /// `safetyLines`: whether its official safety lines count (the bundled
+  /// file's always; a download's when [givesSafetyLines]).
+  Future<({String path, String? shadowed, bool safetyLines})>
+  bundledPackageSource(String id, String asset) async {
     final i = installed(ItemKind.package, id);
     if (useInstalledBundled(i)) {
-      return (path: path(i!, i.fileEnding('.sqlite')!), shadowed: null);
+      return (
+        path: path(i!, i.fileEnding('.sqlite')!),
+        shadowed: null,
+        safetyLines: givesSafetyLines(i),
+      );
     }
     return (
       path: await copyBundled('packages', asset),
       shadowed: i?.record.publisher,
+      safetyLines: true,
     );
   }
+
+  /// Whether installed package [i]'s official safety lines count: signed
+  /// by a built-in publisher (Lychnion, #66) with a key that may sign
+  /// safety lines (KeyScope.safetyLines, #125). A key granted only `data`
+  /// brings guides, not official lines.
+  bool givesSafetyLines(Installed i) =>
+      i.builtInPublisher &&
+      trust
+          .scopesOfKeyId(i.record.publisher, i.record.keyId)
+          .contains(KeyScope.safetyLines);
 
   /// Whether the installed copy [i] of a bundled package is used: only
   /// when it is there, has its file and is signed by a built-in publisher.
