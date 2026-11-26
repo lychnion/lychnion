@@ -168,10 +168,10 @@ One model covers everything this repository ships *(maintainer, 2026-11)*.
   Lychnion key, a compromised maintainer GitHub account or build machine is
   out of model *(maintainer, 2026-11)*. Key statements that replace or revoke
   the `lychnion` key are in model and verified like any publisher's
-  *(maintainer, 2026-11)*. How the keys are kept (an offline root on two USB
-  sticks, a scoped everyday key) and what to do when one is lost or stolen
-  is written down in docs/key-custody.md *(documented, docs/key-custody.md
-  "The keys")*.
+  *(maintainer, 2026-11)*. How the keys are kept (moving to an offline root on
+  two USB sticks and a scoped everyday key) and what to do when one is lost
+  or stolen is written down in docs/key-custody.md *(documented,
+  docs/key-custody.md "The keys" and "When a key is lost or stolen")*.
 - **Release and CI machinery.** CI only analyzes and tests, with read-only
   permissions and no secrets; release builds are made on a maintainer's
   machine. A CI report that cannot reach a shipped build or a secret is a
