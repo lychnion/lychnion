@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:9e2b0cc37012e01e7fb3a700fc0611956a097a2cf0418c706093e853f7013607
+prose_version: threat-model.md@sha256:5a4664dcb1aedee64a01c37f2a6dbbb01f037afe2dde80f2a71fc18e453a26d3
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -1684,13 +1684,14 @@ properties_claimed:
   - base-client
   tier: security-critical
   conditions: a file from any source is installed or served onward only when its record verifies against
-    a trusted key for that publisher name and the file's size and SHA-256 match. A trusted key is a built-in
-    or added key, or a successor named by a valid key statement, and not revoked.
+    enough trusted keys for that publisher name holding the scope its kind needs (`models` for a model, else
+    `data`; one key for now) and the file's size and SHA-256 match. A trusted key is a built-in or added key
+    (every scope), a successor named by a valid key statement (the scopes of the key it replaces) or a key granted by a current root (the granted scopes), and not revoked.
   violation_symptoms:
   - integrity-bypass
   provenance:
     kind: documented
-    source: docs/data-packages.md "Signing and trust"
+    source: docs/distribution.md "Backing up and replacing the key"
 - id: publisher-namespace
   kind: integrity
   components:
@@ -1763,9 +1764,13 @@ properties_claimed:
   - answers
   tier: security-critical
   conditions: 'when a hazard question matches, the fixed safety line from a Lychnion-signed package is
-    shown word for word above the AI text; no other publisher supplies it: a package whose record is not
-    signed by a built-in publisher is loaded without its alerts (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`),
-    its copy of a bundled Lychnion package is not loaded (`DownloadStore.bundledPackageSource`), and an empty trigger word matches nothing.'
+    shown word for word above the AI text; no other publisher or key supplies it: a package whose record is
+    not valid for `safety-lines` (signed by a built-in publisher with a key holding that scope,
+    `DownloadStore.givesSafetyLines`) is loaded without its alerts (`lib/ask/model_loading.dart`,
+    `KnowledgePackage.withoutAlerts`), and the log says why; another publisher''s copy of a bundled Lychnion
+    package is not loaded, and Lychnion''s download of one that is not valid for `safety-lines` is not used:
+    the bundled file is, and Downloads says so (`DownloadStore.bundledPackageSource`); an empty trigger word
+    matches nothing.'
   violation_symptoms:
   - x-missing-or-forged-safety-line
   provenance:
@@ -1997,7 +2002,7 @@ properties_claimed:
   conditions: 'a node skips file addresses on private or local networks, also after a redirect, unless
     the catalog itself is on such a network; an internet catalog''s own redirects are checked the same way.
     Private or local means any address that is not plain public unicast, including `::`, multicast, special
-    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:393`). DNS rebinding is not caught.'
+    ranges and IPv4 carried in IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:397`). DNS rebinding is not caught.'
   violation_symptoms:
   - x-request-forgery
   provenance:
@@ -2010,10 +2015,20 @@ properties_claimed:
   - downloads
   - node
   tier: security-critical
-  conditions: a replacement counts only when the old key signed it and the new key countersigned it; a
-    revocation only when the revoked key signed it; and only when the old key is trusted for that publisher
-    at that moment. A revoked key, a key with two successors, and any key reached only through them is
-    not trusted. This holds for the `lychnion` key too.
+  conditions: a replacement or a grant counts only when the old key signed it and the new key
+    countersigned it, a grant only when the old key is a current root (the newest trusted key of a root's
+    chain) and never of `keys`; a revocation only when the revoked key signed it, or a current root of the
+    same publisher (`by`) and the revoked key is trusted through a grant, never a key of a root chain; and
+    only when the key that made it is trusted for that publisher at that moment. A revoked key, a key with
+    two successors, a granted key whose short id clashes with a root chain's or another granted key's, and
+    any key reached only through them is not trusted. A root's grants lapse when it is replaced. A replaced
+    root keeps every record scope; revoking it, or a theft conflict on it, also cuts off its successors on
+    phones that know only the old key as built in, so a stolen root is neutralised only by an app update
+    with new built-in roots. The current roots' statements are taken and kept first, also in catalogs, at
+    most 100 grants and revocations and 200 root-chain replacements per publisher; revocations by the key
+    itself and theft proofs have a budget of their own on phones, so no root can crowd them out. Builds
+    without key scopes (lychnion/lychnion#125) ignore grants and revocations `by` another key. This holds
+    for the `lychnion` key too.
   violation_symptoms:
   - integrity-bypass
   provenance:

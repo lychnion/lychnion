@@ -207,8 +207,29 @@ class PackageRecord {
       e.key as String: [for (final l in e.value as List) l as String],
   };
 
-  /// The text the signature covers.
+  /// The text the signature (by `key`) covers: the record without
+  /// `signature`. It covers a `signatures` list too, so older apps that
+  /// check only `key` and `signature` keep reading records that carry one.
   String get signedText => canonicalJson(Map.of(json)..remove('signature'));
+
+  /// The text each entry of [signatures] covers: the record without
+  /// `signature` and `signatures` (lychnion/lychnion#125).
+  String get listSignedText => canonicalJson(
+    Map.of(json)
+      ..remove('signature')
+      ..remove('signatures'),
+  );
+
+  /// More signatures (`signatures: [{"key": <key id>, "signature": …}]`),
+  /// next to `key` and `signature`, when a scope needs more than one
+  /// (KeyScope.required). Empty when there is none.
+  List<({String keyId, String signature})> get signatures => [
+    for (final e in (json['signatures'] as List?) ?? const [])
+      (
+        keyId: (e as Map)['key']! as String,
+        signature: e['signature']! as String,
+      ),
+  ];
 
   /// Checks the shape (not the signature). Throws [FormatException].
   factory PackageRecord.fromJson(Map<String, Object?> j) {
@@ -247,18 +268,51 @@ class PackageRecord {
     if (files.map((f) => f.name.toLowerCase()).toSet().length != files.length) {
       throw FormatException('Record: duplicate file names');
     }
+    final more = j['signatures'];
+    if (more != null) {
+      if (more is! List || more.isEmpty || more.length > maxSignatures) {
+        throw FormatException('Record: bad signatures');
+      }
+      for (final e in more) {
+        if (e is! Map ||
+            e.length != 2 ||
+            e['key'] is! String ||
+            e['signature'] is! String ||
+            (e['signature'] as String).length > 200) {
+          throw FormatException('Record: bad signatures');
+        }
+      }
+    }
     return PackageRecord._(Map.unmodifiable(j), List.unmodifiable(files));
   }
 
+  /// At most this many entries in `signatures`.
+  static const maxSignatures = 8;
+
   /// Signs [unsigned] (all fields but `signature`; `key` is set here).
+  /// [more] keys sign too, in `signatures` (each over the record without
+  /// `signature` and `signatures`); [key] signs last, over the record with
+  /// that list.
   static Future<PackageRecord> sign(
     Map<String, Object?> unsigned,
-    SimpleKeyPair key,
-  ) async {
+    SimpleKeyPair key, {
+    List<SimpleKeyPair> more = const [],
+  }) async {
     final pub = (await key.extractPublicKey()).bytes;
     final j = Map.of(unsigned)
       ..remove('signature')
+      ..remove('signatures')
       ..['key'] = recordKeyIdOf(pub);
+    if (more.isNotEmpty) {
+      final text = utf8.encode(canonicalJson(j));
+      j['signatures'] = [
+        for (final k in more)
+          {
+            'key': recordKeyIdOf((await k.extractPublicKey()).bytes),
+            'signature': _b64((await _ed25519.sign(text, keyPair: k)).bytes),
+          },
+      ];
+    }
     final sig = await _ed25519.sign(
       utf8.encode(canonicalJson(j)),
       keyPair: key,
@@ -303,7 +357,12 @@ class TrustedKeys {
       _keys[e.key] = {
         for (final k in r.keys) recordKeyIdOf(_unb64(k)): _unb64(k),
       };
+      _scopes[e.key] = {
+        for (final x in r.scopes.entries)
+          recordKeyIdOf(_unb64(x.key)): Set.unmodifiable(x.value),
+      };
       _revoked[e.key] = r.revokedIds;
+      _graphs[e.key] = r;
     }
   }
 
@@ -315,7 +374,22 @@ class TrustedKeys {
 
   /// Publisher name → key id → 32-byte key, after the statements.
   final _keys = <String, Map<String, List<int>>>{};
+
+  /// Publisher name → key id → what that key may sign ([KeyScope]).
+  final _scopes = <String, Map<String, Set<String>>>{};
   final _revoked = <String, Set<String>>{};
+  final _graphs = <String, KeyGraph>{};
+
+  /// [publisher]'s current roots (unpadded base64url): the newest key of
+  /// each root chain, the only keys that grant and revoke other keys, and
+  /// whose statements are never crowded out (lychnion/lychnion#125).
+  Set<String> currentRootsOf(String publisher) =>
+      _graphs[publisher]?.currentRoots ?? const {};
+
+  /// [publisher]'s trusted roots and their successors by `replace`,
+  /// current or not (unpadded base64url).
+  Set<String> rootChainOf(String publisher) =>
+      _graphs[publisher]?.rootChain ?? const {};
 
   static Map<String, Set<String>> _rootsOf(
     Map<String, Set<String>> have,
@@ -353,10 +427,23 @@ class TrustedKeys {
   /// [FormatException] for a key that is not 32 bytes.
   static String canonicalKey(String key) => _b64(_checked(key));
 
-  /// Trusted keys of [publisher] (unpadded base64url).
+  /// Trusted keys of [publisher] (unpadded base64url), whatever they may
+  /// sign; [keysFor] for one scope.
   Set<String> keysOf(String publisher) => {
     for (final k in _keys[publisher]?.values ?? const <List<int>>[]) _b64(k),
   };
+
+  /// Trusted keys of [publisher] that may sign [scope] ([KeyScope]).
+  Set<String> keysFor(String publisher, String scope) => {
+    for (final e
+        in _keys[publisher]?.entries ?? const <MapEntry<String, List<int>>>[])
+      if (_scopes[publisher]?[e.key]?.contains(scope) ?? false) _b64(e.value),
+  };
+
+  /// What [publisher]'s trusted key with id [keyId] may sign; empty when it
+  /// is not trusted.
+  Set<String> scopesOfKeyId(String publisher, String keyId) =>
+      _scopes[publisher]?[keyId] ?? const {};
 
   /// Ids of [publisher]'s keys revoked by a statement (or by naming two
   /// successors).
@@ -388,21 +475,45 @@ class TrustedKeys {
     return b;
   }
 
-  /// True when [r] is signed by a key of its publisher.
-  Future<bool> verify(PackageRecord r) async {
-    final key = _keys[r.publisher]?[r.keyId];
-    if (key == null) return false;
-    try {
-      return await _ed25519.verify(
-        utf8.encode(r.signedText),
-        signature: Signature(
-          _unb64(r.signature),
-          publicKey: SimplePublicKey(key, type: KeyPairType.ed25519),
-        ),
-      );
-    } on Object {
-      return false;
+  /// True when [r] is signed by as many distinct keys of its publisher as
+  /// the scope of its kind needs (KeyScope.forKind, KeyScope.required),
+  /// each holding that scope: `key` and `signature`, and the entries of
+  /// `signatures`. A key outside the scope counts like a bad signature; a
+  /// key named twice counts once.
+  /// [scope] asks for another scope than the kind's (`safety-lines`, for
+  /// a package's official lines); [need] overrides the number
+  /// KeyScope.required gives (tests).
+  Future<bool> verify(PackageRecord r, {String? scope, int? need}) async {
+    scope ??= KeyScope.forKind(r.kind);
+    need ??= KeyScope.required[scope] ?? 1;
+    final valid = <String>{};
+    Future<void> count(String keyId, String signature, String text) async {
+      if (valid.contains(keyId)) return;
+      if (!scopesOfKeyId(r.publisher, keyId).contains(scope)) return;
+      final key = _keys[r.publisher]![keyId]!;
+      try {
+        if (await _ed25519.verify(
+          utf8.encode(text),
+          signature: Signature(
+            _unb64(signature),
+            publicKey: SimplePublicKey(key, type: KeyPairType.ed25519),
+          ),
+        )) {
+          valid.add(keyId);
+        }
+      } on Object {
+        return;
+      }
     }
+
+    await count(r.keyId, r.signature, r.signedText);
+    if (valid.length >= need) return true;
+    final listText = r.listSignedText;
+    for (final e in r.signatures) {
+      await count(e.keyId, e.signature, listText);
+      if (valid.length >= need) return true;
+    }
+    return false;
   }
 
   /// Parses and verifies; null when the shape or signature is wrong.

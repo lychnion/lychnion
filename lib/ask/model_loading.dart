@@ -151,6 +151,7 @@ mixin _ModelLoading on _AskPageBase {
           required bool safetyLines,
           required String signer,
           String? signerKeyId,
+          String? noLinesReason,
         }) {
           try {
             final p = KnowledgePackage.open(
@@ -163,6 +164,7 @@ mixin _ModelLoading on _AskPageBase {
               'event': 'package_alerts_ignored',
               'id': id,
               'alerts': p.alerts.length,
+              'reason': ?noLinesReason,
             });
             return p.withoutAlerts();
           } on Object catch (e) {
@@ -179,6 +181,15 @@ mixin _ModelLoading on _AskPageBase {
           if (src.shadowed case final who?) {
             _log({'event': 'package_shadow_ignored', 'id': id, 'by': who});
           }
+          if (src.notUsed) {
+            // Lychnion's download, signed by a key that may not sign
+            // official safety lines (#125): the bundled file is used.
+            _log({
+              'event': 'package_download_not_used',
+              'id': id,
+              'reason': 'signer may not sign safety lines',
+            });
+          }
           bundled.addAll([
             ?openOrSkip(
               id,
@@ -188,18 +199,28 @@ mixin _ModelLoading on _AskPageBase {
             ),
           ]);
         }
-        final pkg = KnowledgePackage.merge([
-          ...bundled,
+        // Whose official safety lines count: checked before opening (#125).
+        final installedPackages = [
           for (final i in store.allInstalled(ItemKind.package))
             if (!bundledPackages.contains(i.id) &&
                 i.fileEnding('.sqlite') != null)
-              ?openOrSkip(
-                i.id,
-                store.path(i, i.fileEnding('.sqlite')!),
-                safetyLines: i.builtInPublisher,
-                signer: i.record.publisher,
-                signerKeyId: i.record.keyId,
-              ),
+              (i, await store.givesSafetyLines(i)),
+        ];
+        final pkg = KnowledgePackage.merge([
+          ...bundled,
+          for (final (i, lines) in installedPackages)
+            ?openOrSkip(
+              i.id,
+              store.path(i, i.fileEnding('.sqlite')!),
+              safetyLines: lines,
+              signer: i.record.publisher,
+              signerKeyId: i.record.keyId,
+              // Lychnion's, signed by a key without safety-lines (#125),
+              // or another publisher's (#66).
+              noLinesReason: i.builtInPublisher
+                  ? 'signer may not sign safety lines'
+                  : 'not a built-in publisher',
+            ),
         ]);
         _labels = store;
         HybridRetriever? hybrid;

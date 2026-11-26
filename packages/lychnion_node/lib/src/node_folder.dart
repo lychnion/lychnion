@@ -129,9 +129,12 @@ class NodeFolder {
   /// [keys]: key statements to pass on (replaced and revoked keys);
   /// [attestations]: Lychnion's attestations to pass on; [status]:
   /// publishers' statuses to pass on (the newest of each is written).
-  /// Returns how many of each were left out to fit.
+  /// Returns how many of each were left out to fit. [trust]: the keys
+  /// the node trusts, so the current roots' statements are never left
+  /// out for others' (lychnion/lychnion#125).
   Future<({int keys, int attestations, int status})> writeCatalog(
     List<PackageRecord> records, {
+    TrustedKeys? trust,
     List<String> mirrors = const [],
     Iterable<KeyStatement> keys = const [],
     Iterable<Attestation> attestations = const [],
@@ -140,11 +143,12 @@ class NodeFolder {
     await dir.create(recursive: true);
     final doc = CatalogDocument.byHash(
       records,
+      trust: trust,
       keys: keys,
       attestations: attestations,
       status: status,
       mirrors: mirrors,
-    ).fitted();
+    ).fitted(trust: trust);
     final text = doc.encode();
     final tmp = File('${catalogFile.path}.$pid.tmp');
     await tmp.writeAsString(text, flush: true);

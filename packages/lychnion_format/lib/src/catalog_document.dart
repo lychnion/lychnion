@@ -123,8 +123,12 @@ class CatalogDocument {
   /// [Attestation.maxPerSource] of [attestations], withdrawals first
   /// ([Attestation.capped]). Of [status], the newest of each publisher
   /// ([PublisherStatus.newest]), at most [PublisherStatus.maxPerSource].
+  /// With [trust], the current roots' key statements are kept right after
+  /// revocations and theft proofs (lychnion/lychnion#125); pass the same to
+  /// [fitted].
   factory CatalogDocument.byHash(
     Iterable<PackageRecord> records, {
+    TrustedKeys? trust,
     Iterable<KeyStatement> keys = const [],
     Iterable<Attestation> attestations = const [],
     Iterable<PublisherStatus> status = const [],
@@ -142,10 +146,14 @@ class CatalogDocument {
       },
       mirrors: mirrors,
       keys: [
-        for (final s in KeyStatement.capped([
-          for (final s in keys)
-            if (seen.add(s.id)) s,
-        ]))
+        for (final s in KeyStatement.capped(
+          [
+            for (final s in keys)
+              if (seen.add(s.id)) s,
+          ],
+          KeyStatement.maxPerSource,
+          trust,
+        ))
           s.json,
       ],
       attestations: [
@@ -224,10 +232,12 @@ class CatalogDocument {
   /// otherwise kept. Statuses go last (they carry the newest revocations and
   /// withdrawals themselves), chosen in [PublisherStatus.keepOrder]
   /// (Lychnion's first). Throws [CatalogTooLarge] when even without all three
-  /// it does not fit.
-  CatalogDocument fitted() {
+  /// it does not fit. With [trust], key statements are chosen as there
+  /// ([KeyStatement.keepOrder]: the current roots' are kept right after
+  /// revocations and theft proofs).
+  CatalogDocument fitted({TrustedKeys? trust}) {
     if (_size(this) <= maxBytes) return this;
-    final keyOrder = KeyStatement.keepOrder(keys);
+    final keyOrder = KeyStatement.keepOrder(keys, trust: trust);
     final attestationOrder = Attestation.keepOrder(attestations);
     final statusOrder = PublisherStatus.keepOrder(status);
     List<Object?> firstOf(List<Object?> all, List<int> order, int n) {

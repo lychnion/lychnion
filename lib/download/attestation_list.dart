@@ -125,8 +125,9 @@ class AttestationList extends ChangeNotifier {
     notifyListeners();
   }
 
-  static bool _signedFor(Attestation v, TrustedKeys trust) =>
-      trust.keysOf(attesterPublisher).contains(v.signer);
+  static bool _signedFor(Attestation v, TrustedKeys trust) => trust
+      .keysFor(attesterPublisher, KeyScope.attestations)
+      .contains(v.signer);
 
   void _set(List<Attestation> list) {
     _attestations

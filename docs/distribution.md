@@ -210,6 +210,117 @@ do (canonical JSON).
   not encrypted. "Revoke a lost key from a backup" uses it without the
   passphrase.
 
+**Key scopes** (lychnion/lychnion#125, part of the key plan in #118). So
+that one stolen everyday key cannot sign everything, a key may sign only
+what its **scope** allows. A record, attestation or status signed by a
+key outside the scope it needs is refused like a bad signature.
+
+| Scope | Lets a key sign |
+| --- | --- |
+| `data` | guides, maps, contour lines and other items that are not models; a publisher status |
+| `models` | records of kind `model` |
+| `safety-lines` | the official safety lines in a package: they count only when the package's signer holds this scope (and is Lychnion's, #66) |
+| `attestations` | Lychnion's attestations ("Checked by Lychnion") |
+| `keys` | grants, and revocations of granted keys; held only by the roots |
+
+The rules are kept simple for this first stage:
+
+- **Roots.** Keys a device trusts on its own (built in, or added by a
+  link) hold every scope, so nothing signed today stops counting. A
+  root's successor by `replace` is in the same **root chain** and holds
+  every scope too. The newest key of each chain (with no trusted
+  successor) is the **current root**. After a data release that
+  re-signs the records with granted keys, an app update will limit
+  Lychnion's built-in key to `keys`; it then stays offline
+  (lychnion/lychnion#118).
+- **Only the current root grants.** A grant names a key with a scope;
+  both keys sign, as for a replacement:
+
+  ```json
+  {"format": 1, "type": "grant", "publisher": "lychnion",
+   "old": "<current root>", "new": "<granted key>",
+   "scope": ["data"], "signed": "…",
+   "signature": "<by old>", "new_signature": "<by new>"}
+  ```
+
+  `scope` is a non-empty list of `data`, `models`, `safety-lines` and
+  `attestations`, sorted, each once. **`keys` cannot be granted**: there
+  are no delegates that grant or revoke. Delegating `keys` returns with
+  statements that need more than one signature (#118 stage 2). Grants to
+  one key add up. A granted key's successor by `replace` holds its
+  scopes. A grant made by any other key (a granted key, or a replaced
+  old root) does not count, and phones drop it before checking its
+  signature.
+- **After a root rotation, grant again.** Grants made by a root lapse
+  once it is replaced: the new root grants the everyday keys again (the
+  same keys may be granted again). A `by` revocation lapses with its
+  root too, so never grant a revoked key again. To rotate a root:
+  1. publish the rotation and every re-grant in the same catalog or
+     release (a phone that learns the rotation without the re-grants
+     stops using the granted keys' items until they arrive);
+  2. ship the new key as a built-in root in an app update before the old
+     key is retired;
+  3. then re-sign the records.
+- **A replaced root is not a revoked one.** It keeps every scope for
+  records. Revoking it, or a theft conflict on it (two successors), also
+  cuts off its successors on phones that know only the old key as built
+  in. So a stolen root is neutralised only by an app update with new
+  built-in roots.
+- **Only the current root revokes another key.** A `revoke` may carry
+  `"by": "<key>"`, signed by that key instead of the revoked one. It
+  counts when `by` is a current root and the revoked key is trusted
+  through a grant (a granted key or its successor). With several roots,
+  any current root may revoke any granted key. A root, or a key of a
+  root chain, is never revoked by another key: it revokes itself, or is
+  replaced, as before. Revoking a granted key drops its successors too.
+- **Priority and caps.** Phones take revocations by the key itself
+  first, then the current roots' statements and the replacements within
+  a root chain (only the root's holder can make them), then the rest in
+  list order. Per publisher, a phone takes at most 100 grants and `by`
+  revocations from its roots, 200 replacements within its root chains,
+  and 50 other replacements. Its list keeps three budgets that never
+  borrow from each other: revocations by the key itself and theft
+  proofs (2,000), the roots' statements (1,000), and the rest (1,000);
+  so another publisher's root cannot push out a revocation. Sticks,
+  bases and nodes choose what fits in their catalogs the same way:
+  revocations by the key itself, theft proofs, the root's statements,
+  then the rest.
+- **Key ids.** Records name a key by a short id, so no two trusted keys
+  may share one: the roots win, then the other keys of root chains; a
+  granted key whose id is one of theirs, or another granted key's, is
+  not trusted. Only the root grants, so making such a key takes the root
+  anyway.
+- **More than one signature:** a record may carry `signatures: [{"key":
+  "<key id>", "signature": "…"}]` (at most 8) next to `key` and
+  `signature`. Each entry signs the record without `signature` and
+  `signatures`; `signature` signs the record without `signature` only, so
+  it covers the list too and is made last. Older apps check only `key`
+  and `signature` and keep reading such records (with the weaker check
+  until they update). A record is valid when enough distinct keys of its
+  publisher holding the needed scope signed it: one for now
+  (`KeyScope.required`, for `data`, `models` and `safety-lines`), to be
+  raised (for example 2 of 3 for `models` and `safety-lines`) once there
+  are more key holders. A key named twice counts once. Attestations and
+  key statements carry one signature each; requiring more for them needs
+  a format change (#118 stage 2).
+- **Official safety lines:** a package's lines count only when its record
+  is valid for `safety-lines` too (checked like a record, with that
+  scope). Lychnion's download of a bundled package is used only then;
+  one signed by a key without `safety-lines` leaves the bundled file in
+  use, so its lines are never lost, and Downloads says on that item that
+  it is not used (the log says why). Data releases therefore sign the
+  bundled packages with a key that may sign safety lines: whichever key
+  signs routine data releases must hold `safety-lines`, or those
+  releases never reach Ask. Which scopes the everyday key gets is part of
+  the key plan (#118).
+- **Older builds** ignore grants and revocations `by` another key: a key
+  the root revoked stays trusted there, records signed only by a granted
+  key are refused there, and when such a build rewrites its stored list
+  of statements, it leaves grants and those revocations out (a newer
+  build learns them again from the next catalog or stick).
+- Added publishers can use grants and scopes too; nothing else changes
+  for them.
+
 After a replacement or revocation (and again each time Publish your own
 opens, in case a step failed) the desktop app re-signs the newest
 record of each item it published with the new key, so what is installed
