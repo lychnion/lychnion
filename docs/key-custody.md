@@ -46,9 +46,9 @@ What each loss gives away:
 - A thief of a **USB stick** gets an encrypted file. Without the
   passphrase it can neither sign nor revoke anything: the root's backup
   carries no ready-made revocation (the app's own backups do).
-- A thief of **1Password** gets the everyday key and the passphrase, but
-  not the root, which is only on the sticks. The passphrase is then
-  burnt (see the table below).
+- A thief of **1Password** gets the everyday key, the passphrase and the
+  Android upload key, but not the root, which is only on the sticks. All
+  of them are then burnt (see the table below).
 - If **1Password is lost**, any 2 of the 3 paper parts restore the
   passphrase. If **one stick is lost**, the other one still has the root.
 
@@ -72,18 +72,24 @@ reach), and in a sealed envelope with someone trusted.
 - By rule, the root signs only key statements. Data is signed with the
   everyday key.
 - The root is used on the maintainer's Mac in a **clean session**: a
-  separate macOS user account used for nothing else, with a clone of
-  lychnion-data (no GitHub sign-in, no agent, editor plug-in or other
-  tool). Log out of the everyday account first; switching users leaves
+  separate macOS user account used for nothing else, with Dart, git, the
+  1Password app and a clone of lychnion-data (a public repository, so no
+  GitHub sign-in), and no agent, editor plug-in or other tool. Its
+  1Password sees the same vault (signing in there needs the Emergency
+  Kit), so it is as sensitive as the everyday account; keep it that
+  plain. Log out of the everyday account first; switching users leaves
   its programs running. The tool and its dependencies see the root and
   its passphrase, and lychnion-data's `main` needs no approving review,
   so before each session read the diff since the last commit you trusted
-  (above all `tool/`, `pubspec.yaml` and `pubspec.lock`), then run
-  `dart pub get` before the network goes off.
+  (above all `tool/`, `pubspec.yaml` and `pubspec.lock`): a local tag
+  marks it (`git tag -f trusted` once read; `git diff trusted origin/main`
+  next time). Then run `dart pub get` before the network goes off.
 - Files move between the two accounts only through `/Users/Shared`: the
   grant request in, `keys/lychnion.json` out. The pull request is made
-  from the everyday account; `--expect-key` and CI's `check-keys` guard
-  what crosses.
+  from the everyday account. `--expect-key` guards the way in; on the way
+  out, note the file's `shasum -a 256` in the clean session and compare
+  it before committing (an older, validly signed file would drop a
+  revocation, and `check-keys` would not notice).
 - The network is **off** while the root is open (Wi-Fi off, cable out),
   and the stick is ejected before it comes back. This does not help
   against a tool that saves the key and sends it later: that is what the
@@ -114,10 +120,12 @@ reach), and in a sealed envelope with someone trusted.
    and paste the passphrase from 1Password when asked. For a grant,
    `--expect-key` is the key noted in step 1.
 5. Eject the stick and put it back in its place. Copy
-   `keys/lychnion.json` to `/Users/Shared`, and log out of the clean
-   account.
-6. Turn the network back on. In the everyday account, put the file in
-   your lychnion-data clone, commit it, and open the pull request.
+   `keys/lychnion.json` to `/Users/Shared`, note its `shasum -a 256`,
+   set the clone back (`git checkout -- keys/lychnion.json`), and log out
+   of the clean account.
+6. Turn the network back on. In the everyday account, check the file's
+   `shasum -a 256` against the one noted, put it in your lychnion-data
+   clone, commit it, and open the pull request.
 
 The commands are in the lychnion-data README, "The root and the everyday
 key" and "The offline root".
@@ -160,8 +168,8 @@ command) must be merged first.
    Terminal.
 2. **Make the backup.** In the clean account, with two USB sticks
    plugged in. `op read` may need the network; that is fine for this one
-   step, because the root is still in 1Password anyway. Turn the network
-   off for the rest:
+   command, because the root is still in 1Password anyway. Run the first
+   command online, then turn the network off for the rest:
 
    ```bash
    op read op://Private/lychnion-package-signing-key/credential \
@@ -212,11 +220,11 @@ command) must be merged first.
 | --- | --- |
 | Everyday key stolen or leaked | Make a new everyday key and its `grant-request` first. Then, in one root session, `revoke-key` the old key and `grant` the new one, in one pull request, and publish a catalog right away. Records the old key signed stop counting; sign those items again with the new key. A thief can publish a very high version, and a phone never installs an older version than one it installed (threat-model.md §1.11 `no-downgrade-installed`): such phones only take the real version again after the item is deleted on the phone. Tell users how, with the revocation. |
 | Everyday key lost (no theft) | Make a new one and grant it. Revoke the old one too if it might turn up somewhere. |
-| 1Password stolen or compromised | First lock the thief out: change the 1Password password and Secret Key, or move to a new account the thief never had; the new items below go only there. Then treat the everyday key as stolen (row above) and the passphrase as burnt: while the sticks are still safe, make new root backups under a new passphrase (new SLIP-39 parts, the old ones destroyed). Reformat both sticks before writing the new backups (a deleted file can be recovered from flash), or use new sticks. Before the move is finished, the root itself was in 1Password: see "Root stolen". |
+| 1Password stolen or compromised | First lock the thief out: move to a new 1Password account the thief never had (or change the password and Secret Key, and sign out every other device); the new items below go only there. Treat everything in the old vault as stolen: the everyday key (row above), the Android upload key (its row), and the passphrase. While the sticks are still safe, make the root again under a new passphrase: `backup --key <old backup> --out <new stick>`, with the old passphrase taken from 2 paper parts (`shamir recover`), not from the old vault; then new SLIP-39 parts, the old ones destroyed. Reformat the old sticks (a deleted file can be recovered from flash) before using them again. Before the move is finished, the root itself was in 1Password: see "Root stolen". |
 | 1Password lost or locked out (no theft) | Restore the passphrase from 2 of the 3 paper parts (`shamir recover`). Make a new everyday key and grant it. |
-| One stick lost | The other stick still works: make a new second stick from it. The lost one is useless without the passphrase. If the passphrase might be known to anyone, make new backups under a new passphrase. |
+| One stick lost | The other stick still works: copy its backup to a new stick. The lost one is useless without the passphrase. If the passphrase might be known to anyone, make the root again under a new passphrase (`backup --key <old backup>`, as in the row above). |
 | Both sticks lost or destroyed | The root is gone: no new grants or revocations. The everyday key keeps signing until it is lost too. The way out is an app update with a new built-in root. |
-| One paper part lost or stolen | Make new parts: in a history-free shell as in step 1, `shamir create 2of3 -S <the 32 characters>`, and destroy the old parts you still have. A stolen part plus one other restores the passphrase, so if one might be stolen, also make new backups under a new passphrase. |
+| One paper part lost or stolen | Make new parts: in a history-free shell as in step 1, `shamir create 2of3 -S <the 32 characters>`, and destroy the old parts you still have. A stolen part plus one other restores the passphrase, so if one might be stolen, make the root again under a new passphrase instead (`backup --key <old backup>`, then new parts of the new passphrase). |
 | Root stolen together with its passphrase | The thief can grant a key of their own every scope and sign anything, also after the app limits the built-in key to `keys`. The root can be replaced with key statements only while the maintainer still holds it, and a thief can race that (a theft proof makes phones distrust both chains). The way out is an app update with a new built-in root. A `replace` command in tool/records.dart is not built yet. |
 | The Mac compromised | Treat everything used on it as stolen: the everyday key, and, if the clean account or a root session may have been reached, the root with its passphrase ("Root stolen"). |
 | The maintainer's GitHub account compromised | It cannot sign key statements (they need the root), but it can merge code into lychnion-data that the next root session runs. Lock the account, and read every change since the last commit you trusted before the next root session. |
