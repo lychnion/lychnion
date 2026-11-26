@@ -276,12 +276,14 @@ The rules are kept simple for this first stage:
 - **Priority and caps.** Phones take revocations by the key itself
   first, then the current roots' statements and the replacements within
   a root chain (only the root's holder can make them), then the rest in
-  list order. Per publisher, a phone takes at most 100 grants and `by`
-  revocations from its roots, 200 replacements within its root chains,
-  and 50 other replacements. Its list keeps three budgets that never
-  borrow from each other: revocations by the key itself and theft
-  proofs (2,000), the roots' statements (1,000), and the rest (1,000);
-  so another publisher's root cannot push out a revocation. Sticks,
+  list order. Per publisher, a phone takes at most 100 grants and 100
+  `by` revocations from its roots (counted apart, so a root that granted
+  many keys can still revoke one), 200 replacements within its root
+  chains, and 50 other replacements. Its list keeps three budgets that
+  never borrow from each other: revocations (by the key itself, and the
+  roots' `by` revocations within their cap) and theft proofs (2,000),
+  the roots' other statements (1,000), and the rest (1,000); so another
+  publisher's root cannot push out a revocation. Sticks,
   bases and nodes choose what fits in their catalogs the same way:
   revocations by the key itself, theft proofs, the root's statements,
   then the rest.

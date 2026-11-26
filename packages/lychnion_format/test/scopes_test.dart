@@ -526,6 +526,33 @@ void main() {
       expect(more, isEmpty);
     });
 
+    test('a root that granted the most keys can still revoke one', () async {
+      final keys = [
+        for (var i = 0; i < KeyStatement.maxRootGrantsPerPublisher; i++)
+          await _key(),
+      ];
+      final grants = [
+        for (final k in keys) await grant(k, [KeyScope.data]),
+      ];
+      final known = base.withStatements(grants);
+      expect(known.keysOf('lychnion'), hasLength(keys.length + 1));
+      // Grants and revocations are capped apart.
+      final cut = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        revoked: keys.first.pub,
+        by: root.pair,
+        signed: _t,
+      );
+      final got = await relevantStatements(known, [
+        jsonDecode(jsonEncode(cut.json)),
+      ]);
+      expect(got, hasLength(1));
+      expect(
+        known.withStatements(got).isRevoked('lychnion', keys.first.pub),
+        isTrue,
+      );
+    });
+
     test('a granted key clashing with a rotated root loses', () async {
       final k2 = await _key();
       final g2 = await _key();

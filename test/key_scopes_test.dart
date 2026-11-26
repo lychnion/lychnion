@@ -283,4 +283,52 @@ void main() {
     expect(again.statements, containsAll([...theft, self]));
     expect(again.trust.keysOf('lychnion'), isEmpty);
   });
+
+  test('other roots fill their budget; the root\'s revocation of a granted '
+      'key still counts', () async {
+    final builtIn = TrustedKeys({
+      'lychnion': [await publicKeyOf(root)],
+    });
+    final file = File('${tmp.path}/revoke.json');
+    final list = PublisherList(file, builtIn: builtIn, maxStatements: 5);
+    await list.load();
+    const t = '2026-11-26T09:00:00+09:00';
+    final d = await Ed25519().newKeyPair();
+    await list.learn([
+      await KeyStatement.grant(
+        publisher: 'lychnion',
+        granter: root,
+        newKey: d,
+        scope: [KeyScope.data],
+        signed: t,
+      ),
+    ]);
+    // Two added publishers' roots fill the roots' budget with grants.
+    for (final name in ['jp.a', 'jp.b']) {
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: name, key: await publicKeyOf(a)));
+      await list.learn([
+        for (var i = 0; i < 10; i++)
+          await KeyStatement.grant(
+            publisher: name,
+            granter: a,
+            newKey: await Ed25519().newKeyPair(),
+            scope: [KeyScope.data],
+            signed: t,
+          ),
+      ]);
+    }
+    // The granted key is stolen: the root revokes it.
+    final cut = await KeyStatement.revoke(
+      publisher: 'lychnion',
+      revoked: await publicKeyOf(d),
+      by: root,
+      signed: t,
+    );
+    expect(await list.learn([cut]), isTrue);
+    final again = PublisherList(file, builtIn: builtIn, maxStatements: 5);
+    await again.load();
+    expect(again.statements, contains(cut));
+    expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
+  });
 }

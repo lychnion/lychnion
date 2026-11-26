@@ -175,8 +175,9 @@ class PublisherList extends ChangeNotifier {
 
   /// At most this many statements are kept in each budget
   /// ([maxStatements]; see [_budgets]): the current roots' statements,
-  /// and the others. Revocations by the key itself and theft proofs have
-  /// a budget of their own, twice as large, that nothing else uses.
+  /// and the others. Revocations (by the key itself, and a current root's
+  /// of a granted key within its cap) and theft proofs have a budget of
+  /// their own, twice as large, that nothing else uses.
   static const defaultMaxStatements = 1000;
 
   /// [defaultMaxStatements]; smaller in tests.
@@ -387,13 +388,15 @@ class PublisherList extends ChangeNotifier {
       });
 
   /// The budget each of [list] is kept in, in order: 0 for a revocation
-  /// by the key itself or a replacement that proves a theft ([all]), 1 for
-  /// a statement of a current root of [basis] (statementRank 1,
-  /// lychnion/lychnion#125) within the caps per publisher
-  /// (KeyStatement.maxRootGrantsPerPublisher and
-  /// maxRootReplacesPerPublisher, counting those of [before] too), 2 for
-  /// any other. So an added publisher's root cannot use up the room of a
-  /// revocation.
+  /// by the key itself, a current root's revocation of another key within
+  /// its cap (KeyStatement.maxRootRevokesByPerPublisher), or a replacement
+  /// that proves a theft ([all]); 1 for another statement of a current
+  /// root of [basis] (statementRank 1, lychnion/lychnion#125) within the
+  /// caps per publisher (KeyStatement.maxRootGrantsPerPublisher and
+  /// maxRootReplacesPerPublisher); 2 for any other. Those of [before]
+  /// count toward the caps too. So other publishers' roots cannot use up
+  /// the room of a revocation: a dropped revocation would trust a stolen
+  /// key again.
   static List<int> _budgets(
     List<KeyStatement> list,
     List<KeyStatement> all,
@@ -401,27 +404,40 @@ class PublisherList extends ChangeNotifier {
     Iterable<KeyStatement> before = const [],
   }) {
     final grants = <String, int>{}, replaces = <String, int>{};
+    final revokes = <String, int>{};
     bool fits(KeyStatement s) {
-      final (m, cap) = s.type == KeyStatementType.replace
-          ? (replaces, KeyStatement.maxRootReplacesPerPublisher)
-          : (grants, KeyStatement.maxRootGrantsPerPublisher);
+      final (m, cap) = switch (s.type) {
+        KeyStatementType.replace => (
+          replaces,
+          KeyStatement.maxRootReplacesPerPublisher,
+        ),
+        KeyStatementType.grant => (
+          grants,
+          KeyStatement.maxRootGrantsPerPublisher,
+        ),
+        _ => (revokes, KeyStatement.maxRootRevokesByPerPublisher),
+      };
       final n = m[s.publisher] ?? 0;
       if (n >= cap) return false;
       m[s.publisher] = n + 1;
       return true;
     }
 
-    bool reserved(KeyStatement s) =>
+    bool selfOrTheft(KeyStatement s) =>
         (s.type == KeyStatementType.revoke && s.by == null) ||
         provesTheft(s, all);
+    bool rootRevoke(KeyStatement s) =>
+        s.type == KeyStatementType.revoke &&
+        s.by != null &&
+        statementRank(s, basis) == 1;
     for (final s in before) {
-      if (!reserved(s) && statementRank(s, basis) == 1) fits(s);
+      if (!selfOrTheft(s) && statementRank(s, basis) == 1) fits(s);
     }
     return [
       for (final s in list)
-        if (reserved(s))
+        if (selfOrTheft(s) || (rootRevoke(s) && fits(s)))
           0
-        else if (statementRank(s, basis) == 1 && fits(s))
+        else if (!rootRevoke(s) && statementRank(s, basis) == 1 && fits(s))
           1
         else
           2,

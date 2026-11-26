@@ -686,7 +686,7 @@ plus phones that also use the internet when they can.
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
   — no setting or dev flag sets them. A `keys` entry that is not a flat
   object of a statement's own fields is skipped before anything walks it
-  (`packages/lychnion_format/lib/src/key_statement.dart:787`), and on a
+  (`packages/lychnion_format/lib/src/key_statement.dart:789`), and on a
   node one catalog's keys never end the pull for the other sources.
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
@@ -789,15 +789,16 @@ plus phones that also use the internet when they can.
   successors on phones that know only the old key as built in, so a stolen
   root is neutralised only by an app update with new built-in roots. The
   current roots' statements are taken and kept first, also in catalogs, at
-  most 100 grants and revocations and 200 root-chain replacements per
-  publisher; revocations by the key itself and theft proofs have a budget of
-  their own on phones, so no root can crowd them out. Builds without key
+  most 100 grants, 100 revocations `by` a root and 200 root-chain replacements
+  per publisher; revocations (by the key itself, and the roots' `by`
+  revocations within their cap) and theft proofs have a budget of their own on
+  phones, so no other root can crowd them out. Builds without key
   scopes (lychnion/lychnion#125) ignore grants and revocations `by` another
   key. This holds for the `lychnion` key too. *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: no switch; only
   `KeyStatement.check` admits a statement, at
-  `packages/lychnion_format/lib/src/key_statement.dart:295` and
-  `packages/lychnion_format/lib/src/key_statement.dart:298`.
+  `packages/lychnion_format/lib/src/key_statement.dart:297` and
+  `packages/lychnion_format/lib/src/key_statement.dart:300`.
   *(documented, docs/distribution.md "Backing up and replacing the key")*
 - **`revocation-unloads`** (`downloads`): once a revocation is learned,
   items whose record the revoked key signed are no longer used. Their files
