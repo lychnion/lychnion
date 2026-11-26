@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:lychnion_format/lychnion_format.dart';
@@ -206,7 +207,7 @@ class PublisherList extends ChangeNotifier {
   /// added publishers in budget 0; changed in place). Those in [free] (an
   /// added publisher's own chain) always fit and use no room. The
   /// replacements of one old key in [list] (a theft proof's halves) fit
-  /// together or not at all, in the budget of the first: a lone half would
+  /// together or not at all, in their lowest budget: a lone half would
   /// trust the thief's new key. [learn] and [_keptOf] both use this.
   List<bool> _fit(
     List<KeyStatement> list,
@@ -228,9 +229,14 @@ class PublisherList extends ChangeNotifier {
           )
           .add(i);
     }
+    // Only replacements naming at least two new keys prove a theft; a
+    // re-signed copy (the same new key) is not a pair.
     final groupOf = <int, List<int>>{
       for (final g in pairs.values)
-        for (final i in g) i: g,
+        if ({for (final i in g) TrustedKeys.canonicalKey(list[i].newKey!)}
+                .length >
+            1)
+          for (final i in g) i: g,
     };
     final out = List<bool?>.filled(list.length, null);
     for (var i = 0; i < list.length; i++) {
@@ -240,7 +246,8 @@ class PublisherList extends ChangeNotifier {
         continue;
       }
       final group = groupOf[i] ?? [i];
-      final b = budgets[i];
+      // The group's lowest budget: a theft proof in budget 0.
+      final b = group.map((j) => budgets[j]).reduce(math.min);
       final n = group.length;
       final added = _addedZero(b, list[i]);
       final ok =
@@ -399,57 +406,29 @@ class PublisherList extends ChangeNotifier {
                   if (seen.add(s.id)) s,
               ]
             : await relevantStatements(trust, learned.toList());
-        // Like a revocation: a second successor of a key proves a theft,
-        // and losing it would trust the thief's chain. Its other half may
-        // be in this batch too, but only for a key trusted before it: a
-        // thief's own new keys cannot each add a pair (#59).
+        // A second successor of a key proves a theft, also when both are
+        // in this batch: budgeted with the batch included, as on reload.
+        // A thief's own new keys cannot each add a pair: the caps of
+        // relevantStatements bound them, and added publishers together
+        // use at most half of budget 0 (#59).
         final trustedBefore = trust;
-        bool inBatchProof(KeyStatement s) =>
-            s.type == KeyStatementType.replace &&
-            trustedBefore
-                .keysOf(s.publisher)
-                .contains(TrustedKeys.canonicalKey(s.oldKey)) &&
-            candidates.any(
-              (o) =>
-                  o.type == KeyStatementType.replace &&
-                  o.publisher == s.publisher &&
-                  TrustedKeys.canonicalKey(o.oldKey) ==
-                      TrustedKeys.canonicalKey(s.oldKey) &&
-                  TrustedKeys.canonicalKey(o.newKey!) !=
-                      TrustedKeys.canonicalKey(s.newKey!),
-            );
+        final all = [..._statements, ...candidates];
         // Ranked with the batch included (a new root's statements in the
         // same batch as its rotation), as on reload.
         final basis = trustedBefore.withStatements(candidates);
         // An added publisher's own chain is not counted, as on reload.
-        final chains = _onAddedChains(_added.values, [
-          ..._statements,
-          ...candidates,
-        ]);
+        final chains = _onAddedChains(_added.values, all);
         // The room the stored statements use, counted as on reload (a
         // stored half whose partner is in this batch is a theft proof now;
-        // past a budget, a stored statement uses no room).
+        // past a budget, a stored statement uses no room). They stay: the
+        // user's own ([any]) are kept past the budgets.
         final used = [0, 0, 0, 0];
-        _fit(
-          _statements,
-          _budgets(_statements, [..._statements, ...candidates], basis),
-          chains,
-          used,
-        );
-        final budgets = _budgets(
-          candidates,
-          _statements,
-          basis,
-          before: _statements,
-        );
+        _fit(_statements, _budgets(_statements, all, basis), chains, used);
         final fits = any
             ? const <bool>[]
             : _fit(
                 candidates,
-                [
-                  for (var i = 0; i < candidates.length; i++)
-                    inBatchProof(candidates[i]) ? 0 : budgets[i],
-                ],
+                _budgets(candidates, all, basis, before: _statements),
                 chains,
                 used,
               );
@@ -466,7 +445,7 @@ class PublisherList extends ChangeNotifier {
           if (fits[i]) fresh.add(candidates[i]);
         }
         final next = [..._statements, ...fresh];
-        if (next.length == _statements.length) return false;
+        if (fresh.isEmpty) return false;
         await _save(_added.values, next);
         _statements
           ..clear()

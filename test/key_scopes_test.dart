@@ -493,5 +493,51 @@ void main() {
       await again.load();
       expect(again.statements, isEmpty);
     });
+
+    test('in budget 0 when the other budgets are full', () async {
+      final builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(root)],
+      });
+      final file = File('${tmp.path}/zero.json');
+      final list = PublisherList(file, builtIn: builtIn, maxStatements: 2);
+      await list.load();
+      final d = [await Ed25519().newKeyPair(), await Ed25519().newKeyPair()];
+      // Budget 1: two grants by the root; budget 2: the granted keys'
+      // own replacements.
+      await list.learn([
+        for (final k in d)
+          await KeyStatement.grant(
+            publisher: 'lychnion',
+            granter: root,
+            newKey: k,
+            scope: [KeyScope.data],
+            signed: t,
+          ),
+      ]);
+      await list.learn([
+        for (final k in d)
+          await rep('lychnion', k, await Ed25519().newKeyPair()),
+      ]);
+      expect(list.statements, hasLength(4));
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: 'jp.z', key: await publicKeyOf(a)));
+      final k1 = await Ed25519().newKeyPair();
+      await list.learn([
+        await rep('jp.z', a, k1),
+        await rep('jp.z', k1, await Ed25519().newKeyPair()),
+        await rep('jp.z', k1, await Ed25519().newKeyPair()),
+      ]);
+      final k1Key = TrustedKeys.canonicalKey(await publicKeyOf(k1));
+      expect(
+        list.statements
+            .where((s) => TrustedKeys.canonicalKey(s.oldKey) == k1Key)
+            .length,
+        2,
+      );
+      expect(list.trust.keysOf('jp.z'), isNot(contains(k1Key)));
+      final again = PublisherList(file, builtIn: builtIn, maxStatements: 2);
+      await again.load();
+      expect(again.statements, list.statements);
+    });
   });
 }
