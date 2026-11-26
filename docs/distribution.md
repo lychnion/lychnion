@@ -221,58 +221,58 @@ key outside the scope it needs is refused like a bad signature.
 | `models` | records of kind `model` |
 | `safety-lines` | the official safety lines in a package: they count only when the package's signer holds this scope (and is Lychnion's, #66) |
 | `attestations` | Lychnion's attestations ("Checked by Lychnion") |
-| `keys` | grants, and revocations of keys it granted (directly or further down) |
+| `keys` | grants, and revocations of granted keys; held only by the roots |
 
-- Keys a device trusts on its own (built in, or added by a link) hold
-  every scope, so nothing signed today stops counting. After a data
-  release that re-signs the records with scoped keys, an app update will
-  limit Lychnion's built-in key (the root) to `keys`; it then stays
-  offline (lychnion/lychnion#118).
-- A **grant** names a key with a scope; the granting key must hold
-  `keys`, and both keys sign, as for a replacement:
+The rules are kept simple for this first stage:
+
+- **Roots.** Keys a device trusts on its own (built in, or added by a
+  link) hold every scope, so nothing signed today stops counting. A
+  root's successor by `replace` is in the same **root chain** and holds
+  every scope too. The newest key of each chain (with no trusted
+  successor) is the **current root**. After a data release that
+  re-signs the records with granted keys, an app update will limit
+  Lychnion's built-in key to `keys`; it then stays offline
+  (lychnion/lychnion#118).
+- **Only the current root grants.** A grant names a key with a scope;
+  both keys sign, as for a replacement:
 
   ```json
   {"format": 1, "type": "grant", "publisher": "lychnion",
-   "old": "<granting key>", "new": "<granted key>",
+   "old": "<current root>", "new": "<granted key>",
    "scope": ["data"], "signed": "…",
    "signature": "<by old>", "new_signature": "<by new>"}
   ```
 
-  `scope` is a non-empty list of the scopes above, sorted, each once. A
-  key may grant many keys (no theft conflict, unlike a key naming two
-  successors). Grants to one key add up. A successor by `replace` holds
-  the scopes of the key it replaces. **`keys` is as strong as the root:**
-  its holder can grant any scope, also `keys`; a scope is never narrowed,
-  only revoked and granted again. A grant counts only when its granter
-  holds `keys` (checked before the signature, and again in a later round
-  of the same list, so the order in a list does not matter).
-- **Revoked by the root:** a `revoke` may carry `"by": "<key>"`, signed
-  by that key instead of the revoked one. It counts only when the
-  revoked key is a **descendant** of `by`'s family (`by` and its
-  predecessors and successors by `replace`; reached through grants and
-  successors, never a key the device trusts on its own, such as the
-  built-in root), is not also reached without that family (granted by
-  someone else too), and `by` holds `keys` and is itself still trusted
-  once all revocations apply. So the root, or its successor, can cut off
-  a stolen everyday key it does not hold; a delegate cannot revoke the
-  root, its granter, a sibling or a key the root granted too; and a
-  revoked delegate's revocations stop counting. When such revocations
-  keep undoing each other, all of them count. A phone takes one only
-  when it would count (checked before the signature). A revocation by
-  the key itself counts as before.
-- **Priority and caps:** phones take, and keep when their list is full,
-  revocations by the key itself first, then statements made by a root or
-  its successors (only the root's holder can make them, so they are
-  never crowded out, and their grants and revocations have no cap), then
-  the rest in list order. A key
-  outside that family makes at most 50 grants and 50 revocations `by`
-  it that a phone takes: a stolen delegate fills only its own share.
-- **Key ids:** records name a key by a short id, so a granted or successor
-  key whose id is a root's, or another such key's, is never trusted (a
-  thief would need about 2^48 tries to make one).
-- **A revoked key's grants lapse:** a granted key is trusted only through
-  a trusted, not revoked granter, as a successor is. Revoking the root
-  also drops the keys it granted.
+  `scope` is a non-empty list of `data`, `models`, `safety-lines` and
+  `attestations`, sorted, each once. **`keys` cannot be granted**: there
+  are no delegates that grant or revoke. Delegating `keys` returns with
+  statements that need more than one signature (#118 stage 2). Grants to
+  one key add up. A granted key's successor by `replace` holds its
+  scopes. A grant made by any other key (a granted key, or a replaced
+  old root) does not count, and phones drop it before checking its
+  signature.
+- **After a root rotation, grant again.** Grants made by a root lapse
+  once it is replaced: the new root grants the everyday keys again (the
+  same keys may be granted again).
+- **Only the current root revokes another key.** A `revoke` may carry
+  `"by": "<key>"`, signed by that key instead of the revoked one. It
+  counts when `by` is a current root and the revoked key is trusted
+  through a grant (a granted key or its successor). With several roots,
+  any current root may revoke any granted key. A root, or a key of a
+  root chain, is never revoked by another key: it revokes itself, or is
+  replaced, as before. Revoking a granted key drops its successors too.
+- **Priority.** Phones take, and keep when their list is full,
+  revocations by the key itself first, then the current roots'
+  statements and the replacements within a root chain (only the root's
+  holder can make them: they are never crowded out, and do not count
+  toward the 50 replacements a publisher may have), then the rest in
+  list order. Sticks, bases and nodes choose what fits in their catalogs
+  the same way: revocations by the key itself, theft proofs, the root's
+  statements, then the rest.
+- **Key ids.** Records name a key by a short id, so a trusted key
+  outside the roots whose id is a root's or another trusted key's is not
+  trusted (the roots always are). Only the root grants, so making such a
+  key takes the root anyway.
 - **More than one signature:** a record may carry `signatures: [{"key":
   "<key id>", "signature": "…"}]` (at most 8) next to `key` and
   `signature`. Each entry signs the record without `signature` and

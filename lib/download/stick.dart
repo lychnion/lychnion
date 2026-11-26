@@ -214,10 +214,11 @@ Future<StickResult> copyToStick(DownloadStore store, Directory stick) async {
   try {
     final doc = CatalogDocument.byHash(
       records,
+      trust: store.trust,
       keys: statements,
       attestations: attestations,
       status: status,
-    ).fitted();
+    ).fitted(trust: store.trust);
     result.keysLeftOut = CatalogDocument.keysLeftOut(statements, doc);
     result.attestationsLeftOut = CatalogDocument.attestationsLeftOut(
       attestations,

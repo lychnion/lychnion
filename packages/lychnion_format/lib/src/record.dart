@@ -380,16 +380,16 @@ class TrustedKeys {
   final _revoked = <String, Set<String>>{};
   final _graphs = <String, KeyGraph>{};
 
-  /// [publisher]'s trusted roots and their successors by `replace`
-  /// (unpadded base64url): their statements are never crowded out
-  /// (lychnion/lychnion#125).
-  Set<String> rootFamilyOf(String publisher) =>
-      _graphs[publisher]?.rootFamily ?? const {};
+  /// [publisher]'s current roots (unpadded base64url): the newest key of
+  /// each root chain, the only keys that grant and revoke other keys, and
+  /// whose statements are never crowded out (lychnion/lychnion#125).
+  Set<String> currentRootsOf(String publisher) =>
+      _graphs[publisher]?.currentRoots ?? const {};
 
-  /// Whether a revocation of [target] `by` [maker] would count for
-  /// [publisher] now ([resolveKeys]).
-  bool mayRevoke(String publisher, String maker, String target) =>
-      _graphs[publisher]?.mayRevoke(maker, target) ?? false;
+  /// [publisher]'s trusted roots and their successors by `replace`,
+  /// current or not (unpadded base64url).
+  Set<String> rootChainOf(String publisher) =>
+      _graphs[publisher]?.rootChain ?? const {};
 
   static Map<String, Set<String>> _rootsOf(
     Map<String, Set<String>> have,

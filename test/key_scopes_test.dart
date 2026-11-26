@@ -177,7 +177,7 @@ void main() {
     expect(list.trust.keysOf('lychnion'), {await publicKeyOf(root)});
   });
 
-  test('a keys delegate fills the list; the root still revokes it', () async {
+  test('a granted key fills the list; the root still revokes it', () async {
     final builtIn = TrustedKeys({
       'lychnion': [await publicKeyOf(root)],
     });
@@ -190,20 +190,26 @@ void main() {
         publisher: 'lychnion',
         granter: root,
         newKey: d,
-        scope: [KeyScope.keys],
+        scope: [KeyScope.data],
         signed: t,
       ),
     ]);
-    await list.learn([
-      for (var i = 0; i < 30; i++)
-        await KeyStatement.grant(
+    // A thief's chain of the granted key.
+    var prev = d;
+    final chain = <KeyStatement>[];
+    for (var i = 0; i < 30; i++) {
+      final next = await Ed25519().newKeyPair();
+      chain.add(
+        await KeyStatement.replace(
           publisher: 'lychnion',
-          granter: d,
-          newKey: await Ed25519().newKeyPair(),
-          scope: [KeyScope.data],
+          oldKey: prev,
+          newKey: next,
           signed: t,
         ),
-    ]);
+      );
+      prev = next;
+    }
+    await list.learn(chain);
     expect(list.statements.length, 10);
     final real = await KeyStatement.revoke(
       publisher: 'lychnion',

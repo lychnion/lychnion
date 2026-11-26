@@ -437,11 +437,23 @@ void main() {
     });
 
     test('a long chain is cut, a revocation still counts', () async {
+      // A granted key's chain (a thief's): capped. The root's own
+      // rotations are not (lychnion/lychnion#125).
       final root = await _key();
-      final trust = TrustedKeys({
-        'jp.test': [root.pub],
-      });
-      var prev = root.pair;
+      final d = await _key();
+      final trust =
+          TrustedKeys({
+            'jp.test': [root.pub],
+          }).withStatements([
+            await KeyStatement.grant(
+              publisher: 'jp.test',
+              granter: root.pair,
+              newKey: d.pair,
+              scope: [KeyScope.data],
+              signed: '2026-11-19',
+            ),
+          ]);
+      var prev = d.pair;
       final chain = <KeyStatement>[];
       for (var i = 0; i < KeyStatement.maxReplacesPerPublisher + 10; i++) {
         final next = (await _key()).pair;
@@ -461,14 +473,16 @@ void main() {
       expect(got, hasLength(KeyStatement.maxReplacesPerPublisher));
       final revoke = await KeyStatement.revoke(
         publisher: 'jp.test',
-        key: root.pair,
+        key: d.pair,
         signed: '2026-11-20',
       );
       final more = await relevantStatements(trust.withStatements(got), [
         revoke.json,
       ]);
       expect(more, [revoke]);
-      expect(trust.withStatements([...got, ...more]).publishers, isEmpty);
+      expect(trust.withStatements([...got, ...more]).keysOf('jp.test'), {
+        root.pub,
+      });
     });
 
     test('past the cap, a second successor still proves a theft', () async {

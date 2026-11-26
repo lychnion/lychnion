@@ -519,8 +519,7 @@ plus phones that also use the internet when they can.
   scope its kind needs (`models` for a model, else `data`; one key for now)
   and the file's size and SHA-256 match. A trusted key is a built-in or
   added key (every scope), a successor named by a valid key statement (the
-  scopes of the key it replaces) or a key granted by one holding `keys` (the
-  granted scopes), and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
+  scopes of the key it replaces) or a key granted by a current root (the granted scopes), and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:34`,
   `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:221`, and "Open a model
@@ -682,7 +681,7 @@ plus phones that also use the internet when they can.
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
   — no setting or dev flag sets them. A `keys` entry that is not a flat
   object of a statement's own fields is skipped before anything walks it
-  (`packages/lychnion_format/lib/src/key_statement.dart:804`), and on a
+  (`packages/lychnion_format/lib/src/key_statement.dart:776`), and on a
   node one catalog's keys never end the pull for the other sources.
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
@@ -764,7 +763,7 @@ plus phones that also use the internet when they can.
   is on such a network; an internet catalog's own redirects are checked the
   same way. Private or local means any address that is not plain public
   unicast, including `::`, multicast, special ranges and IPv4 carried in
-  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:396`). DNS rebinding is
+  IPv6, Teredo and site-local (`packages/lychnion_node/lib/src/pull.dart:397`). DNS rebinding is
   not caught. *Violation symptom*: x-request-forgery. *Tier*:
   correctness-only. *Voided by*: a catalog on a private network or a folder
   (`packages/lychnion_node/lib/src/pull.dart:145`). *(documented,
@@ -772,24 +771,22 @@ plus phones that also use the internet when they can.
 
 - **`key-statement-verification`** (`records`, `downloads`, `node`): a
   replacement or a grant counts only when the old key signed it and the new
-  key countersigned it, a grant only when the old key holds `keys` (which is
-  as strong as the root, since it can grant any scope); a revocation only
-  when the revoked key signed it, or a key of the same publisher holding
-  `keys` (`by`) of which the revoked key is a descendant through grants and
-  successors (counting the keys `by` replaced), never a key trusted on its
-  own and not also reached without `by`, and which stays trusted; and only
-  when the key that made it is trusted for that publisher at that moment. A
-  revoked key, a key with two successors, a key whose short id clashes with
-  another, and any key reached only through them is not trusted. Statements
-  by the root and its successors are taken and kept first, and any other key
-  counts at most 50 grants and 50 revocations `by` it, so a stolen key
-  cannot crowd out the root. Builds without key scopes
-  (lychnion/lychnion#125) ignore grants and revocations `by` another key.
-  This holds for the `lychnion` key too. *Violation symptom*:
+  key countersigned it, a grant only when the old key is a current root (the
+  newest trusted key of a root's chain) and never of `keys`; a revocation
+  only when the revoked key signed it, or a current root of the same
+  publisher (`by`) and the revoked key is trusted through a grant, never a
+  key of a root chain; and only when the key that made it is trusted for
+  that publisher at that moment. A revoked key, a key with two successors, a
+  key whose short id clashes with another trusted key, and any key reached
+  only through them is not trusted. A root's grants lapse when it is
+  replaced. The current roots' statements are taken and kept first, also in
+  catalogs, so a stolen granted key cannot crowd them out. Builds without
+  key scopes (lychnion/lychnion#125) ignore grants and revocations `by`
+  another key. This holds for the `lychnion` key too. *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: no switch; only
   `KeyStatement.check` admits a statement, at
-  `packages/lychnion_format/lib/src/key_statement.dart:248` and
-  `packages/lychnion_format/lib/src/key_statement.dart:251`.
+  `packages/lychnion_format/lib/src/key_statement.dart:287` and
+  `packages/lychnion_format/lib/src/key_statement.dart:290`.
   *(documented, docs/distribution.md "Backing up and replacing the key")*
 - **`revocation-unloads`** (`downloads`): once a revocation is learned,
   items whose record the revoked key signed are no longer used. Their files
@@ -935,8 +932,7 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
   folded in.
 - Rotation or revocation of base keys (changes `key-revocation`).
 - Publishers allowed to ship models or safety lines.
-- Lychnion's built-in key limited to `keys`, or more than one signature
-  required for a scope (changes `signed-install-only` and
+- Lychnion's built-in key limited to `keys`, `keys` granted to other keys, or more than one signature required for a scope (changes `signed-install-only` and
   `key-statement-verification`; lychnion/lychnion#125).
 - A release built in CI, or app store and desktop signing written down.
 - Telemetry or issue reports from the app (issue 18).

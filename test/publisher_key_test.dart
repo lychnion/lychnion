@@ -278,7 +278,9 @@ void main() {
         prev = next;
       }
       await p.learn(chain);
-      expect(p.statements, hasLength(KeyStatement.maxReplacesPerPublisher));
+      // The root's rotations are not capped (lychnion/lychnion#125): only
+      // its holder makes them, and its revocation still counts.
+      expect(p.statements, hasLength(chain.length));
       final revoke = await KeyStatement.revoke(
         publisher: _name,
         key: await me.keyPair(),

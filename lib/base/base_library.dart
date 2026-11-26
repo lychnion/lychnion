@@ -60,12 +60,13 @@ class BaseLibrary {
     }
     final doc = CatalogDocument.byHash(
       [for (final i in all) i.record],
+      trust: store.trust,
       keys: keys,
       attestations: attestations,
       status: status,
       // The order phones show, as before.
       sort: false,
-    ).fitted();
+    ).fitted(trust: store.trust);
     keysLeftOut = CatalogDocument.keysLeftOut(keys, doc);
     attestationsLeftOut = CatalogDocument.attestationsLeftOut(
       attestations,

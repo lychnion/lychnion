@@ -116,12 +116,13 @@ here should be relied on alone in an emergency. Source only; build it as
   `models`, `safety-lines`, `attestations`, `keys`); a key granted only
   `data` cannot ship a model, official safety lines or attestations, and
   a Lychnion download signed by such a key never replaces a bundled
-  package's safety lines. A key holding `keys` can revoke the keys it
-  (or a key it replaced) granted, directly or further down, unless
-  someone else granted them too; never the root. Revoking a key drops
-  the keys it granted. The root's statements are never crowded out by a
-  stolen key's, which count at most 50 grants and 50 revocations per
-  key. Built-in keys keep every scope for now.
+  package's safety lines. Only the current root (the newest key of a
+  root's chain) grants, never `keys`, and revokes granted keys; roots
+  only revoke themselves or are replaced. After a root rotation the new
+  root grants the everyday keys again. The root's statements are kept
+  first by phones, sticks, bases and nodes, and never crowded out.
+  Built-in keys keep every scope for now; delegating `keys` returns
+  with more than one signature (#118 stage 2).
 - Held-back updates show (#117). Downloads says when a publisher's
   signed status names a newer version than the one a stick, base or
   download source offers ("a newer version exists, but it is not

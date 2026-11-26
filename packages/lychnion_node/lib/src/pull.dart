@@ -299,6 +299,7 @@ Future<PullResult> _pull(
     // check: the signatures were checked when read).
     final left = await folder.writeCatalog(
       listed,
+      trust: keys,
       keys: keys.statements,
       attestations: [
         for (final v in attestations)

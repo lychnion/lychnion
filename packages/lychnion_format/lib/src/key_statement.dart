@@ -16,8 +16,8 @@ final _ed25519 = Ed25519();
 /// attestation or a status signed by a key outside the scope it needs is
 /// refused like a bad signature. Keys a device trusts on its own (built in,
 /// or added by a link) hold every scope; a key named by a [grant] holds
-/// the scopes the grant lists; a successor by [replace] holds those of the
-/// key it replaces.
+/// the scopes the grant lists ([grantable]); a successor by [replace]
+/// holds those of the key it replaces.
 ///
 /// [grant]: KeyStatementType.grant
 /// [replace]: KeyStatementType.replace
@@ -36,10 +36,15 @@ abstract final class KeyScope {
   /// Lychnion's attestations for official publishers.
   static const attestations = 'attestations';
 
-  /// Grants, and revocations of the publisher's other keys.
+  /// Grants, and revocations of the publisher's granted keys. Held only by
+  /// the roots: it cannot be granted in stage 1 (delegating it returns
+  /// with more than one signature, lychnion/lychnion#118 stage 2).
   static const keys = 'keys';
 
   static const all = {data, models, safetyLines, attestations, keys};
+
+  /// The scopes a grant may list: all but [keys].
+  static const grantable = {data, models, safetyLines, attestations};
 
   /// Valid signatures from distinct keys holding the scope that a record
   /// needs (see PackageRecord's `signatures`): for its kind (`data`,
@@ -57,12 +62,13 @@ enum KeyStatementType {
   /// The old key names its successor; signed by both keys.
   replace,
 
-  /// The key is not to be trusted any more; signed by that key, or by
-  /// another key of the publisher holding [KeyScope.keys] (`by`).
+  /// The key is not to be trusted any more; signed by that key, or by a
+  /// current root of the publisher (`by`) when the key is a granted one.
   revoke,
 
-  /// A key holding [KeyScope.keys] (`old`) names another key of the
-  /// publisher (`new`) with a scope; signed by both keys.
+  /// A current root of the publisher (`old`) names another key of the
+  /// publisher (`new`) with a scope ([KeyScope.grantable]); signed by both
+  /// keys.
   grant,
 }
 
@@ -81,21 +87,20 @@ class KeyStatement {
   /// replaced every month needs 50 in four years).
   static const maxReplacesPerPublisher = 50;
 
-  /// At most this many grants, and revocations `by` another key, are taken
-  /// from each key outside its publisher's root family
-  /// (lychnion/lychnion#125; see relevantStatements).
-  static const maxGrantsPerKey = 50;
-  static const maxRevokesByPerKey = 50;
-
   /// At most [max] of [statements] to pass on, chosen in [keepOrder];
   /// their order otherwise kept.
+  /// With [trust], the current roots' statements come right after the
+  /// revocations by the key itself and theft proofs ([keepOrder]).
   static List<KeyStatement> capped(
     Iterable<KeyStatement> statements, [
     int max = maxPerSource,
+    TrustedKeys? trust,
   ]) {
     final all = statements.toList();
     if (all.length <= max) return all;
-    final keep = keepOrder([for (final s in all) s.json]).take(max).toSet();
+    final keep = keepOrder([
+      for (final s in all) s.json,
+    ], trust: trust).take(max).toSet();
     return [
       for (var i = 0; i < all.length; i++)
         if (keep.contains(i)) all[i],
@@ -103,14 +108,16 @@ class KeyStatement {
   }
 
   /// The indexes of [statements] (statement JSON) in the order they are
-  /// kept when not all fit (lychnion/lychnion#59): revocations first, then
-  /// replacements that prove a theft (losing either would trust a stolen
-  /// key again), then grants (#125), then the other replacements chain by
-  /// chain from the
-  /// first key, nearest first, so what is kept still connects to a key a
-  /// device knows. Ties keep the list order. Used by [capped] and
+  /// kept when not all fit (lychnion/lychnion#59): revocations by the key
+  /// itself first, then replacements that prove a theft (losing either
+  /// would trust a stolen key again), then, with [trust], statements made
+  /// by a current root of their publisher there (#125: its rotation and
+  /// grants are never cut for others'), then revocations by another key,
+  /// grants, and the other replacements chain by chain from the first key,
+  /// nearest first, so what is kept still connects to a key a device
+  /// knows. Ties keep the list order. Used by [capped] and
   /// `CatalogDocument.fitted`.
-  static List<int> keepOrder(List<Object?> statements) {
+  static List<int> keepOrder(List<Object?> statements, {TrustedKeys? trust}) {
     String? key(Object? v) {
       try {
         return v is String ? b64(unb64(v)) : null;
@@ -120,16 +127,34 @@ class KeyStatement {
     }
 
     final revokes = <int>[], thefts = <int>[], grants = <int>[];
+    final byRevokes = <int>[], rooted = <int>[];
+    final rootsOf = <String, Set<String>>{};
+    final chainOf = <String, Set<String>>{};
+    bool byRoot(Map<Object?, Object?> m) {
+      final p = m['publisher'], maker = m['by'] ?? m['old'];
+      if (trust == null || p is! String || maker is! String) return false;
+      return _byRoot(
+        p,
+        '${m['type']}',
+        maker,
+        m['new'] is String ? m['new'] as String : null,
+        (p) => rootsOf[p] ??= trust.currentRootsOf(p),
+        (p) => chainOf[p] ??= trust.rootChainOf(p),
+      );
+    }
+
     // Replacements: (publisher, old, new) by index.
     final replaces = <int, (String, String, String)>{};
     for (var i = 0; i < statements.length; i++) {
       final m = statements[i];
       if (m is! Map) continue;
       final p = m['publisher'], old = key(m['old']), next = key(m['new']);
-      if (m['type'] == 'revoke') {
+      if (m['type'] == 'revoke' && m['by'] == null) {
         revokes.add(i);
+      } else if (m['type'] == 'revoke') {
+        (byRoot(m) ? rooted : byRevokes).add(i);
       } else if (m['type'] == 'grant') {
-        grants.add(i);
+        (byRoot(m) ? rooted : grants).add(i);
       } else if (m['type'] == 'replace' &&
           p is String &&
           old != null &&
@@ -165,15 +190,29 @@ class KeyStatement {
     final rest = <int>[];
     for (final e in replaces.entries) {
       final (p, old, _) = e.value;
-      (successors[(p, old)]!.length > 1 ? thefts : rest).add(e.key);
+      if (successors[(p, old)]!.length > 1) {
+        thefts.add(e.key);
+      } else if (byRoot(statements[e.key]! as Map)) {
+        rooted.add(e.key);
+      } else {
+        rest.add(e.key);
+      }
     }
+    rooted.sort();
     // In a loop with no first key: after the rest.
     int d(int i) => depth[i] ?? 1 << 30;
     rest.sort((a, b) {
       final c = d(a).compareTo(d(b));
       return c != 0 ? c : a.compareTo(b);
     });
-    final ordered = [...revokes, ...thefts, ...grants, ...rest];
+    final ordered = [
+      ...revokes,
+      ...thefts,
+      ...rooted,
+      ...byRevokes,
+      ...grants,
+      ...rest,
+    ];
     final done = ordered.toSet();
     return [
       ...ordered,
@@ -365,15 +404,15 @@ class KeyStatement {
     }
   }
 
-  /// A non-empty list of [KeyScope]s, sorted and each once: one way to
-  /// write each grant.
+  /// A non-empty list of [KeyScope.grantable] scopes, sorted and each
+  /// once: one way to write each grant; never `keys`.
   static bool _scopeOk(Object? v) {
     if (v is! List || v.isEmpty || v.length > KeyScope.all.length) {
       return false;
     }
     for (var i = 0; i < v.length; i++) {
       final x = v[i];
-      if (x is! String || !KeyScope.all.contains(x)) return false;
+      if (x is! String || !KeyScope.grantable.contains(x)) return false;
       if (i > 0 && (v[i - 1] as String).compareTo(x) >= 0) return false;
     }
     return true;
@@ -412,9 +451,9 @@ class KeyStatement {
   }
 
   /// [key] is revoked: records and statements it signed are not trusted.
-  /// With [by] (another key of the publisher holding [KeyScope.keys]),
-  /// [key] is named by its public key [revoked] and [by] signs: the root
-  /// cuts off a stolen everyday key it does not hold.
+  /// With [by] (a current root of the publisher), [key] is named by its
+  /// public key [revoked] and [by] signs: the root cuts off a stolen
+  /// granted key it does not hold.
   static Future<KeyStatement> revoke({
     required String publisher,
     SimpleKeyPair? key,
@@ -443,8 +482,8 @@ class KeyStatement {
     return (await check(j)) ?? (throw ArgumentError('not a valid revocation'));
   }
 
-  /// [granter] (a key of [publisher] holding [KeyScope.keys]) names
-  /// [newKey] as a key of [publisher] that may sign [scope]; signed by
+  /// [granter] (a current root of [publisher]) names [newKey] as a key of
+  /// [publisher] that may sign [scope] (never [KeyScope.keys]); signed by
   /// both.
   static Future<KeyStatement> grant({
     required String publisher,
@@ -483,47 +522,44 @@ typedef KeyGraph = ({
   /// Ids of the revoked keys.
   Set<String> revokedIds,
 
-  /// The trusted roots and their successors by `replace`: statements they
-  /// make are never crowded out by others' (lychnion/lychnion#125).
-  Set<String> rootFamily,
+  /// The current roots: of each chain from a key trusted on its own, the
+  /// newest key (no trusted successor). Only they grant and revoke `by`,
+  /// and their statements are never crowded out (lychnion/lychnion#125).
+  Set<String> currentRoots,
 
-  /// Whether a revocation of `target` `by` `maker` would count now:
-  /// `target` is trusted, and the rule below allows it.
-  bool Function(String maker, String target) mayRevoke,
+  /// The trusted keys reached through a grant (granted keys and their
+  /// successors): what a current root may revoke `by`.
+  Set<String> granted,
+
+  /// The trusted roots and their successors by `replace`, current or not.
+  Set<String> rootChain,
 });
 
 /// What [statements] say about [publisher], starting from the keys a
 /// device trusts on its own ([roots]: built in, or added by a link; they
 /// hold every [KeyScope]).
 ///
-/// - A revoked key is not trusted. A revocation by the key itself always
-///   counts.
-/// - A revocation made `by` another key (lychnion/lychnion#125) counts only
-///   when its target is a **descendant** of that key's family (the key
-///   and its predecessors and successors by `replace`; reached through
-///   grants and successors, never one of the [roots] or the family
-///   itself), the target is not also reached without that family (granted
-///   by someone else too), and that key holds [KeyScope.keys] and is still
-///   trusted once all revocations are applied. So a delegate cannot revoke
-///   the root, its granter, a sibling, or a key the root granted too; a
-///   revoked delegate's revocations stop counting; and a root's successor
-///   can revoke the keys the root granted. Found as a fixpoint; when
-///   revocations keep changing each other (keys granting each other in a
-///   loop), every one of them counts: fail closed.
-/// - A key that names two different successors is treated as revoked:
-///   only a thief and the owner both holding it would do that. A key may
-///   grant many keys.
-/// - A successor is trusted, with the scopes of the key that names it,
-///   when that key is trusted and not revoked; a granted key is trusted,
-///   with the scopes its grant lists, when its granter is trusted, holds
-///   [KeyScope.keys] and is not revoked. So a key reached only through a
-///   revoked key is dropped: revoking the root also drops the keys it
-///   granted, as it drops its successors. Scopes reached more than one
-///   way add up.
+/// - A revoked key is not trusted, nor any key reached only through it.
+///   A revocation by the key itself always counts. A key that names two
+///   different successors is treated as revoked: only a thief and the
+///   owner both holding it would do that.
+/// - The roots and their successors by `replace` (each with every scope)
+///   form root chains; the newest key of each, with no trusted successor,
+///   is a **current root**.
+/// - Only a current root grants (lychnion/lychnion#125): a granted key is
+///   trusted with the scopes its grants list (never `keys`: there are no
+///   delegates in stage 1). After a root is replaced, its grants lapse;
+///   the new root grants again. A granted key's successor by `replace`
+///   holds its scopes.
+/// - Only a current root revokes another key (`by`), and only a key
+///   trusted through a grant: never a root or a key of a root chain,
+///   which only revoke themselves or are replaced. Any current root may
+///   revoke any granted key.
 /// - Records name a key by a short id ([recordKeyIdOf]), so no two
-///   trusted keys may share one: a granted or successor key whose id is a
-///   root's, or another such key's, is never trusted (the roots always
-///   are). [keyIdOf] replaces the id function in tests.
+///   trusted keys may share one: a trusted key outside the roots whose id
+///   is a root's or another trusted key's is not trusted (the roots
+///   always are). Only the root's holder can grant, so making such a key
+///   takes the root anyway. [keyIdOf] replaces the id function in tests.
 KeyGraph resolveKeys(
   String publisher,
   Iterable<String> roots,
@@ -533,186 +569,125 @@ KeyGraph resolveKeys(
   String norm(String k) => b64(unb64(k));
   final idOf = keyIdOf ?? (String k) => recordKeyIdOf(unb64(k));
   final rootSet = {for (final k in roots) norm(k)};
-  final mine = [
-    for (final s in statements)
-      if (s.publisher == publisher) s,
-  ];
-  final selfRevoked = <String>{
-    for (final s in mine)
-      if (s.type == KeyStatementType.revoke && s.by == null) norm(s.oldKey),
-  };
+  final selfRevoked = <String>{};
   final successors = <String, Set<String>>{};
-  final predecessors = <String, Set<String>>{};
   final grants = <String, List<(String, List<String>)>>{};
-  final byRevokes = <(String, String)>{};
-  for (final s in mine) {
+  final byRevokes = <(String, String)>[];
+  for (final s in statements) {
+    if (s.publisher != publisher) continue;
+    final old = norm(s.oldKey);
     switch (s.type) {
       case KeyStatementType.replace:
-        successors.putIfAbsent(norm(s.oldKey), () => {}).add(norm(s.newKey!));
-        predecessors.putIfAbsent(norm(s.newKey!), () => {}).add(norm(s.oldKey));
+        successors.putIfAbsent(old, () => {}).add(norm(s.newKey!));
       case KeyStatementType.grant:
-        grants.putIfAbsent(norm(s.oldKey), () => []).add((
-          norm(s.newKey!),
-          s.scope,
-        ));
+        grants.putIfAbsent(old, () => []).add((norm(s.newKey!), s.scope));
       case KeyStatementType.revoke:
-        if (s.by != null) byRevokes.add((norm(s.by!), norm(s.oldKey)));
+        if (s.by == null) {
+          selfRevoked.add(old);
+        } else {
+          byRevokes.add((norm(s.by!), old));
+        }
     }
   }
   for (final e in successors.entries) {
     if (e.value.length > 1) selfRevoked.add(e.key);
   }
-  // Keys that would share an id with a root or with each other.
+
+  ({
+    Map<String, Set<String>> scopes,
+    Set<String> chain,
+    Set<String> current,
+    Set<String> granted,
+    Set<String> revoked,
+  })
+  build(Set<String> excluded) {
+    bool ok(String k) => !selfRevoked.contains(k) && !excluded.contains(k);
+    final chain = <String>{};
+    final todo = [
+      for (final k in rootSet)
+        if (!selfRevoked.contains(k)) k,
+    ];
+    while (todo.isNotEmpty) {
+      final x = todo.removeLast();
+      if (!chain.add(x)) continue;
+      for (final n in successors[x] ?? const <String>{}) {
+        if (rootSet.contains(n) ? !selfRevoked.contains(n) : ok(n)) {
+          todo.add(n);
+        }
+      }
+    }
+    final current = {
+      for (final k in chain)
+        if (!(successors[k]?.any(chain.contains) ?? false)) k,
+    };
+    Map<String, Set<String>> grantedWithout(Set<String> revoked) {
+      bool take(String k) =>
+          !chain.contains(k) &&
+          !rootSet.contains(k) &&
+          ok(k) &&
+          !revoked.contains(k);
+      final out = <String, Set<String>>{};
+      for (final r in current) {
+        for (final (g, scope)
+            in grants[r] ?? const <(String, List<String>)>[]) {
+          if (take(g)) out.putIfAbsent(g, () => {}).addAll(scope);
+        }
+      }
+      var grew = true;
+      while (grew) {
+        grew = false;
+        for (final e in [...out.entries]) {
+          for (final n in successors[e.key] ?? const <String>{}) {
+            if (!take(n)) continue;
+            final have = out.putIfAbsent(n, () => {});
+            final before = have.length;
+            have.addAll(e.value);
+            if (have.length != before) grew = true;
+          }
+        }
+      }
+      return out;
+    }
+
+    final before = grantedWithout(const {});
+    final revoked = {
+      ...selfRevoked,
+      for (final (maker, target) in byRevokes)
+        if (current.contains(maker) && before.containsKey(target)) target,
+    };
+    final granted = grantedWithout(revoked);
+    return (
+      scopes: {
+        for (final k in chain) k: {...KeyScope.all},
+        ...granted,
+      },
+      chain: chain,
+      current: current,
+      granted: granted.keys.toSet(),
+      revoked: revoked,
+    );
+  }
+
+  var r = build(const {});
+  // Short ids shared among trusted keys: the roots win, the others are
+  // not trusted.
   final rootIds = {for (final k in rootSet) idOf(k)};
   final byId = <String, Set<String>>{};
-  for (final k in {
-    for (final v in successors.values) ...v,
-    for (final v in grants.values)
-      for (final (k, _) in v) k,
-  }) {
+  for (final k in r.scopes.keys) {
     if (!rootSet.contains(k)) byId.putIfAbsent(idOf(k), () => {}).add(k);
   }
   final clashing = {
     for (final e in byId.entries)
       if (e.value.length > 1 || rootIds.contains(e.key)) ...e.value,
   };
-
-  Map<String, Set<String>> trustedWith(
-    Set<String> revoked, {
-    Set<String> without = const {},
-  }) {
-    bool ok(String k) =>
-        !revoked.contains(k) && !without.contains(k) && !clashing.contains(k);
-    final t = <String, Set<String>>{
-      for (final k in rootSet)
-        if (!revoked.contains(k) && !without.contains(k)) k: {...KeyScope.all},
-    };
-    bool add(String k, Iterable<String> scope) {
-      final have = t.putIfAbsent(k, () => {});
-      final before = have.length;
-      have.addAll(scope);
-      return have.length != before;
-    }
-
-    var grew = true;
-    while (grew) {
-      grew = false;
-      for (final e in [...t.entries]) {
-        for (final next in successors[e.key] ?? const <String>{}) {
-          if (ok(next) && add(next, e.value)) grew = true;
-        }
-        if (!e.value.contains(KeyScope.keys)) continue;
-        for (final (next, scope)
-            in grants[e.key] ?? const <(String, List<String>)>[]) {
-          if (ok(next) && add(next, scope)) grew = true;
-        }
-      }
-    }
-    return t;
-  }
-
-  // A key and its predecessors and successors by `replace`.
-  final families = <String, Set<String>>{};
-  Set<String> familyOf(String k) => families[k] ??= () {
-    final out = <String>{k};
-    final todo = [k];
-    while (todo.isNotEmpty) {
-      final x = todo.removeLast();
-      for (final next in [...?successors[x], ...?predecessors[x]]) {
-        if (out.add(next)) todo.add(next);
-      }
-    }
-    return out;
-  }();
-
-  // Descendants of a key's family: through grants and successors, never a
-  // root, never the family itself.
-  final descendants = <String, Set<String>>{};
-  Set<String> descendantsOf(String k) => descendants[k] ??= () {
-    final family = familyOf(k);
-    final out = <String>{};
-    final todo = [...family];
-    while (todo.isNotEmpty) {
-      final x = todo.removeLast();
-      for (final next in [
-        ...?successors[x],
-        for (final (g, _) in grants[x] ?? const <(String, List<String>)>[]) g,
-      ]) {
-        if (!family.contains(next) &&
-            !rootSet.contains(next) &&
-            out.add(next)) {
-          todo.add(next);
-        }
-      }
-    }
-    return out;
-  }();
-
-  bool counts(
-    Map<String, Set<String>> t,
-    Set<String> revoked,
-    String maker,
-    String target,
-  ) =>
-      (t[maker]?.contains(KeyScope.keys) ?? false) &&
-      descendantsOf(maker).contains(target) &&
-      !trustedWith(
-        {...revoked}..remove(target),
-        without: familyOf(maker),
-      ).containsKey(target);
-
-  Set<String> revokedGiven(Set<String> revoked) {
-    final t = trustedWith(revoked);
-    return {
-      ...selfRevoked,
-      for (final (maker, target) in byRevokes)
-        if (counts(t, revoked, maker, target)) target,
-    };
-  }
-
-  var revoked = {...selfRevoked};
-  final seenSets = <String>{};
-  final allSeen = <String>{...selfRevoked};
-  while (true) {
-    final next = revokedGiven(revoked);
-    final key = (next.toList()..sort()).join(',');
-    if (next.length == revoked.length && next.containsAll(revoked)) break;
-    allSeen.addAll(next);
-    if (!seenSets.add(key)) {
-      // Revocations that keep undoing each other: all of them count.
-      revoked = allSeen;
-      break;
-    }
-    revoked = next;
-  }
-  final trusted = trustedWith(revoked);
-  final rootFamily = <String>{};
-  final todo = [
-    for (final k in rootSet)
-      if (trusted.containsKey(k)) k,
-  ];
-  while (todo.isNotEmpty) {
-    final x = todo.removeLast();
-    if (!rootFamily.add(x)) continue;
-    for (final next in successors[x] ?? const <String>{}) {
-      if (trusted.containsKey(next)) todo.add(next);
-    }
-  }
-  final finalRevoked = revoked;
+  if (clashing.isNotEmpty) r = build(clashing);
   return (
-    keys: trusted.keys.toSet(),
-    scopes: trusted,
-    revokedIds: {for (final k in revoked) recordKeyIdOf(unb64(k))},
-    rootFamily: rootFamily,
-    mayRevoke: (String maker, String target) {
-      try {
-        final t = norm(target);
-        return trusted.containsKey(t) &&
-            counts(trusted, finalRevoked, norm(maker), t);
-      } on FormatException {
-        return false;
-      }
-    },
+    keys: r.scopes.keys.toSet(),
+    scopes: r.scopes,
+    revokedIds: {for (final k in r.revoked) recordKeyIdOf(unb64(k))},
+    currentRoots: r.current,
+    granted: r.granted,
+    rootChain: r.chain,
   );
 }
 
@@ -746,28 +721,24 @@ bool _flat(Object? e) =>
 /// [trust] trusts for that publisher, counting the statements taken
 /// before it. Taken in rounds until none is added, so the order in the
 /// list does not matter (a revocation of a successor listed before the
-/// replacement that names it still counts; a grant waits for the
-/// statement that gives its maker `keys`).
+/// replacement that names it still counts; a grant by a root's successor
+/// waits for the replacement that names it).
 ///
 /// Only those statements are verified: anyone can sign statements about
 /// keys of their own, and they cost nothing here and never crowd out real
 /// ones. Entries that name a trusted key with a bad signature stop being
-/// verified after a few; repeated entries are verified once. At most
-/// [max] are returned, not counting those [trust] has, revocations by the
-/// key itself, and statements made by a root or its successors
-/// (`rootFamily` of [KeyGraph]): those always count, and are looked at first,
-/// in that order ([statementRank]), then the rest in list order. At most
-/// [KeyStatement.maxReplacesPerPublisher] replacements are kept per
-/// publisher (a thief could sign a long chain of keys of its own).
+/// verified after a few; repeated entries are verified once. Grants and
+/// revocations `by` another key (lychnion/lychnion#125) count only when
+/// made by a current root (`currentRoots` of [KeyGraph]), a revocation
+/// only of a granted key: both checked before verifying, so a granted
+/// key or a replaced root costs nothing with them.
 ///
-/// Grants and revocations `by` another key (lychnion/lychnion#125) count
-/// only when their maker holds [KeyScope.keys], and a revocation only
-/// when it would count (`mayRevoke` of [KeyGraph]: its target is a trusted
-/// descendant of its maker), both checked before verifying. A key outside
-/// the root family makes at most [KeyStatement.maxGrantsPerKey] grants
-/// and [KeyStatement.maxRevokesByPerKey] such revocations: a stolen key
-/// cannot fill the list, and never pushes out the root's statements.
-/// Returned in [statementRank] order.
+/// Taken in [statementRank] order: revocations by the key itself, then
+/// the current roots' statements, then the rest in list order. At most
+/// [max] of the rest are returned (not counting those [trust] has), and
+/// at most [KeyStatement.maxReplacesPerPublisher] replacements are kept
+/// per publisher (a thief could sign a long chain of keys of its own);
+/// the first two kinds always count. Returned in that order.
 Future<List<KeyStatement>> relevantStatements(
   TrustedKeys trust,
   Object? list, {
@@ -792,6 +763,7 @@ Future<List<KeyStatement>> relevantStatements(
           String publisher,
           String maker,
           String? target,
+          String? newKey,
           Object raw,
           String kind,
         })
@@ -809,14 +781,20 @@ Future<List<KeyStatement>> relevantStatements(
       continue;
     }
     // Made by `by` when given (a revocation by another key), else by `old`.
-    final (publisher, maker, target) = switch (e) {
-      KeyStatement s => (s.publisher, norm(s.maker), norm(s.oldKey)),
+    final (publisher, maker, target, newKey) = switch (e) {
+      KeyStatement s => (
+        s.publisher,
+        norm(s.maker),
+        norm(s.oldKey),
+        norm(s.newKey),
+      ),
       Map<Object?, Object?> m => (
         m['publisher'],
         norm(m['by'] ?? m['old']),
         norm(m['old']),
+        norm(m['new']),
       ),
-      _ => (null, null, null),
+      _ => (null, null, null, null),
     };
     // `revoke` (by the key itself), `revoke-by`, `grant` or `replace`.
     final kind = switch (e) {
@@ -834,6 +812,7 @@ Future<List<KeyStatement>> relevantStatements(
         publisher: publisher,
         maker: maker,
         target: target,
+        newKey: newKey,
         raw: e as Object,
         kind: kind,
       ));
@@ -842,29 +821,19 @@ Future<List<KeyStatement>> relevantStatements(
   final all = [...trust.statements];
   final seen = {for (final s in all) s.id};
   final taken = <(int, int, KeyStatement)>[];
-  // Taken statements outside the root family, other than revocations by
-  // the key itself.
   var others = 0;
   final graphs = <String, KeyGraph>{};
   KeyGraph graphOf(String p) =>
       graphs[p] ??= resolveKeys(p, trust.rootsOf(p), all);
   int rankOf(String kind, String publisher, String maker) => kind == 'revoke'
       ? 0
-      : graphOf(publisher).rootFamily.contains(maker)
+      : graphOf(publisher).currentRoots.contains(maker)
       ? 1
       : 2;
   final replaces = <String, int>{};
-  // (publisher, maker, kind) → grants or revocations `by` it so far.
-  final made = <(String, String, String), int>{};
-  void bump((String, String, String) k) => made[k] = (made[k] ?? 0) + 1;
   for (final s in all) {
-    switch (s.type) {
-      case KeyStatementType.replace:
-        replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
-      case KeyStatementType.grant:
-        bump((s.publisher, b64(unb64(s.oldKey)), 'grant'));
-      case KeyStatementType.revoke:
-        if (s.by != null) bump((s.publisher, b64(unb64(s.by!)), 'revoke-by'));
+    if (s.type == KeyStatementType.replace) {
+      replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
     }
   }
   final done = <int>{};
@@ -872,8 +841,6 @@ Future<List<KeyStatement>> relevantStatements(
   var grew = true;
   while (grew) {
     grew = false;
-    // Self-revocations, then the root family's, then the rest; ties in
-    // list order.
     final order = [
       for (final c in pending)
         if (!done.contains(c.index)) (rankOf(c.kind, c.publisher, c.maker), c),
@@ -882,39 +849,26 @@ Future<List<KeyStatement>> relevantStatements(
       final g = graphOf(c.publisher);
       // Not trusted (yet): it stays pending, a later statement may change
       // that.
-      final makerScopes = g.scopes[c.maker];
-      if (makerScopes == null) continue;
+      if (!g.scopes.containsKey(c.maker)) continue;
       final rank = rankOf(c.kind, c.publisher, c.maker);
       if (rank == 2 && others >= max) continue;
-      // Grants and revocations of another key need `keys`; a revocation
-      // must count; a cap per key outside the root family. Checked before
-      // verifying, so they cost nothing otherwise.
+      // Only a current root grants or revokes another key, and only a
+      // granted key: checked before verifying.
       if (c.kind == 'grant' || c.kind == 'revoke-by') {
-        if (!makerScopes.contains(KeyScope.keys)) continue;
-        if (c.kind == 'revoke-by' &&
-            (c.target == null || !g.mayRevoke(c.maker, c.target!))) {
-          continue;
-        }
-        final cap = c.kind == 'grant'
-            ? KeyStatement.maxGrantsPerKey
-            : KeyStatement.maxRevokesByPerKey;
-        if (rank == 2 && (made[(c.publisher, c.maker, c.kind)] ?? 0) >= cap) {
-          continue;
-        }
+        if (rank != 1) continue;
+        if (c.kind == 'revoke-by' && !g.granted.contains(c.target)) continue;
       }
       // A replacement past the cap counts only as proof of a theft: its
-      // old key already names another successor. Checked before
-      // verifying, so statements past the cap cost nothing.
+      // old key already names another successor. A current root's is not
+      // capped. Checked before verifying.
       final isReplace = c.kind == 'replace';
-      final newKey = norm(switch (c.raw) {
-        KeyStatement k => k.newKey,
-        Map<Object?, Object?> m => m['new'],
-        _ => null,
-      });
-      final atCap =
-          isReplace &&
-          (replaces[c.publisher] ?? 0) >= KeyStatement.maxReplacesPerPublisher;
-      if (atCap && !_namesOther(all, c.publisher, c.maker, newKey)) continue;
+      if (isReplace &&
+          rank == 2 &&
+          (replaces[c.publisher] ?? 0) >=
+              KeyStatement.maxReplacesPerPublisher &&
+          !_namesOther(all, c.publisher, c.maker, c.newKey)) {
+        continue;
+      }
       final KeyStatement? s;
       if (c.raw case final KeyStatement k) {
         s = k;
@@ -927,9 +881,6 @@ Future<List<KeyStatement>> relevantStatements(
       done.add(c.index);
       if (s == null || !seen.add(s.id)) continue;
       if (isReplace) replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
-      if (c.kind == 'grant' || c.kind == 'revoke-by') {
-        bump((c.publisher, c.maker, c.kind));
-      }
       all.add(s);
       taken.add((rank, taken.length, s));
       if (rank == 2) others++;
@@ -943,11 +894,48 @@ Future<List<KeyStatement>> relevantStatements(
 
 /// The order in which a statement is taken and kept when not all fit
 /// (lychnion/lychnion#125): 0 for a revocation by the key itself, 1 for a
-/// statement made by a key in [trust]'s root family for its publisher
-/// (`rootFamily` of [KeyGraph]), 2 for any other.
+/// statement made by a current root of its publisher in [trust]
+/// (`currentRoots` of [KeyGraph]) or a replacement within a root chain
+/// (the root's rotations, also once the newer key is current), 2 for any
+/// other.
 int statementRank(KeyStatement s, TrustedKeys trust) {
   if (s.type == KeyStatementType.revoke && s.by == null) return 0;
-  return trust.rootFamilyOf(s.publisher).contains(b64(unb64(s.maker))) ? 1 : 2;
+  return _byRoot(
+        s.publisher,
+        s.type.name,
+        s.maker,
+        s.newKey,
+        trust.currentRootsOf,
+        trust.rootChainOf,
+      )
+      ? 1
+      : 2;
+}
+
+/// True for a statement made by a current root, or a replacement from a
+/// key of a root chain to another (see [statementRank]).
+bool _byRoot(
+  String publisher,
+  String type,
+  String maker,
+  String? newKey,
+  Set<String> Function(String) currentRootsOf,
+  Set<String> Function(String) rootChainOf,
+) {
+  String? norm(String? k) {
+    if (k == null) return null;
+    try {
+      return b64(unb64(k));
+    } on FormatException {
+      return null;
+    }
+  }
+
+  final m = norm(maker);
+  if (m == null) return false;
+  if (currentRootsOf(publisher).contains(m)) return true;
+  final chain = rootChainOf(publisher);
+  return type == 'replace' && chain.contains(m) && chain.contains(norm(newKey));
 }
 
 /// True when [statements] already have [publisher]'s key [old] name a
