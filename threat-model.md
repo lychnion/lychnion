@@ -46,7 +46,7 @@
   records and files; the headless node is `packages/lychnion_node`. A *record*
   is the small signed JSON that names a package version and its files by
   SHA-256. *Pinning* a key means the phone remembers it as the base's key.
-- **Draft confidence**: 125 documented / 150 maintainer / 0 inferred / 0 assumption.
+- **Draft confidence**: 126 documented / 150 maintainer / 0 inferred / 0 assumption.
 - **Backtest note**: routed a 41-item corpus in 15 clusters across all 9
   component families and all 8 contract dimensions. 15 items carry a real
   historical outcome: 13 security fixes in the git history and 2 acknowledged
@@ -168,7 +168,10 @@ One model covers everything this repository ships *(maintainer, 2026-11)*.
   Lychnion key, a compromised maintainer GitHub account or build machine is
   out of model *(maintainer, 2026-11)*. Key statements that replace or revoke
   the `lychnion` key are in model and verified like any publisher's
-  *(maintainer, 2026-11)*.
+  *(maintainer, 2026-11)*. How the keys are kept (an offline root on two USB
+  sticks, a scoped everyday key) and what to do when one is lost or stolen
+  is written down in docs/key-custody.md *(documented, docs/key-custody.md
+  "The keys")*.
 - **Release and CI machinery.** CI only analyzes and tests, with read-only
   permissions and no secrets; release builds are made on a maintainer's
   machine. A CI report that cannot reach a shipped build or a secret is a
@@ -948,7 +951,9 @@ data (`freshness`); **flooding** a base from the Wi-Fi (`lan-availability`);
   or more than one signature required for a scope (changes
   `signed-install-only` and `key-statement-verification`;
   lychnion/lychnion#125).
-- A release built in CI, or app store and desktop signing written down.
+- A release built in CI, or app store and desktop signing written down
+  (today: docs/release-builds.md and docs/key-custody.md "Accounts and
+  releases"; iOS and macOS signing not written down yet).
 - Telemetry or issue reports from the app (issue 18).
 - Any §1.6 default that changes, and any new `lychnion://` link kind.
 - The radio message reader wired into the app.
