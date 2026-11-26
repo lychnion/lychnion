@@ -87,6 +87,14 @@ class KeyStatement {
   /// replaced every month needs 50 in four years).
   static const maxReplacesPerPublisher = 50;
 
+  /// At most this many grants and revocations `by` a root, and
+  /// replacements within a root chain, are taken per publisher
+  /// (lychnion/lychnion#125): only the root's holder makes them, but an
+  /// added publisher's root (or a thief of it) must not fill a phone's
+  /// list.
+  static const maxRootGrantsPerPublisher = 100;
+  static const maxRootReplacesPerPublisher = 200;
+
   /// At most [max] of [statements] to pass on, chosen in [keepOrder];
   /// their order otherwise kept.
   /// With [trust], the current roots' statements come right after the
@@ -243,8 +251,8 @@ class KeyStatement {
   ];
 
   /// The key that revokes [oldKey] for the publisher, when it is not
-  /// [oldKey] itself ([KeyStatementType.revoke] only); it counts when it
-  /// holds [KeyScope.keys].
+  /// [oldKey] itself ([KeyStatementType.revoke] only); it counts only for
+  /// a current root revoking a granted key (see [resolveKeys]).
   String? get by => json['by'] as String?;
 
   /// The key that made the statement: [by] when given, else [oldKey].
@@ -407,7 +415,7 @@ class KeyStatement {
   /// A non-empty list of [KeyScope.grantable] scopes, sorted and each
   /// once: one way to write each grant; never `keys`.
   static bool _scopeOk(Object? v) {
-    if (v is! List || v.isEmpty || v.length > KeyScope.all.length) {
+    if (v is! List || v.isEmpty || v.length > KeyScope.grantable.length) {
       return false;
     }
     for (var i = 0; i < v.length; i++) {
@@ -669,16 +677,19 @@ KeyGraph resolveKeys(
   }
 
   var r = build(const {});
-  // Short ids shared among trusted keys: the roots win, the others are
-  // not trusted.
+  // Short ids shared among trusted keys: the roots win, then the other
+  // keys of root chains; a granted key that clashes is not trusted.
   final rootIds = {for (final k in rootSet) idOf(k)};
+  final chainIds = {for (final k in r.chain) idOf(k)};
   final byId = <String, Set<String>>{};
   for (final k in r.scopes.keys) {
-    if (!rootSet.contains(k)) byId.putIfAbsent(idOf(k), () => {}).add(k);
+    if (!r.chain.contains(k)) byId.putIfAbsent(idOf(k), () => {}).add(k);
   }
   final clashing = {
+    for (final k in r.chain)
+      if (!rootSet.contains(k) && rootIds.contains(idOf(k))) k,
     for (final e in byId.entries)
-      if (e.value.length > 1 || rootIds.contains(e.key)) ...e.value,
+      if (e.value.length > 1 || chainIds.contains(e.key)) ...e.value,
   };
   if (clashing.isNotEmpty) r = build(clashing);
   return (
@@ -831,16 +842,26 @@ Future<List<KeyStatement>> relevantStatements(
       ? 1
       : 2;
   final replaces = <String, int>{};
+  // Grants and revocations `by` another key, per publisher.
+  final rootGrants = <String, int>{};
   for (final s in all) {
     if (s.type == KeyStatementType.replace) {
       replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
+    } else if (s.type == KeyStatementType.grant || s.by != null) {
+      rootGrants[s.publisher] = (rootGrants[s.publisher] ?? 0) + 1;
     }
   }
   final done = <int>{};
+  // Publishers whose graph a taken grant changed: resolved again at the
+  // next round, not after each grant (a grant only adds a granted key,
+  // whose own statements wait for that round).
+  final stale = <String>{};
   var bad = 0;
   var grew = true;
   while (grew) {
     grew = false;
+    stale.forEach(graphs.remove);
+    stale.clear();
     final order = [
       for (final c in pending)
         if (!done.contains(c.index)) (rankOf(c.kind, c.publisher, c.maker), c),
@@ -854,18 +875,24 @@ Future<List<KeyStatement>> relevantStatements(
       if (rank == 2 && others >= max) continue;
       // Only a current root grants or revokes another key, and only a
       // granted key: checked before verifying.
-      if (c.kind == 'grant' || c.kind == 'revoke-by') {
+      final byRoot = c.kind == 'grant' || c.kind == 'revoke-by';
+      if (byRoot) {
         if (rank != 1) continue;
         if (c.kind == 'revoke-by' && !g.granted.contains(c.target)) continue;
+        if ((rootGrants[c.publisher] ?? 0) >=
+            KeyStatement.maxRootGrantsPerPublisher) {
+          continue;
+        }
       }
       // A replacement past the cap counts only as proof of a theft: its
-      // old key already names another successor. A current root's is not
-      // capped. Checked before verifying.
+      // old key already names another successor. A current root's has a
+      // larger cap. Checked before verifying.
       final isReplace = c.kind == 'replace';
       if (isReplace &&
-          rank == 2 &&
           (replaces[c.publisher] ?? 0) >=
-              KeyStatement.maxReplacesPerPublisher &&
+              (rank == 1
+                  ? KeyStatement.maxRootReplacesPerPublisher
+                  : KeyStatement.maxReplacesPerPublisher) &&
           !_namesOther(all, c.publisher, c.maker, c.newKey)) {
         continue;
       }
@@ -881,10 +908,18 @@ Future<List<KeyStatement>> relevantStatements(
       done.add(c.index);
       if (s == null || !seen.add(s.id)) continue;
       if (isReplace) replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
+      if (byRoot) rootGrants[s.publisher] = (rootGrants[s.publisher] ?? 0) + 1;
       all.add(s);
       taken.add((rank, taken.length, s));
       if (rank == 2) others++;
-      graphs.remove(s.publisher);
+      // A grant only adds a granted key: resolved at the next round. A
+      // revocation or replacement may change the roots: now.
+      if (s.type == KeyStatementType.grant) {
+        stale.add(s.publisher);
+      } else {
+        graphs.remove(s.publisher);
+        stale.remove(s.publisher);
+      }
       grew = true;
     }
   }

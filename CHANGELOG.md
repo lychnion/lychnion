@@ -120,7 +120,11 @@ here should be relied on alone in an emergency. Source only; build it as
   root's chain) grants, never `keys`, and revokes granted keys; roots
   only revoke themselves or are replaced. After a root rotation the new
   root grants the everyday keys again. The root's statements are kept
-  first by phones, sticks, bases and nodes, and never crowded out.
+  first by phones, sticks, bases and nodes, and never crowded out; a
+  phone takes at most 100 grants and revocations and 200 rotations from
+  each publisher's roots, and keeps revocations by a key itself and theft
+  proofs in a budget nothing else uses, so another publisher's root
+  cannot push them out.
   Built-in keys keep every scope for now; delegating `keys` returns
   with more than one signature (#118 stage 2).
 - Held-back updates show (#117). Downloads says when a publisher's

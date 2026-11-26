@@ -253,7 +253,19 @@ The rules are kept simple for this first stage:
   signature.
 - **After a root rotation, grant again.** Grants made by a root lapse
   once it is replaced: the new root grants the everyday keys again (the
-  same keys may be granted again).
+  same keys may be granted again). A `by` revocation lapses with its
+  root too, so never grant a revoked key again. To rotate a root:
+  1. publish the rotation and every re-grant in the same catalog or
+     release (a phone that learns the rotation without the re-grants
+     stops using the granted keys' items until they arrive);
+  2. ship the new key as a built-in root in an app update before the old
+     key is retired;
+  3. then re-sign the records.
+- **A replaced root is not a revoked one.** It keeps every scope for
+  records. Revoking it, or a theft conflict on it (two successors), also
+  cuts off its successors on phones that know only the old key as built
+  in. So a stolen root is neutralised only by an app update with new
+  built-in roots.
 - **Only the current root revokes another key.** A `revoke` may carry
   `"by": "<key>"`, signed by that key instead of the revoked one. It
   counts when `by` is a current root and the revoked key is trusted
@@ -261,18 +273,23 @@ The rules are kept simple for this first stage:
   any current root may revoke any granted key. A root, or a key of a
   root chain, is never revoked by another key: it revokes itself, or is
   replaced, as before. Revoking a granted key drops its successors too.
-- **Priority.** Phones take, and keep when their list is full,
-  revocations by the key itself first, then the current roots'
-  statements and the replacements within a root chain (only the root's
-  holder can make them: they are never crowded out, and do not count
-  toward the 50 replacements a publisher may have), then the rest in
-  list order. Sticks, bases and nodes choose what fits in their catalogs
-  the same way: revocations by the key itself, theft proofs, the root's
-  statements, then the rest.
-- **Key ids.** Records name a key by a short id, so a trusted key
-  outside the roots whose id is a root's or another trusted key's is not
-  trusted (the roots always are). Only the root grants, so making such a
-  key takes the root anyway.
+- **Priority and caps.** Phones take revocations by the key itself
+  first, then the current roots' statements and the replacements within
+  a root chain (only the root's holder can make them), then the rest in
+  list order. Per publisher, a phone takes at most 100 grants and `by`
+  revocations from its roots, 200 replacements within its root chains,
+  and 50 other replacements. Its list keeps three budgets that never
+  borrow from each other: revocations by the key itself and theft
+  proofs (2,000), the roots' statements (1,000), and the rest (1,000);
+  so another publisher's root cannot push out a revocation. Sticks,
+  bases and nodes choose what fits in their catalogs the same way:
+  revocations by the key itself, theft proofs, the root's statements,
+  then the rest.
+- **Key ids.** Records name a key by a short id, so no two trusted keys
+  may share one: the roots win, then the other keys of root chains; a
+  granted key whose id is one of theirs, or another granted key's, is
+  not trusted. Only the root grants, so making such a key takes the root
+  anyway.
 - **More than one signature:** a record may carry `signatures: [{"key":
   "<key id>", "signature": "…"}]` (at most 8) next to `key` and
   `signature`. Each entry signs the record without `signature` and

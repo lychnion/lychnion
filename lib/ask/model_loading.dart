@@ -151,6 +151,7 @@ mixin _ModelLoading on _AskPageBase {
           required bool safetyLines,
           required String signer,
           String? signerKeyId,
+          String? noLinesReason,
         }) {
           try {
             final p = KnowledgePackage.open(
@@ -163,6 +164,7 @@ mixin _ModelLoading on _AskPageBase {
               'event': 'package_alerts_ignored',
               'id': id,
               'alerts': p.alerts.length,
+              'reason': ?noLinesReason,
             });
             return p.withoutAlerts();
           } on Object catch (e) {
@@ -213,6 +215,11 @@ mixin _ModelLoading on _AskPageBase {
               safetyLines: lines,
               signer: i.record.publisher,
               signerKeyId: i.record.keyId,
+              // Lychnion's, signed by a key without safety-lines (#125),
+              // or another publisher's (#66).
+              noLinesReason: i.builtInPublisher
+                  ? 'signer may not sign safety lines'
+                  : 'not a built-in publisher',
             ),
         ]);
         _labels = store;

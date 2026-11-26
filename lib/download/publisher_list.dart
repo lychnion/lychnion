@@ -173,16 +173,21 @@ class PublisherList extends ChangeNotifier {
   /// again.
   final _statements = <KeyStatement>[];
 
-  /// At most this many statements are kept, besides revocations and
-  /// theft proofs ([maxStatements]).
+  /// At most this many statements are kept in each budget
+  /// ([maxStatements]; see [_budgets]): the current roots' statements,
+  /// and the others. Revocations by the key itself and theft proofs have
+  /// a budget of their own, twice as large, that nothing else uses.
   static const defaultMaxStatements = 1000;
 
   /// [defaultMaxStatements]; smaller in tests.
   final int maxStatements;
 
-  /// Revocations and theft proofs past [maxStatements] are kept up to this
-  /// many times [maxStatements] in all, what [load] reads back.
+  /// All budgets together, in times [maxStatements]: what [load] reads
+  /// back.
   static const _readBack = 4;
+
+  /// The most each budget of [_budgets] keeps.
+  List<int> get _budgetMax => [maxStatements * 2, maxStatements, maxStatements];
 
   List<KeyStatement> get statements => List.unmodifiable(_statements);
 
@@ -202,7 +207,9 @@ class PublisherList extends ChangeNotifier {
       final p? => {TrustedKeys.canonicalKey(p.key)},
       null => builtIn.keysOf(name),
     };
-    return now.difference(roots).isEmpty
+    // Replaced only by a successor in the root chain: a granted key
+    // (lychnion/lychnion#125) is not a replacement.
+    return trust.rootChainOf(name).difference(roots).isEmpty
         ? PublisherKeyState.added
         : PublisherKeyState.replaced;
   }
@@ -313,19 +320,18 @@ class PublisherList extends ChangeNotifier {
   Future<bool> learn(Iterable<KeyStatement> learned, {bool any = false}) =>
       _serial(() async {
         final before = _keySummary();
-        final room = maxStatements - _statements.length;
         final seen = {for (final s in _statements) s.id};
         // Only statements made by a key trusted here (see
         // relevantStatements): statements anyone can make about keys of
-        // their own never fill the list. Revocations are kept even when
-        // it is full: losing one would trust a stolen key again.
+        // their own never fill the list. Revocations by the key itself
+        // and theft proofs have their own budget: losing one would trust
+        // a stolen key again.
         final candidates = any
             ? [
                 for (final s in learned)
                   if (seen.add(s.id)) s,
               ]
             : await relevantStatements(trust, learned.toList());
-        var left = room;
         // Like a revocation: a second successor of a key proves a theft,
         // and losing it would trust the thief's chain. Its other half may
         // be in this batch too, but only for a key trusted before it: a
@@ -341,19 +347,33 @@ class PublisherList extends ChangeNotifier {
                   o.oldKey == s.oldKey &&
                   o.newKey != s.newKey,
             );
-        // A hard limit for those too, as far as load reads back.
+        final used = [0, 0, 0];
+        for (final b in _budgets(_statements, _statements, trustedBefore)) {
+          used[b]++;
+        }
+        final budgets = _budgets(
+          candidates,
+          _statements,
+          trustedBefore,
+          before: _statements,
+        );
+        final max = _budgetMax;
+        final fresh = <KeyStatement>[];
+        // The user's own statements ([any]): kept while all budgets
+        // together have room, as far as load reads back; past the limit
+        // this computer would forget that its old key was replaced (#59).
         var hard = maxStatements * _readBack - _statements.length;
-        final fresh = [
-          for (final s in candidates)
-            // The user's own statements ([any]) too: past the limit this
-            // computer would forget that its old key was replaced (#59).
-            if (((any ||
-                        _protects(s, _statements, trustedBefore) ||
-                        inBatchProof(s)) &&
-                    hard-- > 0) ||
-                left-- > 0)
-              s,
-        ];
+        for (var i = 0; i < candidates.length; i++) {
+          if (any) {
+            if (hard-- > 0) fresh.add(candidates[i]);
+            continue;
+          }
+          final b = inBatchProof(candidates[i]) ? 0 : budgets[i];
+          if (used[b] < max[b]) {
+            used[b]++;
+            fresh.add(candidates[i]);
+          }
+        }
         final next = [..._statements, ...fresh];
         if (next.length == _statements.length) return false;
         await _save(_added.values, next);
@@ -366,35 +386,66 @@ class PublisherList extends ChangeNotifier {
         return changed;
       });
 
-  /// Kept even past [maxStatements] (up to the hard limit), since losing
-  /// one would trust a stolen key again or drop the root's word: a
-  /// revocation by the key itself, a statement made by a current root of
-  /// [basis] (rank 0 and 1 of statementRank, lychnion/lychnion#125: only
-  /// the root's holder can make one), and a replacement that proves a
-  /// theft.
-  static bool _protects(
-    KeyStatement s,
+  /// The budget each of [list] is kept in, in order: 0 for a revocation
+  /// by the key itself or a replacement that proves a theft ([all]), 1 for
+  /// a statement of a current root of [basis] (statementRank 1,
+  /// lychnion/lychnion#125) within the caps per publisher
+  /// (KeyStatement.maxRootGrantsPerPublisher and
+  /// maxRootReplacesPerPublisher, counting those of [before] too), 2 for
+  /// any other. So an added publisher's root cannot use up the room of a
+  /// revocation.
+  static List<int> _budgets(
+    List<KeyStatement> list,
     List<KeyStatement> all,
-    TrustedKeys basis,
-  ) => statementRank(s, basis) < 2 || provesTheft(s, all);
+    TrustedKeys basis, {
+    Iterable<KeyStatement> before = const [],
+  }) {
+    final grants = <String, int>{}, replaces = <String, int>{};
+    bool fits(KeyStatement s) {
+      final (m, cap) = s.type == KeyStatementType.replace
+          ? (replaces, KeyStatement.maxRootReplacesPerPublisher)
+          : (grants, KeyStatement.maxRootGrantsPerPublisher);
+      final n = m[s.publisher] ?? 0;
+      if (n >= cap) return false;
+      m[s.publisher] = n + 1;
+      return true;
+    }
 
-  /// What [learn] could have kept of [read]: every revocation and theft
-  /// proof, and up to [maxStatements] others ([learn] adds others only
-  /// while the list is shorter than that).
+    bool reserved(KeyStatement s) =>
+        (s.type == KeyStatementType.revoke && s.by == null) ||
+        provesTheft(s, all);
+    for (final s in before) {
+      if (!reserved(s) && statementRank(s, basis) == 1) fits(s);
+    }
+    return [
+      for (final s in list)
+        if (reserved(s))
+          0
+        else if (statementRank(s, basis) == 1 && fits(s))
+          1
+        else
+          2,
+    ];
+  }
+
+  /// What [learn] could have kept of [read]: as many of each budget
+  /// ([_budgets]) as it keeps, in the order read.
   List<KeyStatement> _keptOf(List<KeyStatement> read) {
-    var left = maxStatements;
-    // Whose statements are protected: the current roots after them.
+    // Whose statements are the roots': the current roots after them.
     final basis = builtIn
         .plus({
           for (final p in _added.values) p.name: [p.key],
         })
         .withStatements(read);
-    // Not counted in maxStatements: at most 50 per added publisher, which
-    // leaves learn that much less room past the limit.
+    // Not counted in a budget: at most 50 per added publisher.
     final chains = _onAddedChains(_added.values, read);
+    final budgets = _budgets(read, read, basis);
+    final used = [0, 0, 0];
+    final max = _budgetMax;
     return [
-      for (final s in read)
-        if (_protects(s, read, basis) || chains.contains(s.id) || left-- > 0) s,
+      for (var i = 0; i < read.length; i++)
+        if (chains.contains(read[i].id) || used[budgets[i]]++ < max[budgets[i]])
+          read[i],
     ];
   }
 

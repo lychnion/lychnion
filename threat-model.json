@@ -687,7 +687,7 @@
       "severity_tier": "security",
       "conditions": "a file from any source is installed or served onward only when its record verifies against enough trusted keys for that publisher name holding the scope its kind needs (`models` for a model, else `data`; one key for now) and the file's size and SHA-256 match. A trusted key is a built-in or added key (every scope), a successor named by a valid key statement (the scopes of the key it replaces) or a key granted by a current root (the granted scopes), and not revoked.",
       "provenance": "documented",
-      "source": "docs/data-packages.md \"Signing and trust\""
+      "source": "docs/distribution.md \"Backing up and replacing the key\""
     },
     {
       "property": "publisher-namespace",
@@ -725,7 +725,7 @@
       "property": "safety-line-lychnion-only",
       "violation_symptom": "x-missing-or-forged-safety-line",
       "severity_tier": "security",
-      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher supplies it: a package whose record is not signed by a built-in publisher is loaded without its alerts (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`), and its copy of a bundled Lychnion package is not loaded (`DownloadStore.bundledPackageSource`), and an empty trigger word matches nothing.",
+      "conditions": "when a hazard question matches, the fixed safety line from a Lychnion-signed package is shown word for word above the AI text; no other publisher or key supplies it: a package whose record is not valid for `safety-lines` (signed by a built-in publisher with a key holding that scope, `DownloadStore.givesSafetyLines`) is loaded without its alerts (`lib/ask/model_loading.dart`, `KnowledgePackage.withoutAlerts`), and the log says why; another publisher's copy of a bundled Lychnion package is not loaded, and Lychnion's download of one that is not valid for `safety-lines` is not used: the bundled file is, and Downloads says so (`DownloadStore.bundledPackageSource`); an empty trigger word matches nothing.",
       "provenance": "documented",
       "source": "maintainer ruling, 2026-11"
     },
@@ -861,7 +861,7 @@
       "property": "key-statement-verification",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a replacement or a grant counts only when the old key signed it and the new key countersigned it, a grant only when the old key is a current root (the newest trusted key of a root's chain) and never of `keys`; a revocation only when the revoked key signed it, or a current root of the same publisher (`by`) and the revoked key is trusted through a grant, never a key of a root chain; and only when the key that made it is trusted for that publisher at that moment. A revoked key, a key with two successors, a key whose short id clashes with another trusted key, and any key reached only through them is not trusted. A root's grants lapse when it is replaced. The current roots' statements are taken and kept first, also in catalogs, so a stolen granted key cannot crowd them out. Builds without key scopes (lychnion/lychnion#125) ignore grants and revocations `by` another key. This holds for the `lychnion` key too.",
+      "conditions": "a replacement or a grant counts only when the old key signed it and the new key countersigned it, a grant only when the old key is a current root (the newest trusted key of a root's chain) and never of `keys`; a revocation only when the revoked key signed it, or a current root of the same publisher (`by`) and the revoked key is trusted through a grant, never a key of a root chain; and only when the key that made it is trusted for that publisher at that moment. A revoked key, a key with two successors, a granted key whose short id clashes with a root chain's or another granted key's, and any key reached only through them is not trusted. A root's grants lapse when it is replaced. A replaced root keeps every record scope; revoking it, or a theft conflict on it, also cuts off its successors on phones that know only the old key as built in, so a stolen root is neutralised only by an app update with new built-in roots. The current roots' statements are taken and kept first, also in catalogs, at most 100 grants and revocations and 200 root-chain replacements per publisher; revocations by the key itself and theft proofs have a budget of their own on phones, so no root can crowd them out. Builds without key scopes (lychnion/lychnion#125) ignore grants and revocations `by` another key. This holds for the `lychnion` key too.",
       "provenance": "documented",
       "source": "docs/distribution.md \"Backing up and replacing the key\""
     },

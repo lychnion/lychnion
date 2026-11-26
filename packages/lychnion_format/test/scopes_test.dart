@@ -504,6 +504,58 @@ void main() {
     });
   });
 
+  group('root caps', () {
+    test('root grants are capped per publisher, and cheap', () async {
+      final grants = [
+        for (var i = 0; i < KeyStatement.maxRootGrantsPerPublisher + 20; i++)
+          jsonDecode(
+            jsonEncode((await grant(await _key(), [KeyScope.data])).json),
+          ),
+      ];
+      final sw = Stopwatch()..start();
+      final got = await relevantStatements(base, grants);
+      sw.stop();
+      expect(got, hasLength(KeyStatement.maxRootGrantsPerPublisher));
+      expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
+      // Counting those already known.
+      final more = await relevantStatements(base.withStatements(got), [
+        jsonDecode(
+          jsonEncode((await grant(await _key(), [KeyScope.data])).json),
+        ),
+      ]);
+      expect(more, isEmpty);
+    });
+
+    test('a granted key clashing with a rotated root loses', () async {
+      final k2 = await _key();
+      final g2 = await _key();
+      String fakeId(String k) => k == k2.pub || k == g2.pub ? 'K' : k;
+      final statements = [
+        await KeyStatement.replace(
+          publisher: 'lychnion',
+          oldKey: root.pair,
+          newKey: k2.pair,
+          signed: _t,
+        ),
+        await grant(data, [KeyScope.data], by: k2.pair),
+        await KeyStatement.replace(
+          publisher: 'lychnion',
+          oldKey: data.pair,
+          newKey: g2.pair,
+          signed: _t,
+        ),
+      ];
+      final r = resolveKeys(
+        'lychnion',
+        [root.pub],
+        statements,
+        keyIdOf: fakeId,
+      );
+      expect(r.keys, {root.pub, k2.pub, data.pub});
+      expect(r.currentRoots, {k2.pub});
+    });
+  });
+
   group('kept first', () {
     test('the root\'s rotation survives a flood in catalogs', () async {
       final known = base.withStatements([
