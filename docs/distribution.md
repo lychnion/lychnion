@@ -221,7 +221,7 @@ key outside the scope it needs is refused like a bad signature.
 | `models` | records of kind `model` |
 | `safety-lines` | the official safety lines in a package: they count only when the package's signer holds this scope (and is Lychnion's, #66) |
 | `attestations` | Lychnion's attestations ("Checked by Lychnion") |
-| `keys` | grants, and revocations of the publisher's other keys |
+| `keys` | grants, and revocations of keys it granted (directly or further down) |
 
 - Keys a device trusts on its own (built in, or added by a link) hold
   every scope, so nothing signed today stops counting. After a data
@@ -241,13 +241,23 @@ key outside the scope it needs is refused like a bad signature.
   `scope` is a non-empty list of the scopes above, sorted, each once. A
   key may grant many keys (no theft conflict, unlike a key naming two
   successors). Grants to one key add up. A successor by `replace` holds
-  the scopes of the key it replaces.
+  the scopes of the key it replaces. **`keys` is as strong as the root:**
+  its holder can grant any scope, also `keys`; a scope is never narrowed,
+  only revoked and granted again. Phones keep at most 50 grants per
+  publisher, and take a grant only when its granter holds `keys`
+  (checked before the signature).
 - **Revoked by the root:** a `revoke` may carry `"by": "<key>"`, signed
-  by that key instead of the revoked one. It counts when `by` holds
-  `keys` for the same publisher, judged with the keys trusted before any
-  such revocation: so the root can cut off a stolen everyday key it does
-  not hold, and two keys revoking each other are both revoked. A
-  revocation by the key itself counts as before.
+  by that key instead of the revoked one. It counts only when the
+  revoked key is a **descendant** of `by` (reached from it through grants
+  and successors, never a key the device trusts on its own, such as the
+  built-in root), and `by` holds `keys` and is itself still trusted once
+  all revocations apply. So the root can cut off a stolen everyday key it
+  does not hold; a delegate cannot revoke the root, its granter or a
+  sibling; and a revoked delegate's revocations stop counting. When such
+  revocations keep undoing each other (keys granting each other in a
+  loop), all of them count. Phones keep at most 50 per publisher, taken
+  only when `by` holds `keys`. A revocation by the key itself counts as
+  before, and is always taken, ahead of anything else in a list.
 - **A revoked key's grants lapse:** a granted key is trusted only through
   a trusted, not revoked granter, as a successor is. Revoking the root
   also drops the keys it granted.
@@ -258,10 +268,18 @@ key outside the scope it needs is refused like a bad signature.
   it covers the list too and is made last. Older apps check only `key`
   and `signature` and keep reading such records (with the weaker check
   until they update). A record is valid when enough distinct keys of its
-  publisher holding the needed scope signed it: one for every scope for
-  now (`KeyScope.required`), to be raised (for example 2 of 3 for
-  `models`, `safety-lines` and `keys`) once there are more key holders.
-  A key named twice counts once.
+  publisher holding the needed scope signed it: one for now
+  (`KeyScope.required`, for `data`, `models` and `safety-lines`), to be
+  raised (for example 2 of 3 for `models` and `safety-lines`) once there
+  are more key holders. A key named twice counts once. Attestations and
+  key statements carry one signature each; requiring more for them needs
+  a format change (#118 stage 2).
+- **Official safety lines:** a package's lines count only when its record
+  is valid for `safety-lines` too (checked like a record, with that
+  scope). Lychnion's download of a bundled package is used only then;
+  one signed by a key without `safety-lines` leaves the bundled file in
+  use, so its lines are never lost. Data releases therefore sign the
+  bundled packages with a key that may sign safety lines.
 - Added publishers can use grants and scopes too; nothing else changes
   for them.
 

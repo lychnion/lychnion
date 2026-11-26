@@ -861,7 +861,7 @@
       "property": "key-statement-verification",
       "violation_symptom": "integrity-bypass",
       "severity_tier": "security",
-      "conditions": "a replacement or a grant counts only when the old key signed it and the new key countersigned it, a grant only when the old key holds `keys`; a revocation only when the revoked key signed it, or a key of the same publisher holding `keys` (`by`); and only when the key that made it is trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached only through them is not trusted. This holds for the `lychnion` key too.",
+      "conditions": "a replacement or a grant counts only when the old key signed it and the new key countersigned it, a grant only when the old key holds `keys` (which is as strong as the root, since it can grant any scope); a revocation only when the revoked key signed it, or a key of the same publisher holding `keys` (`by`) of which the revoked key is a descendant through grants and successors, never a key trusted on its own, and which stays trusted; and only when the key that made it is trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached only through them is not trusted. This holds for the `lychnion` key too.",
       "provenance": "documented",
       "source": "docs/distribution.md \"Backing up and replacing the key\""
     },

@@ -188,18 +188,23 @@ mixin _ModelLoading on _AskPageBase {
             ),
           ]);
         }
-        final pkg = KnowledgePackage.merge([
-          ...bundled,
+        // Whose official safety lines count: checked before opening (#125).
+        final installedPackages = [
           for (final i in store.allInstalled(ItemKind.package))
             if (!bundledPackages.contains(i.id) &&
                 i.fileEnding('.sqlite') != null)
-              ?openOrSkip(
-                i.id,
-                store.path(i, i.fileEnding('.sqlite')!),
-                safetyLines: store.givesSafetyLines(i),
-                signer: i.record.publisher,
-                signerKeyId: i.record.keyId,
-              ),
+              (i, await store.givesSafetyLines(i)),
+        ];
+        final pkg = KnowledgePackage.merge([
+          ...bundled,
+          for (final (i, lines) in installedPackages)
+            ?openOrSkip(
+              i.id,
+              store.path(i, i.fileEnding('.sqlite')!),
+              safetyLines: lines,
+              signer: i.record.publisher,
+              signerKeyId: i.record.keyId,
+            ),
         ]);
         _labels = store;
         HybridRetriever? hybrid;

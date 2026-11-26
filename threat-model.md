@@ -523,9 +523,9 @@ plus phones that also use the internet when they can.
   granted scopes), and not revoked. *Violation symptom*: integrity-bypass. *Tier*:
   security-critical. *Voided by*: the dev flags in §1.6 —
   `GGUF_MODEL_PATH` loads a model at `lib/ask/model_loading.dart:34`,
-  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:207`, and "Open a model
-  file…" at `lib/ask/model_loading.dart:310`. Bundled guides are trusted by
-  the app signature, not a record (`lib/download/download_store.dart:842`).
+  `EMBED_MODEL_PATH` at `lib/ask/model_loading.dart:212`, and "Open a model
+  file…" at `lib/ask/model_loading.dart:315`. Bundled guides are trusted by
+  the app signature, not a record (`lib/download/download_store.dart:845`).
   *(documented, docs/data-packages.md "Signing and trust")*
 - **`publisher-namespace`** (`downloads`, `records`, `node`): an added
   publisher never replaces Lychnion's items or files, or another publisher's
@@ -682,7 +682,7 @@ plus phones that also use the internet when they can.
   `grep -rn 'maxBodyBytes\|maxCatalogBytes\|maxFacts\|maxPerSource\|maxStatements' lib packages`
   — no setting or dev flag sets them. A `keys` entry that is not a flat
   object of a statement's own fields is skipped before anything walks it
-  (`packages/lychnion_format/lib/src/key_statement.dart:636`), and on a
+  (`packages/lychnion_format/lib/src/key_statement.dart:685`), and on a
   node one catalog's keys never end the pull for the other sources.
   *(documented, CHANGELOG.md "Security")*
 - **`lan-only-exposure`** (`base-server`): the base and Share nearby are
@@ -771,16 +771,19 @@ plus phones that also use the internet when they can.
   packages/lychnion_node/README.md "Operating")*
 
 - **`key-statement-verification`** (`records`, `downloads`, `node`): a replacement or a grant counts only when the old key signed it and the
-  new key countersigned it, a grant only when the old key holds `keys`; a
-  revocation only when the revoked key signed it, or a key of the same
-  publisher holding `keys` (`by`); and only when the key that made it is
-  trusted for that publisher at that moment. A revoked key, a key with two
-  successors, and any key reached only through them is not trusted. This
-  holds for the `lychnion` key too. *Violation
+  new key countersigned it, a grant only when the old key holds `keys`
+  (which is as strong as the root, since it can grant any scope); a revocation
+  only when the revoked key signed it, or a key of the same publisher
+  holding `keys` (`by`) of which the revoked key is a descendant through
+  grants and successors, never a key trusted on its own, and which stays
+  trusted; and only when the key that made it is trusted for that publisher
+  at that moment. A revoked key, a key with two successors, and any key
+  reached only through them is not trusted. This holds for the `lychnion`
+  key too. *Violation
   symptom*: integrity-bypass. *Tier*: security-critical. *Voided by*: no
   switch; only `KeyStatement.check` admits a statement, at
-  `packages/lychnion_format/lib/src/key_statement.dart:245` and
-  `packages/lychnion_format/lib/src/key_statement.dart:248`.
+  `packages/lychnion_format/lib/src/key_statement.dart:247` and
+  `packages/lychnion_format/lib/src/key_statement.dart:250`.
   *(documented, docs/distribution.md "Backing up and replacing the key")*
 - **`revocation-unloads`** (`downloads`): once a revocation is learned,
   items whose record the revoked key signed are no longer used. Their files

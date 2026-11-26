@@ -167,7 +167,7 @@ void main() {
       expect(t.keysOf('lychnion'), {next.pub});
     });
 
-    test('two keys revoking each other are both revoked', () async {
+    test('a delegate cannot revoke the root; the root revokes it', () async {
       final k2 = await _key();
       final t = base.withStatements([
         await grant(k2, [KeyScope.keys]),
@@ -184,7 +184,191 @@ void main() {
           signed: _t,
         ),
       ]);
-      expect(t.keysOf('lychnion'), isEmpty);
+      expect(t.keysOf('lychnion'), {root.pub});
+      // Alone, the delegate's revocation of the root is ignored too.
+      final alone = base.withStatements([
+        await grant(k2, [KeyScope.keys]),
+        await KeyStatement.revoke(
+          publisher: 'lychnion',
+          revoked: root.pub,
+          by: k2.pair,
+          signed: _t,
+        ),
+      ]);
+      expect(alone.keysOf('lychnion'), {root.pub, k2.pub});
+    });
+
+    test('a delegate cannot revoke a sibling', () async {
+      final g = await _key();
+      final t = base.withStatements([
+        await grant(g, [KeyScope.keys]),
+        await grant(data, [KeyScope.data]),
+        await KeyStatement.revoke(
+          publisher: 'lychnion',
+          revoked: data.pub,
+          by: g.pair,
+          signed: _t,
+        ),
+      ]);
+      expect(t.keysOf('lychnion'), {root.pub, g.pub, data.pub});
+    });
+
+    test(
+      'the root revokes a keys delegate; its revocations stop counting',
+      () async {
+        final g = await _key();
+        final h = await _key();
+        final t = base.withStatements([
+          await grant(g, [KeyScope.keys]),
+          await grant(data, [KeyScope.data]),
+          await grant(h, [KeyScope.data], by: g.pair),
+          // Made by g beforehand: against its own delegate, and a sibling.
+          await KeyStatement.revoke(
+            publisher: 'lychnion',
+            revoked: h.pub,
+            by: g.pair,
+            signed: _t,
+          ),
+          await KeyStatement.revoke(
+            publisher: 'lychnion',
+            revoked: data.pub,
+            by: g.pair,
+            signed: _t,
+          ),
+          await KeyStatement.revoke(
+            publisher: 'lychnion',
+            revoked: g.pub,
+            by: root.pair,
+            signed: _t,
+          ),
+        ]);
+        // g is out, h with it (reached only through g); data stays.
+        expect(t.keysOf('lychnion'), {root.pub, data.pub});
+      },
+    );
+
+    test('a delegate revokes its own delegate', () async {
+      final g = await _key();
+      final h = await _key();
+      final t = base.withStatements([
+        await grant(g, [KeyScope.keys]),
+        await grant(h, [KeyScope.data], by: g.pair),
+        await KeyStatement.revoke(
+          publisher: 'lychnion',
+          revoked: h.pub,
+          by: g.pair,
+          signed: _t,
+        ),
+      ]);
+      expect(t.keysOf('lychnion'), {root.pub, g.pub});
+    });
+
+    test(
+      'delegates revoking each other in a loop: both, fail closed',
+      () async {
+        final a = await _key();
+        final b = await _key();
+        final t = base.withStatements([
+          await grant(a, [KeyScope.keys]),
+          await grant(b, [KeyScope.keys], by: a.pair),
+          await grant(a, [KeyScope.keys], by: b.pair),
+          await KeyStatement.revoke(
+            publisher: 'lychnion',
+            revoked: b.pub,
+            by: a.pair,
+            signed: _t,
+          ),
+          await KeyStatement.revoke(
+            publisher: 'lychnion',
+            revoked: a.pub,
+            by: b.pair,
+            signed: _t,
+          ),
+        ]);
+        expect(t.keysOf('lychnion'), {root.pub});
+      },
+    );
+
+    test(
+      'theft still shows with grants: two successors revoke a key',
+      () async {
+        final t = base.withStatements([
+          await grant(data, [KeyScope.data]),
+          await KeyStatement.replace(
+            publisher: 'lychnion',
+            oldKey: data.pair,
+            newKey: data2.pair,
+            signed: _t,
+          ),
+          await KeyStatement.replace(
+            publisher: 'lychnion',
+            oldKey: data.pair,
+            newKey: other.pair,
+            signed: _t,
+          ),
+        ]);
+        expect(t.keysOf('lychnion'), {root.pub});
+      },
+    );
+
+    test('flood from a key without keys: the real revocation counts', () async {
+      final g = await grant(data, [KeyScope.data]);
+      final known = base.withStatements([g]);
+      final flood = <Object?>[];
+      for (var i = 0; i < 60; i++) {
+        final x = await _key();
+        flood.add(
+          jsonDecode(
+            jsonEncode((await grant(x, [KeyScope.models], by: data.pair)).json),
+          ),
+        );
+        flood.add(
+          jsonDecode(
+            jsonEncode(
+              (await KeyStatement.revoke(
+                publisher: 'lychnion',
+                revoked: x.pub,
+                by: data.pair,
+                signed: _t,
+              )).json,
+            ),
+          ),
+        );
+      }
+      final real = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        revoked: data.pub,
+        by: root.pair,
+        signed: _t,
+      );
+      final got = await relevantStatements(known, [
+        ...flood,
+        jsonDecode(jsonEncode(real.json)),
+      ], max: 10);
+      expect(got, [real]);
+      expect(known.withStatements(got).keysOf('lychnion'), {root.pub});
+    });
+
+    test('a self-revocation counts past max', () async {
+      final g = await grant(data, [KeyScope.data]);
+      final known = base.withStatements([g]);
+      final grants = [
+        for (var i = 0; i < 5; i++)
+          jsonDecode(
+            jsonEncode((await grant(await _key(), [KeyScope.data])).json),
+          ),
+      ];
+      final self = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        key: data.pair,
+        signed: _t,
+      );
+      final got = await relevantStatements(known, [
+        ...grants,
+        jsonDecode(jsonEncode(self.json)),
+      ], max: 2);
+      expect(got, contains(self));
+      expect(got.length, 3);
     });
 
     test(
@@ -206,6 +390,58 @@ void main() {
         expect(KeyStatement.keepOrder([g.json, cut.json]), [1, 0]);
       },
     );
+  });
+
+  group('carried', () {
+    test(
+      'keepOrder and capped: revocations, then grants, then the rest',
+      () async {
+        final g = await grant(data, [KeyScope.data]);
+        final byRoot = await KeyStatement.revoke(
+          publisher: 'lychnion',
+          revoked: data2.pub,
+          by: root.pair,
+          signed: _t,
+        );
+        final r = await KeyStatement.replace(
+          publisher: 'lychnion',
+          oldKey: data.pair,
+          newKey: other.pair,
+          signed: _t,
+        );
+        expect(KeyStatement.keepOrder([r.json, g.json, byRoot.json]), [
+          2,
+          1,
+          0,
+        ]);
+        expect(KeyStatement.capped([r, g, byRoot], 2), [g, byRoot]);
+      },
+    );
+
+    test('a catalog carries a grant; a reader takes it', () async {
+      final g = await grant(data, [KeyScope.data]);
+      final doc = CatalogDocument.byHash(const [], keys: [g]);
+      final back = CatalogDocument.parse(doc.encode());
+      final got = await relevantStatements(base, back.keys);
+      expect(got, [g]);
+      expect(
+        base.withStatements(got).keysFor('lychnion', KeyScope.data),
+        contains(data.pub),
+      );
+    });
+
+    test('more than maxSignatures entries: not a record', () async {
+      final r = await PackageRecord.sign(_unsigned('package'), root.pair);
+      final j = {
+        ...r.json,
+        'signatures': [
+          for (var i = 0; i <= PackageRecord.maxSignatures; i++)
+            {'key': 'AAAAAAAA', 'signature': 'x'},
+        ],
+      };
+      expect(() => PackageRecord.fromJson(j), throwsFormatException);
+      expect(await base.check(j), isNull);
+    });
   });
 
   group('shape', () {

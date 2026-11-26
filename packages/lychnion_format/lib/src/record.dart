@@ -467,10 +467,12 @@ class TrustedKeys {
   /// each holding that scope: `key` and `signature`, and the entries of
   /// `signatures`. A key outside the scope counts like a bad signature; a
   /// key named twice counts once.
-  /// [need] overrides the number KeyScope.required gives (tests).
-  Future<bool> verify(PackageRecord r, {int? need}) async {
-    final scope = KeyScope.forKind(r.kind);
-    need ??= KeyScope.required[scope]!;
+  /// [scope] asks for another scope than the kind's (`safety-lines`, for
+  /// a package's official lines); [need] overrides the number
+  /// KeyScope.required gives (tests).
+  Future<bool> verify(PackageRecord r, {String? scope, int? need}) async {
+    scope ??= KeyScope.forKind(r.kind);
+    need ??= KeyScope.required[scope] ?? 1;
     final valid = <String>{};
     Future<void> count(String keyId, String signature, String text) async {
       if (valid.contains(keyId)) return;

@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:c46b380eed70ff716eed724348c3b0ba9869150c225756014d1447ed1fcc01f5
+prose_version: threat-model.md@sha256:dab09c2e37e0c0e3ea96e6b9cb5862cc506c415755ffaedcf291f633ae8b2577
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -2013,10 +2013,12 @@ properties_claimed:
   - node
   tier: security-critical
   conditions: a replacement or a grant counts only when the old key signed it and the new key
-    countersigned it, a grant only when the old key holds `keys`; a revocation only when the revoked key
-    signed it, or a key of the same publisher holding `keys` (`by`); and only when the key that made it is
-    trusted for that publisher at that moment. A revoked key, a key with two successors, and any key reached
-    only through them is not trusted. This holds for the `lychnion` key too.
+    countersigned it, a grant only when the old key holds `keys` (which is as strong as the root, since it can
+    grant any scope); a revocation only when the revoked key signed it, or a key of the same publisher
+    holding `keys` (`by`) of which the revoked key is a descendant through grants and successors, never a
+    key trusted on its own, and which stays trusted; and only when the key that made it is trusted for that
+    publisher at that moment. A revoked key, a key with two successors, and any key reached only through
+    them is not trusted. This holds for the `lychnion` key too.
   violation_symptoms:
   - integrity-bypass
   provenance:

@@ -9,9 +9,12 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lychnion/download/catalog.dart';
 import 'package:lychnion/download/download_store.dart';
+import 'package:lychnion/download/publisher_list.dart';
 import 'package:lychnion_format/lychnion_format.dart';
 
 void main() {
+  // copyBundled reads the app's assets.
+  TestWidgetsFlutterBinding.ensureInitialized();
   late SimpleKeyPair root, data, lines;
   late TrustedKeys trust;
   late Directory tmp;
@@ -77,14 +80,36 @@ void main() {
 
   test('safety lines count only with the safety-lines scope', () async {
     final s = DownloadStore(Directory('${tmp.path}/s'), trust: trust);
-    expect(s.givesSafetyLines(await install(s, 'jp.root', root)), isTrue);
-    expect(s.givesSafetyLines(await install(s, 'jp.lines', lines)), isTrue);
+    expect(await s.givesSafetyLines(await install(s, 'jp.root', root)), isTrue);
+    expect(
+      await s.givesSafetyLines(await install(s, 'jp.lines', lines)),
+      isTrue,
+    );
     // A data key brings the guide, not its official lines.
-    expect(s.givesSafetyLines(await install(s, 'jp.data', data)), isFalse);
+    expect(
+      await s.givesSafetyLines(await install(s, 'jp.data', data)),
+      isFalse,
+    );
+  });
+
+  test('a successor of the safety-lines key keeps the scope', () async {
+    final next = await Ed25519().newKeyPair();
+    final s = DownloadStore(
+      Directory('${tmp.path}/n'),
+      trust: trust.withStatements([
+        await KeyStatement.replace(
+          publisher: 'lychnion',
+          oldKey: lines,
+          newKey: next,
+          signed: '2026-11-26T10:00:00+09:00',
+        ),
+      ]),
+    );
+    expect(await s.givesSafetyLines(await install(s, 'jp.next', next)), isTrue);
   });
 
   test(
-    'a bundled id downloaded with a data key: its lines do not count',
+    'a bundled id downloaded with a data key: the bundled file stays',
     () async {
       final s = DownloadStore(Directory('${tmp.path}/b'), trust: trust);
       await install(s, 'jp.bousai.core', data);
@@ -92,8 +117,61 @@ void main() {
         'jp.bousai.core',
         'jp.bousai.core.sqlite',
       );
-      expect(src.shadowed, isNull, reason: "Lychnion's own download is used");
-      expect(src.safetyLines, isFalse);
+      // Not the download: its official lines would not count, and the
+      // bundled ones would be lost.
+      expect(src.path, isNot(contains('${tmp.path}/b/downloads')));
+      expect(src.safetyLines, isTrue);
+      // With a key that may sign safety lines, the download is used.
+      final t = DownloadStore(Directory('${tmp.path}/c'), trust: trust);
+      await install(t, 'jp.bousai.core', lines);
+      final used = await t.bundledPackageSource(
+        'jp.bousai.core',
+        'jp.bousai.core.sqlite',
+      );
+      expect(used.path, contains('${tmp.path}/c'));
+      expect(used.safetyLines, isTrue);
     },
   );
+
+  test('a flood of revocations by a data key does not push out the real '
+      'one', () async {
+    final list = PublisherList(
+      File('${tmp.path}/publishers.json'),
+      builtIn: TrustedKeys({
+        'lychnion': [await publicKeyOf(root)],
+      }),
+    );
+    const t = '2026-11-26T09:00:00+09:00';
+    await list.learn([
+      await KeyStatement.grant(
+        publisher: 'lychnion',
+        granter: root,
+        newKey: data,
+        scope: [KeyScope.data],
+        signed: t,
+      ),
+    ]);
+    final flood = <KeyStatement>[];
+    for (var i = 0; i < 60; i++) {
+      final x = await Ed25519().newKeyPair();
+      flood.add(
+        await KeyStatement.revoke(
+          publisher: 'lychnion',
+          revoked: await publicKeyOf(x),
+          by: data,
+          signed: t,
+        ),
+      );
+    }
+    final real = await KeyStatement.revoke(
+      publisher: 'lychnion',
+      revoked: await publicKeyOf(data),
+      by: root,
+      signed: t,
+    );
+    expect(await list.learn([...flood, real]), isTrue);
+    expect(list.statements, contains(real));
+    expect(list.statements.any(flood.contains), isFalse);
+    expect(list.trust.keysOf('lychnion'), {await publicKeyOf(root)});
+  });
 }

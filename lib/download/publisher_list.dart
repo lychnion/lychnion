@@ -347,7 +347,9 @@ class PublisherList extends ChangeNotifier {
           for (final s in candidates)
             // The user's own statements ([any]) too: past the limit this
             // computer would forget that its old key was replaced (#59).
-            if (((any || _protects(s, _statements) || inBatchProof(s)) &&
+            if (((any ||
+                        _protects(s, _statements, trustedBefore) ||
+                        inBatchProof(s)) &&
                     hard-- > 0) ||
                 left-- > 0)
               s,
@@ -365,21 +367,45 @@ class PublisherList extends ChangeNotifier {
       });
 
   /// A revocation, or a replacement that proves a theft: kept even past
-  /// [maxStatements], since losing one would trust a stolen key again.
-  static bool _protects(KeyStatement s, List<KeyStatement> all) =>
-      s.type == KeyStatementType.revoke || provesTheft(s, all);
+  /// [maxStatements], since losing one would trust a stolen key again. A
+  /// revocation `by` another key (lychnion/lychnion#125) only when [basis]
+  /// trusts its target and its maker holds `keys`: anyone else's would
+  /// fill the hard limit and push real revocations out.
+  static bool _protects(
+    KeyStatement s,
+    List<KeyStatement> all,
+    TrustedKeys basis,
+  ) {
+    if (s.type == KeyStatementType.revoke) {
+      final by = s.by;
+      if (by == null) return true;
+      return basis.keysFor(s.publisher, KeyScope.keys).contains(by) &&
+          basis.keysOf(s.publisher).contains(s.oldKey);
+    }
+    return provesTheft(s, all);
+  }
 
   /// What [learn] could have kept of [read]: every revocation and theft
   /// proof, and up to [maxStatements] others ([learn] adds others only
   /// while the list is shorter than that).
   List<KeyStatement> _keptOf(List<KeyStatement> read) {
     var left = maxStatements;
+    // The keys before any revocation `by` another key: whom such a
+    // revocation may protect.
+    final basis = builtIn
+        .plus({
+          for (final p in _added.values) p.name: [p.key],
+        })
+        .withStatements([
+          for (final s in read)
+            if (s.type != KeyStatementType.revoke || s.by == null) s,
+        ]);
     // Not counted in maxStatements: at most 50 per added publisher, which
     // leaves learn that much less room past the limit.
     final chains = _onAddedChains(_added.values, read);
     return [
       for (final s in read)
-        if (_protects(s, read) || chains.contains(s.id) || left-- > 0) s,
+        if (_protects(s, read, basis) || chains.contains(s.id) || left-- > 0) s,
     ];
   }
 

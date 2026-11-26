@@ -656,6 +656,59 @@ void main() {
     );
   });
 
+  group('key scopes (lychnion/lychnion#125)', () {
+    test(
+      'passes on attestations and statuses only of keys with the scope',
+      () async {
+        final lychnion = await Ed25519().newKeyPair();
+        final data = await Ed25519().newKeyPair();
+        final t = trust.plus({
+          'lychnion': [await publicKeyOf(lychnion)],
+        });
+        const signed = '2026-11-26T09:00:00+09:00';
+        final g = await KeyStatement.grant(
+          publisher: 'lychnion',
+          granter: lychnion,
+          newKey: data,
+          scope: [KeyScope.data],
+          signed: signed,
+        );
+        Future<Attestation> attest(SimpleKeyPair by, String name) =>
+            Attestation.sign(
+              publisher: name,
+              key: TrustedKeys.canonicalKey(
+                base64Url.encode(List<int>.filled(32, 7)),
+              ),
+              checked: '2026-11-26',
+              method: 'official-website',
+              signed: signed,
+              signer: by,
+            );
+        final byRoot = await attest(lychnion, 'jp.city.a');
+        final byData = await attest(data, 'jp.city.b');
+        final status = await PublisherStatus.sign(
+          publisher: 'lychnion',
+          signed: signed,
+          items: const {},
+          signer: data,
+        );
+        src.catalog = {
+          'format': 2,
+          'records': <Object>[],
+          'keys': [g.json],
+          'attestations': [byRoot.json, byData.json],
+          'status': [status.json],
+        };
+        final r = await pull([src.url], folder, t);
+        expect(r.failed, isEmpty);
+        final served = jsonDecode(folder.catalogFile.readAsStringSync()) as Map;
+        // The data key may sign a status, not an attestation.
+        expect(served['attestations'], [byRoot.json]);
+        expect(served['status'], [status.json]);
+      },
+    );
+  });
+
   group('publisher status (lychnion/lychnion#117)', () {
     test('kept and passed on, with the withdrawals inside', () async {
       final lychnion = await Ed25519().newKeyPair();
