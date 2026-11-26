@@ -87,12 +87,14 @@ class KeyStatement {
   /// replaced every month needs 50 in four years).
   static const maxReplacesPerPublisher = 50;
 
-  /// At most this many grants and revocations `by` a root, and
-  /// replacements within a root chain, are taken per publisher
-  /// (lychnion/lychnion#125): only the root's holder makes them, but an
-  /// added publisher's root (or a thief of it) must not fill a phone's
-  /// list.
+  /// At most this many grants, revocations `by` a root, and replacements
+  /// within a root chain are taken per publisher (lychnion/lychnion#125):
+  /// only the root's holder makes them, but an added publisher's root (or
+  /// a thief of it) must not fill a phone's list. Grants and revocations
+  /// are counted apart, so a root that granted many keys can still revoke
+  /// a stolen one.
   static const maxRootGrantsPerPublisher = 100;
+  static const maxRootRevokesByPerPublisher = 100;
   static const maxRootReplacesPerPublisher = 200;
 
   /// At most [max] of [statements] to pass on, chosen in [keepOrder];
@@ -842,13 +844,19 @@ Future<List<KeyStatement>> relevantStatements(
       ? 1
       : 2;
   final replaces = <String, int>{};
-  // Grants and revocations `by` another key, per publisher.
-  final rootGrants = <String, int>{};
+  // Grants, and revocations `by` another key, per publisher (apart).
+  final rootGrants = <String, int>{}, rootRevokes = <String, int>{};
   for (final s in all) {
     if (s.type == KeyStatementType.replace) {
       replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
-    } else if (s.type == KeyStatementType.grant || s.by != null) {
+    } else if (statementRank(s, trust) != 1) {
+      // A replaced root's grants and revocations lapsed with it: they
+      // don't use up the new root's caps.
+      continue;
+    } else if (s.type == KeyStatementType.grant) {
       rootGrants[s.publisher] = (rootGrants[s.publisher] ?? 0) + 1;
+    } else if (s.by != null) {
+      rootRevokes[s.publisher] = (rootRevokes[s.publisher] ?? 0) + 1;
     }
   }
   final done = <int>{};
@@ -879,10 +887,10 @@ Future<List<KeyStatement>> relevantStatements(
       if (byRoot) {
         if (rank != 1) continue;
         if (c.kind == 'revoke-by' && !g.granted.contains(c.target)) continue;
-        if ((rootGrants[c.publisher] ?? 0) >=
-            KeyStatement.maxRootGrantsPerPublisher) {
-          continue;
-        }
+        final (counts, cap) = c.kind == 'grant'
+            ? (rootGrants, KeyStatement.maxRootGrantsPerPublisher)
+            : (rootRevokes, KeyStatement.maxRootRevokesByPerPublisher);
+        if ((counts[c.publisher] ?? 0) >= cap) continue;
       }
       // A replacement past the cap counts only as proof of a theft: its
       // old key already names another successor. A current root's has a
@@ -908,7 +916,10 @@ Future<List<KeyStatement>> relevantStatements(
       done.add(c.index);
       if (s == null || !seen.add(s.id)) continue;
       if (isReplace) replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
-      if (byRoot) rootGrants[s.publisher] = (rootGrants[s.publisher] ?? 0) + 1;
+      if (byRoot) {
+        final counts = c.kind == 'grant' ? rootGrants : rootRevokes;
+        counts[s.publisher] = (counts[s.publisher] ?? 0) + 1;
+      }
       all.add(s);
       taken.add((rank, taken.length, s));
       if (rank == 2) others++;

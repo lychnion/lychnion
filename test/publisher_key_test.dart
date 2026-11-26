@@ -331,7 +331,7 @@ void main() {
     // kept, also when the list is full.
     test('a theft proof in one batch is kept when the list is full', () async {
       final file = File('${tmp.path}/full/publishers.json');
-      final p = PublisherList(file, maxStatements: 1);
+      final p = PublisherList(file, maxStatements: 2);
       await p.load();
       await p.add(me.link);
       final k1 = await Ed25519().newKeyPair();
@@ -365,7 +365,7 @@ void main() {
     // theft proof past the limit; only keys trusted before the batch.
     test('in-batch theft proofs count only for keys trusted before', () async {
       final file = File('${tmp.path}/thief/publishers.json');
-      final p = PublisherList(file, maxStatements: 1);
+      final p = PublisherList(file, maxStatements: 2);
       await p.load();
       await p.add(me.link);
       final k = await Ed25519().newKeyPair();

@@ -283,4 +283,261 @@ void main() {
     expect(again.statements, containsAll([...theft, self]));
     expect(again.trust.keysOf('lychnion'), isEmpty);
   });
+
+  test('other roots fill their budget; the root\'s revocation of a granted '
+      'key still counts', () async {
+    final builtIn = TrustedKeys({
+      'lychnion': [await publicKeyOf(root)],
+    });
+    final file = File('${tmp.path}/revoke.json');
+    final list = PublisherList(file, builtIn: builtIn, maxStatements: 5);
+    await list.load();
+    const t = '2026-11-26T09:00:00+09:00';
+    final d = await Ed25519().newKeyPair();
+    await list.learn([
+      await KeyStatement.grant(
+        publisher: 'lychnion',
+        granter: root,
+        newKey: d,
+        scope: [KeyScope.data],
+        signed: t,
+      ),
+    ]);
+    // Two added publishers' roots fill the roots' budget with grants.
+    for (final name in ['jp.a', 'jp.b']) {
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: name, key: await publicKeyOf(a)));
+      await list.learn([
+        for (var i = 0; i < 10; i++)
+          await KeyStatement.grant(
+            publisher: name,
+            granter: a,
+            newKey: await Ed25519().newKeyPair(),
+            scope: [KeyScope.data],
+            signed: t,
+          ),
+      ]);
+    }
+    // The granted key is stolen: the root revokes it.
+    final cut = await KeyStatement.revoke(
+      publisher: 'lychnion',
+      revoked: await publicKeyOf(d),
+      by: root,
+      signed: t,
+    );
+    expect(await list.learn([cut]), isTrue);
+    final again = PublisherList(file, builtIn: builtIn, maxStatements: 5);
+    await again.load();
+    expect(again.statements, contains(cut));
+    expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
+  });
+
+  test(
+    'added publishers fill at most half of the revocations\' budget',
+    () async {
+      final builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(root)],
+      });
+      final file = File('${tmp.path}/half.json');
+      // Revocations' budget: 6; added publishers together at most 3.
+      final list = PublisherList(file, builtIn: builtIn, maxStatements: 3);
+      await list.load();
+      const t = '2026-11-26T09:00:00+09:00';
+      final d = await Ed25519().newKeyPair();
+      await list.learn([
+        await KeyStatement.grant(
+          publisher: 'lychnion',
+          granter: root,
+          newKey: d,
+          scope: [KeyScope.data],
+          signed: t,
+        ),
+      ]);
+      // Seven added publishers' roots each revoke themselves.
+      for (var i = 0; i < 7; i++) {
+        final a = await Ed25519().newKeyPair();
+        await list.add(
+          PublisherLink(name: 'jp.p$i', key: await publicKeyOf(a)),
+        );
+        await list.learn([
+          await KeyStatement.revoke(publisher: 'jp.p$i', key: a, signed: t),
+        ]);
+      }
+      final cut = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        revoked: await publicKeyOf(d),
+        by: root,
+        signed: t,
+      );
+      expect(await list.learn([cut]), isTrue);
+      final again = PublisherList(file, builtIn: builtIn, maxStatements: 3);
+      await again.load();
+      expect(again.statements, contains(cut));
+      expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
+    },
+  );
+
+  test(
+    'added publishers\' theft proofs count toward their half, whole',
+    () async {
+      final builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(root)],
+      });
+      final file = File('${tmp.path}/proofs.json');
+      // Revocations' budget: 6; added publishers together at most 3.
+      final list = PublisherList(file, builtIn: builtIn, maxStatements: 3);
+      await list.load();
+      const t = '2026-11-26T09:00:00+09:00';
+      final d = await Ed25519().newKeyPair();
+      await list.learn([
+        await KeyStatement.grant(
+          publisher: 'lychnion',
+          granter: root,
+          newKey: d,
+          scope: [KeyScope.data],
+          signed: t,
+        ),
+      ]);
+      // Three added publishers' roots each name two successors: a theft
+      // proof of two statements.
+      for (var i = 0; i < 3; i++) {
+        final a = await Ed25519().newKeyPair();
+        await list.add(
+          PublisherLink(name: 'jp.t$i', key: await publicKeyOf(a)),
+        );
+        await list.learn([
+          for (var j = 0; j < 2; j++)
+            await KeyStatement.replace(
+              publisher: 'jp.t$i',
+              oldKey: a,
+              newKey: await Ed25519().newKeyPair(),
+              signed: t,
+            ),
+        ]);
+      }
+      // Only the first pair fits the added half; no lone half is kept.
+      int of(String name) =>
+          list.statements.where((s) => s.publisher == name).length;
+      expect([of('jp.t0'), of('jp.t1'), of('jp.t2')], [2, 0, 0]);
+      final cut = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        revoked: await publicKeyOf(d),
+        by: root,
+        signed: t,
+      );
+      expect(await list.learn([cut]), isTrue);
+      final again = PublisherList(file, builtIn: builtIn, maxStatements: 3);
+      await again.load();
+      // What the phone took, it reads back.
+      expect(again.statements, list.statements);
+      expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
+    },
+  );
+
+  group('a theft proof is kept whole', () {
+    const t = '2026-11-26T09:00:00+09:00';
+    Future<KeyStatement> rep(String p, SimpleKeyPair from, SimpleKeyPair to) =>
+        KeyStatement.replace(publisher: p, oldKey: from, newKey: to, signed: t);
+
+    test('on a key first trusted in the same batch', () async {
+      final file = File('${tmp.path}/fork.json');
+      final list = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await list.load();
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: 'jp.f', key: await publicKeyOf(a)));
+      final k1 = await Ed25519().newKeyPair();
+      await list.learn([
+        await rep('jp.f', a, k1),
+        await rep('jp.f', k1, await Ed25519().newKeyPair()),
+        await rep('jp.f', k1, await Ed25519().newKeyPair()),
+      ]);
+      final k1Key = TrustedKeys.canonicalKey(await publicKeyOf(k1));
+      final onK1 = list.statements
+          .where((s) => TrustedKeys.canonicalKey(s.oldKey) == k1Key)
+          .length;
+      expect(onK1, isNot(1));
+      final again = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await again.load();
+      expect(again.statements, list.statements);
+    });
+
+    test('a pair past the added half', () async {
+      final file = File('${tmp.path}/three.json');
+      // Added publishers together at most 1 in budget 0.
+      final list = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await list.load();
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: 'jp.g', key: await publicKeyOf(a)));
+      await list.learn([
+        for (var i = 0; i < 2; i++)
+          await rep('jp.g', a, await Ed25519().newKeyPair()),
+      ]);
+      expect(list.statements, isEmpty);
+      final again = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await again.load();
+      expect(again.statements, isEmpty);
+    });
+
+    test('in budget 0 when the other budgets are full', () async {
+      final builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(root)],
+      });
+      final file = File('${tmp.path}/zero.json');
+      final list = PublisherList(file, builtIn: builtIn, maxStatements: 2);
+      await list.load();
+      final d = [await Ed25519().newKeyPair(), await Ed25519().newKeyPair()];
+      // Budget 1: two grants by the root; budget 2: the granted keys'
+      // own replacements.
+      await list.learn([
+        for (final k in d)
+          await KeyStatement.grant(
+            publisher: 'lychnion',
+            granter: root,
+            newKey: k,
+            scope: [KeyScope.data],
+            signed: t,
+          ),
+      ]);
+      await list.learn([
+        for (final k in d)
+          await rep('lychnion', k, await Ed25519().newKeyPair()),
+      ]);
+      expect(list.statements, hasLength(4));
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: 'jp.z', key: await publicKeyOf(a)));
+      final k1 = await Ed25519().newKeyPair();
+      await list.learn([
+        await rep('jp.z', a, k1),
+        await rep('jp.z', k1, await Ed25519().newKeyPair()),
+        await rep('jp.z', k1, await Ed25519().newKeyPair()),
+      ]);
+      final k1Key = TrustedKeys.canonicalKey(await publicKeyOf(k1));
+      expect(
+        list.statements
+            .where((s) => TrustedKeys.canonicalKey(s.oldKey) == k1Key)
+            .length,
+        2,
+      );
+      expect(list.trust.keysOf('jp.z'), isNot(contains(k1Key)));
+      final again = PublisherList(file, builtIn: builtIn, maxStatements: 2);
+      await again.load();
+      expect(again.statements, list.statements);
+    });
+  });
 }

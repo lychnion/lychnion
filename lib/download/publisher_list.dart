@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:lychnion_format/lychnion_format.dart';
@@ -175,8 +176,9 @@ class PublisherList extends ChangeNotifier {
 
   /// At most this many statements are kept in each budget
   /// ([maxStatements]; see [_budgets]): the current roots' statements,
-  /// and the others. Revocations by the key itself and theft proofs have
-  /// a budget of their own, twice as large, that nothing else uses.
+  /// and the others. Revocations (by the key itself, and a current root's
+  /// of a granted key within its cap) and theft proofs have a budget of
+  /// their own, twice as large, that nothing else uses.
   static const defaultMaxStatements = 1000;
 
   /// [defaultMaxStatements]; smaller in tests.
@@ -188,6 +190,79 @@ class PublisherList extends ChangeNotifier {
 
   /// The most each budget of [_budgets] keeps.
   List<int> get _budgetMax => [maxStatements * 2, maxStatements, maxStatements];
+
+  /// The most of budget 0 that added publishers' statements (revocations
+  /// and theft proofs) may use together: the other half is kept for the
+  /// built-in publishers (Lychnion), so added publishers cannot push out
+  /// a revocation of Lychnion's keys.
+  int get _addedZeroMax => maxStatements;
+
+  bool _isBuiltIn(KeyStatement s) => builtIn.known.contains(s.publisher);
+
+  /// Whether [s], kept in budget [b], counts toward [_addedZeroMax].
+  bool _addedZero(int b, KeyStatement s) => b == 0 && !_isBuiltIn(s);
+
+  /// Which of [list] fit, in order, into the budgets ([budgets], one per
+  /// statement) after [used] (the room used in budgets 0, 1, 2, then by
+  /// added publishers in budget 0; changed in place). Those in [free] (an
+  /// added publisher's own chain) always fit and use no room. The
+  /// replacements of one old key in [list] (a theft proof's halves) fit
+  /// together or not at all: a lone half would
+  /// trust the thief's new key. [learn] and [_keptOf] both use this.
+  List<bool> _fit(
+    List<KeyStatement> list,
+    List<int> budgets,
+    Set<String> free,
+    List<int> used,
+  ) {
+    final max = _budgetMax;
+    final pairs = <String, List<int>>{};
+    for (var i = 0; i < list.length; i++) {
+      final s = list[i];
+      if (s.type != KeyStatementType.replace || free.contains(s.id)) {
+        continue;
+      }
+      pairs
+          .putIfAbsent(
+            '${s.publisher} ${TrustedKeys.canonicalKey(s.oldKey)}',
+            () => [],
+          )
+          .add(i);
+    }
+    // Only replacements naming at least two new keys prove a theft; a
+    // re-signed copy (the same new key) is not a pair.
+    final groupOf = <int, List<int>>{
+      for (final g in pairs.values)
+        if ({for (final i in g) TrustedKeys.canonicalKey(list[i].newKey!)}
+                .length >
+            1)
+          for (final i in g) i: g,
+    };
+    final out = List<bool?>.filled(list.length, null);
+    for (var i = 0; i < list.length; i++) {
+      if (out[i] != null) continue;
+      if (free.contains(list[i].id)) {
+        out[i] = true;
+        continue;
+      }
+      final group = groupOf[i] ?? [i];
+      // The group's lowest budget (defensive: every member of a group
+      // proves the theft, so all are in budget 0 already).
+      final b = group.map((j) => budgets[j]).reduce(math.min);
+      final n = group.length;
+      final added = _addedZero(b, list[i]);
+      final ok =
+          used[b] + n <= max[b] && (!added || used[3] + n <= _addedZeroMax);
+      if (ok) {
+        used[b] += n;
+        if (added) used[3] += n;
+      }
+      for (final j in group) {
+        out[j] = ok;
+      }
+    }
+    return [for (final o in out) o!];
+  }
 
   List<KeyStatement> get statements => List.unmodifiable(_statements);
 
@@ -332,32 +407,33 @@ class PublisherList extends ChangeNotifier {
                   if (seen.add(s.id)) s,
               ]
             : await relevantStatements(trust, learned.toList());
-        // Like a revocation: a second successor of a key proves a theft,
-        // and losing it would trust the thief's chain. Its other half may
-        // be in this batch too, but only for a key trusted before it: a
-        // thief's own new keys cannot each add a pair (#59).
+        // A second successor of a key proves a theft, also when both are
+        // in this batch: budgeted with the batch included, as on reload.
+        // A thief's own new keys stay bounded (#59): each replacement
+        // needs room in the caps of relevantStatements, and a key takes at
+        // most one second successor, so about twice the cap per publisher.
+        // Added publishers together use at most half of budget 0.
         final trustedBefore = trust;
-        bool inBatchProof(KeyStatement s) =>
-            s.type == KeyStatementType.replace &&
-            trustedBefore.keysOf(s.publisher).contains(s.oldKey) &&
-            candidates.any(
-              (o) =>
-                  o.type == KeyStatementType.replace &&
-                  o.publisher == s.publisher &&
-                  o.oldKey == s.oldKey &&
-                  o.newKey != s.newKey,
-            );
-        final used = [0, 0, 0];
-        for (final b in _budgets(_statements, _statements, trustedBefore)) {
-          used[b]++;
-        }
-        final budgets = _budgets(
-          candidates,
-          _statements,
-          trustedBefore,
-          before: _statements,
-        );
-        final max = _budgetMax;
+        final all = [..._statements, ...candidates];
+        // Ranked with the batch included (a new root's statements in the
+        // same batch as its rotation), as on reload.
+        final basis = trustedBefore.withStatements(candidates);
+        // An added publisher's own chain is not counted, as on reload.
+        final chains = _onAddedChains(_added.values, all);
+        // The room the stored statements use, counted as on reload (a
+        // stored half whose partner is in this batch is a theft proof now;
+        // past a budget, a stored statement uses no room). They stay: the
+        // user's own ([any]) are kept past the budgets.
+        final used = [0, 0, 0, 0];
+        _fit(_statements, _budgets(_statements, all, basis), chains, used);
+        final fits = any
+            ? const <bool>[]
+            : _fit(
+                candidates,
+                _budgets(candidates, all, basis, before: _statements),
+                chains,
+                used,
+              );
         final fresh = <KeyStatement>[];
         // The user's own statements ([any]): kept while all budgets
         // together have room, as far as load reads back; past the limit
@@ -368,14 +444,10 @@ class PublisherList extends ChangeNotifier {
             if (hard-- > 0) fresh.add(candidates[i]);
             continue;
           }
-          final b = inBatchProof(candidates[i]) ? 0 : budgets[i];
-          if (used[b] < max[b]) {
-            used[b]++;
-            fresh.add(candidates[i]);
-          }
+          if (fits[i]) fresh.add(candidates[i]);
         }
         final next = [..._statements, ...fresh];
-        if (next.length == _statements.length) return false;
+        if (fresh.isEmpty) return false;
         await _save(_added.values, next);
         _statements
           ..clear()
@@ -387,13 +459,15 @@ class PublisherList extends ChangeNotifier {
       });
 
   /// The budget each of [list] is kept in, in order: 0 for a revocation
-  /// by the key itself or a replacement that proves a theft ([all]), 1 for
-  /// a statement of a current root of [basis] (statementRank 1,
-  /// lychnion/lychnion#125) within the caps per publisher
-  /// (KeyStatement.maxRootGrantsPerPublisher and
-  /// maxRootReplacesPerPublisher, counting those of [before] too), 2 for
-  /// any other. So an added publisher's root cannot use up the room of a
-  /// revocation.
+  /// by the key itself, a current root's revocation of another key within
+  /// its cap (KeyStatement.maxRootRevokesByPerPublisher), or a replacement
+  /// that proves a theft ([all]); 1 for another statement of a current
+  /// root of [basis] (statementRank 1, lychnion/lychnion#125) within the
+  /// caps per publisher (KeyStatement.maxRootGrantsPerPublisher and
+  /// maxRootReplacesPerPublisher); 2 for any other. Those of [before]
+  /// count toward the caps too. So other publishers' roots cannot use up
+  /// the room of a revocation: a dropped revocation would trust a stolen
+  /// key again.
   static List<int> _budgets(
     List<KeyStatement> list,
     List<KeyStatement> all,
@@ -401,27 +475,40 @@ class PublisherList extends ChangeNotifier {
     Iterable<KeyStatement> before = const [],
   }) {
     final grants = <String, int>{}, replaces = <String, int>{};
+    final revokes = <String, int>{};
     bool fits(KeyStatement s) {
-      final (m, cap) = s.type == KeyStatementType.replace
-          ? (replaces, KeyStatement.maxRootReplacesPerPublisher)
-          : (grants, KeyStatement.maxRootGrantsPerPublisher);
+      final (m, cap) = switch (s.type) {
+        KeyStatementType.replace => (
+          replaces,
+          KeyStatement.maxRootReplacesPerPublisher,
+        ),
+        KeyStatementType.grant => (
+          grants,
+          KeyStatement.maxRootGrantsPerPublisher,
+        ),
+        _ => (revokes, KeyStatement.maxRootRevokesByPerPublisher),
+      };
       final n = m[s.publisher] ?? 0;
       if (n >= cap) return false;
       m[s.publisher] = n + 1;
       return true;
     }
 
-    bool reserved(KeyStatement s) =>
+    bool selfOrTheft(KeyStatement s) =>
         (s.type == KeyStatementType.revoke && s.by == null) ||
         provesTheft(s, all);
+    bool rootRevoke(KeyStatement s) =>
+        s.type == KeyStatementType.revoke &&
+        s.by != null &&
+        statementRank(s, basis) == 1;
     for (final s in before) {
-      if (!reserved(s) && statementRank(s, basis) == 1) fits(s);
+      if (!selfOrTheft(s) && statementRank(s, basis) == 1) fits(s);
     }
     return [
       for (final s in list)
-        if (reserved(s))
+        if (selfOrTheft(s) || (rootRevoke(s) && fits(s)))
           0
-        else if (statementRank(s, basis) == 1 && fits(s))
+        else if (!rootRevoke(s) && statementRank(s, basis) == 1 && fits(s))
           1
         else
           2,
@@ -440,12 +527,10 @@ class PublisherList extends ChangeNotifier {
     // Not counted in a budget: at most 50 per added publisher.
     final chains = _onAddedChains(_added.values, read);
     final budgets = _budgets(read, read, basis);
-    final used = [0, 0, 0];
-    final max = _budgetMax;
+    final fits = _fit(read, budgets, chains, [0, 0, 0, 0]);
     return [
       for (var i = 0; i < read.length; i++)
-        if (chains.contains(read[i].id) || used[budgets[i]]++ < max[budgets[i]])
-          read[i],
+        if (fits[i]) read[i],
     ];
   }
 

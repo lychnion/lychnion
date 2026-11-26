@@ -526,6 +526,82 @@ void main() {
       expect(more, isEmpty);
     });
 
+    test('a root that granted the most keys can still revoke one', () async {
+      final keys = [
+        for (var i = 0; i < KeyStatement.maxRootGrantsPerPublisher; i++)
+          await _key(),
+      ];
+      final grants = [
+        for (final k in keys) await grant(k, [KeyScope.data]),
+      ];
+      final known = base.withStatements(grants);
+      expect(known.keysOf('lychnion'), hasLength(keys.length + 1));
+      // Grants and revocations are capped apart.
+      final cut = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        revoked: keys.first.pub,
+        by: root.pair,
+        signed: _t,
+      );
+      final got = await relevantStatements(known, [
+        jsonDecode(jsonEncode(cut.json)),
+      ]);
+      expect(got, hasLength(1));
+      expect(
+        known.withStatements(got).isRevoked('lychnion', keys.first.pub),
+        isTrue,
+      );
+    });
+
+    test('an old root\'s grants don\'t use up the new root\'s cap', () async {
+      final keys = [
+        for (var i = 0; i < KeyStatement.maxRootGrantsPerPublisher; i++)
+          await _key(),
+      ];
+      final k2 = await _key();
+      final rotate = await KeyStatement.replace(
+        publisher: 'lychnion',
+        oldKey: root.pair,
+        newKey: k2.pair,
+        signed: _t,
+      );
+      final known = base.withStatements([
+        for (final k in keys) await grant(k, [KeyScope.data]),
+        rotate,
+      ]);
+      // The new root grants the everyday key again.
+      final again = await grant(keys.first, [KeyScope.data], by: k2.pair);
+      final got = await relevantStatements(known, [
+        jsonDecode(jsonEncode(again.json)),
+      ]);
+      expect(got, hasLength(1));
+    });
+
+    test('the root\'s revocations are capped per publisher', () async {
+      final keys = [
+        for (var i = 0; i <= KeyStatement.maxRootRevokesByPerPublisher; i++)
+          await _key(),
+      ];
+      final known = base.withStatements([
+        for (final k in keys) await grant(k, [KeyScope.data]),
+      ]);
+      final cuts = [
+        for (final k in keys)
+          jsonDecode(
+            jsonEncode(
+              (await KeyStatement.revoke(
+                publisher: 'lychnion',
+                revoked: k.pub,
+                by: root.pair,
+                signed: _t,
+              )).json,
+            ),
+          ),
+      ];
+      final got = await relevantStatements(known, cuts);
+      expect(got, hasLength(KeyStatement.maxRootRevokesByPerPublisher));
+    });
+
     test('a granted key clashing with a rotated root loses', () async {
       final k2 = await _key();
       final g2 = await _key();

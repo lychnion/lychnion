@@ -276,12 +276,21 @@ The rules are kept simple for this first stage:
 - **Priority and caps.** Phones take revocations by the key itself
   first, then the current roots' statements and the replacements within
   a root chain (only the root's holder can make them), then the rest in
-  list order. Per publisher, a phone takes at most 100 grants and `by`
-  revocations from its roots, 200 replacements within its root chains,
-  and 50 other replacements. Its list keeps three budgets that never
-  borrow from each other: revocations by the key itself and theft
-  proofs (2,000), the roots' statements (1,000), and the rest (1,000);
-  so another publisher's root cannot push out a revocation. Sticks,
+  list order. Per publisher, a phone takes at most 100 grants and 100
+  `by` revocations from its roots (counted apart, so a root that granted
+  many keys can still revoke one), 200 replacements within its root
+  chains, and 50 other replacements. Its list keeps three budgets that
+  never borrow from each other: revocations (by the key itself, and the
+  roots' `by` revocations within their cap) and theft proofs (2,000),
+  the roots' other statements (1,000), and the rest (1,000); so another
+  publisher's root cannot push out a revocation. Half of the revocations'
+  budget is kept for the built-in publishers (Lychnion): added publishers'
+  revocations and theft proofs together use at most 1,000, so they cannot
+  push out a revocation of Lychnion's keys. This does not protect one
+  added publisher's revocations from another added publisher's. The halves of a theft proof that arrive together are kept together or not at all: a lone half would trust the thief's new key. A half that arrives after its partner is stored may not fit a full budget. A root's grants and `by` revocations lapse
+  when the root is replaced (the new root grants or revokes again) and
+  don't count toward the new root's caps; past its cap of 100, a root
+  cannot revoke another key until it rotates. Sticks,
   bases and nodes choose what fits in their catalogs the same way:
   revocations by the key itself, theft proofs, the root's statements,
   then the rest.
