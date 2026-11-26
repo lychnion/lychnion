@@ -10,6 +10,8 @@ app, see the user help in [help/](../help/README.md).
 - [Dev flags](dev-flags.md): every `--dart-define` flag.
 - [Release builds](release-builds.md): Android builds and signing.
 - [Releasing](releasing.md): checklist for an app release.
+- [Key custody](key-custody.md): where Lychnion's keys live, how the
+  offline root is used, and what to do when a key is lost or stolen.
 - [Versions](versioning.md): app, data and format numbers.
 
 ## Data and distribution

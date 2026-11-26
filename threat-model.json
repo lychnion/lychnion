@@ -6,7 +6,7 @@
   "scope_subpath": null,
   "description": "Lychnion is an offline safety assistant for Japan. A phone or computer runs a small language model over installed, signed knowledge packages and shows sources and fixed official safety lines. Packages, maps and models come from signed catalogs over the internet, a base computer on the local Wi-Fi, a nearby phone, a USB stick or a headless node. A base also shares signed current facts such as shelter status.",
   "confidence": {
-    "documented": 275,
+    "documented": 276,
     "inferred": 0
   },
   "components": [
