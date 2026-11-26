@@ -792,7 +792,7 @@ plus phones that also use the internet when they can.
   most 100 grants, 100 revocations `by` a root and 200 root-chain replacements
   per publisher; revocations (by the key itself, and the roots' `by`
   revocations within their cap) and theft proofs have a budget of their own on
-  phones, so no other root can crowd them out. Half of that budget is kept for the built-in publishers, so added publishers together cannot fill it. Builds without key
+  phones, so no other root can crowd them out. Half of that budget is kept for the built-in publishers; added publishers' revocations and theft proofs together use at most the other half, and a theft proof's two halves are kept together or not at all. This protects the built-in publishers' revocations, not one added publisher's from another's. A root's grants and revocations `by` it lapse when it is replaced, and past its cap a root cannot revoke more keys until it rotates. Builds without key
   scopes (lychnion/lychnion#125) ignore grants and revocations `by` another
   key. This holds for the `lychnion` key too. *Violation symptom*:
   integrity-bypass. *Tier*: security-critical. *Voided by*: no switch; only

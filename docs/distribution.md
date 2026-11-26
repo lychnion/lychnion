@@ -284,10 +284,15 @@ The rules are kept simple for this first stage:
   roots' `by` revocations within their cap) and theft proofs (2,000),
   the roots' other statements (1,000), and the rest (1,000); so another
   publisher's root cannot push out a revocation. Half of the revocations'
-  budget is kept for the built-in publishers (Lychnion): added publishers
-  together use at most 1,000, so they cannot push out a revocation of
-  Lychnion's keys. A replaced root's grants and revocations don't count
-  toward the new root's caps. Sticks,
+  budget is kept for the built-in publishers (Lychnion): added publishers'
+  revocations and theft proofs together use at most 1,000, so they cannot
+  push out a revocation of Lychnion's keys. This does not protect one
+  added publisher's revocations from another added publisher's. A theft
+  proof's two halves are kept together or not at all: a lone half would
+  trust the thief's new key. A root's grants and `by` revocations lapse
+  when the root is replaced (the new root grants or revokes again) and
+  don't count toward the new root's caps; past its cap of 100, a root
+  cannot revoke another key until it rotates. Sticks,
   bases and nodes choose what fits in their catalogs the same way:
   revocations by the key itself, theft proofs, the root's statements,
   then the rest.

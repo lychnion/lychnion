@@ -376,4 +376,61 @@ void main() {
       expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
     },
   );
+
+  test(
+    'added publishers\' theft proofs count toward their half, whole',
+    () async {
+      final builtIn = TrustedKeys({
+        'lychnion': [await publicKeyOf(root)],
+      });
+      final file = File('${tmp.path}/proofs.json');
+      // Revocations' budget: 6; added publishers together at most 3.
+      final list = PublisherList(file, builtIn: builtIn, maxStatements: 3);
+      await list.load();
+      const t = '2026-11-26T09:00:00+09:00';
+      final d = await Ed25519().newKeyPair();
+      await list.learn([
+        await KeyStatement.grant(
+          publisher: 'lychnion',
+          granter: root,
+          newKey: d,
+          scope: [KeyScope.data],
+          signed: t,
+        ),
+      ]);
+      // Three added publishers' roots each name two successors: a theft
+      // proof of two statements.
+      for (var i = 0; i < 3; i++) {
+        final a = await Ed25519().newKeyPair();
+        await list.add(
+          PublisherLink(name: 'jp.t$i', key: await publicKeyOf(a)),
+        );
+        await list.learn([
+          for (var j = 0; j < 2; j++)
+            await KeyStatement.replace(
+              publisher: 'jp.t$i',
+              oldKey: a,
+              newKey: await Ed25519().newKeyPair(),
+              signed: t,
+            ),
+        ]);
+      }
+      // Only the first pair fits the added half; no lone half is kept.
+      int of(String name) =>
+          list.statements.where((s) => s.publisher == name).length;
+      expect([of('jp.t0'), of('jp.t1'), of('jp.t2')], [2, 0, 0]);
+      final cut = await KeyStatement.revoke(
+        publisher: 'lychnion',
+        revoked: await publicKeyOf(d),
+        by: root,
+        signed: t,
+      );
+      expect(await list.learn([cut]), isTrue);
+      final again = PublisherList(file, builtIn: builtIn, maxStatements: 3);
+      await again.load();
+      // What the phone took, it reads back.
+      expect(again.statements, list.statements);
+      expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
+    },
+  );
 }

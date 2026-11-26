@@ -190,20 +190,74 @@ class PublisherList extends ChangeNotifier {
   /// The most each budget of [_budgets] keeps.
   List<int> get _budgetMax => [maxStatements * 2, maxStatements, maxStatements];
 
-  /// The most of budget 0 that added publishers' revocations may use
-  /// together: the other half is kept for
-  /// the built-in publishers (Lychnion), so added publishers cannot push
-  /// out a revocation of Lychnion's keys.
-  int get _addedRevokeMax => maxStatements;
+  /// The most of budget 0 that added publishers' statements (revocations
+  /// and theft proofs) may use together: the other half is kept for the
+  /// built-in publishers (Lychnion), so added publishers cannot push out
+  /// a revocation of Lychnion's keys.
+  int get _addedZeroMax => maxStatements;
 
   bool _isBuiltIn(KeyStatement s) => builtIn.known.contains(s.publisher);
 
-  /// Whether [s], kept in budget [b], counts toward [_addedRevokeMax]: a
-  /// revocation of an added publisher. Theft proofs don't: half a pair
-  /// would trust the thief's replacement, and each needs a key trusted
-  /// before its batch.
-  bool _addedRevoke(int b, KeyStatement s) =>
-      b == 0 && s.type == KeyStatementType.revoke && !_isBuiltIn(s);
+  /// Whether [s], kept in budget [b], counts toward [_addedZeroMax].
+  bool _addedZero(int b, KeyStatement s) => b == 0 && !_isBuiltIn(s);
+
+  /// Which of [list] fit, in order, into the budgets ([budgets], one per
+  /// statement) after [used] and [usedAdded] (changed in place). Those in
+  /// [free] (an added publisher's own chain) always fit and use no room.
+  /// The replacements of one old key in budget 0 (a theft proof's halves)
+  /// fit together or not at all: a lone half would trust the thief's new
+  /// key. [learn] and [_keptOf] both use this, so what a phone takes it
+  /// also reads back.
+  List<bool> _fit(
+    List<KeyStatement> list,
+    List<int> budgets,
+    Set<String> free,
+    List<int> used,
+    int usedAdded,
+  ) {
+    final max = _budgetMax;
+    final pairs = <String, List<int>>{};
+    for (var i = 0; i < list.length; i++) {
+      final s = list[i];
+      if (budgets[i] != 0 ||
+          s.type != KeyStatementType.replace ||
+          free.contains(s.id)) {
+        continue;
+      }
+      pairs
+          .putIfAbsent(
+            '${s.publisher} ${TrustedKeys.canonicalKey(s.oldKey)}',
+            () => [],
+          )
+          .add(i);
+    }
+    final groupOf = <int, List<int>>{
+      for (final g in pairs.values)
+        for (final i in g) i: g,
+    };
+    final out = List<bool?>.filled(list.length, null);
+    for (var i = 0; i < list.length; i++) {
+      if (out[i] != null) continue;
+      if (free.contains(list[i].id)) {
+        out[i] = true;
+        continue;
+      }
+      final group = groupOf[i] ?? [i];
+      final b = budgets[i];
+      final n = group.length;
+      final added = _addedZero(b, list[i]);
+      final ok =
+          used[b] + n <= max[b] && (!added || usedAdded + n <= _addedZeroMax);
+      if (ok) {
+        used[b] += n;
+        if (added) usedAdded += n;
+      }
+      for (final j in group) {
+        out[j] = ok;
+      }
+    }
+    return [for (final o in out) o!];
+  }
 
   List<KeyStatement> get statements => List.unmodifiable(_statements);
 
@@ -373,11 +427,16 @@ class PublisherList extends ChangeNotifier {
         ]);
         final used = [0, 0, 0];
         var usedAdded = 0;
-        final stored = _budgets(_statements, _statements, basis);
+        // A stored half whose partner is in this batch is a theft proof
+        // now, as on reload.
+        final stored = _budgets(_statements, [
+          ..._statements,
+          ...candidates,
+        ], basis);
         for (var i = 0; i < _statements.length; i++) {
           if (chains.contains(_statements[i].id)) continue;
           used[stored[i]]++;
-          if (_addedRevoke(stored[i], _statements[i])) usedAdded++;
+          if (_addedZero(stored[i], _statements[i])) usedAdded++;
         }
         final budgets = _budgets(
           candidates,
@@ -385,7 +444,18 @@ class PublisherList extends ChangeNotifier {
           basis,
           before: _statements,
         );
-        final max = _budgetMax;
+        final fits = any
+            ? const <bool>[]
+            : _fit(
+                candidates,
+                [
+                  for (var i = 0; i < candidates.length; i++)
+                    inBatchProof(candidates[i]) ? 0 : budgets[i],
+                ],
+                chains,
+                used,
+                usedAdded,
+              );
         final fresh = <KeyStatement>[];
         // The user's own statements ([any]): kept while all budgets
         // together have room, as far as load reads back; past the limit
@@ -396,19 +466,7 @@ class PublisherList extends ChangeNotifier {
             if (hard-- > 0) fresh.add(candidates[i]);
             continue;
           }
-          if (chains.contains(candidates[i].id)) {
-            fresh.add(candidates[i]);
-            continue;
-          }
-          final b = inBatchProof(candidates[i]) ? 0 : budgets[i];
-          // Half of the revocations' budget is kept for the built-in
-          // publishers: added ones together cannot fill it.
-          final added = _addedRevoke(b, candidates[i]);
-          if (used[b] < max[b] && (!added || usedAdded < _addedRevokeMax)) {
-            used[b]++;
-            if (added) usedAdded++;
-            fresh.add(candidates[i]);
-          }
+          if (fits[i]) fresh.add(candidates[i]);
         }
         final next = [..._statements, ...fresh];
         if (next.length == _statements.length) return false;
@@ -491,23 +549,10 @@ class PublisherList extends ChangeNotifier {
     // Not counted in a budget: at most 50 per added publisher.
     final chains = _onAddedChains(_added.values, read);
     final budgets = _budgets(read, read, basis);
-    final used = [0, 0, 0];
-    var usedAdded = 0;
-    final max = _budgetMax;
-    bool keep(int i) {
-      final b = budgets[i];
-      final added = _addedRevoke(b, read[i]);
-      if (used[b] >= max[b] || (added && usedAdded >= _addedRevokeMax)) {
-        return false;
-      }
-      used[b]++;
-      if (added) usedAdded++;
-      return true;
-    }
-
+    final fits = _fit(read, budgets, chains, [0, 0, 0], 0);
     return [
       for (var i = 0; i < read.length; i++)
-        if (chains.contains(read[i].id) || keep(i)) read[i],
+        if (fits[i]) read[i],
     ];
   }
 
