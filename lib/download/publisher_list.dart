@@ -207,7 +207,7 @@ class PublisherList extends ChangeNotifier {
   /// added publishers in budget 0; changed in place). Those in [free] (an
   /// added publisher's own chain) always fit and use no room. The
   /// replacements of one old key in [list] (a theft proof's halves) fit
-  /// together or not at all, in their lowest budget: a lone half would
+  /// together or not at all: a lone half would
   /// trust the thief's new key. [learn] and [_keptOf] both use this.
   List<bool> _fit(
     List<KeyStatement> list,
@@ -246,7 +246,8 @@ class PublisherList extends ChangeNotifier {
         continue;
       }
       final group = groupOf[i] ?? [i];
-      // The group's lowest budget: a theft proof in budget 0.
+      // The group's lowest budget (defensive: every member of a group
+      // proves the theft, so all are in budget 0 already).
       final b = group.map((j) => budgets[j]).reduce(math.min);
       final n = group.length;
       final added = _addedZero(b, list[i]);
@@ -408,9 +409,10 @@ class PublisherList extends ChangeNotifier {
             : await relevantStatements(trust, learned.toList());
         // A second successor of a key proves a theft, also when both are
         // in this batch: budgeted with the batch included, as on reload.
-        // A thief's own new keys cannot each add a pair: the caps of
-        // relevantStatements bound them, and added publishers together
-        // use at most half of budget 0 (#59).
+        // A thief's own new keys stay bounded (#59): each replacement
+        // needs room in the caps of relevantStatements, and a key takes at
+        // most one second successor, so about twice the cap per publisher.
+        // Added publishers together use at most half of budget 0.
         final trustedBefore = trust;
         final all = [..._statements, ...candidates];
         // Ranked with the batch included (a new root's statements in the
