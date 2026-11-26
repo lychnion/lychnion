@@ -306,14 +306,16 @@ void main() {
         signed: nowStamp(),
       );
       await p.learn([await link(0), await link(1), await link(2)]);
-      expect(p.statements, hasLength(2));
+      // Made by the added key and its successors: kept past the limit too,
+      // never crowded out (lychnion/lychnion#125).
+      expect(p.statements, hasLength(3));
       final revoke = await KeyStatement.revoke(
         publisher: _name,
         key: k[2],
         signed: nowStamp(),
       );
       expect(await p.learn([revoke]), isTrue);
-      expect(p.statements, hasLength(3));
+      expect(p.statements, hasLength(4));
       final again = PublisherList(file, maxStatements: 2);
       await again.load();
       expect(again.statements, contains(revoke));

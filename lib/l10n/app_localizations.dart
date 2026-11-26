@@ -3339,6 +3339,12 @@ abstract class AppLocalizations {
   /// **'Some sources were not checked by {app}'**
   String answerSourcesNotChecked(String app);
 
+  /// A downloaded update of a built-in package signed by a key without the safety-lines scope (lychnion#125).
+  ///
+  /// In en, this message translates to:
+  /// **'Not used: its signer may not sign official safety lines, so the built-in copy is used.'**
+  String get downloadsNotUsedSafetyLines;
+
   /// No description provided for @downloadsNewerElsewhere.
   ///
   /// In en, this message translates to:

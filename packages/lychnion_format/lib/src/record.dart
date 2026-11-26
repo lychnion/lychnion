@@ -362,6 +362,7 @@ class TrustedKeys {
           recordKeyIdOf(_unb64(x.key)): Set.unmodifiable(x.value),
       };
       _revoked[e.key] = r.revokedIds;
+      _graphs[e.key] = r;
     }
   }
 
@@ -377,6 +378,18 @@ class TrustedKeys {
   /// Publisher name → key id → what that key may sign ([KeyScope]).
   final _scopes = <String, Map<String, Set<String>>>{};
   final _revoked = <String, Set<String>>{};
+  final _graphs = <String, KeyGraph>{};
+
+  /// [publisher]'s trusted roots and their successors by `replace`
+  /// (unpadded base64url): their statements are never crowded out
+  /// (lychnion/lychnion#125).
+  Set<String> rootFamilyOf(String publisher) =>
+      _graphs[publisher]?.rootFamily ?? const {};
+
+  /// Whether a revocation of [target] `by` [maker] would count for
+  /// [publisher] now ([resolveKeys]).
+  bool mayRevoke(String publisher, String maker, String target) =>
+      _graphs[publisher]?.mayRevoke(maker, target) ?? false;
 
   static Map<String, Set<String>> _rootsOf(
     Map<String, Set<String>> have,

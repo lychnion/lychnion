@@ -1979,6 +1979,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get downloadsNotUsedSafetyLines =>
+      '使われていません：署名した鍵には安全のための一文（公式の原文）に署名する権限がないため、内蔵の版を使っています。';
+
+  @override
   String downloadsNewerElsewhere(String version) {
     return '新しい版 $version がありますが、ここではまだ入手できません。';
   }

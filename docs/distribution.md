@@ -243,21 +243,33 @@ key outside the scope it needs is refused like a bad signature.
   successors). Grants to one key add up. A successor by `replace` holds
   the scopes of the key it replaces. **`keys` is as strong as the root:**
   its holder can grant any scope, also `keys`; a scope is never narrowed,
-  only revoked and granted again. Phones keep at most 50 grants per
-  publisher, and take a grant only when its granter holds `keys`
-  (checked before the signature).
+  only revoked and granted again. A grant counts only when its granter
+  holds `keys` (checked before the signature, and again in a later round
+  of the same list, so the order in a list does not matter).
 - **Revoked by the root:** a `revoke` may carry `"by": "<key>"`, signed
   by that key instead of the revoked one. It counts only when the
-  revoked key is a **descendant** of `by` (reached from it through grants
-  and successors, never a key the device trusts on its own, such as the
-  built-in root), and `by` holds `keys` and is itself still trusted once
-  all revocations apply. So the root can cut off a stolen everyday key it
-  does not hold; a delegate cannot revoke the root, its granter or a
-  sibling; and a revoked delegate's revocations stop counting. When such
-  revocations keep undoing each other (keys granting each other in a
-  loop), all of them count. Phones keep at most 50 per publisher, taken
-  only when `by` holds `keys`. A revocation by the key itself counts as
-  before, and is always taken, ahead of anything else in a list.
+  revoked key is a **descendant** of `by`'s family (`by` and its
+  predecessors and successors by `replace`; reached through grants and
+  successors, never a key the device trusts on its own, such as the
+  built-in root), is not also reached without that family (granted by
+  someone else too), and `by` holds `keys` and is itself still trusted
+  once all revocations apply. So the root, or its successor, can cut off
+  a stolen everyday key it does not hold; a delegate cannot revoke the
+  root, its granter, a sibling or a key the root granted too; and a
+  revoked delegate's revocations stop counting. When such revocations
+  keep undoing each other, all of them count. A phone takes one only
+  when it would count (checked before the signature). A revocation by
+  the key itself counts as before.
+- **Priority and caps:** phones take, and keep when their list is full,
+  revocations by the key itself first, then statements made by a root or
+  its successors (only the root's holder can make them, so they are
+  never crowded out, and their grants and revocations have no cap), then
+  the rest in list order. A key
+  outside that family makes at most 50 grants and 50 revocations `by`
+  it that a phone takes: a stolen delegate fills only its own share.
+- **Key ids:** records name a key by a short id, so a granted or successor
+  key whose id is a root's, or another such key's, is never trusted (a
+  thief would need about 2^48 tries to make one).
 - **A revoked key's grants lapse:** a granted key is trusted only through
   a trusted, not revoked granter, as a successor is. Revoking the root
   also drops the keys it granted.
@@ -278,8 +290,17 @@ key outside the scope it needs is refused like a bad signature.
   is valid for `safety-lines` too (checked like a record, with that
   scope). Lychnion's download of a bundled package is used only then;
   one signed by a key without `safety-lines` leaves the bundled file in
-  use, so its lines are never lost. Data releases therefore sign the
-  bundled packages with a key that may sign safety lines.
+  use, so its lines are never lost, and Downloads says on that item that
+  it is not used (the log says why). Data releases therefore sign the
+  bundled packages with a key that may sign safety lines: whichever key
+  signs routine data releases must hold `safety-lines`, or those
+  releases never reach Ask. Which scopes the everyday key gets is part of
+  the key plan (#118).
+- **Older builds** ignore grants and revocations `by` another key: a key
+  the root revoked stays trusted there, records signed only by a granted
+  key are refused there, and when such a build rewrites its stored list
+  of statements, it leaves grants and those revocations out (a newer
+  build learns them again from the next catalog or stick).
 - Added publishers can use grants and scopes too; nothing else changes
   for them.
 

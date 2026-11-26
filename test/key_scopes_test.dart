@@ -120,7 +120,8 @@ void main() {
       // Not the download: its official lines would not count, and the
       // bundled ones would be lost.
       expect(src.path, isNot(contains('${tmp.path}/b/downloads')));
-      expect(src.safetyLines, isTrue);
+      expect(src.notUsed, isTrue);
+      expect(await s.bundledDownloadNotUsed('jp.bousai.core'), isTrue);
       // With a key that may sign safety lines, the download is used.
       final t = DownloadStore(Directory('${tmp.path}/c'), trust: trust);
       await install(t, 'jp.bousai.core', lines);
@@ -129,7 +130,8 @@ void main() {
         'jp.bousai.core.sqlite',
       );
       expect(used.path, contains('${tmp.path}/c'));
-      expect(used.safetyLines, isTrue);
+      expect(used.notUsed, isFalse);
+      expect(await t.bundledDownloadNotUsed('jp.bousai.core'), isFalse);
     },
   );
 
@@ -173,5 +175,48 @@ void main() {
     expect(list.statements, contains(real));
     expect(list.statements.any(flood.contains), isFalse);
     expect(list.trust.keysOf('lychnion'), {await publicKeyOf(root)});
+  });
+
+  test('a keys delegate fills the list; the root still revokes it', () async {
+    final builtIn = TrustedKeys({
+      'lychnion': [await publicKeyOf(root)],
+    });
+    final file = File('${tmp.path}/full.json');
+    final list = PublisherList(file, builtIn: builtIn, maxStatements: 10);
+    const t = '2026-11-26T09:00:00+09:00';
+    final d = await Ed25519().newKeyPair();
+    await list.learn([
+      await KeyStatement.grant(
+        publisher: 'lychnion',
+        granter: root,
+        newKey: d,
+        scope: [KeyScope.keys],
+        signed: t,
+      ),
+    ]);
+    await list.learn([
+      for (var i = 0; i < 30; i++)
+        await KeyStatement.grant(
+          publisher: 'lychnion',
+          granter: d,
+          newKey: await Ed25519().newKeyPair(),
+          scope: [KeyScope.data],
+          signed: t,
+        ),
+    ]);
+    expect(list.statements.length, 10);
+    final real = await KeyStatement.revoke(
+      publisher: 'lychnion',
+      revoked: await publicKeyOf(d),
+      by: root,
+      signed: t,
+    );
+    expect(await list.learn([real]), isTrue);
+    expect(list.trust.keysOf('lychnion'), {await publicKeyOf(root)});
+    // Read back too.
+    final again = PublisherList(file, builtIn: builtIn, maxStatements: 10);
+    await again.load();
+    expect(again.statements, contains(real));
+    expect(again.trust.keysOf('lychnion'), {await publicKeyOf(root)});
   });
 }

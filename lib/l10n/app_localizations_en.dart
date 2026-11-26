@@ -2091,6 +2091,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get downloadsNotUsedSafetyLines =>
+      'Not used: its signer may not sign official safety lines, so the built-in copy is used.';
+
+  @override
   String downloadsNewerElsewhere(String version) {
     return 'A newer version $version exists, but it is not available here yet.';
   }

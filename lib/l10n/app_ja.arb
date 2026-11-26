@@ -582,6 +582,7 @@
   "answerSourceRevoked": "「{name}」が発行 · この端末ではもう信頼されていません",
   "answerSourceBaseSays": "{label}（ベースの表示）",
   "answerSourcesNotChecked": "{app}が確認していない出典があります",
+  "downloadsNotUsedSafetyLines": "使われていません：署名した鍵には安全のための一文（公式の原文）に署名する権限がないため、内蔵の版を使っています。",
   "downloadsNewerElsewhere": "新しい版 {version} がありますが、ここではまだ入手できません。",
   "downloadsLastNews": "{app}からの最新の情報: {date}",
   "downloadsQuiet": "この端末にある{app}からの最新の情報は{date}のものです。接続できるときに更新を確認してください。"

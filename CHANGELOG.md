@@ -117,8 +117,11 @@ here should be relied on alone in an emergency. Source only; build it as
   `data` cannot ship a model, official safety lines or attestations, and
   a Lychnion download signed by such a key never replaces a bundled
   package's safety lines. A key holding `keys` can revoke the keys it
-  granted (directly or further down), never the root; revoking a key
-  drops the keys it granted. Built-in keys keep every scope for now.
+  (or a key it replaced) granted, directly or further down, unless
+  someone else granted them too; never the root. Revoking a key drops
+  the keys it granted. The root's statements are never crowded out by a
+  stolen key's, which count at most 50 grants and 50 revocations per
+  key. Built-in keys keep every scope for now.
 - Held-back updates show (#117). Downloads says when a publisher's
   signed status names a newer version than the one a stick, base or
   download source offers ("a newer version exists, but it is not
@@ -316,7 +319,11 @@ Key statements may be `grant`s, and a `revoke` may carry `by`; records
 may carry a `signatures` list (#125). Older builds ignore grants and
 revocations `by` another key, and check only `key` and `signature`: a
 key the root revoked stays trusted there until they update, and records
-signed only by a granted key are refused there.
+signed only by a granted key are refused there. An older build that
+rewrites its stored statements leaves grants and such revocations out.
+Lychnion's packages with safety lines must be signed by a key holding
+`safety-lines`: a download of a bundled package signed otherwise is not
+used (Downloads says so on that item), and the bundled copy answers.
 
 ### Known gaps
 

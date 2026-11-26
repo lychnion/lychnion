@@ -830,43 +830,78 @@ class DownloadStore {
     return copyBundled('packages', asset);
   }
 
-  /// The file to answer from for the bundled package [id]: a download of
-  /// it signed by Lychnion, else the bundled file. A copy of that id
-  /// installed from a publisher the user added is not used: it would
-  /// replace Lychnion's guide and its safety lines (#66, #68). Decided
-  /// from one look at what is installed. `shadowed` names that copy's
-  /// publisher, for the log.
-  /// Lychnion's download is used only when its official safety lines count
-  /// ([givesSafetyLines], #125): one signed by a key without
-  /// `safety-lines` (a stolen or everyday data key) must not take away the
-  /// bundled file's lines, so the bundled file stays. `safetyLines`:
-  /// whether the lines of what is returned count (always, now).
-  Future<({String path, String? shadowed, bool safetyLines})>
-  bundledPackageSource(String id, String asset) async {
+  /// The file to answer from for the bundled package [id], whose official
+  /// safety lines always count: a download of it signed by Lychnion, else
+  /// the bundled file. Decided from one look at what is installed.
+  ///
+  /// - A copy of that id installed from a publisher the user added is not
+  ///   used: it would replace Lychnion's guide and its safety lines (#66,
+  ///   #68). `shadowed` names that copy's publisher, for the log.
+  /// - Lychnion's download is used only when its official safety lines
+  ///   count ([givesSafetyLines], #125): one signed by a key without
+  ///   `safety-lines` (a stolen or everyday data key) must not take away
+  ///   the bundled file's lines. `notUsed` is then true, for the log and
+  ///   Downloads ([bundledDownloadNotUsed]).
+  Future<({String path, String? shadowed, bool notUsed})> bundledPackageSource(
+    String id,
+    String asset,
+  ) async {
     final i = installed(ItemKind.package, id);
-    if (useInstalledBundled(i) && await givesSafetyLines(i!)) {
+    if (useInstalledBundled(i)) {
+      if (await givesSafetyLines(i!)) {
+        return (
+          path: path(i, i.fileEnding('.sqlite')!),
+          shadowed: null,
+          notUsed: false,
+        );
+      }
       return (
-        path: path(i, i.fileEnding('.sqlite')!),
+        path: await copyBundled('packages', asset),
         shadowed: null,
-        safetyLines: true,
+        notUsed: true,
       );
     }
     return (
       path: await copyBundled('packages', asset),
       shadowed: i?.record.publisher,
-      safetyLines: true,
+      notUsed: false,
     );
   }
+
+  /// True when the installed copy of bundled package [id] is Lychnion's
+  /// but not used, since its signer may not sign official safety lines
+  /// (see [bundledPackageSource]): Downloads says so.
+  Future<bool> bundledDownloadNotUsed(String id) async {
+    if (!bundledPackages.contains(id)) return false;
+    final i = installed(ItemKind.package, id);
+    return useInstalledBundled(i) && !await givesSafetyLines(i!);
+  }
+
+  /// [givesSafetyLines] by record (publisher and signature), while
+  /// [trust] stays the same: one verification per record, not one per
+  /// package per load.
+  final _linesChecked = <String, bool>{};
+  TrustedKeys? _linesTrust;
 
   /// Whether installed package [i]'s official safety lines count: signed
   /// by a built-in publisher (Lychnion, #66) with a key that may sign
   /// safety lines (KeyScope.safetyLines, #125). A key granted only `data`
   /// brings guides, not official lines.
   /// Checked like a record (TrustedKeys.verify), with the safety-lines
-  /// scope and the number of signatures it needs.
-  Future<bool> givesSafetyLines(Installed i) async =>
-      i.builtInPublisher &&
-      await trust.verify(i.record, scope: KeyScope.safetyLines);
+  /// scope and the number of signatures it needs; remembered per record.
+  Future<bool> givesSafetyLines(Installed i) async {
+    if (!i.builtInPublisher) return false;
+    final t = trust;
+    if (!identical(t, _linesTrust)) {
+      _linesChecked.clear();
+      _linesTrust = t;
+    }
+    final key = '${i.record.publisher}\n${i.record.signature}';
+    if (_linesChecked[key] case final known?) return known;
+    final ok = await t.verify(i.record, scope: KeyScope.safetyLines);
+    if (identical(t, _linesTrust)) _linesChecked[key] = ok;
+    return ok;
+  }
 
   /// Whether the installed copy [i] of a bundled package is used: only
   /// when it is there, has its file and is signed by a built-in publisher.

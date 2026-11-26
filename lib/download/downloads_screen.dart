@@ -14,6 +14,7 @@ import '../l10n/app_localizations.dart';
 import 'catalog.dart';
 import 'download_manager.dart';
 import 'download_store.dart' show MobileData, UpdateMode;
+import '../knowledge/bundled_packages.dart' show bundledPackages;
 import 'downloader.dart';
 import 'publisher_label.dart';
 import 'publishers_screen.dart' show publisherLabelText;
@@ -687,6 +688,21 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ],
+                if (_notUsedOf(item, s) case final f?)
+                  FutureBuilder<bool>(
+                    future: f,
+                    builder: (c, snap) => snap.data == true
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              l.downloadsNotUsedSafetyLines,
+                              style: small?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 if (_newerElsewhere(item, s) case final v?) ...[
                   const SizedBox(height: 6),
                   Text(
@@ -775,6 +791,22 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   /// Items shown expanded (tap a card to open or close it).
   final _open = <String>{};
+
+  /// Whether Lychnion's installed download of a bundled package is not
+  /// used (#125), by record and trusted keys; null for other items.
+  final _notUsed = <String, Future<bool>>{};
+  Future<bool>? _notUsedOf(CatalogItem item, ItemState s) {
+    if (item.kind != ItemKind.package ||
+        !bundledPackages.contains(item.id) ||
+        (s.status != ItemStatus.installed && s.status != ItemStatus.update)) {
+      return null;
+    }
+    final i = m.store.installed(ItemKind.package, item.id);
+    if (i == null) return null;
+    final key =
+        '${item.id} ${i.record.signature} ${identityHashCode(m.store.trust)}';
+    return _notUsed[key] ??= m.store.bundledDownloadNotUsed(item.id);
+  }
 
   /// A newer version of [item] that its publisher's status names (#117),
   /// newer than the one offered here and the one installed: someone along

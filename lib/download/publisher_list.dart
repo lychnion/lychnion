@@ -366,21 +366,21 @@ class PublisherList extends ChangeNotifier {
         return changed;
       });
 
-  /// A revocation, or a replacement that proves a theft: kept even past
-  /// [maxStatements], since losing one would trust a stolen key again. A
-  /// revocation `by` another key (lychnion/lychnion#125) only when [basis]
-  /// trusts its target and its maker holds `keys`: anyone else's would
-  /// fill the hard limit and push real revocations out.
+  /// Kept even past [maxStatements], since losing one would trust a
+  /// stolen key again or drop the root's word: a revocation by the key
+  /// itself, a statement made by a root or its successors (rank 0 and 1
+  /// of statementRank, lychnion/lychnion#125: only their holder can make
+  /// them), a revocation `by` another key that counts for [basis]
+  /// (TrustedKeys.mayRevoke: anyone else's would fill the hard limit and
+  /// push real revocations out), and a replacement that proves a theft.
   static bool _protects(
     KeyStatement s,
     List<KeyStatement> all,
     TrustedKeys basis,
   ) {
+    if (statementRank(s, basis) < 2) return true;
     if (s.type == KeyStatementType.revoke) {
-      final by = s.by;
-      if (by == null) return true;
-      return basis.keysFor(s.publisher, KeyScope.keys).contains(by) &&
-          basis.keysOf(s.publisher).contains(s.oldKey);
+      return basis.mayRevoke(s.publisher, s.by!, s.oldKey);
     }
     return provesTheft(s, all);
   }
@@ -391,7 +391,7 @@ class PublisherList extends ChangeNotifier {
   List<KeyStatement> _keptOf(List<KeyStatement> read) {
     var left = maxStatements;
     // The keys before any revocation `by` another key: whom such a
-    // revocation may protect.
+    // revocation may protect, and the root family (statementRank).
     final basis = builtIn
         .plus({
           for (final p in _added.values) p.name: [p.key],

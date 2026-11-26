@@ -179,11 +179,20 @@ mixin _ModelLoading on _AskPageBase {
           if (src.shadowed case final who?) {
             _log({'event': 'package_shadow_ignored', 'id': id, 'by': who});
           }
+          if (src.notUsed) {
+            // Lychnion's download, signed by a key that may not sign
+            // official safety lines (#125): the bundled file is used.
+            _log({
+              'event': 'package_download_not_used',
+              'id': id,
+              'reason': 'signer may not sign safety lines',
+            });
+          }
           bundled.addAll([
             ?openOrSkip(
               id,
               src.path,
-              safetyLines: src.safetyLines,
+              safetyLines: true,
               signer: attesterPublisher,
             ),
           ]);

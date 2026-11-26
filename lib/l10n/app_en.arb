@@ -1204,6 +1204,8 @@
   "@answerSourceBaseSays": {"placeholders": {"label": {"type": "String"}}},
   "answerSourcesNotChecked": "Some sources were not checked by {app}",
   "@answerSourcesNotChecked": {"placeholders": {"app": {"type": "String"}}},
+  "downloadsNotUsedSafetyLines": "Not used: its signer may not sign official safety lines, so the built-in copy is used.",
+  "@downloadsNotUsedSafetyLines": {"description": "A downloaded update of a built-in package signed by a key without the safety-lines scope (lychnion#125)."},
   "downloadsNewerElsewhere": "A newer version {version} exists, but it is not available here yet.",
   "@downloadsNewerElsewhere": {"placeholders": {"version": {"type": "String"}}},
   "downloadsLastNews": "Latest news from {app}: {date}",
