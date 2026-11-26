@@ -849,6 +849,10 @@ Future<List<KeyStatement>> relevantStatements(
   for (final s in all) {
     if (s.type == KeyStatementType.replace) {
       replaces[s.publisher] = (replaces[s.publisher] ?? 0) + 1;
+    } else if (statementRank(s, trust) != 1) {
+      // A replaced root's grants and revocations lapsed with it: they
+      // don't use up the new root's caps.
+      continue;
     } else if (s.type == KeyStatementType.grant) {
       rootGrants[s.publisher] = (rootGrants[s.publisher] ?? 0) + 1;
     } else if (s.by != null) {

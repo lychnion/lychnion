@@ -190,6 +190,21 @@ class PublisherList extends ChangeNotifier {
   /// The most each budget of [_budgets] keeps.
   List<int> get _budgetMax => [maxStatements * 2, maxStatements, maxStatements];
 
+  /// The most of budget 0 that added publishers' revocations may use
+  /// together: the other half is kept for
+  /// the built-in publishers (Lychnion), so added publishers cannot push
+  /// out a revocation of Lychnion's keys.
+  int get _addedRevokeMax => maxStatements;
+
+  bool _isBuiltIn(KeyStatement s) => builtIn.known.contains(s.publisher);
+
+  /// Whether [s], kept in budget [b], counts toward [_addedRevokeMax]: a
+  /// revocation of an added publisher. Theft proofs don't: half a pair
+  /// would trust the thief's replacement, and each needs a key trusted
+  /// before its batch.
+  bool _addedRevoke(int b, KeyStatement s) =>
+      b == 0 && s.type == KeyStatementType.revoke && !_isBuiltIn(s);
+
   List<KeyStatement> get statements => List.unmodifiable(_statements);
 
   /// Built-in publishers plus the added ones, after the key statements
@@ -348,14 +363,26 @@ class PublisherList extends ChangeNotifier {
                   o.oldKey == s.oldKey &&
                   o.newKey != s.newKey,
             );
+        // Ranked with the batch included (a new root's statements in the
+        // same batch as its rotation), as on reload.
+        final basis = trustedBefore.withStatements(candidates);
+        // An added publisher's own chain is not counted, as on reload.
+        final chains = _onAddedChains(_added.values, [
+          ..._statements,
+          ...candidates,
+        ]);
         final used = [0, 0, 0];
-        for (final b in _budgets(_statements, _statements, trustedBefore)) {
-          used[b]++;
+        var usedAdded = 0;
+        final stored = _budgets(_statements, _statements, basis);
+        for (var i = 0; i < _statements.length; i++) {
+          if (chains.contains(_statements[i].id)) continue;
+          used[stored[i]]++;
+          if (_addedRevoke(stored[i], _statements[i])) usedAdded++;
         }
         final budgets = _budgets(
           candidates,
           _statements,
-          trustedBefore,
+          basis,
           before: _statements,
         );
         final max = _budgetMax;
@@ -369,9 +396,17 @@ class PublisherList extends ChangeNotifier {
             if (hard-- > 0) fresh.add(candidates[i]);
             continue;
           }
+          if (chains.contains(candidates[i].id)) {
+            fresh.add(candidates[i]);
+            continue;
+          }
           final b = inBatchProof(candidates[i]) ? 0 : budgets[i];
-          if (used[b] < max[b]) {
+          // Half of the revocations' budget is kept for the built-in
+          // publishers: added ones together cannot fill it.
+          final added = _addedRevoke(b, candidates[i]);
+          if (used[b] < max[b] && (!added || usedAdded < _addedRevokeMax)) {
             used[b]++;
+            if (added) usedAdded++;
             fresh.add(candidates[i]);
           }
         }
@@ -457,11 +492,22 @@ class PublisherList extends ChangeNotifier {
     final chains = _onAddedChains(_added.values, read);
     final budgets = _budgets(read, read, basis);
     final used = [0, 0, 0];
+    var usedAdded = 0;
     final max = _budgetMax;
+    bool keep(int i) {
+      final b = budgets[i];
+      final added = _addedRevoke(b, read[i]);
+      if (used[b] >= max[b] || (added && usedAdded >= _addedRevokeMax)) {
+        return false;
+      }
+      used[b]++;
+      if (added) usedAdded++;
+      return true;
+    }
+
     return [
       for (var i = 0; i < read.length; i++)
-        if (chains.contains(read[i].id) || used[budgets[i]]++ < max[budgets[i]])
-          read[i],
+        if (chains.contains(read[i].id) || keep(i)) read[i],
     ];
   }
 

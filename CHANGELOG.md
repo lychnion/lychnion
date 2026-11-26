@@ -125,7 +125,8 @@ here should be relied on alone in an emergency. Source only; build it as
   from each publisher's roots (grants and revocations counted apart),
   and keeps revocations (by a key itself, and a root's of a granted key)
   and theft proofs in a budget nothing else uses, so another publisher's
-  root cannot push them out.
+  root cannot push them out. Half of that budget is kept for the built-in
+  publishers, so added publishers together cannot fill it.
   Built-in keys keep every scope for now; delegating `keys` returns
   with more than one signature (#118 stage 2).
 - Held-back updates show (#117). Downloads says when a publisher's

@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:80438939312dd9a3be5bba7016fd8933abd126558ac892be905c0b1f4f795f76
+prose_version: threat-model.md@sha256:184c588e648bcc6e2e8e0a49c18711b762063055ee2de330b9baf84377bc43cd
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -2027,7 +2027,7 @@ properties_claimed:
     with new built-in roots. The current roots' statements are taken and kept first, also in catalogs, at
     most 100 grants, 100 revocations `by` a root and 200 root-chain replacements per publisher; revocations
     (by the key itself, and the roots' `by` revocations within their cap) and theft proofs have a budget of
-    their own on phones, so no other root can crowd them out. Builds
+    their own on phones, so no other root can crowd them out. Half of that budget is kept for the built-in publishers, so added publishers together cannot fill it. Builds
     without key scopes (lychnion/lychnion#125) ignore grants and revocations `by` another key. This holds
     for the `lychnion` key too.
   violation_symptoms:
