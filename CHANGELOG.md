@@ -127,8 +127,7 @@ here should be relied on alone in an emergency. Source only; build it as
   and theft proofs in a budget nothing else uses, so another publisher's
   root cannot push them out. Half of that budget is kept for the built-in
   publishers: added publishers' revocations and theft proofs together
-  use at most the other half, and a theft proof is kept whole or not at
-  all.
+  use at most the other half, and a theft proof that arrives in one download is kept whole or not at all.
   Built-in keys keep every scope for now; delegating `keys` returns
   with more than one signature (#118 stage 2).
 - Held-back updates show (#117). Downloads says when a publisher's

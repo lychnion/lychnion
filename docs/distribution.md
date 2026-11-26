@@ -287,9 +287,7 @@ The rules are kept simple for this first stage:
   budget is kept for the built-in publishers (Lychnion): added publishers'
   revocations and theft proofs together use at most 1,000, so they cannot
   push out a revocation of Lychnion's keys. This does not protect one
-  added publisher's revocations from another added publisher's. A theft
-  proof's two halves are kept together or not at all: a lone half would
-  trust the thief's new key. A root's grants and `by` revocations lapse
+  added publisher's revocations from another added publisher's. The halves of a theft proof that arrive together are kept together or not at all: a lone half would trust the thief's new key. A half that arrives after its partner is stored may not fit a full budget. A root's grants and `by` revocations lapse
   when the root is replaced (the new root grants or revokes again) and
   don't count toward the new root's caps; past its cap of 100, a root
   cannot revoke another key until it rotates. Sticks,

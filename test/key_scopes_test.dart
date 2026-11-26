@@ -433,4 +433,65 @@ void main() {
       expect(again.trust.isRevoked('lychnion', await publicKeyOf(d)), isTrue);
     },
   );
+
+  group('a theft proof is kept whole', () {
+    const t = '2026-11-26T09:00:00+09:00';
+    Future<KeyStatement> rep(String p, SimpleKeyPair from, SimpleKeyPair to) =>
+        KeyStatement.replace(publisher: p, oldKey: from, newKey: to, signed: t);
+
+    test('on a key first trusted in the same batch', () async {
+      final file = File('${tmp.path}/fork.json');
+      final list = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await list.load();
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: 'jp.f', key: await publicKeyOf(a)));
+      final k1 = await Ed25519().newKeyPair();
+      await list.learn([
+        await rep('jp.f', a, k1),
+        await rep('jp.f', k1, await Ed25519().newKeyPair()),
+        await rep('jp.f', k1, await Ed25519().newKeyPair()),
+      ]);
+      final k1Key = TrustedKeys.canonicalKey(await publicKeyOf(k1));
+      final onK1 = list.statements
+          .where((s) => TrustedKeys.canonicalKey(s.oldKey) == k1Key)
+          .length;
+      expect(onK1, isNot(1));
+      final again = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await again.load();
+      expect(again.statements, list.statements);
+    });
+
+    test('a pair past the added half', () async {
+      final file = File('${tmp.path}/three.json');
+      // Added publishers together at most 1 in budget 0.
+      final list = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await list.load();
+      final a = await Ed25519().newKeyPair();
+      await list.add(PublisherLink(name: 'jp.g', key: await publicKeyOf(a)));
+      await list.learn([
+        for (var i = 0; i < 2; i++)
+          await rep('jp.g', a, await Ed25519().newKeyPair()),
+      ]);
+      expect(list.statements, isEmpty);
+      final again = PublisherList(
+        file,
+        builtIn: TrustedKeys({}),
+        maxStatements: 1,
+      );
+      await again.load();
+      expect(again.statements, isEmpty);
+    });
+  });
 }

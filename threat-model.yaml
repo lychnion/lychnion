@@ -2,7 +2,7 @@
 # Regenerate after every change to threat-model.md.
 schema: threat-model-sidecar/v2
 project: lychnion
-prose_version: threat-model.md@sha256:e0d38bd9d24a7843b60572f59aa730603919d77de159f18ad6c4c8c8a78bd0f6
+prose_version: threat-model.md@sha256:36a54e633dada1660349a574eb73758694e2bcb924c760c536ede6bdc0595172
 model_status: accepted
 triage_policy: strict
 confidence:
@@ -2027,7 +2027,7 @@ properties_claimed:
     with new built-in roots. The current roots' statements are taken and kept first, also in catalogs, at
     most 100 grants, 100 revocations `by` a root and 200 root-chain replacements per publisher; revocations
     (by the key itself, and the roots' `by` revocations within their cap) and theft proofs have a budget of
-    their own on phones, so no other root can crowd them out. Half of that budget is kept for the built-in publishers; added publishers' revocations and theft proofs together use at most the other half, and a theft proof's two halves are kept together or not at all. This protects the built-in publishers' revocations, not one added publisher's from another's. A root's grants and revocations `by` it lapse when it is replaced, and past its cap a root cannot revoke more keys until it rotates. Builds
+    their own on phones, so no other root can crowd them out. Half of that budget is kept for the built-in publishers; added publishers' revocations and theft proofs together use at most the other half, and the halves of a theft proof that arrive together are kept together or not at all (a half that arrives after its partner is stored may not fit a full budget). This protects the built-in publishers' revocations, not one added publisher's from another's. A root's grants and revocations `by` it lapse when it is replaced, and past its cap a root cannot revoke more keys until it rotates. Builds
     without key scopes (lychnion/lychnion#125) ignore grants and revocations `by` another key. This holds
     for the `lychnion` key too.
   violation_symptoms:

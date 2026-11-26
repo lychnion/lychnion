@@ -202,26 +202,23 @@ class PublisherList extends ChangeNotifier {
   bool _addedZero(int b, KeyStatement s) => b == 0 && !_isBuiltIn(s);
 
   /// Which of [list] fit, in order, into the budgets ([budgets], one per
-  /// statement) after [used] and [usedAdded] (changed in place). Those in
-  /// [free] (an added publisher's own chain) always fit and use no room.
-  /// The replacements of one old key in budget 0 (a theft proof's halves)
-  /// fit together or not at all: a lone half would trust the thief's new
-  /// key. [learn] and [_keptOf] both use this, so what a phone takes it
-  /// also reads back.
+  /// statement) after [used] (the room used in budgets 0, 1, 2, then by
+  /// added publishers in budget 0; changed in place). Those in [free] (an
+  /// added publisher's own chain) always fit and use no room. The
+  /// replacements of one old key in [list] (a theft proof's halves) fit
+  /// together or not at all, in the budget of the first: a lone half would
+  /// trust the thief's new key. [learn] and [_keptOf] both use this.
   List<bool> _fit(
     List<KeyStatement> list,
     List<int> budgets,
     Set<String> free,
     List<int> used,
-    int usedAdded,
   ) {
     final max = _budgetMax;
     final pairs = <String, List<int>>{};
     for (var i = 0; i < list.length; i++) {
       final s = list[i];
-      if (budgets[i] != 0 ||
-          s.type != KeyStatementType.replace ||
-          free.contains(s.id)) {
+      if (s.type != KeyStatementType.replace || free.contains(s.id)) {
         continue;
       }
       pairs
@@ -247,10 +244,10 @@ class PublisherList extends ChangeNotifier {
       final n = group.length;
       final added = _addedZero(b, list[i]);
       final ok =
-          used[b] + n <= max[b] && (!added || usedAdded + n <= _addedZeroMax);
+          used[b] + n <= max[b] && (!added || used[3] + n <= _addedZeroMax);
       if (ok) {
         used[b] += n;
-        if (added) usedAdded += n;
+        if (added) used[3] += n;
       }
       for (final j in group) {
         out[j] = ok;
@@ -409,13 +406,17 @@ class PublisherList extends ChangeNotifier {
         final trustedBefore = trust;
         bool inBatchProof(KeyStatement s) =>
             s.type == KeyStatementType.replace &&
-            trustedBefore.keysOf(s.publisher).contains(s.oldKey) &&
+            trustedBefore
+                .keysOf(s.publisher)
+                .contains(TrustedKeys.canonicalKey(s.oldKey)) &&
             candidates.any(
               (o) =>
                   o.type == KeyStatementType.replace &&
                   o.publisher == s.publisher &&
-                  o.oldKey == s.oldKey &&
-                  o.newKey != s.newKey,
+                  TrustedKeys.canonicalKey(o.oldKey) ==
+                      TrustedKeys.canonicalKey(s.oldKey) &&
+                  TrustedKeys.canonicalKey(o.newKey!) !=
+                      TrustedKeys.canonicalKey(s.newKey!),
             );
         // Ranked with the batch included (a new root's statements in the
         // same batch as its rotation), as on reload.
@@ -425,19 +426,16 @@ class PublisherList extends ChangeNotifier {
           ..._statements,
           ...candidates,
         ]);
-        final used = [0, 0, 0];
-        var usedAdded = 0;
-        // A stored half whose partner is in this batch is a theft proof
-        // now, as on reload.
-        final stored = _budgets(_statements, [
-          ..._statements,
-          ...candidates,
-        ], basis);
-        for (var i = 0; i < _statements.length; i++) {
-          if (chains.contains(_statements[i].id)) continue;
-          used[stored[i]]++;
-          if (_addedZero(stored[i], _statements[i])) usedAdded++;
-        }
+        // The room the stored statements use, counted as on reload (a
+        // stored half whose partner is in this batch is a theft proof now;
+        // past a budget, a stored statement uses no room).
+        final used = [0, 0, 0, 0];
+        _fit(
+          _statements,
+          _budgets(_statements, [..._statements, ...candidates], basis),
+          chains,
+          used,
+        );
         final budgets = _budgets(
           candidates,
           _statements,
@@ -454,7 +452,6 @@ class PublisherList extends ChangeNotifier {
                 ],
                 chains,
                 used,
-                usedAdded,
               );
         final fresh = <KeyStatement>[];
         // The user's own statements ([any]): kept while all budgets
@@ -549,7 +546,7 @@ class PublisherList extends ChangeNotifier {
     // Not counted in a budget: at most 50 per added publisher.
     final chains = _onAddedChains(_added.values, read);
     final budgets = _budgets(read, read, basis);
-    final fits = _fit(read, budgets, chains, [0, 0, 0], 0);
+    final fits = _fit(read, budgets, chains, [0, 0, 0, 0]);
     return [
       for (var i = 0; i < read.length; i++)
         if (fits[i]) read[i],
